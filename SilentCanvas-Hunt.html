@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Operation SilentCanvas — Hunt Package</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f29;
+    --panel-2: #232936;
+    --border: #2d3543;
+    --text: #d4d7dd;
+    --muted: #8b95a5;
+    --accent: #ff7a59;
+    --accent-2: #5eb3ff;
+    --good: #6dd178;
+    --warn: #ffc857;
+    --bad: #ff5d6c;
+    --code-bg: #0a0d12;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.55;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+  header {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  h1 { margin: 0 0 4px; font-size: 28px; color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 14px; }
+  h2 {
+    color: var(--accent-2);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin-top: 40px;
+    font-size: 22px;
+  }
+  h3 { color: var(--accent); margin-top: 28px; font-size: 16px; }
+  h4 { color: var(--text); margin: 16px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .brief {
+    background: var(--panel);
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 4px;
+    margin-bottom: 24px;
+  }
+  .brief ul { margin: 8px 0; padding-left: 20px; }
+  .brief li { margin: 4px 0; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-critical { background: var(--bad); color: #fff; }
+  .badge-high { background: var(--warn); color: #000; }
+  .badge-medium { background: var(--accent-2); color: #000; }
+  .badge-low { background: var(--muted); color: #000; }
+  .badge-good { background: var(--good); color: #000; }
+  .query-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .query-header {
+    background: var(--panel-2);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .query-meta {
+    padding: 8px 14px;
+    background: rgba(94, 179, 255, 0.06);
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .query-meta strong { color: var(--text); }
+  pre {
+    margin: 0;
+    padding: 14px;
+    background: var(--code-bg);
+    color: #d4d7dd;
+    font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+  }
+  .copy-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .copy-btn:hover { background: #ff9170; }
+  .copy-btn.copied { background: var(--good); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--panel-2);
+    color: var(--accent-2);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  tr:hover td { background: rgba(94, 179, 255, 0.04); }
+  code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .ioc-section { margin: 16px 0; }
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+  }
+  .toc h4 { margin-top: 0; }
+  .toc ul { margin: 0; padding-left: 20px; column-count: 2; column-gap: 24px; }
+  .toc a { color: var(--accent-2); text-decoration: none; font-size: 13px; }
+  .toc a:hover { text-decoration: underline; }
+  .callout {
+    background: rgba(255, 122, 89, 0.08);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .callout-warn {
+    background: rgba(255, 200, 87, 0.08);
+    border-left-color: var(--warn);
+  }
+  ul.harden { margin: 6px 0 16px; padding-left: 22px; }
+  ul.harden li { margin: 6px 0; font-size: 14px; }
+  .ioa-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .ioa-block h4 { margin-top: 0; color: var(--accent); text-transform: none; letter-spacing: 0; font-size: 15px; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 4px 12px;
+    font-size: 13px;
+    margin: 8px 0;
+  }
+  .meta-grid dt { color: var(--muted); }
+  .meta-grid dd { margin: 0; }
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+  .gap { color: var(--bad); font-weight: 600; }
+  .partial { color: var(--warn); }
+  .good-text { color: var(--good); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Operation SilentCanvas — Hunt Package</h1>
+  <div class="subtitle">JPEG-extension PowerShell loader &rarr; trojanized ConnectWise ScreenConnect &middot; Generated 2026-05-12 &middot; Source: <a href="https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/" style="color:var(--accent-2)">Cyfirma</a></div>
+</header>
+
+<div class="toc">
+  <h4>Contents</h4>
+  <ul>
+    <li><a href="#writeup">Threat Writeup Summary</a></li>
+    <li><a href="#brief">Hunt Brief</a></li>
+    <li><a href="#queries">CQL Hunt Queries (14)</a></li>
+    <li><a href="#iocs">IOC Blocklists</a></li>
+    <li><a href="#ioas">Custom IOA Rules</a></li>
+    <li><a href="#hardening">Hardening Recommendations</a></li>
+    <li><a href="#coverage">Detection Coverage Map</a></li>
+    <li><a href="#priority">Prioritization &amp; Risk</a></li>
+    <li><a href="#summary">Hunt Summary Ticket</a></li>
+  </ul>
+</div>
+
+<section id="writeup">
+<h2>Threat Writeup Summary</h2>
+<div class="brief">
+  <p style="margin-top:0"><strong>Source:</strong> Cyfirma Research &mdash; <em>Operation SilentCanvas: JPEG-Based Multistage PowerShell Intrusion</em></p>
+  <p><strong>URL:</strong> <a href="https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/" style="color:var(--accent-2);word-break:break-all">https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/</a></p>
+
+  <h4>Campaign Overview</h4>
+  <p style="font-size:14px">Cyfirma researchers documented a multi-stage intrusion campaign that weaponizes a fake <code>.jpeg</code> file to deliver PowerShell, achieve fileless privilege escalation, and establish persistent command-and-control through a <strong>trojanized ConnectWise ScreenConnect</strong> client. The attack is assessed as the work of a financially motivated actor or Initial Access Broker demonstrating professional engineering and operational maturity.</p>
+
+  <h4>The Attack Chain (Step-by-Step)</h4>
+  <ol style="font-size:14px;padding-left:22px">
+    <li><strong>Delivery:</strong> Victim receives <code>sysupdate.jpeg</code> via phishing, fake cloud-sharing link, or spoofed software update lure. The file lacks valid JPEG magic bytes (<code>FF D8 FF</code>) &mdash; it is PowerShell with a misleading extension.</li>
+    <li><strong>Execution:</strong> Double-click launches PowerShell with <code>-ExecutionPolicy unrestricted</code>; a staging directory <code>C:\Systems</code> is created.</li>
+    <li><strong>Stage 2 download:</strong> Script fetches <code>access.jpeg</code> and runs it via <code>Invoke-Expression</code> (in-memory, fileless). AMSI is bypassed through triple-layer string obfuscation (quote-splitting, format strings, runtime reconstruction).</li>
+    <li><strong>On-host compilation:</strong> Microsoft's <code>csc.exe</code> compiler is invoked to build a custom launcher (<code>uds.exe</code>) from temporary C# source (<code>runner.cs</code>). Each compile produces a unique hash, defeating signature-based detection.</li>
+    <li><strong>Fileless UAC bypass:</strong> Attacker writes to <code>HKCU:\Software\Classes\ms-settings\Shell\Open\Command</code> with an empty <code>DelegateExecute</code> value, pointing to <code>../../Systems/uds.exe</code>. Launching <code>ComputerDefaults.exe</code> (auto-elevated, no UAC prompt) triggers the payload at elevated privilege. Registry keys are deleted ~2 seconds later to destroy forensic evidence.</li>
+    <li><strong>Persistence:</strong> <code>sc.exe</code> creates a Windows service named <strong>OneDriveServers</strong> (masquerading as legitimate Microsoft OneDrive) that runs <code>ScreenConnect.ClientService.exe</code> from <code>C:\ProgramData\OneDriveServer\</code>. Hidden local administrator accounts are created with <code>showInLogon=false</code>.</li>
+    <li><strong>Environment prep:</strong> Hidden <code>.cmd</code> scripts in <code>C:\Windows\SystemTemp\ScreenConnect\</code> use <code>DISM.exe</code> to silently enable .NET Framework 3.5; WMI queries against <code>root\SecurityCenter2</code> enumerate installed antivirus.</li>
+    <li><strong>C2:</strong> Trojanized ScreenConnect establishes encrypted channels to <code>legitserver.theworkpc.com</code> (<code>45.138.16.64</code>) over TCP/5443 (download) and TCP/8041 (C2). Uses custom PBKDF2/HMAC-SHA256 session key derivation and an internal DNS cache to evade network defenses.</li>
+    <li><strong>Post-exploitation:</strong> Full remote-access kit &mdash; screen capture/recording, microphone &amp; speaker audio capture, clipboard interception, keylogging via <code>SetWindowsHookEx</code>, credential harvesting via Credential Provider hooking and named-pipe IPC, file transfer via encrypted virtual streams, token impersonation, and Safe Mode reboot to disable security tools.</li>
+  </ol>
+
+  <h4>Why It Matters</h4>
+  <ul style="font-size:14px">
+    <li><strong>Living-off-the-land throughout.</strong> Every binary executed (<code>powershell.exe</code>, <code>csc.exe</code>, <code>cvtres.exe</code>, <code>ComputerDefaults.exe</code>, <code>DISM.exe</code>, <code>sc.exe</code>) is signed by Microsoft. No malicious binary needs to land on disk in a way AV can fingerprint &mdash; the launcher is compiled fresh per host.</li>
+    <li><strong>Signed C2.</strong> ScreenConnect is a legitimate, code-signed RMM product. Network defenders see "ConnectWise" traffic and may pass it without scrutiny.</li>
+    <li><strong>The UAC bypass is fileless.</strong> Registry-only, self-cleaning, no scheduled task or autorun to find with traditional IR triage.</li>
+    <li><strong>The fake JPEG bypasses extension-only email filtering.</strong> Many gateways trust <code>.jpeg</code>; this file is PowerShell that happens to end in <code>.jpeg</code>.</li>
+    <li><strong>Credential Provider hooking</strong> captures credentials at the Windows logon prompt &mdash; before LSASS, before any password manager.</li>
+  </ul>
+</div>
+</section>
+
+<section id="brief">
+<h2>Hunt Brief</h2>
+<div class="brief">
+  <ul>
+    <li><strong>Threat:</strong> Operation SilentCanvas <span class="badge badge-high">High Severity</span></li>
+    <li><strong>Summary:</strong> Multi-stage PowerShell intrusion using a <code>.jpeg</code>-extension loader (no JPEG magic bytes) that performs AMSI bypass, on-host compiles a launcher via <code>csc.exe</code>, executes a fileless UAC bypass via the <code>ms-settings</code> COM-handler hijack, then deploys a trojanized ConnectWise ScreenConnect as a service named <code>OneDriveServers</code> for persistent C2.</li>
+    <li><strong>Affected:</strong> Windows endpoints with PowerShell + .NET; especially organizations running RMM tooling (ScreenConnect / AnyDesk / TeamViewer).</li>
+    <li><strong>Actor:</strong> Unattributed &mdash; assessed as financially motivated / Initial Access Broker.</li>
+    <li><strong>CISA KEV:</strong> No (TTP-based campaign, not a CVE)</li>
+  </ul>
+  <h4>Key IOCs at a Glance</h4>
+  <ul>
+    <li>IPv4: <code>45.138.16.64</code></li>
+    <li>Domain: <code>legitserver.theworkpc.com</code></li>
+    <li>TCP ports: <code>5443</code> (payload), <code>8041</code> (C2)</li>
+    <li>Service name: <code>OneDriveServers</code></li>
+    <li>Paths: <code>C:\Systems\</code>, <code>C:\ProgramData\OneDriveServer\</code>, <code>C:\Windows\SystemTemp\ScreenConnect\</code></li>
+  </ul>
+</div>
+</section>
+
+<section id="queries">
+<h2>CrowdStrike Hunt Queries</h2>
+<div class="callout">Every behavioral query includes false-positive notes. Run high-confidence IOC sweeps (Hunts 1, 2) first. Behavioral queries should be reviewed for tuning before relying on them.</div>
+
+<!-- HUNT 1 -->
+<div class="query-card">
+  <div class="query-header">Hunt 1 &mdash; IOC Sweep: Known SilentCanvas Hashes <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> N/A (IOC) &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
+<pre>// HUNT: Operation SilentCanvas - Known SHA256 hashes
+// HYPOTHESIS: If SilentCanvas has touched our fleet, the known sample hashes will appear in process or module load events
+// FP RISK: Low - exact hash match
+// FP NOTES: None expected; any hit is high-confidence TP
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|ImageHash/
+| in(field=SHA256HashData, values=[
+    "7adffc1c0b3fdcba46e8d0a81203c955976d4ef39893c98d0b2dbfbb8d6a8ec3",
+    "ecd5ed16975d556d1d17bc980f248f8a5262bed11df9d9df999efd9c273c11df",
+    "cea1d85967d2c456fccecae3a70ff2adfe4c113aacf9d18c35906c2ed24ca9b4",
+    "e4c9f3bb4a65c640795bfc1a56c0b56485b849ccd97027eed7ad9aa78a732a4f",
+    "ee3d776cdaf82335e4293e19ee313cc35eee49cde9963b96766a8f9c89d44a79",
+    "4d8ac85c5b98c69ba44146df61183e9bf613edd796aa516c3ae73611b7d77c06"
+  ])
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 2 -->
+<div class="query-card">
+  <div class="query-header">Hunt 2 &mdash; C2 Network Indicators <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1071.001, T1573 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: SilentCanvas C2 - 45.138.16.64 and legitserver.theworkpc.com
+// HYPOTHESIS: Trojanized ScreenConnect beacons to known C2 over TCP/5443 (download) and TCP/8041 (C2)
+// FP RISK: Low - dedicated adversary infrastructure
+// FP NOTES: None expected
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+(#event_simpleName = NetworkConnectIP4 AND RemoteAddressIP4 = "45.138.16.64")
+or
+(#event_simpleName = DnsRequest AND (DomainName = "legitserver.theworkpc.com" or DomainName = /\.theworkpc\.com$/i))
+| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName])
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, RemoteAddressIP4, RemotePort, DomainName])</pre>
+</div>
+
+<!-- HUNT 3 -->
+<div class="query-card">
+  <div class="query-header">Hunt 3 &mdash; JPEG-as-Script Loader Execution <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1036.008, T1204.002 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low-Med</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: PowerShell executing a file with .jpeg extension (T1036.008 Masquerade File Type)
+// HYPOTHESIS: SilentCanvas dropper "sysupdate.jpeg" / "access.jpeg" is executed by powershell.exe or invoked as a script
+// FP RISK: Low-Medium - legitimate workflows rarely pipe .jpeg into a script interpreter
+// FP NOTES: Image viewers (Photos, mspaint, browser) opening a .jpeg are NOT in this query; we scope to script hosts only
+// CONFIDENCE: High
+// TIMEFRAME: Last 30 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName = /\\(powershell(_ise)?\.exe|pwsh\.exe|cmd\.exe|wscript\.exe|cscript\.exe|mshta\.exe)$/i
+| CommandLine = /\.jpe?g/i
+| CommandLine != /(\\Photos\.exe|mspaint|\\msedge|\\chrome|\\firefox|Outlook)/i
+| groupBy([aid, ComputerName, UserName, ImageFileName, ParentBaseFileName], function=collect([CommandLine, @timestamp]))
+| sort(_count, order=desc)</pre>
+</div>
+
+<!-- HUNT 4 -->
+<div class="query-card">
+  <div class="query-header">Hunt 4 &mdash; Obfuscated PowerShell + Unrestricted Execution <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1059.001, T1027.010 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
+<pre>// HUNT: PowerShell with -ExecutionPolicy unrestricted/bypass + IEX/string-concat obfuscation
+// HYPOTHESIS: SilentCanvas reconstructs IEX/IWR at runtime via quote-splitting (e.g. "I'w'r")
+// FP RISK: Medium - admin tooling occasionally uses bypass
+// FP NOTES: Vendor installers (Chocolatey, MS Intune, RMM bootstrap), automation scripts. Tune by excluding signed admin pipelines.
+// CONFIDENCE: Medium
+// TIMEFRAME: Last 30 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName = /\\(powershell|pwsh)\.exe$/i
+| CommandLine = /-ex(ecutionpolicy)?\s+(unrestricted|bypass)/i
+| CommandLine = /(IEX|Invoke-Expression|Invoke-WebRequest|IWR|DownloadString|DownloadFile|FromBase64String|\['?\w+'?\+'?\w+'?\]|GetRandomFileName)/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 5 -->
+<div class="query-card">
+  <div class="query-header">Hunt 5 &mdash; On-Host C# Compilation (csc.exe) Spawned by Scripting Host <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1027.004, T1127.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Med-High</div>
+<pre>// HUNT: T1027.004 Compile-After-Delivery via csc.exe under powershell/wscript/cmd parent
+// HYPOTHESIS: SilentCanvas compiles runner.cs -&gt; uds.exe on-host via csc.exe parented by powershell.exe
+// FP RISK: Medium - developer machines run csc.exe legitimately
+// FP NOTES: Visual Studio, MSBuild, dotnet CLI, IIS app_code recompiles, PowerShell Add-Type for legit modules
+// CONFIDENCE: Medium-High
+// TIMEFRAME: Last 30 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName = /\\csc\.exe$/i
+| ParentBaseFileName = /^(powershell|pwsh|wscript|cscript|cmd|mshta|rundll32|regsvr32)\.exe$/i
+// Enrich with cvtres.exe child (resource compiler invoked by csc when building from .cs source).
+// The joined query renames ImageFileName -> ChildCvtres BEFORE the join so the field arrives
+// pre-named; in-include `field as alias` syntax is not supported by join().
+| join(query={
+    #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+    | ImageFileName = /\\cvtres\.exe$/i
+    | rename(ImageFileName, as=ChildCvtres)
+  }, field=[TargetProcessId_decimal], key=[ParentProcessId_decimal], mode=left, include=[ChildCvtres])
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, ChildCvtres])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 6 -->
+<div class="query-card">
+  <div class="query-header">Hunt 6 &mdash; Fileless UAC Bypass via ms-settings COM Hijack <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1548.002, T1112 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Very Low</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: T1548.002 - registry hijack of HKCU:\Software\Classes\ms-settings\Shell\Open\Command
+// HYPOTHESIS: Attacker writes to ms-settings\shell\open\command with DelegateExecute empty, then runs ComputerDefaults.exe to auto-elevate
+// FP RISK: Very Low - this key has no legitimate user-mode use
+// FP NOTES: Any hit warrants immediate investigation
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+#event_simpleName = /AsepValueUpdate|RegGenericValueUpdate|RegistryOperationDetectInfo/
+| RegObjectName = /\\Software\\Classes\\ms-settings\\Shell\\Open\\Command/i
+| table([@timestamp, aid, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 7 -->
+<div class="query-card">
+  <div class="query-header">Hunt 7 &mdash; ComputerDefaults.exe Spawning Non-Settings Children <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1548.002 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: T1548.002 - ComputerDefaults.exe (autoElevate=true) launching elevated payloads
+// HYPOTHESIS: After ms-settings hijack, ComputerDefaults.exe runs the attacker's relative-path uds.exe instead of the Settings app
+// FP RISK: Low - ComputerDefaults.exe rarely spawns child processes other than ApplicationFrameHost/SystemSettings
+// FP NOTES: Whitelist: ApplicationFrameHost.exe, SystemSettings.exe, SettingsHost.exe, msftedit
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^ComputerDefaults\.exe$/i
+| ImageFileName != /\\(ApplicationFrameHost|SystemSettings(Broker)?|SettingsHost|conhost)\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, ParentCommandLine])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 8 -->
+<div class="query-card">
+  <div class="query-header">Hunt 8 &mdash; Suspicious Staging Directory C:\Systems <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1036.005, T1564.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> Med-High</div>
+<pre>// HUNT: Creation/use of C:\Systems (mimics Windows; SilentCanvas primary staging dir)
+// HYPOTHESIS: First-stage drops uds.exe and randomized scripts into C:\Systems
+// FP RISK: Low - non-standard top-level path
+// FP NOTES: Confirm no legitimate internal tool uses C:\Systems before tuning out
+// CONFIDENCE: Medium-High
+// TIMEFRAME: Last 90 days
+
+(#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND (CommandLine = /C:\\Systems\\/i or ImageFileName = /^C:\\Systems\\/i))
+or
+(#event_simpleName = /PeFileWritten|NewExecutableWritten|ScriptControlScanTelemetry/ AND TargetFileName = /^C:\\Systems\\/i)
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, TargetFileName])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 9 -->
+<div class="query-card">
+  <div class="query-header">Hunt 9 &mdash; Rogue Service Creation Masquerading as OneDrive <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1543.003, T1036.005 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: T1543.003 - service named "OneDriveServers" (note the trailing 's') or ScreenConnect from ProgramData\OneDriveServer
+// HYPOTHESIS: SilentCanvas creates the persistence service via sc.exe; binary path points into ProgramData\OneDriveServer
+// FP RISK: Low - "OneDriveServers" is a unique adversary string
+// FP NOTES: Legitimate Microsoft OneDrive service is "OneDrive Updater Service" or runs from %LOCALAPPDATA%\Microsoft\OneDrive; not ProgramData\OneDriveServer
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+(#event_simpleName = ServiceStarted or #event_simpleName = WindowsServiceInstalled or #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/)
+| (
+    ServiceDisplayName = /OneDriveServers?/i
+    or ImagePath = /\\ProgramData\\OneDriveServer\\/i
+    or CommandLine = /sc(\.exe)?\s+(create|config).*OneDriveServers?/i
+    or ImageFileName = /\\ProgramData\\OneDriveServer\\.*\\ScreenConnect\.(ClientService|WindowsClient)\.exe$/i
+  )
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ServiceDisplayName, ImagePath])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 10 -->
+<div class="query-card">
+  <div class="query-header">Hunt 10 &mdash; ScreenConnect Running From Non-Standard Path <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1219 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
+<pre>// HUNT: T1219 - signed ScreenConnect binary launched from atypical install path
+// HYPOTHESIS: Trojanized ScreenConnect runs from C:\ProgramData\... rather than the canonical ConnectWise install dir
+// FP RISK: Medium - some MSPs deploy ScreenConnect to ProgramData legitimately; verify with your MSP/ITSM team
+// FP NOTES: Legit path is typically C:\Program Files (x86)\ScreenConnect Client (XXX)\
+// CONFIDENCE: Medium
+// TIMEFRAME: Last 90 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName = /\\ScreenConnect\.(ClientService|WindowsClient|Client)\.exe$/i
+| ImageFileName != /\\Program Files( \(x86\))?\\ScreenConnect Client/i
+| groupBy([aid, ComputerName, ImageFileName, FileVersion], function=collect([@timestamp, CommandLine, UserName, SHA256HashData]))
+| sort(_count, order=desc)</pre>
+</div>
+
+<!-- HUNT 11 -->
+<div class="query-card">
+  <div class="query-header">Hunt 11 &mdash; Security Software Discovery via WMI SecurityCenter2 <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1518.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Med-High</span> &middot; <strong>Confidence:</strong> Medium</div>
+<pre>// HUNT: T1518.001 - PowerShell/WMIC enumerating AntiVirusProduct
+// HYPOTHESIS: SilentCanvas profiles installed AV before deploying second stage
+// FP RISK: Medium-High - some legit posture/inventory tools (e.g., Intune, internal scripts) do this
+// FP NOTES: Tune to non-IT user contexts and short-window standalone executions; baseline your inventory tooling
+// CONFIDENCE: Medium
+// TIMEFRAME: Last 30 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine = /(root\\?\\SecurityCenter2|AntiVirusProduct|Get-WmiObject.*SecurityCenter2|Get-CimInstance.*SecurityCenter2)/i
+| ImageFileName = /\\(powershell|pwsh|wmic|cscript|wscript)\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 12 -->
+<div class="query-card">
+  <div class="query-header">Hunt 12 &mdash; Silent .NET 3.5 Feature Enable via DISM <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1218 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
+<pre>// HUNT: T1218 - DISM silently enabling NetFx3 (rare on user workstations)
+// HYPOTHESIS: SilentCanvas runs DISM from a hidden .cmd to enable .NET 3.5 needed by the C# launcher
+// FP RISK: Medium - legit app installers occasionally do this
+// FP NOTES: MSI installers from known vendors (Autodesk, SAP client, some game launchers). Correlate parent process.
+// CONFIDENCE: Medium
+// TIMEFRAME: Last 90 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName = /\\dism\.exe$/i
+| CommandLine = /(NetFx3|enable-feature.*NetFx3)/i
+| CommandLine = /(\/quiet|\/norestart|\/online)/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ParentCommandLine, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 13 -->
+<div class="query-card">
+  <div class="query-header">Hunt 13 &mdash; Hidden Local Account Creation (showInLogon=false) <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1136.001, T1564 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: T1136.001 + T1564 - hidden local admin account
+// HYPOTHESIS: SilentCanvas creates a covert admin user and hides it from the logon screen via SpecialAccounts\UserList=0
+// FP RISK: Low - this registry path is rarely used legitimately
+// FP NOTES: Some kiosk/joining workflows use SpecialAccounts; baseline first
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+(#event_simpleName = UserAccountCreated)
+or
+(#event_simpleName = /AsepValueUpdate|RegGenericValueUpdate/ AND RegObjectName = /\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList/i)
+or
+(#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND CommandLine = /net(\.exe)?\s+(user|localgroup).*\/add/i)
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, RegObjectName, RegValueName, RegStringValue])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+<!-- HUNT 14 -->
+<div class="query-card">
+  <div class="query-header">Hunt 14 &mdash; Scripts Executing From C:\Windows\SystemTemp\ScreenConnect <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+  <div class="query-meta"><strong>MITRE:</strong> T1059, T1059.003 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
+<pre>// HUNT: Post-exploitation .cmd execution from SilentCanvas working dir
+// HYPOTHESIS: After ScreenConnect deploys, hidden .cmd scripts run from SystemTemp\ScreenConnect
+// FP RISK: Low - this exact path is the SilentCanvas working dir
+// FP NOTES: None
+// CONFIDENCE: High
+// TIMEFRAME: Last 30 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (
+    CommandLine = /C:\\Windows\\SystemTemp\\ScreenConnect\\/i
+    or ImageFileName = /^C:\\Windows\\SystemTemp\\ScreenConnect\\/i
+    or ParentImageFileName = /^C:\\Windows\\SystemTemp\\ScreenConnect\\/i
+  )
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+</div>
+
+</section>
+
+<section id="iocs">
+<h2>IOC Blocklists</h2>
+
+<h3>Recommended Actions Table</h3>
+<table>
+<thead><tr><th>Type</th><th>Value</th><th>Action</th><th>Severity</th><th>Confidence</th><th>Expiry</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>sha256</td><td><code>7adffc1c0b3fdcba46e8d0a81203c955976d4ef39893c98d0b2dbfbb8d6a8ec3</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>SilentCanvas sample</td></tr>
+<tr><td>sha256</td><td><code>ecd5ed16975d556d1d17bc980f248f8a5262bed11df9d9df999efd9c273c11df</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>SilentCanvas sample</td></tr>
+<tr><td>sha256</td><td><code>cea1d85967d2c456fccecae3a70ff2adfe4c113aacf9d18c35906c2ed24ca9b4</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>SilentCanvas sample</td></tr>
+<tr><td>sha256</td><td><code>e4c9f3bb4a65c640795bfc1a56c0b56485b849ccd97027eed7ad9aa78a732a4f</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>SilentCanvas sample</td></tr>
+<tr><td>sha256</td><td><code>ee3d776cdaf82335e4293e19ee313cc35eee49cde9963b96766a8f9c89d44a79</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>SilentCanvas sample</td></tr>
+<tr><td>sha256</td><td><code>4d8ac85c5b98c69ba44146df61183e9bf613edd796aa516c3ae73611b7d77c06</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>SilentCanvas sample</td></tr>
+<tr><td>md5</td><td><code>7DD05336097E5A833F03A63D3221494F</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>uds.exe launcher</td></tr>
+<tr><td>domain</td><td><code>legitserver.theworkpc.com</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>C2 &mdash; promote to block after review</td></tr>
+<tr><td>ipv4</td><td><code>45.138.16.64</code></td><td><span class="badge badge-medium">Detect</span></td><td>Medium</td><td>Medium</td><td>2026-06-11</td><td>C2 IP &mdash; volatile, 30-day expiry</td></tr>
+</tbody>
+</table>
+
+<h3>Bulk CSV Import (Falcon IOC Management)</h3>
+<div class="query-card">
+  <div class="query-header">silentcanvas-iocs.csv <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+<pre>type,value,action,severity,expiration,description,tags
+sha256,7adffc1c0b3fdcba46e8d0a81203c955976d4ef39893c98d0b2dbfbb8d6a8ec3,prevent,critical,2027-05-12,SilentCanvas sample,campaign:SilentCanvas;source:Cyfirma
+sha256,ecd5ed16975d556d1d17bc980f248f8a5262bed11df9d9df999efd9c273c11df,prevent,critical,2027-05-12,SilentCanvas sample,campaign:SilentCanvas;source:Cyfirma
+sha256,cea1d85967d2c456fccecae3a70ff2adfe4c113aacf9d18c35906c2ed24ca9b4,prevent,critical,2027-05-12,SilentCanvas sample,campaign:SilentCanvas;source:Cyfirma
+sha256,e4c9f3bb4a65c640795bfc1a56c0b56485b849ccd97027eed7ad9aa78a732a4f,prevent,critical,2027-05-12,SilentCanvas sample,campaign:SilentCanvas;source:Cyfirma
+sha256,ee3d776cdaf82335e4293e19ee313cc35eee49cde9963b96766a8f9c89d44a79,prevent,critical,2027-05-12,SilentCanvas sample,campaign:SilentCanvas;source:Cyfirma
+sha256,4d8ac85c5b98c69ba44146df61183e9bf613edd796aa516c3ae73611b7d77c06,prevent,critical,2027-05-12,SilentCanvas sample,campaign:SilentCanvas;source:Cyfirma
+md5,7DD05336097E5A833F03A63D3221494F,prevent,critical,2027-05-12,uds.exe launcher,campaign:SilentCanvas;source:Cyfirma
+domain,legitserver.theworkpc.com,detect,high,2026-08-10,C2 - SilentCanvas trojanized ScreenConnect,campaign:SilentCanvas;source:Cyfirma
+ipv4,45.138.16.64,detect,medium,2026-06-11,C2 IP - SilentCanvas,campaign:SilentCanvas;source:Cyfirma</pre>
+</div>
+</section>
+
+<section id="ioas">
+<h2>Custom IOA Rule Recommendations</h2>
+<div class="callout callout-warn">All IOAs should start in <strong>Detect</strong> mode. Promote to <strong>Block</strong> only after 7&ndash;14 days with confirmed FP rate &lt; 5%. See Prevention Promotion notes below.</div>
+
+<div class="ioa-block">
+  <h4>IOA-1: ms-settings UAC Bypass Hijack</h4>
+  <dl class="meta-grid">
+    <dt>Rule Group:</dt><dd>Privilege Escalation Defense</dd>
+    <dt>Rule Type:</dt><dd>Registry Operation</dd>
+    <dt>Action:</dt><dd>Detect &rarr; promote to Block after 14d clean</dd>
+    <dt>Severity:</dt><dd>Critical</dd>
+    <dt>MITRE:</dt><dd>T1548.002</dd>
+    <dt>Registry Key Path:</dt><dd><code>.*\\Software\\Classes\\ms-settings\\Shell\\Open\\Command.*</code></dd>
+    <dt>Registry Value Name:</dt><dd><code>(?i)^(\(default\)|DelegateExecute)$</code></dd>
+  </dl>
+  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> None expected on managed endpoints. Writing to this key is virtually never legitimate from user context.</p>
+</div>
+
+<div class="ioa-block">
+  <h4>IOA-2: csc.exe Spawned by Scripting Host</h4>
+  <dl class="meta-grid">
+    <dt>Rule Group:</dt><dd>LOLBIN Abuse</dd>
+    <dt>Rule Type:</dt><dd>Process Creation</dd>
+    <dt>Action:</dt><dd>Detect (do NOT auto-block on dev machines)</dd>
+    <dt>Severity:</dt><dd>High</dd>
+    <dt>MITRE:</dt><dd>T1027.004, T1127.001</dd>
+    <dt>Image Filename:</dt><dd><code>.*\\csc\.exe$</code></dd>
+    <dt>Parent Image:</dt><dd><code>.*\\(powershell|pwsh|wscript|cscript|cmd|mshta|rundll32|regsvr32)\.exe$</code></dd>
+  </dl>
+  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Exclude developer OUs, MSBuild agents, and any internal automation using <code>Add-Type</code>.</p>
+</div>
+
+<div class="ioa-block">
+  <h4>IOA-3: ComputerDefaults.exe &rarr; Non-Settings Child</h4>
+  <dl class="meta-grid">
+    <dt>Rule Group:</dt><dd>Privilege Escalation Defense</dd>
+    <dt>Rule Type:</dt><dd>Process Creation</dd>
+    <dt>Action:</dt><dd>Detect</dd>
+    <dt>Severity:</dt><dd>Critical</dd>
+    <dt>MITRE:</dt><dd>T1548.002</dd>
+    <dt>Parent Image:</dt><dd><code>.*\\ComputerDefaults\.exe$</code></dd>
+    <dt>Image Filename NOT:</dt><dd><code>.*\\(ApplicationFrameHost|SystemSettings(Broker)?|SettingsHost|conhost)\.exe$</code></dd>
+  </dl>
+</div>
+
+<div class="ioa-block">
+  <h4>IOA-4: Service Created in ProgramData with OneDrive Masquerade</h4>
+  <dl class="meta-grid">
+    <dt>Rule Group:</dt><dd>Persistence Defense</dd>
+    <dt>Rule Type:</dt><dd>Process Creation</dd>
+    <dt>Action:</dt><dd>Detect</dd>
+    <dt>Severity:</dt><dd>High</dd>
+    <dt>MITRE:</dt><dd>T1543.003, T1036.005</dd>
+    <dt>Image Filename:</dt><dd><code>.*\\sc\.exe$</code></dd>
+    <dt>Command Line:</dt><dd><code>(?i).*\b(create|config)\b.*(OneDriveServers?|\\ProgramData\\OneDriveServer).*</code></dd>
+  </dl>
+</div>
+
+<div class="ioa-block">
+  <h4>IOA-5: PowerShell Reading/Executing .jpeg From Disk</h4>
+  <dl class="meta-grid">
+    <dt>Rule Group:</dt><dd>Loader Defense</dd>
+    <dt>Rule Type:</dt><dd>Process Creation</dd>
+    <dt>Action:</dt><dd>Detect</dd>
+    <dt>Severity:</dt><dd>High</dd>
+    <dt>MITRE:</dt><dd>T1036.008, T1059.001</dd>
+    <dt>Image Filename:</dt><dd><code>.*\\(powershell|pwsh)\.exe$</code></dd>
+    <dt>Command Line:</dt><dd><code>(?i).*\.jpe?g\b.*</code></dd>
+  </dl>
+  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Some legit imaging utilities may match; tune by excluding signed admin paths.</p>
+</div>
+
+</section>
+
+<section id="hardening">
+<h2>Hardening Recommendations</h2>
+
+<h3>Immediate &mdash; Target SilentCanvas TTPs</h3>
+
+<h4>1. Disable double-click execution of script content masquerading as images</h4>
+<ul class="harden">
+  <li>Group Policy: <em>User Configuration &rarr; Administrative Templates &rarr; Windows Components &rarr; Attachment Manager &rarr; "Do not preserve zone information"</em> &rarr; <strong>Disabled</strong>.</li>
+  <li>Enforce <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg</code> and <code>.jpg</code> &rarr; <code>OpenWithList</code> to image viewers only. Remove any references to <code>txtfile</code> or <code>Microsoft.PowerShellScript.1</code>.</li>
+  <li>Block PowerShell from being a registered handler for non-script extensions.</li>
+</ul>
+
+<h4>2. Constrain PowerShell</h4>
+<ul class="harden">
+  <li>Deploy <strong>Constrained Language Mode</strong> via WDAC/AppLocker for non-admin users.</li>
+  <li>Enable <strong>Script Block Logging</strong> (Event 4104), <strong>Module Logging</strong> (4103), and <strong>Transcript Logging</strong>: <code>HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1</code>.</li>
+  <li>Block <code>powershell.exe -ExecutionPolicy Bypass/Unrestricted</code> via WDAC custom rule where feasible.</li>
+  <li>Disable PowerShell v2 engine: <code>Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2*</code></li>
+</ul>
+
+<h4>3. Block / monitor csc.exe and cvtres.exe</h4>
+<ul class="harden">
+  <li>AppLocker / WDAC: deny <code>csc.exe</code>, <code>cvtres.exe</code>, <code>vbc.exe</code>, <code>jsc.exe</code> execution outside developer OUs.</li>
+  <li>At minimum, alert on any execution under a non-Administrator account.</li>
+</ul>
+
+<h4>4. Close the ms-settings UAC bypass</h4>
+<ul class="harden">
+  <li>Set <code>HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\ConsentPromptBehaviorAdmin = 2</code> (Always Prompt on the secure desktop).</li>
+  <li>Set <code>EnableLUA = 1</code> and <code>PromptOnSecureDesktop = 1</code>.</li>
+  <li>Deploy UAC level <strong>"Always Notify"</strong> via GPO for privileged users.</li>
+  <li>Deny <code>HKCU\Software\Classes\ms-settings</code> writes via WDAC/MDAC ruleset.</li>
+</ul>
+
+<h4>5. RMM Governance</h4>
+<ul class="harden">
+  <li>Inventory every authorized ScreenConnect / AnyDesk / TeamViewer install &mdash; baseline file path, signing cert, and version.</li>
+  <li>Alert on any ScreenConnect binary running from outside the canonical install path (<code>Program Files (x86)\ScreenConnect Client*</code>).</li>
+  <li>Network-block outbound ScreenConnect protocol traffic to all hosts except your sanctioned MSP/IT relay server.</li>
+  <li>Require certificate pinning to your ScreenConnect tenant's signing cert.</li>
+</ul>
+
+<h4>6. Block the C2 Infrastructure</h4>
+<ul class="harden">
+  <li>Firewall / DNS block <code>legitserver.theworkpc.com</code> and <code>45.138.16.64</code> (TCP 5443, 8041) at perimeter and split-DNS.</li>
+</ul>
+
+<h3>Strategic &mdash; Reduce Attack Surface Generally</h3>
+<ul class="harden">
+  <li><strong>Email gateway:</strong> block <code>.jpeg</code>/<code>.jpg</code> attachments where Content-Type &ne; <code>image/jpeg</code>, or where the file lacks JPEG magic bytes <code>FF D8 FF</code>. Sandbox-detonate any <code>.jpeg</code> &lt; 50 KB.</li>
+  <li><strong>Application control:</strong> Roll WDAC in audit&rarr;enforce mode for all knowledge-worker endpoints. Block unsigned .NET assemblies in user-writable paths (<code>AppData</code>, <code>ProgramData</code>, <code>Temp</code>, <code>Public</code>).</li>
+  <li><strong>Credential Guard + LSA Protection</strong> (<code>RunAsPPL=1</code>) &mdash; blunts the Credential Provider hooking technique.</li>
+  <li><strong>Service creation alerting:</strong> ensure Windows Event 7045 (new service installed) is forwarded to SIEM; alert on services with ImagePath under <code>ProgramData\</code> or <code>AppData\</code>.</li>
+  <li><strong>Hidden-account audit:</strong> scheduled review of <code>HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList</code>; alert on any new value.</li>
+  <li><strong>AMSI enforcement:</strong> ensure AMSI is enabled in PowerShell 5.1+.</li>
+  <li><strong>Egress filtering:</strong> deny direct internet egress from endpoints to arbitrary TCP/8041 and TCP/5443. Force RMM traffic through sanctioned proxy/relay.</li>
+</ul>
+
+</section>
+
+<section id="coverage">
+<h2>Detection Coverage Map</h2>
+<table>
+<thead><tr><th>MITRE</th><th>Technique</th><th>CQL Hunt</th><th>Custom IOA</th><th>IOC Block</th><th>Coverage</th></tr></thead>
+<tbody>
+<tr><td>T1566.001</td><td>Spearphishing Attachment</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (gateway-side)</td></tr>
+<tr><td>T1204.002</td><td>User Execution: Malicious File</td><td>Hunt 3</td><td>IOA-5</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1036.008</td><td>Masquerade File Type (.jpeg)</td><td>Hunt 3</td><td>IOA-5</td><td>&mdash;</td><td class="good-text">Good</td></tr>
+<tr><td>T1059.001</td><td>PowerShell</td><td>Hunt 4</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1027 / .010</td><td>Obfuscation</td><td>Hunt 4</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1027.004</td><td>Compile After Delivery</td><td>Hunt 5</td><td>IOA-2</td><td>&mdash;</td><td class="good-text">Good</td></tr>
+<tr><td>T1127.001</td><td>Trusted Developer Util Proxy</td><td>Hunt 5</td><td>IOA-2</td><td>&mdash;</td><td class="good-text">Good</td></tr>
+<tr><td>T1548.002</td><td>UAC Bypass (ms-settings)</td><td>Hunts 6, 7</td><td>IOA-1, IOA-3</td><td>&mdash;</td><td class="good-text">Strong</td></tr>
+<tr><td>T1112</td><td>Modify Registry</td><td>Hunt 6</td><td>IOA-1</td><td>&mdash;</td><td class="good-text">Good</td></tr>
+<tr><td>T1543.003</td><td>Windows Service Persistence</td><td>Hunt 9</td><td>IOA-4</td><td>&mdash;</td><td class="good-text">Good</td></tr>
+<tr><td>T1136.001</td><td>Create Local Account</td><td>Hunt 13</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1564.001</td><td>Hide Artifacts</td><td>Hunts 8, 13</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1518.001</td><td>Security Software Discovery</td><td>Hunt 11</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1219</td><td>Remote Access Software</td><td>Hunt 10</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1071.001 / T1573</td><td>C2 / Encrypted Channel</td><td>Hunt 2</td><td>&mdash;</td><td>Domain + IP</td><td class="good-text">Good</td></tr>
+<tr><td>T1105</td><td>Ingress Tool Transfer</td><td>Hunt 2</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
+<tr><td>T1056.001 / .004</td><td>Keylogging / Cred API Hooking</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (LSA Protection)</td></tr>
+<tr><td>T1041</td><td>Exfil over C2</td><td>Hunt 2</td><td>&mdash;</td><td>&#10003;</td><td class="partial">Partial</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-warn"><strong>Priority gaps:</strong> Phishing delivery (T1566.001) requires email-gateway content filtering; endpoint detection is too late. Credential Provider hooking (T1056.004) is hard to detect in telemetry &mdash; mitigation is LSA Protection + Credential Guard.</div>
+</section>
+
+<section id="priority">
+<h2>Prioritization &amp; Risk Classification</h2>
+
+<h3>Do First &mdash; Low Effort, High Relevance</h3>
+<ol>
+  <li>Run <strong>Hunts 1, 2, 6, 7, 9, 14</strong> today &mdash; highest-confidence, lowest-FP. Any hit = active intrusion.</li>
+  <li>Import SHA256 IOC block list to Falcon IOC Management (safe to auto-prevent).</li>
+  <li>Add domain/IP detect entries.</li>
+</ol>
+
+<h3>Schedule &mdash; Medium Risk (Peer Review)</h3>
+<ol start="4">
+  <li>Deploy Custom IOAs 1, 3, 4 in Detect mode &rarr; review for 14 days &rarr; promote to Block if FP &lt; 5%.</li>
+  <li>Roll Hunts 3, 4, 5, 8, 10&ndash;13 weekly until campaign goes cold.</li>
+</ol>
+
+<h3>Change Management &mdash; High Risk (CAB)</h3>
+<ol start="6">
+  <li>WDAC/AppLocker rules blocking csc.exe, PowerShell -Bypass, unsigned .NET in user paths.</li>
+  <li>Email-gateway .jpeg magic-byte verification.</li>
+  <li>UAC "Always Notify" enforcement.</li>
+</ol>
+
+<h3>Prevention Promotion Notes</h3>
+<ul class="harden">
+  <li><strong>SHA256 IOCs:</strong> safe to promote to Prevent immediately.</li>
+  <li><strong>IP 45.138.16.64:</strong> keep at Detect &mdash; IPs rotate fast (30-day expiry).</li>
+  <li><strong>Custom IOA-1 (ms-settings hijack):</strong> eligible for Prevent after 7-day clean window.</li>
+  <li><strong>Custom IOA-2 (csc.exe under scripting host):</strong> keep at Detect long-term unless dev OUs are carved out cleanly.</li>
+</ul>
+</section>
+
+<section id="summary">
+<h2>Hunt Summary Ticket</h2>
+<div class="query-card">
+  <div class="query-header">silentcanvas-ticket.txt <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
+<pre>## Hunt Summary: Operation SilentCanvas
+Date: 2026-05-12
+Intel Source: Cyfirma - Operation SilentCanvas (JPEG-Based Multistage PowerShell Intrusion)
+
+### Expected Findings
+- ANY hit on Hunts 1, 2, 6, 7, 9, 14 -> treat as active intrusion; isolate host immediately.
+- Hunts 3, 4, 5, 8, 11, 12, 13 -> review individual hits for context; correlate parent process and user.
+- Hunt 10 (non-standard ScreenConnect path) -> confirm with MSP/IT before classifying TP.
+
+### Actions Taken (Low-Risk)
+- Hunt queries (read-only) ready for execution in LogScale.
+- SHA256/MD5 IOCs queued for Prevent in IOC Management.
+- Domain/IP IOCs queued for Detect.
+
+### Actions Pending Approval
+- Custom IOAs 1-5 -> deploy in Detect mode (peer review).
+- WDAC csc.exe block (Change Management).
+- UAC tightening GPO (Change Management).
+- Email gateway .jpeg magic-byte rule (Change Management).
+
+### Queries to Run
+Hunts 1-14 above (paste into LogScale; recommend 90-day window for IOC sweeps, 30 days for behavioral).
+
+### Follow-Up Schedule
+- Re-run Hunts 1, 2 (IOC-based) weekly for 60 days, then monthly.
+- Re-run Hunts 3-14 (behavioral) every 14 days.
+- IOC expiry: IPs 2026-06-11, Domain 2026-08-10, Hashes 2027-05-12.
+- Promotion review: Custom IOA-1 in 7 days; IOA-3, IOA-4 in 14 days.
+- Intel monitoring: Cyfirma blog, ConnectWise security advisories, CISA bulletins.
+- Re-hunt triggers: new SilentCanvas IOCs published; any ScreenConnect CVE; observed csc.exe from non-dev endpoints.</pre>
+</div>
+</section>
+
+<footer>
+  Generated by Threat Hunter Skill &middot; Single-file HTML package &middot; All queries CrowdStrike CQL (Falcon LogScale / NG-SIEM)
+</footer>
+
+</div>
+
+<script>
+function copyQuery(btn) {
+  const pre = btn.closest('.query-card').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerText;
+    btn.innerText = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerText = orig;
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    btn.innerText = 'Copy failed';
+  });
+}
+</script>
+</body>
+</html>
