@@ -368,8 +368,10 @@ or
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | ImageFileName = /\\(powershell|pwsh)\.exe$/i
 | CommandLine = /-WInDo\s+Min/
-| CommandLine = /\$[A-Za-z]{2,6}\s*=\s*['"][A-Za-z0-9]{30,}['"]/
-| CommandLine = /(\.[A-Za-z]*[A-Z]+[A-Za-z]*\.|[a-z]+[A-Z][a-z]+[A-Z])/
+// Long mixed-case quoted-string assignment is the high-signal artefact (e.g. $RdLU='aZmEwGE...xMRi.neTwOrk...').
+// The previous over-broad CamelCase regex was unanchored and matched almost any path/assembly name; this
+// version requires the mixed-case run to live INSIDE a quoted string assigned to a short variable.
+| CommandLine = /\$[A-Za-z]{2,6}\s*=\s*['"][A-Za-z0-9]*[a-z][A-Z][a-z][A-Z][A-Za-z0-9]{20,}['"]/
 | table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
 | sort(@timestamp, order=desc)</pre>
 </div>
@@ -549,9 +551,11 @@ or
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 // Exclude well-known system parents that legitimately spawn under a different SID
 | ParentBaseFileName != /^(services|svchost|lsass|wininit|smss|csrss|TrustedInstaller|MsMpEng|MoUsoCoreWorker|RuntimeBroker|sihost|fontdrvhost|spoolsv|conhost|userinit|dwm|taskhostw|ctfmon|searchindexer|consent|UsoClient|backgroundTaskHost|SearchProtocolHost|SearchFilterHost|SgrmBroker)\.exe$/i
-// Require BOTH SID and UserName mismatch (defends against the field being partially populated)
-| UserSid != ParentUserSid
-| UserName != ParentUserName
+// Require BOTH SID and UserName mismatch (defends against the field being partially populated).
+// Cross-field comparisons must be wrapped in test() - a bare `field1 != field2` would treat the
+// right-hand side as a literal string rather than a field reference.
+| test(UserSid != ParentUserSid)
+| test(UserName != ParentUserName)
 // Require both sides populated and neither side a service account (these are noisy and legitimate)
 | UserName != "" AND ParentUserName != ""
 | !in(field=UserName, values=["SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE"], ignoreCase=true)

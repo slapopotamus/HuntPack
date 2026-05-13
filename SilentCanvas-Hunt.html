@@ -375,7 +375,14 @@ or
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | ImageFileName = /\\csc\.exe$/i
 | ParentBaseFileName = /^(powershell|pwsh|wscript|cscript|cmd|mshta|rundll32|regsvr32)\.exe$/i
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ | ImageFileName = /\\cvtres\.exe$/i}, field=[TargetProcessId_decimal], key=[ParentProcessId_decimal], mode=left, include=[ImageFileName as ChildCvtres])
+// Enrich with cvtres.exe child (resource compiler invoked by csc when building from .cs source).
+// The joined query renames ImageFileName -> ChildCvtres BEFORE the join so the field arrives
+// pre-named; in-include `field as alias` syntax is not supported by join().
+| join(query={
+    #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+    | ImageFileName = /\\cvtres\.exe$/i
+    | rename(ImageFileName, as=ChildCvtres)
+  }, field=[TargetProcessId_decimal], key=[ParentProcessId_decimal], mode=left, include=[ChildCvtres])
 | table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, ChildCvtres])
 | sort(@timestamp, order=desc)</pre>
 </div>
@@ -789,6 +796,7 @@ ipv4,45.138.16.64,detect,medium,2026-06-11,C2 IP - SilentCanvas,campaign:SilentC
   <div class="query-header">silentcanvas-ticket.txt <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
 <pre>## Hunt Summary: Operation SilentCanvas
 Date: 2026-05-12
+Analyst: ai@hutzley.com
 Intel Source: Cyfirma - Operation SilentCanvas (JPEG-Based Multistage PowerShell Intrusion)
 
 ### Expected Findings
