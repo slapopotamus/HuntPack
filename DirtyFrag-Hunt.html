@@ -388,7 +388,7 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
 | ImageFileName = /\/(esp4|esp6|rxrpc|xfrm_user|ipcomp4|ipcomp6)\.ko(\.xz|\.zst|\.gz)?$/i
    or ModuleName = /^(esp4|esp6|rxrpc|xfrm_user|ipcomp4|ipcomp6)$/i
 | groupBy([ComputerName, UserName, ModuleName, ImageFileName],
-          function=collect([@timestamp, aid, ParentBaseFileName, CommandLine]))
+          function=[count(), collect([@timestamp, aid, ParentBaseFileName, CommandLine])])
 | sort(_count, order=desc)</pre>
 </div>
 
@@ -415,7 +415,7 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
 | SocketFamily = "AF_RXRPC" or SocketDomain_decimal = 33 or SocketAddressFamily = 33
 | ImageFileName != /\/(afsd|kafs-client|fs|vos|bos|pts|venus)$/i
 | groupBy([ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName],
-          function=collect([@timestamp, aid, TargetProcessId_decimal]))
+          function=[count(), collect([@timestamp, aid, TargetProcessId_decimal])])
 | sort(_count, order=desc)</pre>
 </div>
 
@@ -477,15 +477,13 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
 
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | event_platform = "Lin"
-| ParentBaseFileName =~ "su"
 | ParentImageFileName = /\/usr\/bin\/su$/i
 | EffectiveUID_decimal = 0 or UID_decimal = 0
 | ImageFileName = /\/(bash|sh|dash|zsh|ksh)$/i
 // Parent of su was non-root - this is the suspicious shape
 | ParentUID_decimal != 0
-| ParentUID_decimal = *
 | groupBy([ComputerName, UserName, ParentUID_decimal, ImageFileName, CommandLine],
-          function=collect([@timestamp, aid, TargetProcessId_decimal, ParentProcessId_decimal]))
+          function=[count(), collect([@timestamp, aid, TargetProcessId_decimal, ParentProcessId_decimal])])
 | sort(_count, order=desc)</pre>
 </div>
 
@@ -509,12 +507,13 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
 
 #event_simpleName = /NetlinkSocketCreate|LinuxNetlink|SyscallEvent/
 | event_platform = "Lin"
-| (NetlinkFamily = "NETLINK_XFRM" or NetlinkProtocol_decimal = 6
-   or SocketProtocol_decimal = 6 and SocketDomain_decimal = 16)
+| (NetlinkFamily = "NETLINK_XFRM"
+   or NetlinkProtocol_decimal = 6
+   or (SocketProtocol_decimal = 6 and SocketDomain_decimal = 16))
 | UID_decimal >= 1000
 | ImageFileName != /\/(ip|charon|pluto|swanctl|starter|NetworkManager|systemd-networkd)$/i
 | groupBy([ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName],
-          function=collect([@timestamp, aid]))
+          function=[count(), collect([@timestamp, aid])])
 | sort(_count, order=desc)</pre>
 </div>
 
@@ -535,14 +534,14 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
   <p class="fpnotes"><strong>FP notes:</strong> Builds, package installers running as root after a non-root build step. Tighten by requiring the privilege transition to occur in the same process tree.</p>
 <pre>// HUNT-6: Privilege transition within ~60s of unprivileged splice activity
 // MITRE: T1068 + T1548 - correlation hunt
-// NOTE: selfJoinFilter binds both halves by aid + ComputerName so the same
+// NOTE: selfJoinFilter binds both halves by aid so the same
 // host's splice burst and uid=0 transition appear in the same group.
 // Filter the result for groups that contain BOTH a splice/vmsplice event
 // AND a uid=0 child where the parent was uid != 0.
 
 #event_simpleName = /SyscallEvent|LinuxSyscall|ProcessRollup2|SyntheticProcessRollup2/
 | event_platform = "Lin"
-| selfJoinFilter(field=[aid, ComputerName], where=[
+| selfJoinFilter(field=[aid], where=[
     {#event_simpleName = /SyscallEvent|LinuxSyscall/
      | SyscallName = /^(splice|vmsplice)$/i
      | UID_decimal >= 1000},
@@ -552,7 +551,7 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
      | ImageFileName = /\/(bash|sh|dash|zsh|ksh)$/i}
   ])
 | groupBy([aid, ComputerName, UserName],
-          function=[collect([@timestamp, SyscallName, ImageFileName, CommandLine, UID_decimal, EffectiveUID_decimal])])
+          function=[count(), collect([@timestamp, SyscallName, ImageFileName, CommandLine, UID_decimal, EffectiveUID_decimal])])
 | sort(_count, order=desc)</pre>
 </div>
 
@@ -584,7 +583,7 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
 | UID_decimal = 0
 | ImageFileName != /\/(ansible|puppet|salt-minion|chef-client|cfengine|cloud-init|systemd|apt|dpkg|rpm|yum|dnf|cloud-config)/i
 | groupBy([ComputerName, UserName, ImageFileName, TargetFileName, CommandLine],
-          function=collect([@timestamp, aid, ParentBaseFileName]))
+          function=[count(), collect([@timestamp, aid, ParentBaseFileName])])
 | sort(_count, order=desc)</pre>
 </div>
 
@@ -614,7 +613,7 @@ footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18p
    or TargetFileName = /\/etc\/systemd\/system\/falcon-sensor\.service/i)
 | EffectiveUID_decimal = 0
 | groupBy([ComputerName, UserName, ImageFileName, CommandLine],
-          function=collect([@timestamp, aid, ParentBaseFileName]))
+          function=[count(), collect([@timestamp, aid, ParentBaseFileName])])
 | sort(_count, order=desc)</pre>
 </div>
 
