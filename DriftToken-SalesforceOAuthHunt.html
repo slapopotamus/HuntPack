@@ -418,7 +418,9 @@
       <li><strong>Q13</strong> — same <code>eventStats</code> issue as Q8; replaced with self-join to baseline subquery. <code>stddev</code> → <code>stdDev</code> casing.</li>
       <li><strong>Q15</strong> — invalid <code>(field1 OR field2) = /regex/</code> syntax replaced with <code>coalesce()</code> + <code>in()</code>.</li>
       <li><strong>Q4, Q9, Q10</strong> — EVENT_TYPE/ENTITY_NAME regex lists converted to <code>in()</code> for indexed lookup; <code>bucket(... series=)</code> (not a real arg) replaced with arithmetic time-bucket + <code>groupBy</code>.</li>
-      <li><strong>All queries</strong> — uppercase <code>OR</code> → lowercase <code>or</code>; inline <code>(?i)</code> → trailing <code>/i</code> flag; <code>coalesce()</code> default-value removed (CQL takes a list only — use a follow-on <code>default()</code>); <code>collect(field=X)</code> → <code>collect(X)</code> positional form.</li>
+      <li><strong>All queries</strong> — uppercase <code>OR</code> → lowercase <code>or</code>; inline <code>(?i)</code> → trailing <code>/i</code> flag; <code>coalesce()</code> default-value removed (CQL takes a list only — use a follow-on <code>if()</code>); <code>collect(field=X)</code> → <code>collect(X)</code> positional form; trailing literal hyphens inside character classes moved to start (lint cleanup).</li>
+      <li><strong>Live-test fix #1 (Q2, Q5, Q10, Q11):</strong> <code>collect()</code> does <em>not</em> accept <code>as=</code> (valid args: <code>multival</code>, <code>fields</code>, <code>separator</code>, <code>limit</code>). The collected array carries the input field's name. To rename, drop <code>as=</code> and follow with <code>rename(field=X, as=Y)</code>. Confirmed against LogScale v1.237.</li>
+      <li><strong>Live-test fix #2 (Q4, Q8, Q11, Q13):</strong> LogScale v1.237's <code>default()</code> rejects <code>field=</code> as a named arg (suggestions: only <code>value</code>, <code>replaceEmpty</code>). Replaced every <code>default(value=X, field=Y)</code> with <code>if(Y != "", then=Y, else=X, as=Y)</code> — works identically and the <code>if()</code> signature is stable across LogScale versions. The <code>crowdstrike-logscale</code> skill ref documents <code>default()</code> imprecisely and should be updated.</li>
     </ul>
     <strong>Field-name caveat:</strong> queries use the native Salesforce EventLogFile column names (<code>EVENT_TYPE</code>, <code>USER_NAME</code>, <code>SOURCE_IP</code>, <code>USER_AGENT</code>, <code>ENTITY_NAME</code>, <code>ROWS_PROCESSED</code>, <code>CONNECTED_APP_NAME</code>). The CrowdStrike NG-SIEM Salesforce data-connector parser preserves these names but your tenant may prefix them (e.g. <code>salesforce.event_type</code>). Run one query against a real sample before deploying the full set; remap field names once if needed.
   </div>
@@ -507,9 +509,11 @@
 | USER_AGENT = /(Salesforce-Multi-Org-Fetcher|Salesforce-CLI\/1\.0|TruffleHog|python-requests\/2\.32\.4|aiohttp\/3\.12\.15)/i
 | groupBy([USER_NAME, USER_AGENT, SOURCE_IP, CONNECTED_APP_NAME],
           function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen),
-                    collect(ENTITY_NAME, as=Objects), collect(METHOD_NAME, as=Methods)])
+                    collect(ENTITY_NAME), collect(METHOD_NAME)])
+| rename(field=ENTITY_NAME, as=Objects)
+| rename(field=METHOD_NAME, as=Methods)
 | sort(Hits, order=desc)</pre>
-<!-- AUDIT (Q2): EVENT_TYPE regex → in() (indexed lookup); collect(field=X) → collect(X) (positional per CQL ref); regex on USER_AGENT preserved (single-field regex is fast). -->
+<!-- AUDIT (Q2): EVENT_TYPE regex → in(). FIXED 2026-05-19 after live test: collect() does NOT accept as= (valid args: multival, fields, separator, limit). Drop as= and rename() the resulting field after groupBy. -->
       </div>
     </div>
   </div>
@@ -592,7 +596,7 @@
 | in(ENTITY_NAME, values=["Case", "CaseComment", "FeedItem", "FeedComment", "CaseHistory", "EmailMessage", "CaseTeamMember"])
 | in(METHOD_NAME, values=["query", "queryAll", "retrieve", "describeSObjects", "getUpdated", "getDeleted"], ignoreCase=true)
 | RowsAny := coalesce([ROWS_PROCESSED, ROWS_FETCHED])
-| RowsAny := default(0, field=RowsAny)
+| RowsAny := if(RowsAny != "", then=RowsAny, else=0, as=RowsAny)
 | RowsAny &gt; 10000
 | groupBy([USER_NAME, ENTITY_NAME, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME],
           function=[count(as=Calls),
@@ -638,7 +642,7 @@
 #repo = "salesforce_eventlogfile"
 | in(EVENT_TYPE, values=["ApiEvent","RestApi","BulkApi","BulkApiV2","ReportExport","ContentTransfer"])
 | in(ENTITY_NAME, values=["Case","CaseComment","FeedItem","FeedComment","EmailMessage","Attachment","ContentVersion"])
-| QUERY = /(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|xox[bpars]-[0-9A-Za-z-]{10,}|[a-zA-Z0-9._%+-]+\.snowflakecomputing\.com|eyJ[A-Za-z0-9_=-]{8,}\.eyJ[A-Za-z0-9_=-]{8,}\.[A-Za-z0-9_.+\/=-]{8,}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|\b(?:api[_-]?key|password|secret|token)\s*[:=]\s*[A-Za-z0-9._\-+\/]{16,})/i
+| QUERY = /(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|xox[bpars]-[-0-9A-Za-z]{10,}|[-a-zA-Z0-9._%+]+\.snowflakecomputing\.com|eyJ[-A-Za-z0-9_=]{8,}\.eyJ[-A-Za-z0-9_=]{8,}\.[-A-Za-z0-9_.+\/=]{8,}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|\b(?:api[-_]?key|password|secret|token)\s*[:=]\s*[-A-Za-z0-9._+\/]{16,})/i
 | case {
     QUERY = /AKIA|ASIA/i              | SecretType := "AWS";
     QUERY = /xox[bpars]-/             | SecretType := "Slack";
@@ -647,10 +651,11 @@
     QUERY = /eyJ.*eyJ/                | SecretType := "JWT";
     *                                 | SecretType := "GenericCredential";
   }
-| groupBy([SecretType, ENTITY_NAME, USER_NAME],
-          function=[count(as=Hits), collect(ENTITY_NAME, as=Objects)])
+| groupBy([SecretType, USER_NAME],
+          function=[count(as=Hits), collect(ENTITY_NAME)])
+| rename(field=ENTITY_NAME, as=Objects)
 | sort(Hits, order=desc)</pre>
-<!-- AUDIT (Q5): case { cond | "value"; } → case { cond | field := "value"; } (the value-only form is invalid); merged 7 OR'd QUERY regexes into a single alternation (faster, one regex pass); collect(field=X) → collect(X); EVENT_TYPE/ENTITY_NAME regex → in(). -->
+<!-- AUDIT (Q5): case { cond | "value"; } → case { cond | field := "value"; } (value-only form invalid); 7 OR'd QUERY regexes merged into one alternation; EVENT_TYPE/ENTITY_NAME regex → in(). FIXED 2026-05-19: dropped ENTITY_NAME from groupBy key set (collected as array instead, avoids name-collision with the collect output); collect() takes no as=. -->
       </div>
     </div>
   </div>
@@ -687,7 +692,7 @@
 
 #repo = "salesforce_eventlogfile"
 | in(EVENT_TYPE, values=["Login","LoginEvent","RestApi","BulkApi","BulkApiV2","ApiEvent"])
-| (USER_TYPE = "Integration" or USER_NAME = /integration|svc[_-]|service[_-]|api[_-]|bot[_-]/i)
+| (USER_TYPE = "Integration" or USER_NAME = /integration|svc[-_]|service[-_]|api[-_]|bot[-_]/i)
 | match(file="tor_exits.csv", field=SOURCE_IP, column=exit_ip, strict=true)
 | groupBy([USER_NAME, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME],
           function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)])
@@ -788,7 +793,7 @@
     | @timestamp &gt;= (now() - 7776000000)
     | groupBy([AppKey], function=[max(@timestamp, as=LastPriorGrant)])
   }, field=[AppKey], include=[LastPriorGrant], mode=left)
-| LastPriorGrant := default(0, field=LastPriorGrant)
+| LastPriorGrant := if(LastPriorGrant != "", then=LastPriorGrant, else=0, as=LastPriorGrant)
 | DormancyDays := (FirstGrantThisWeek - LastPriorGrant) / 86400000
 | DormancyDays &gt; 30
 | table([AppKey, FirstGrantThisWeek, LastPriorGrant, DormancyDays, GrantsThisWeek])
@@ -876,11 +881,12 @@
 | groupBy([USER_NAME, SOURCE_IP, TimeBucket], function=[
     count(as=Hits),
     count(TargetObject, distinct=true, as=DistinctObjects),
-    collect(TargetObject, as=Objects)
+    collect(TargetObject)
   ])
+| rename(field=TargetObject, as=Objects)
 | DistinctObjects &gt;= 3
 | sort(TimeBucket, order=desc)</pre>
-<!-- AUDIT (Q10): bucket(... series=) isn't a real arg — replaced with arithmetic time-bucket + groupBy; countDistinct() → count(distinct=true) (per CQL ref); regex named-capture form fixed; collect(field=X) → collect(X). -->
+<!-- AUDIT (Q10): bucket(... series=) isn't a real arg — replaced with arithmetic time-bucket + groupBy; countDistinct() → count(distinct=true); regex named-capture form fixed. FIXED 2026-05-19: collect() takes no as= — drop it and rename() after the groupBy. -->
       </div>
     </div>
   </div>
@@ -930,20 +936,23 @@
     | ASN := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
     | Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
     | groupBy([AppKey], function=[
-        collect(ASN, as=KnownASNs, separator="|"),
-        collect(Country, as=KnownCountries, separator="|")
+        collect(ASN, separator="|"),
+        collect(Country, separator="|")
       ])
+    | rename(field=ASN, as=KnownASNs)
+    | rename(field=Country, as=KnownCountries)
   }, field=[AppKey], include=[KnownASNs, KnownCountries], mode=left)
-| KnownASNs := default("__none__", field=KnownASNs)
-| KnownCountries := default("__none__", field=KnownCountries)
-| AsnSeen := test(regex(format("(^|\\|)%s($|\\|)", field=[ASN]), field=KnownASNs))
-| CountrySeen := test(regex(format("(^|\\|)%s($|\\|)", field=[Country]), field=KnownCountries))
-| !AsnSeen
-| !CountrySeen
+| KnownASNs := if(KnownASNs != "", then=KnownASNs, else="__none__", as=KnownASNs)
+| KnownCountries := if(KnownCountries != "", then=KnownCountries, else="__none__", as=KnownCountries)
+// Filter in the Falcon UI: open the result table, filter KnownASNs NOT contains ASN value.
+// Done in-query because dynamic-regex membership-tests on a runtime string field are unreliable
+// in CQL. The output below gives you the per-call ASN/Country alongside the full known set —
+// any row whose ASN value doesn't appear inside KnownASNs (separator: |) is a drift candidate.
 | groupBy([AppKey, ASN, Country, ipAddress],
-          function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)])
+          function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen),
+                    selectFromMax(field=@timestamp, include=[KnownASNs, KnownCountries])])
 | sort(FirstSeen, order=desc)</pre>
-<!-- AUDIT (Q11): Major rewrite — !in(field=ASN, values=KnownASNs) doesn't work because values= expects a literal list, not a runtime array field. Replaced with collect(separator="|") to build a baseline string, then regex membership-test per row. Time windows now use epoch-ms math (CQL doesn't accept `7d` directly inside `now() -`). -->
+<!-- AUDIT (Q11): Original used !in(field=X, values=&lt;array-field&gt;) which fails (values= takes literal list only). First rewrite tried regex(format()) for membership — also unreliable because regex() compiles its pattern at query-build time. Final form emits the data, lets the analyst eyeball drift in the Falcon table view (filter "KnownASNs does not contain &lt;ASN value&gt;"). Drops dependency on dynamic regex. -->
       </div>
     </div>
   </div>
@@ -1022,7 +1031,7 @@
 | in(EVENT_TYPE, values=["RestApi","BulkApi","BulkApiV2","ApiEvent"])
 | CONNECTED_APP_NAME = /drift|salesloft/i
 | RowsAny := coalesce([ROWS_PROCESSED, ROWS_FETCHED])
-| RowsAny := default(0, field=RowsAny)
+| RowsAny := if(RowsAny != "", then=RowsAny, else=0, as=RowsAny)
 | Day := formatTime("%Y-%m-%d", field=@timestamp)
 | groupBy([Day], function=[count(as=Calls), sum(RowsAny, as=Rows)])
 | join(query={
@@ -1033,7 +1042,7 @@
     | groupBy([DayB], function=count(as=PerDay))
     | groupBy([], function=[avg(PerDay, as=BaselineAvg), stdDev(PerDay, as=BaselineStd)])
   }, field=[], include=[BaselineAvg, BaselineStd], mode=left)
-| BaselineStd := default(1, field=BaselineStd)
+| BaselineStd := if(BaselineStd != "", then=BaselineStd, else=1, as=BaselineStd)
 | ZScore := (Calls - BaselineAvg) / BaselineStd
 | ZScore &gt; 3
 | sort(Day, order=desc)</pre>
@@ -1409,11 +1418,11 @@ insert honey;
 // FP RISK: Zero (the canary has no legitimate readers)
 // CONFIDENCE: Very High
 
-#repo = "salesforce"
-| EVENT_TYPE = /^(ApiEvent|RestApi|UniqueQuery|ReportExport)$/
-| (QUERY = /(?i)CaseNumber\s*=\s*['"]?00001234['"]?/
-   OR ENTITY_ID = "500XXXXXXXXXXXXXXX"  // substitute the real canary Case.Id
-   OR URI = /(?i)\/sobjects\/Case\/500XXXXXXXXXXXXXXX/)
+#repo = "salesforce_eventlogfile"
+| in(EVENT_TYPE, values=["ApiEvent","RestApi","UniqueQuery","ReportExport"])
+| (QUERY = /CaseNumber\s*=\s*['"]?00001234['"]?/i
+   or ENTITY_ID = "500XXXXXXXXXXXXXXX"  // substitute the real canary Case.Id
+   or URI = /\/sobjects\/Case\/500XXXXXXXXXXXXXXX/i)
 | table([@timestamp, USER_NAME, USER_AGENT, SOURCE_IP, CONNECTED_APP_NAME, EVENT_TYPE, QUERY])
 | sort(@timestamp, order=desc)</pre>
 
