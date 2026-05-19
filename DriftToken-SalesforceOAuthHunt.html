@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drift Token — SaaS Supply-Chain OAuth Theft Hunt &amp; Hardening Pack (UNC6395 / Salesloft Drift)</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg-2: #161b22; --bg-3: #1c2230; --border: #30363d;
+    --fg: #e6edf3; --fg-dim: #9ca3af; --fg-muted: #6e7681;
+    --accent: #00a1e0; --accent-2: #facc15; --info: #58a6ff; --good: #3fb950;
+    --warn: #d29922; --crit: #f85149; --purple: #b392f0; --teal: #2dd4bf;
+    --code-bg: #0a0e14; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  .hero { background: linear-gradient(135deg, #001a26 0%, #002b3d 50%, #0d1117 100%); border-bottom: 1px solid var(--border); padding: 40px 0 32px; }
+  .hero h1 { margin: 0 0 8px; font-size: 2.2em; line-height: 1.15; color: var(--fg); }
+  .hero .subtitle { color: var(--fg-dim); font-size: 1.05em; margin-bottom: 16px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.78em; font-weight: 600; letter-spacing: 0.3px; background: var(--bg-3); border: 1px solid var(--border); color: var(--fg-dim); }
+  .badge.crit { background: rgba(248,81,73,0.15); color: var(--crit); border-color: rgba(248,81,73,0.4); }
+  .badge.warn { background: rgba(210,153,34,0.15); color: var(--warn); border-color: rgba(210,153,34,0.4); }
+  .badge.info { background: rgba(88,166,255,0.15); color: var(--info); border-color: rgba(88,166,255,0.4); }
+  .badge.good { background: rgba(63,185,80,0.15); color: var(--good); border-color: rgba(63,185,80,0.4); }
+  .badge.purple { background: rgba(179,146,240,0.15); color: var(--purple); border-color: rgba(179,146,240,0.4); }
+  .badge.accent { background: rgba(0,161,224,0.18); color: var(--accent); border-color: rgba(0,161,224,0.5); }
+  .sev-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 18px 0; }
+  .sev-cell { background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .sev-cell .lbl { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--fg-muted); margin-bottom: 3px; }
+  .sev-cell .val { font-size: 1.05em; font-weight: 700; color: var(--fg); font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+  .sev-cell .val.crit { color: var(--crit); } .sev-cell .val.warn { color: var(--warn); }
+  .sev-cell .val.good { color: var(--good); } .sev-cell .val.info { color: var(--info); }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 16px; color: var(--fg-muted); font-size: 0.88em; border-top: 1px solid var(--border); padding-top: 14px; }
+  .meta-row span strong { color: var(--fg-dim); }
+  .cloud-bar { position: sticky; top: 0; z-index: 50; background: rgba(13,17,23,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 10px 0; }
+  .cloud-bar-inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.9em; }
+  .cloud-bar label { color: var(--fg-dim); font-weight: 600; }
+  .cloud-bar select { background: var(--bg-2); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 0.95em; font-family: inherit; cursor: pointer; }
+  .cloud-bar .current-host { font-family: "JetBrains Mono", Consolas, monospace; color: var(--info); font-size: 0.85em; padding: 4px 8px; background: var(--bg-2); border-radius: 4px; border: 1px solid var(--border); }
+  .cloud-bar .hint { color: var(--fg-muted); font-size: 0.82em; margin-left: auto; }
+  section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  h2 { font-size: 1.55em; margin: 0 0 16px; color: var(--fg); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 4px; }
+  h3 { font-size: 1.15em; margin: 24px 0 10px; color: var(--fg); }
+  h4 { font-size: 1.0em; margin: 18px 0 8px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  p { margin: 8px 0 14px; }
+  .toc { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 24px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 1em; text-transform: uppercase; letter-spacing: 0.6px; color: var(--fg-dim); }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 16px; }
+  .toc a { color: var(--info); text-decoration: none; padding: 4px 0; display: block; font-size: 0.92em; }
+  .toc a:hover { color: var(--accent-2); }
+  table { width: 100%; border-collapse: collapse; background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin: 14px 0; font-size: 0.92em; }
+  th { background: var(--bg-3); padding: 9px 12px; text-align: left; font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--fg-dim); }
+  tr:last-child td { border-bottom: none; }
+  td code, th code { background: var(--code-bg); padding: 1px 6px; border-radius: 3px; color: var(--accent-2); font-size: 0.92em; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0; }
+  .card { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 16px; }
+  .card .num { font-size: 1.8em; font-weight: 700; color: var(--accent); }
+  .card .lbl { color: var(--fg-muted); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tl { border-left: 2px solid var(--accent); margin: 14px 0 14px 14px; padding-left: 18px; }
+  .tl-item { margin-bottom: 14px; position: relative; }
+  .tl-item::before { content: ""; position: absolute; left: -25px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .tl-date { font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.82em; color: var(--accent-2); font-weight: 700; }
+  .tl-body { color: var(--fg-dim); font-size: 0.92em; }
+  .query { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; margin: 22px 0; overflow: hidden; }
+  .query-head { display: flex; align-items: center; justify-content: space-between; background: var(--bg-3); padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
+  .query-title { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--fg); }
+  .query-title .qid { background: var(--accent); color: #001a26; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 0.78em; }
+  .query-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px 18px; padding: 10px 16px; font-size: 0.85em; color: var(--fg-dim); border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.18); }
+  .query-meta strong { color: var(--fg); font-weight: 600; }
+  .query-body { padding: 14px 16px; }
+  .query-body p { margin: 4px 0 10px; color: var(--fg-dim); font-size: 0.93em; }
+  .query-body p strong { color: var(--fg); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; font-size: 0.86em; line-height: 1.55; color: #c9d1d9; margin: 8px 0; position: relative; }
+  pre code { color: inherit; background: none; padding: 0; }
+  .tabs { margin: 8px 0; }
+  .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab-btn { background: var(--bg-3); color: var(--fg-dim); border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; padding: 6px 14px; font-size: 0.82em; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .tab-btn.active { background: var(--code-bg); color: var(--accent-2); border-color: var(--accent); position: relative; top: 1px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .code-wrap { position: relative; }
+  .code-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; opacity: 0.85; z-index: 2; }
+  .btn { background: var(--bg-3); color: var(--fg); border: 1px solid var(--border); padding: 5px 12px; border-radius: 5px; font-size: 0.78em; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .btn:hover { background: var(--accent); color: #001a26; border-color: var(--accent); }
+  .btn.copied { background: var(--good); color: #0d1117; border-color: var(--good); }
+  .btn.open-falcon { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.4); color: var(--info); }
+  .btn.open-falcon:hover { background: var(--info); color: #0d1117; }
+  .callout { padding: 12px 16px; border-radius: 6px; margin: 14px 0; border-left: 3px solid var(--info); background: rgba(88,166,255,0.06); color: var(--fg-dim); font-size: 0.93em; }
+  .callout-warn { border-left-color: var(--warn); background: rgba(210,153,34,0.06); }
+  .callout-crit { border-left-color: var(--crit); background: rgba(248,81,73,0.06); }
+  .callout-good { border-left-color: var(--good); background: rgba(63,185,80,0.06); }
+  .callout-accent { border-left-color: var(--accent); background: rgba(0,161,224,0.06); }
+  .callout strong { color: var(--fg); }
+  .cov-good { color: var(--good); font-weight: 600; }
+  .cov-partial { color: var(--warn); font-weight: 600; }
+  .cov-gap { color: var(--crit); font-weight: 700; }
+  .raci-y { color: var(--good); font-weight: 700; text-align: center; }
+  .raci-n { color: var(--fg-muted); text-align: center; }
+  footer { padding: 28px 0; text-align: center; color: var(--fg-muted); font-size: 0.85em; border-top: 1px solid var(--border); background: var(--bg-2); }
+  @media print {
+    body { background: #fff; color: #111; } .hero { background: #f4f4f4; color: #111; }
+    .hero h1, .hero .subtitle, .meta-row { color: #111 !important; }
+    .cloud-bar, .code-actions, .btn.open-falcon, .tab-bar { display: none !important; }
+    .tab-panel { display: block !important; }
+    section, .card, .query, .toc, table { page-break-inside: avoid; }
+    pre, code { background: #f6f8fa !important; color: #24292f !important; border-color: #d0d7de !important; }
+    a { color: #0969da !important; text-decoration: underline; } table { background: #fff; }
+    th, td { color: #111 !important; border-color: #d0d7de !important; } th { background: #f6f8fa !important; }
+    .badge { background: #f6f8fa !important; color: #24292f !important; border-color: #d0d7de !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="badges">
+      <span class="badge crit">ACTIVELY EXPLOITED</span>
+      <span class="badge crit">~700 ORGS IMPACTED</span>
+      <span class="badge accent">SAAS SUPPLY-CHAIN</span>
+      <span class="badge purple">OAUTH TOKEN THEFT</span>
+      <span class="badge warn">FBI FLASH ISSUED</span>
+      <span class="badge info">TTP-DRIVEN HUNT</span>
+    </div>
+    <h1>Drift Token — SaaS Supply-Chain OAuth Theft Hunt &amp; Hardening Pack</h1>
+    <div class="subtitle">UNC6395 / Salesloft Drift / Salesforce data-theft campaign (Aug 8–18, 2025) &amp; the secondary breach wave it kicked off (AWS keys, Snowflake tokens, Slack tokens harvested from support cases). Switchable Falcon cloud for shareable deep-links.</div>
+
+    <div class="sev-strip">
+      <div class="sev-cell"><div class="lbl">Threat actors</div><div class="val crit">UNC6395 +UNC6040</div></div>
+      <div class="sev-cell"><div class="lbl">Extortion brand</div><div class="val warn">SHINYHUNTERS</div></div>
+      <div class="sev-cell"><div class="lbl">Confirmed victims</div><div class="val crit">~700 ORGS</div></div>
+      <div class="sev-cell"><div class="lbl">FBI FLASH</div><div class="val crit">2025-09-12</div></div>
+      <div class="sev-cell"><div class="lbl">Salesforce CVE</div><div class="val good">NONE</div></div>
+      <div class="sev-cell"><div class="lbl">Token revocation</div><div class="val info">2025-08-20</div></div>
+      <div class="sev-cell"><div class="lbl">Drift AppExchange</div><div class="val warn">REMOVED</div></div>
+      <div class="sev-cell"><div class="lbl">Primary log source</div><div class="val info">SF EventLog</div></div>
+    </div>
+
+    <div class="meta-row">
+      <span><strong>Generated:</strong> 2026-05-19</span>
+      <span><strong>Skills:</strong> web-hunter → threat-hunter → crowdstrike-logscale → threat-hardening → falcon-deeplink</span>
+      <span><strong>Target log domains:</strong> Salesforce EventLogFile, Real-Time Event Monitoring, Entra/Okta OAuth telemetry</span>
+      <span><strong>Detection mode:</strong> Detect-first; review before alerting on broad UA/IP queries</span>
+    </div>
+  </div>
+</header>
+
+<div class="cloud-bar">
+  <div class="container cloud-bar-inner">
+    <label for="cloudSelect">Falcon Cloud:</label>
+    <select id="cloudSelect" onchange="updateCloud()">
+      <option value="https://falcon.crowdstrike.com">US-1 — falcon.crowdstrike.com</option>
+      <option value="https://falcon.us-2.crowdstrike.com">US-2 — falcon.us-2.crowdstrike.com</option>
+      <option value="https://falcon.eu-1.crowdstrike.com">EU-1 — falcon.eu-1.crowdstrike.com</option>
+      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1 — falcon.laggar.gcw.crowdstrike.com</option>
+      <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2 — falcon.us-gov-2.crowdstrike.mil</option>
+    </select>
+    <span class="current-host" id="currentHost">https://falcon.crowdstrike.com</span>
+    <span class="hint">Selection persists per browser. Open-in-Falcon buttons update live.</span>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="toc">
+  <h3>Contents</h3>
+  <div class="toc-grid">
+    <a href="#summary">1. Executive Summary</a>
+    <a href="#timeline">2. Campaign Timeline</a>
+    <a href="#brief">3. Hunt Brief</a>
+    <a href="#affected">4. Affected Surface &amp; Connected-App Inventory</a>
+    <a href="#mitre">5. MITRE ATT&amp;CK / D3FEND Mapping</a>
+    <a href="#queries">6. CQL Hunt Queries (15)</a>
+    <a href="#parity">7. Multi-SIEM Parity (Sigma / KQL / SPL)</a>
+    <a href="#backstops">8. Salesforce Transaction Security &amp; Real-Time EM Backstops</a>
+    <a href="#soql">9. SOQL Triage Pack (run from sf CLI / Workbench)</a>
+    <a href="#canary">10. Honey-Case Canary Recipe</a>
+    <a href="#validation">11. Detection Validation Plays</a>
+    <a href="#iocs">12. IOC Blocklist Template</a>
+    <a href="#ioa">13. Custom IOA &amp; Watchlist Recommendations</a>
+    <a href="#hardening">14. Hardening Recommendations (28 controls)</a>
+    <a href="#containment">15. Containment Runbook (T+0 → T+60 min)</a>
+    <a href="#coverage">16. Detection Coverage Map</a>
+    <a href="#ticket">17. Hunt Summary Ticket</a>
+    <a href="#raci">18. Decision-Rights / RACI</a>
+    <a href="#comms">19. Customer / Regulator Comms Template</a>
+    <a href="#refs">20. References</a>
+  </div>
+</div>
+
+<section id="summary">
+  <h2>1. Executive Summary</h2>
+  <p>
+    Between <strong>August 8 and August 18, 2025</strong>, the threat actor tracked by Google Threat Intelligence Group (GTIG) as <strong>UNC6395</strong> (also referenced as <code>GRUB1</code>; extortion claims later branded <strong>ShinyHunters</strong>) systematically exfiltrated CRM data from <strong>~700 Salesforce customer tenants</strong> by abusing OAuth access and refresh tokens stolen from <strong>Salesloft's Drift</strong> third-party integration. There is <strong>no Salesforce platform vulnerability</strong> — the campaign is a textbook SaaS supply-chain breach: compromise one trusted integration, inherit its trust to every customer.
+  </p>
+  <p>
+    Public victims include <strong>Cloudflare, Zscaler, Palo Alto Networks, Proofpoint, Tenable, Cisco, Tanium, BeyondTrust, PagerDuty, SpyCloud, Google (limited), Avalara, Toast,</strong> and many more. The actor's <strong>primary intent was credential harvesting</strong> — Salesforce <code>Case</code> and <code>CaseComment</code> bodies are notoriously full of secrets pasted by customers (<code>AKIA</code> AWS keys, Snowflake tokens, <code>xoxb-</code> Slack tokens, JWTs, VPN/SSO URLs, passwords). UNC6395 ran the harvested data through TruffleHog and validated keys, kicking off a <strong>second wave of breaches</strong> against the orgs whose secrets had leaked through their own support tickets.
+  </p>
+  <p>
+    Root cause on the Salesloft side: a <strong>monthslong GitHub account compromise (Mar–Jun 2025)</strong> let the actor exfiltrate source code, pivot to Salesloft's AWS environment, and lift OAuth tokens from the Drift platform. On <strong>2025-08-20</strong> Salesloft and Salesforce revoked all Drift access/refresh tokens; on <strong>2025-08-28</strong> Drift was removed from the AppExchange entirely. The <strong>FBI IC3 FLASH</strong> dated <strong>2025-09-12</strong> chains UNC6395 (OAuth theft) with the companion <strong>UNC6040</strong> activity cluster (vishing-driven malicious Connected-App authorization) — same defensive surface, both worth hunting.
+  </p>
+  <div class="card-grid">
+    <div class="card"><div class="num">~700</div><div class="lbl">Salesforce tenants exfiltrated</div></div>
+    <div class="card"><div class="num">10 days</div><div class="lbl">Active exfil window (Aug 8–18, 2025)</div></div>
+    <div class="card"><div class="num">15</div><div class="lbl">CQL hunt queries in this pack</div></div>
+    <div class="card"><div class="num">28</div><div class="lbl">Hardening controls recommended</div></div>
+  </div>
+  <div class="callout callout-crit">
+    <strong>Highest-fidelity signal in this pack:</strong> <strong>Q2</strong> — Salesforce <code>RestApi</code>/<code>BulkApi</code>/<code>ApiEvent</code> entries with <code>USER_AGENT</code> matching <code>Salesforce-Multi-Org-Fetcher/1.0</code>, <code>Salesforce-CLI/1.0</code>, <code>python-requests/2.32.4</code>, <code>Python/3.11 aiohttp/3.12.15</code>, or <code>TruffleHog</code>. These UAs are unique to the campaign and observed verbatim across multiple victim tenants. Pair with <strong>Q4</strong> (bulk export of <code>Case</code> object &gt; 10k rows by an integration user) for a near-zero-FP correlation.
+  </div>
+  <div class="callout callout-warn">
+    <strong>Pivot lesson:</strong> The endpoint sensor (CrowdStrike on a laptop) sees <em>nothing</em> in this campaign. All evidence lives in <strong>Salesforce EventLogFile</strong>, <strong>Real-Time Event Monitoring</strong> (<code>ApiEvent</code>, <code>LoginEvent</code>), and your <strong>identity provider's OAuth audit log</strong> (Entra signinLogs, Okta system log <code>app.oauth_token.grant</code>). If you haven't onboarded those streams into Next-Gen SIEM, do that <em>before</em> running the queries below — most of this pack is dark without the SaaS log feed.
+  </div>
+</section>
+
+<section id="timeline">
+  <h2>2. Campaign Timeline</h2>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-date">2025-03 → 2025-06</div><div class="tl-body">Unattributed actor maintains <strong>persistent access to Salesloft's GitHub organization</strong>. Source code from multiple private repos downloaded; a guest user is added; GitHub Actions workflows are tampered with for persistence and visibility. Initial-access vector remains officially undisclosed (likely credential theft, social engineering, or replay of historic credentials).</div></div>
+    <div class="tl-item"><div class="tl-date">2025-06 (approx.)</div><div class="tl-body">Actor <strong>pivots from GitHub → Salesloft AWS environment</strong> using long-lived access keys or programmatic credentials harvested from the downloaded repositories. OAuth access/refresh tokens for Drift's Salesforce + Drift Email connected-apps are lifted from AWS Secrets Manager / Parameter Store.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-08</div><div class="tl-body"><strong>UNC6395 begins mass-exfiltration of Salesforce tenants</strong> using stolen Drift OAuth tokens. Python tooling (<code>aiohttp</code> for concurrency) drives Salesforce REST + Bulk API 2.0 against every connected tenant in parallel.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-09</div><div class="tl-body">Cloudflare detects initial reconnaissance against its tenant — actor uses <strong>TruffleHog</strong> to validate a Cloudflare API token discovered in support-case text. Drift Email integration tokens are also abused to read messages in some Google Workspace tenants.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-12 → 2025-08-17</div><div class="tl-body">Bulk export window for the <strong>Case</strong> object across most victims (per Cloudflare's published IR). Free-form text fields in <code>Case</code> / <code>CaseComment</code> are the primary target — that's where AWS keys, Snowflake URLs, and Slack tokens hide.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-18</div><div class="tl-body">Campaign continues against late-discovered tenants. Actor begins <strong>deleting Bulk API query jobs</strong> from <code>AsyncApexJob</code> to thin out forensic trail — but <strong>EventLogFile entries persist</strong>, making the cleanup ineffective.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-20</div><div class="tl-body"><strong>Salesloft + Salesforce revoke all active Drift access &amp; refresh tokens.</strong> Salesloft engages Mandiant for IR.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-23</div><div class="tl-body">Cloudflare formally notified by Salesforce/Salesloft. Most other victims receive notice in this window.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-26</div><div class="tl-body"><strong>GTIG publishes public advisory</strong> ("Widespread Data Theft Targets Salesforce Instances via Salesloft Drift") with the canonical IOC list (UAs + IPs). VirusTotal collection <code>cc8d746bdcff0383...</code> seeded same day.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-08-28</div><div class="tl-body">Scope expanded — <strong>"Drift Email"</strong> integration confirmed compromised. Drift app removed from the Salesforce AppExchange. All Salesloft integrations disabled platform-wide. Salesloft publishes statement: "treat <em>all</em> credentials stored in or connected to Drift as compromised."</div></div>
+    <div class="tl-item"><div class="tl-date">2025-09-07</div><div class="tl-body">Salesloft platform integrations re-enabled (with rotated tokens). <strong>Drift remains disabled.</strong></div></div>
+    <div class="tl-item"><div class="tl-date">2025-09-12</div><div class="tl-body"><strong>FBI IC3 FLASH issued</strong> ("Cyber Criminal Groups UNC6040 and UNC6395 ...") — chains the OAuth-theft (UNC6395) and vishing/malicious-Connected-App (UNC6040) clusters and asks defenders to hunt both surfaces in parallel.</div></div>
+    <div class="tl-item"><div class="tl-date">2025-09 → present</div><div class="tl-body"><strong>ShinyHunters</strong> brand begins extortion outreach to victims; data-leak threats reference Salesforce records. TTP overlap with <strong>Scattered Spider</strong> noted by multiple researchers — treat the social-engineering helpdesk-bypass posture as continuing.</div></div>
+    <div class="tl-item"><div class="tl-date">2026-05-19</div><div class="tl-body"><strong>This pack generated.</strong> Salesloft Drift permanently retired in current form; downstream secondary breaches still surfacing as customers complete secret-rotation audits.</div></div>
+  </div>
+</section>
+
+<section id="brief">
+  <h2>3. Hunt Brief</h2>
+
+  <h3>Identity</h3>
+  <table>
+    <tr><th style="width: 30%">Field</th><th>Value</th></tr>
+    <tr><td>Campaign name (industry)</td><td>Salesloft Drift OAuth supply-chain compromise</td></tr>
+    <tr><td>Primary actor</td><td><strong>UNC6395</strong> (GTIG); a.k.a. <code>GRUB1</code></td></tr>
+    <tr><td>Companion cluster</td><td><strong>UNC6040</strong> (FBI FLASH 2025-09-12) — vishing-driven malicious Connected-App authorization</td></tr>
+    <tr><td>Extortion brand</td><td><strong>ShinyHunters</strong> (Sep 2025+); TTP overlap with <strong>Scattered Spider</strong></td></tr>
+    <tr><td>CVE</td><td><strong>None.</strong> No Salesforce or Salesloft platform vulnerability. Token theft via compromised vendor GitHub → AWS pivot.</td></tr>
+    <tr><td>First mass-exfil observed</td><td>2025-08-08</td></tr>
+    <tr><td>Initial-access (vendor side)</td><td>Salesloft GitHub account compromise, Mar–Jun 2025; pivot to Salesloft AWS; OAuth tokens lifted from Secrets Manager / Parameter Store</td></tr>
+    <tr><td>Public reporting</td><td>GTIG (2025-08-26); FBI IC3 FLASH (2025-09-12); Cloudflare IR blog (2025-09-02); Salesforce status 20000217; Salesloft Trust Center</td></tr>
+    <tr><td>ITW activity</td><td>Confirmed mass exfiltration of ~700 tenants Aug 8–18, 2025; secondary breaches via harvested secrets ongoing</td></tr>
+    <tr><td>Target verticals</td><td>Universal — any org with Drift connected to Salesforce. Tech, SaaS, security vendors, insurance, retail/luxury, consumer brands all confirmed hit.</td></tr>
+  </table>
+
+  <h3>Confirmed / publicly disclosed victims (non-exhaustive)</h3>
+  <p><strong>Tier-1 security vendors hit (read this list twice — your detection vendor is on it):</strong> Cloudflare, Zscaler, Palo Alto Networks, Proofpoint, Tenable, Cisco, Tanium, BeyondTrust, SpyCloud. <strong>Other named victims:</strong> PagerDuty, Avalara, Toast, Pandora, Chanel, Farmers Insurance (~1.1M customers), Workday, TransUnion (1B+ records claimed by extortion). Google reported limited Drift-Email exposure; no Workspace platform compromise.</p>
+
+  <h3>Attack chain (vendor-side foothold → cross-tenant exfil)</h3>
+  <ol>
+    <li><strong>T−∞ (vendor side):</strong> Salesloft maintains a Drift platform that holds OAuth access + refresh tokens for every customer's Salesforce / Google Workspace / Slack / etc. integration.</li>
+    <li><strong>T−5mo:</strong> Salesloft GitHub org compromised. Source repos exfiltrated; GitHub Actions tampered.</li>
+    <li><strong>T−2mo:</strong> Actor pivots from GitHub-leaked secrets into Salesloft AWS; reads OAuth tokens from Secrets Manager / SSM Parameter Store.</li>
+    <li><strong>T+0 (customer side, Aug 8):</strong> Actor uses stolen refresh-token → exchanges for fresh access-token against Salesforce IdP → reads tenant via REST/Bulk API. <strong>No MFA challenge, no password prompt, no anomalous geo on the IdP login event</strong> — because the IdP login event is bypassed entirely by the refresh-token grant.</li>
+    <li><strong>T+1m:</strong> Recon SOQL — <code>SELECT COUNT() FROM Account|Opportunity|User|Case</code> against each tenant to size the prize.</li>
+    <li><strong>T+2m:</strong> Bulk export — <code>User</code>, <code>Account</code>, <code>Opportunity</code>, <code>Case</code> (the high-secret-density target).</li>
+    <li><strong>T+10m – T+1d:</strong> Offline TruffleHog / regex grep across exfiltrated text for <code>AKIA</code>, Snowflake URLs, <code>xox[bpars]-</code>, JWTs, VPN/SSO URLs, plaintext passwords.</li>
+    <li><strong>T+1d+:</strong> Actor deletes Bulk API <code>AsyncApexJob</code> rows to obscure activity (ineffective — EventLogFile persists).</li>
+    <li><strong>T+1d → T+30d:</strong> Validated secondary credentials used against the <em>customer's</em> AWS / Snowflake / Slack tenants. This is where most of the real damage happens.</li>
+    <li><strong>T+30d+:</strong> ShinyHunters extortion outreach to selected high-value victims.</li>
+  </ol>
+
+  <h3>Hunt-observable indicators</h3>
+  <ul>
+    <li><strong>Tier 1 (high-fidelity):</strong> Salesforce <code>RestApi</code> / <code>BulkApi</code> / <code>ApiEvent</code> with one of the known UNC6395 user-agent strings (see §12).</li>
+    <li><strong>Tier 1:</strong> Salesforce <code>Login</code> / <code>LoginEvent</code> for the Drift / Salesloft / Drift-Email connected-app from any of the published IPs (DigitalOcean, AWS, Tor exit nodes — see §12).</li>
+    <li><strong>Tier 1:</strong> Bulk API query against <code>Case</code>, <code>CaseComment</code>, <code>FeedItem</code>, or <code>FeedComment</code> with <code>ROWS_PROCESSED &gt; 10,000</code> by an integration user.</li>
+    <li><strong>Tier 1:</strong> Any Salesforce API call by the Drift connected-app on/after <strong>2025-08-08</strong> (the integration was compromised — any post-T0 use is suspect even if your tenant wasn't in the original 700).</li>
+    <li><strong>Tier 1:</strong> SOQL containing the literal recon pattern <code>SELECT COUNT() FROM (Account|Opportunity|User|Case)</code> from an integration user in the same minute against ≥3 different objects.</li>
+    <li><strong>Tier 2:</strong> Salesforce API call returning a row whose text body contains <code>AKIA[0-9A-Z]{16}</code>, <code>xox[bpars]-[0-9A-Za-z-]+</code>, <code>snowflakecomputing\.com</code>, <code>eyJ[A-Za-z0-9_=-]+\.eyJ</code>, or <code>password\s*[:=]</code> — the offline harvest step would find these too.</li>
+    <li><strong>Tier 2:</strong> IdP (Entra/Okta) OAuth <code>refresh_token</code> grant for a connected-app that has been dormant &gt; 30 days, from an ASN/geo not previously seen for that integration's service principal.</li>
+    <li><strong>Tier 2:</strong> Connected-App permission/scope drift — new <code>full</code>, <code>api</code>, <code>refresh_token</code>, or <code>web</code> scope added to an existing app.</li>
+    <li><strong>Tier 2:</strong> <code>DELETE</code> against <code>AsyncApexJob</code> by an integration user (anti-forensics).</li>
+    <li><strong>Tier 3 (tripwire):</strong> Any read of the honey-Case record described in §10.</li>
+    <li><strong>Tier 3 (post-breach):</strong> Endpoint command-line containing <code>trufflehog</code> against support-case exports — if the actor is dwelling internally, the secret-grep step happens somewhere.</li>
+  </ul>
+</section>
+
+<section id="affected">
+  <h2>4. Affected Surface &amp; Connected-App Inventory</h2>
+
+  <h3>Compromised integrations (treat all linked tokens as burned)</h3>
+  <table>
+    <tr><th>Integration</th><th>Vendor</th><th>OAuth scopes typical</th><th>Compromise status</th><th>Action</th></tr>
+    <tr><td><strong>Salesloft Drift</strong> (Salesforce connected-app)</td><td>Salesloft</td><td><code>api</code>, <code>refresh_token</code>, <code>full</code>, <code>web</code></td><td class="cov-gap">FULLY COMPROMISED Aug 2025</td><td>Removed from AppExchange 2025-08-28. Revoke tokens, audit logs, do not re-install.</td></tr>
+    <tr><td><strong>Drift Email</strong> (Google Workspace + others)</td><td>Salesloft (Drift)</td><td>Gmail read/send, contacts</td><td class="cov-gap">FULLY COMPROMISED Aug 2025</td><td>Disconnect. Audit Gmail audit log for the integration's service account between 2025-08-08 and 2025-08-28.</td></tr>
+    <tr><td>All <strong>other Salesloft</strong> integrations (Salesforce, Slack, etc.)</td><td>Salesloft</td><td>Varies</td><td class="cov-partial">Treat as potentially compromised</td><td>Per Salesloft 2025-08-28 statement — rotate tokens for any third-party app integration with Drift / Salesloft platform.</td></tr>
+    <tr><td>Any <strong>customer-built</strong> connected-app whose client_secret was stored in Salesloft</td><td>You</td><td>Whatever you defined</td><td class="cov-partial">Treat as potentially compromised</td><td>Rotate client_secret, revoke refresh-tokens, re-issue.</td></tr>
+  </table>
+
+  <div class="callout callout-crit">
+    <strong>Salesloft's own guidance:</strong> "treat all authentication tokens stored in or connected to the Drift platform as compromised." That includes API keys you pasted into Drift to make a workflow work three years ago and forgot about. Inventory every secret that <em>ever</em> traveled through Drift.
+  </div>
+
+  <h3>Secondary-breach exposure (the part that hurts most)</h3>
+  <table>
+    <tr><th>Where the secret lived</th><th>What attacker did with it</th><th>How to find your exposure</th></tr>
+    <tr><td>AWS access keys (<code>AKIA…</code>) pasted into support cases by your customers</td><td>Direct AWS API access against the customer's account</td><td>Grep <code>Case.Subject</code>, <code>Case.Description</code>, <code>CaseComment.CommentBody</code> for <code>AKIA[0-9A-Z]{16}</code>. See SOQL pack §9.</td></tr>
+    <tr><td>Snowflake account locator URLs + credentials</td><td>Snowflake query/exfil against customer warehouses</td><td>Grep case text for <code>snowflakecomputing\.com</code> and adjacent credential strings.</td></tr>
+    <tr><td>Slack bot tokens (<code>xoxb-</code>) / user tokens (<code>xoxp-</code>)</td><td>Read Slack messages, files, DMs in your customer workspaces</td><td>Grep case text for <code>xox[bpars]-[0-9A-Za-z-]+</code>.</td></tr>
+    <tr><td>JWTs / API bearers (<code>eyJ…</code>)</td><td>Whatever the JWT authorized</td><td>Grep for <code>eyJ[A-Za-z0-9_=-]+\.eyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_.+/=-]+</code>.</td></tr>
+    <tr><td>VPN/SSO/admin URLs ("<em>here's how to reproduce — sso.acme.com/admin login: ...</em>")</td><td>Targeted phishing / direct credential stuffing</td><td>Grep for your domain pattern; rotate any account whose URL appeared.</td></tr>
+    <tr><td>GitHub PATs (<code>ghp_…</code>, <code>github_pat_…</code>)</td><td>Repo access → source-code / secret pivot</td><td>Grep for <code>ghp_[A-Za-z0-9]{36}</code> / <code>github_pat_[A-Za-z0-9_]{82}</code>.</td></tr>
+  </table>
+
+  <h3>Salesforce log surface required for hunt</h3>
+  <table>
+    <tr><th>Log source</th><th>What it gives you</th><th>Latency</th><th>Required edition / license</th></tr>
+    <tr><td><code>EventLogFile</code> (Hourly &amp; 24-hour)</td><td>RestApi, BulkApi, BulkApiV2, Login, Logout, ApiAnomalyEvent, ReportExport, URI, ContentTransfer, LightningURI, UniqueQuery</td><td>~3 hours (hourly file); 24h (daily file)</td><td>Salesforce Shield <strong>Event Monitoring</strong> add-on (or Enterprise + EM)</td></tr>
+    <tr><td><code>LoginEvent</code> (Real-Time Event Monitoring)</td><td>Real-time login telemetry with IP, browser, geo, status</td><td>Real-time</td><td>Shield RTEM</td></tr>
+    <tr><td><code>ApiEvent</code> (Real-Time Event Monitoring)</td><td>Real-time API call telemetry with query text, rows fetched, UA</td><td>Real-time</td><td>Shield RTEM</td></tr>
+    <tr><td><code>SetupAuditTrail</code></td><td>Connected-app authorization, scope changes, user permission changes</td><td>~minutes</td><td>Standard</td></tr>
+    <tr><td><code>ConnectedAppOAuthUsage</code> object</td><td>Per-app OAuth grant counts; quick triage view</td><td>~real-time</td><td>Standard</td></tr>
+    <tr><td><code>OauthToken</code> object</td><td>Live refresh-token inventory; can be queried &amp; revoked via SOQL</td><td>real-time</td><td>Standard</td></tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>License gap is the #1 reason orgs missed this:</strong> if you don't have Shield Event Monitoring, you don't have <code>RestApi</code>/<code>BulkApi</code>/<code>ApiEvent</code> logs and most queries below are dark. <code>SetupAuditTrail</code> and <code>OauthToken</code> are available without Shield and still cover ~40% of this pack — start there if budget is the blocker.
+  </div>
+
+  <h3>CrowdStrike NG-SIEM ingest path</h3>
+  <p>This pack assumes the Salesforce EventLogFile + Real-Time EM streams have been onboarded to CrowdStrike Falcon Next-Gen SIEM via the <strong>Salesforce data connector</strong> (HTTP polling on EventLogFile, or push via Pub/Sub for RTEM). Default repository / parser conventions used below:</p>
+  <ul>
+    <li><code>#repo = "salesforce"</code> or <code>cs.source.vendor = "salesforce"</code> — your tenant naming may differ; substitute as appropriate.</li>
+    <li>Common parsed fields: <code>EVENT_TYPE</code>, <code>USER_ID</code>, <code>USER_NAME</code>, <code>SOURCE_IP</code>, <code>CLIENT_IP</code>, <code>USER_AGENT</code>, <code>METHOD_NAME</code>, <code>ENTITY_NAME</code>, <code>URI</code>, <code>QUERY</code>, <code>ROWS_PROCESSED</code>, <code>ROWS_FETCHED</code>, <code>ROWS_TOTAL</code>, <code>CONNECTED_APP_ID</code>, <code>CONNECTED_APP_NAME</code>, <code>CLIENT_NAME</code>, <code>LOGIN_STATUS</code>, <code>STATUS_CODE</code>.</li>
+    <li>IdP fields (Entra / Okta) referenced below: <code>appDisplayName</code>, <code>appId</code>, <code>oauthApplicationName</code>, <code>conditionalAccessStatus</code>, <code>autonomousSystemNumber</code>, <code>ipAddress</code>, <code>tokenIssuerType</code>; Okta <code>eventType</code> values <code>app.oauth2.as.token.grant</code>, <code>app.oauth2.as.consent.grant</code>, <code>user.session.access_admin_app</code>.</li>
+  </ul>
+</section>
+
+<section id="mitre">
+  <h2>5. MITRE ATT&amp;CK / D3FEND Mapping</h2>
+
+  <h3>Attack flow</h3>
+  <pre>
+[Salesloft vendor side]
+   │  T1593 / T1199 — recon &amp; targeted vendor selection
+   ▼
+[GitHub account compromise — Mar–Jun 2025]
+   │  T1078 — Valid Accounts (vendor SaaS)
+   │  T1213.003 — Data from Code Repositories (source-code download)
+   ▼
+[Pivot to Salesloft AWS]
+   │  T1552.001 — Credentials in Files (secrets in repos)
+   │  T1528 — Steal Application Access Token (OAuth tokens from Secrets Manager / SSM)
+   ▼
+[Fresh access-token minted via refresh-token grant — bypasses MFA]
+   │  T1550.001 — Application Access Token
+   │  T1199 — Trusted Relationship (Drift = trusted by every customer tenant)
+   ▼
+[Per-tenant Salesforce data theft — Aug 8–18, 2025]
+   │  T1087 — Account Discovery (SELECT COUNT() FROM User/Account/...)
+   │  T1213 — Data from Information Repositories (CRM = the repository)
+   │  T1119 — Automated Collection (aiohttp async pulls, BulkAPI 2.0)
+   │  T1567.002 — Exfiltration to Cloud Storage (AWS / DigitalOcean / Tor egress)
+   ▼
+[Offline secret harvest from exfiltrated Case text]
+   │  T1552.001 — Credentials in Files (TruffleHog against case bodies)
+   │  T1110.004 — Credential Stuffing (validate AKIA / Snowflake / Slack tokens)
+   ▼
+[Anti-forensics]
+   │  T1070.009 — Clear Persistence (DELETE AsyncApexJob rows) — INEFFECTIVE; EventLog persists
+   ▼
+[Secondary breaches via harvested secrets — Aug 2025 onward]
+   │  T1078.004 — Valid Accounts: Cloud (victim's AWS / Snowflake / Slack tenants)
+   ▼
+[Extortion / data-leak threat — Sept 2025 onward, ShinyHunters brand]
+   │  T1657 — Financial Theft (extortion)
+  </pre>
+
+  <h3>Full mapping</h3>
+  <table>
+    <tr><th>Tactic</th><th>ATT&amp;CK</th><th>Sub-technique / context</th><th>Hunt Q</th><th>D3FEND counter</th></tr>
+    <tr><td>Reconnaissance</td><td>T1593</td><td>Vendor selection — target Salesloft because Drift = single point of trust into many Salesforce tenants</td><td>—</td><td>D3-ISVA Inbound Session Volume Analysis</td></tr>
+    <tr><td>Initial Access (vendor)</td><td>T1078</td><td>Valid Accounts: SaaS — Salesloft GitHub account</td><td>Q12 (IdP)</td><td>D3-MFA Multi-Factor Authentication</td></tr>
+    <tr><td>Initial Access (you)</td><td>T1199</td><td>Trusted Relationship — Drift connected-app inherits trust into your tenant</td><td>Q1, Q3, Q13</td><td>D3-IRA Inbound Request Analysis</td></tr>
+    <tr><td>Credential Access</td><td>T1528</td><td>Steal Application Access Token (OAuth from Secrets Manager)</td><td>—</td><td>D3-CHN Credential Hardening (sealed vault)</td></tr>
+    <tr><td>Credential Access</td><td>T1552.001</td><td>Credentials in Files (TruffleHog on case text)</td><td>Q5</td><td>D3-SCH Sensitive Content Hashing</td></tr>
+    <tr><td>Defense Evasion</td><td>T1550.001</td><td>Application Access Token — refresh-token grant bypasses MFA</td><td>Q8, Q11</td><td>D3-CTS Credential Transmission Scoping</td></tr>
+    <tr><td>Defense Evasion</td><td>T1078.004</td><td>Valid Accounts: Cloud — integration user identity</td><td>Q1, Q6, Q13</td><td>D3-MAC Mandatory Access Control (IP allowlist)</td></tr>
+    <tr><td>Discovery</td><td>T1087</td><td>Account Discovery — <code>SELECT COUNT() FROM User</code></td><td>Q10</td><td>D3-DSI Decoy Session Information</td></tr>
+    <tr><td>Discovery</td><td>T1217</td><td>Object enumeration — <code>/sobjects/Case/describe</code></td><td>Q10</td><td>D3-IRA Inbound Request Analysis</td></tr>
+    <tr><td>Collection</td><td>T1213</td><td>Data from Information Repositories — Salesforce as the repository</td><td>Q4, Q5</td><td>D3-DTP Data Transfer Policy</td></tr>
+    <tr><td>Collection</td><td>T1119</td><td>Automated Collection — aiohttp async / BulkAPI 2.0</td><td>Q2, Q4</td><td>D3-RAPA Resource Access Pattern Analysis</td></tr>
+    <tr><td>Exfiltration</td><td>T1567.002</td><td>Exfil to cloud storage — egress to AWS 44.215.108.109 / DO 208.68.36.90 / Tor</td><td>Q6, Q15</td><td>D3-NTA Network Traffic Analysis</td></tr>
+    <tr><td>Exfiltration</td><td>T1041</td><td>Exfil over C2 channel — egress via Tor exit nodes</td><td>Q6</td><td>D3-NTPM Network Traffic Policy Mapping</td></tr>
+    <tr><td>Impact / Anti-forensics</td><td>T1070.009</td><td>Clear persistence — DELETE AsyncApexJob</td><td>Q9</td><td>D3-FA Forensic Acquisition</td></tr>
+    <tr><td>Persistence</td><td>T1098.001</td><td>Additional cloud credentials — scope-drift on connected-app</td><td>Q7, Q12</td><td>D3-AL Account Locking</td></tr>
+    <tr><td>Impact</td><td>T1657</td><td>Financial Theft (extortion phase, ShinyHunters)</td><td>—</td><td>D3-OE Operational Exercise (IR runbook §15)</td></tr>
+  </table>
+</section>
+
+<section id="queries">
+  <h2>6. CQL Hunt Queries (15)</h2>
+  <p>Queries are written against the conventional CrowdStrike NG-SIEM Salesforce ingest (<code>#repo = "salesforce"</code>) plus IdP ingests (Entra <code>azure_signinlogs</code>, Okta <code>okta_system_log</code>). Adjust the repo/field names to your environment. All queries default to a 90-day timeframe centered on the August 2025 window; tighten or widen as needed for your retention.</p>
+
+  <div class="callout callout-accent">
+    <strong>Run order:</strong> <strong>Q1 → Q2 → Q4</strong> are the highest-fidelity first-pass triage (known UAs, known IPs, bulk Case export). If any of those return a hit, expand to Q3/Q5/Q9 to scope. Q7/Q8/Q11/Q12 are the standing-detection set (run continuously, not just for this incident).
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q1</span> Salesforce login from known UNC6395 infrastructure</div>
+      <div>
+        <span class="badge good">FP RISK: VERY LOW</span>
+        <span class="badge good">CONF: VERY HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1199, T1550.001</div>
+      <div><strong>D3FEND:</strong> D3-IRA</div>
+      <div><strong>Timeframe:</strong> 2025-07-15 → present</div>
+      <div><strong>Requires:</strong> Salesforce <code>Login</code> EventLogFile or <code>LoginEvent</code> RTEM</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> Any Salesforce login that sourced from one of the published GTIG IPs (DigitalOcean 208.68.36.90, AWS 44.215.108.109, or any of the listed Tor exit nodes) during/after the campaign window is the campaign — period.</p>
+      <p><strong>FP Notes:</strong> Tor exit list rotates — a current-day match against a 2025 list is still suspicious but not definitive. Re-validate against a fresh Tor exit list before alerting on Tor-only matches.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q1" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q1">// HUNT: UNC6395 - T1199/T1550.001 - login from known IOC infrastructure
+// HYPOTHESIS: Any SF login from GTIG-published IPs = the campaign.
+// FP RISK: Very Low
+// CONFIDENCE: Very High
+// TIMEFRAME: 2025-07-15 -&gt; present
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(Login|LoginEvent|LoginAs)$/
+| in(field=SOURCE_IP, values=[
+    "208.68.36.90", "44.215.108.109",
+    "154.41.95.2", "176.65.149.100", "179.43.159.198",
+    "185.130.47.58", "185.207.107.130",
+    "185.220.101.33", "185.220.101.133", "185.220.101.143",
+    "185.220.101.164", "185.220.101.167", "185.220.101.169",
+    "185.220.101.180", "185.220.101.185",
+    "192.42.116.20", "192.42.116.179",
+    "194.15.36.117", "195.47.238.83", "195.47.238.178",
+    "23.162.8.66", "23.94.126.63", "51.89.240.10", "64.95.11.225"
+  ])
+| table([@timestamp, USER_NAME, USER_ID, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME, LOGIN_STATUS, COUNTRY, BROWSER_TYPE])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q2</span> Known UNC6395 user-agent strings on any Salesforce API call</div>
+      <div>
+        <span class="badge good">FP RISK: VERY LOW</span>
+        <span class="badge good">CONF: VERY HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1119, T1550.001</div>
+      <div><strong>D3FEND:</strong> D3-RAPA</div>
+      <div><strong>Timeframe:</strong> 2025-07-15 → present</div>
+      <div><strong>Requires:</strong> RestApi / BulkApi / BulkApiV2 / ApiEvent EventLogFile</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> The UA strings <code>Salesforce-Multi-Org-Fetcher/1.0</code> and <code>Salesforce-CLI/1.0</code> are bespoke to this campaign — no legitimate Salesforce tool emits them. <code>python-requests/2.32.4</code> and <code>Python/3.11 aiohttp/3.12.15</code> are common defaults but on the Salesforce API surface they almost always indicate ad-hoc scripted access; combine with a sensitive object to tighten.</p>
+      <p><strong>FP Notes:</strong> Your own pipelines that hit Salesforce with raw <code>python-requests</code> will match. Allowlist by integration username or strip <code>python-requests</code>/<code>aiohttp</code> from the list once you've inventoried your own scripts.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q2" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q2">// HUNT: UNC6395 - T1119/T1550.001 - known IOC user-agents on SF API
+// HYPOTHESIS: Bespoke UAs (Multi-Org-Fetcher, Salesforce-CLI/1.0) are unique to UNC6395.
+// FP RISK: Very Low for bespoke UAs; Medium for python-requests/aiohttp (allowlist your own pipelines).
+// CONFIDENCE: Very High
+// TIMEFRAME: 2025-07-15 -&gt; present
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(RestApi|BulkApi|BulkApiV2|ApiEvent|UniqueQuery)$/
+| USER_AGENT = /(Salesforce-Multi-Org-Fetcher|Salesforce-CLI\/1\.0|TruffleHog|python-requests\/2\.32\.4|aiohttp\/3\.12\.15)/i
+| groupBy([USER_NAME, USER_AGENT, SOURCE_IP, CONNECTED_APP_NAME],
+          function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen),
+                    collect(field=ENTITY_NAME, as=Objects), collect(field=METHOD_NAME, as=Methods)])
+| sort(Hits, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q3</span> Any Drift / Salesloft connected-app activity after 2025-08-08</div>
+      <div>
+        <span class="badge good">FP RISK: VERY LOW</span>
+        <span class="badge good">CONF: VERY HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1199, T1550.001</div>
+      <div><strong>D3FEND:</strong> D3-IRA</div>
+      <div><strong>Timeframe:</strong> 2025-08-08 → 2025-09-07</div>
+      <div><strong>Requires:</strong> EventLogFile <em>or</em> SetupAuditTrail</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> Salesforce revoked Drift tokens 2025-08-20; any Drift-app usage <em>after that</em> = stale-token replay (impossible, but worth confirming) or a misconfigured re-auth. Between 2025-08-08 and 2025-08-20 every Drift call should be considered suspect.</p>
+      <p><strong>FP Notes:</strong> Pre-2025-08-08 traffic is your legitimate baseline. Post-2025-08-28 traffic should be zero (app removed from AppExchange).</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q3" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q3">// HUNT: UNC6395 - T1199 - any Drift/Salesloft connected-app activity in compromise window
+// HYPOTHESIS: All Drift app usage between 2025-08-08 and 2025-08-20 = potential compromise.
+// FP RISK: Very Low
+// CONFIDENCE: Very High
+// TIMEFRAME: 2025-08-08 -&gt; 2025-09-07
+
+#repo = "salesforce"
+| @timestamp &gt;= 1754611200000 // 2025-08-08 UTC
+| (CONNECTED_APP_NAME = /(?i)(drift|salesloft)/
+   OR CLIENT_NAME = /(?i)(drift|salesloft)/
+   OR APPLICATION = /(?i)(drift|salesloft)/)
+| groupBy([CONNECTED_APP_NAME, USER_NAME, SOURCE_IP, USER_AGENT, EVENT_TYPE],
+          function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen),
+                    sum(ROWS_PROCESSED, as=TotalRows)])
+| sort(LastSeen, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q4</span> Bulk export of Case / CaseComment / FeedItem &gt; 10k rows by integration user</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1213, T1119</div>
+      <div><strong>D3FEND:</strong> D3-DTP, D3-RAPA</div>
+      <div><strong>Timeframe:</strong> Last 180 days</div>
+      <div><strong>Requires:</strong> BulkApi / BulkApiV2 EventLogFile</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> Cases / case-comments / feed items are the secret-density target. Bulk API export of &gt;10k rows of these by any user is anomalous; by an integration user (no UI, no human in the loop), it's a hunt finding.</p>
+      <p><strong>FP Notes:</strong> Legitimate analytics ETL (Mulesoft, Workato, custom warehouses) sometimes pulls bulk Case data. Allowlist by <code>USER_NAME</code> after first pass.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q4" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q4">// HUNT: UNC6395 - T1213 - bulk Case/Comment/Feed export by integration user
+// HYPOTHESIS: Bulk dump of Case-family objects = secret-density target of UNC6395.
+// FP RISK: Low (allowlist legitimate ETL)
+// CONFIDENCE: High
+// TIMEFRAME: Last 180 days
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(BulkApi|BulkApiV2|ApiEvent)$/
+| ENTITY_NAME = /^(Case|CaseComment|FeedItem|FeedComment|CaseHistory|EmailMessage|CaseTeamMember)$/
+| METHOD_NAME = /^(query|queryAll|retrieve|describeSObjects|getUpdated|getDeleted)/i
+| ROWS_PROCESSED &gt; 10000 OR ROWS_FETCHED &gt; 10000
+| groupBy([USER_NAME, ENTITY_NAME, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME],
+          function=[count(as=Calls),
+                    sum(coalesce([ROWS_PROCESSED, ROWS_FETCHED], 0), as=TotalRows),
+                    min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)])
+| sort(TotalRows, order=desc)
+| TotalRows &gt; 10000</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q5</span> Secret patterns in exported case text (post-exfil exposure)</div>
+      <div>
+        <span class="badge warn">FP RISK: MEDIUM</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟡 MEDIUM</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1552.001</div>
+      <div><strong>D3FEND:</strong> D3-SCH</div>
+      <div><strong>Timeframe:</strong> Last 365 days</div>
+      <div><strong>Requires:</strong> <code>ApiEvent</code> with <code>QUERY</code>/<code>ROW_BODY</code> capture <em>or</em> external ingest of Case body via SOQL pull (see §9)</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> If your tenant was in the 700, UNC6395 already has these strings. Find them in your Case text <em>before</em> they get used elsewhere — every match becomes a credential to rotate.</p>
+      <p><strong>FP Notes:</strong> JWT pattern is broad; AWS key pattern is tight. Triage AKIA hits first.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q5" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q5">// HUNT: UNC6395 - T1552.001 - secret patterns in SF case bodies (your exposure surface)
+// HYPOTHESIS: If your tenant was exfil'd, every secret in case text is now in adversary hands.
+// FP RISK: Medium (JWT pattern is broad)
+// CONFIDENCE: High
+// TIMEFRAME: Last 365 days
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(ApiEvent|RestApi|BulkApi|BulkApiV2|ReportExport|ContentTransfer)$/
+| ENTITY_NAME = /^(Case|CaseComment|FeedItem|FeedComment|EmailMessage|Attachment|ContentVersion)$/
+| (QUERY = /(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16})/
+   OR QUERY = /xox[bpars]-[0-9A-Za-z-]{10,}/
+   OR QUERY = /[a-zA-Z0-9._%+-]+\.snowflakecomputing\.com/
+   OR QUERY = /eyJ[A-Za-z0-9_=-]{8,}\.eyJ[A-Za-z0-9_=-]{8,}\.[A-Za-z0-9_.+\/=-]{8,}/
+   OR QUERY = /(?i)\b(api[_-]?key|password|secret|token)\s*[:=]\s*[A-Za-z0-9._\-+\/]{16,}/
+   OR QUERY = /ghp_[A-Za-z0-9]{36}/
+   OR QUERY = /github_pat_[A-Za-z0-9_]{82}/)
+| SecretType := case {
+    QUERY = /AKIA|ASIA/      | "AWS";
+    QUERY = /xox[bpars]-/    | "Slack";
+    QUERY = /snowflakecomputing/ | "Snowflake";
+    QUERY = /ghp_|github_pat_/   | "GitHub";
+    QUERY = /eyJ.*eyJ/       | "JWT";
+    *                        | "GenericCredential";
+  }
+| groupBy([SecretType, ENTITY_NAME, USER_NAME],
+          function=[count(as=Hits), collect(field=ENTITY_NAME, as=Objects)])
+| sort(Hits, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q6</span> Salesforce API access via Tor exit node from any integration user</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟡 MEDIUM</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1041, T1090.003</div>
+      <div><strong>D3FEND:</strong> D3-NTA</div>
+      <div><strong>Timeframe:</strong> Last 90 days</div>
+      <div><strong>Requires:</strong> Tor-exit lookup list (refresh weekly from <code>check.torproject.org/exit-addresses</code>)</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> Mandiant explicitly advised "search logs for any activity from known Tor exit nodes" beyond the GTIG list. Service-account / integration-user activity should <em>never</em> come from Tor; if it does, it's the campaign or one very similar to it.</p>
+      <p><strong>FP Notes:</strong> Human users may legitimately Tor; service accounts may not. Filter to integration users to drop FPs.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q6" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q6">// HUNT: UNC6395 - T1090.003 - service-account access via Tor
+// HYPOTHESIS: Integration users on Tor = the campaign (or a copycat using the same trick).
+// FP RISK: Low when scoped to integration users.
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+// REQUIRES: A maintained Tor exit-node lookup table (#repo=tor_exits) refreshed weekly.
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(Login|LoginEvent|RestApi|BulkApi|BulkApiV2|ApiEvent)$/
+| (USER_TYPE = "Integration" OR USER_NAME = /(?i)(integration|svc[_-]|service[_-]|api[_-]|bot[_-])/)
+| join(query={ #repo=tor_exits | torIP := exit_ip }, field=[SOURCE_IP, torIP], include=[torIP], mode=inner)
+| groupBy([USER_NAME, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME],
+          function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)])
+| sort(LastSeen, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q7</span> Connected-app OAuth scope drift (new high-privilege scope on existing app)</div>
+      <div>
+        <span class="badge warn">FP RISK: MEDIUM</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1098.001</div>
+      <div><strong>D3FEND:</strong> D3-AL</div>
+      <div><strong>Timeframe:</strong> Last 365 days</div>
+      <div><strong>Requires:</strong> <code>SetupAuditTrail</code> (standard edition)</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> An attacker who already controls a partner integration's identity (UNC6040 / Scattered Spider vishing pattern) will quietly add <code>full</code>, <code>refresh_token</code>, or <code>api</code> scopes to expand their reach. This standing detection catches that and the legitimate-but-risky cases.</p>
+      <p><strong>FP Notes:</strong> New apps will trip this on first install. Allow-list known greenfield installs by ticketed change-record.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q7" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q7">// HUNT: UNC6395/UNC6040 - T1098.001 - connected-app scope drift
+// HYPOTHESIS: New high-privilege scope added to an existing connected-app = persistence/expansion.
+// FP RISK: Medium (greenfield installs)
+// CONFIDENCE: High
+// TIMEFRAME: Last 365 days
+
+#repo = "salesforce"
+| EVENT_TYPE = "SetupAuditTrail" OR SECTION = "Connected Apps"
+| DISPLAY = /(?i)(scope|permission|oauth).*(added|changed|updated|modified)/
+   OR ACTION = /(?i)(insertCustomApp|updateCustomApp|insertOAuthScope|insertOAuthCustomScope)/
+| ScopeAdded := regex("(full|refresh_token|api|web|chatter_api|content|openid|profile)", strict=false, field=DISPLAY)
+| ScopeAdded = /(full|refresh_token|api|web)/
+| table([@timestamp, USER_NAME, CONNECTED_APP_NAME, ScopeAdded, DISPLAY, SOURCE_IP])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q8</span> Refresh-token grant to long-dormant integration (&gt; 30 days quiet)</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟡 MEDIUM</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1550.001</div>
+      <div><strong>D3FEND:</strong> D3-CTS</div>
+      <div><strong>Timeframe:</strong> Last 90 days</div>
+      <div><strong>Requires:</strong> IdP OAuth log (Entra signinLogs / Okta system log) <em>or</em> Salesforce <code>OauthToken</code> object pull</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> Dormant integration suddenly minting fresh access tokens — classic stolen-refresh-token pattern. The dormancy threshold (30d, 60d) is a tuneable. UNC6395's stolen tokens belonged to apps that <em>were</em> being used; this detection is for the next campaign of this shape.</p>
+      <p><strong>FP Notes:</strong> Quarterly batch jobs will trip. Tune dormancy threshold to your environment.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q8" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q8">// HUNT: UNC6395-class - T1550.001 - refresh-token grant on dormant integration
+// HYPOTHESIS: Dormant connected-app suddenly minting fresh tokens = stolen refresh-token replay.
+// FP RISK: Low (allowlist quarterly batch jobs)
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+(#repo = "azure_signinlogs" OR #repo = "okta_system_log")
+| (eventType = "app.oauth2.as.token.grant" OR tokenIssuerType = "AzureAD")
+| (grantType = "refresh_token" OR properties.grantType = "refresh_token")
+| AppKey := coalesce([appId, appDisplayName, target.id])
+| eventStats(function=[max(@timestamp, as=LastGrantForApp), min(@timestamp, as=FirstGrantForApp)], series=[AppKey])
+| DormancyDays := (@timestamp - LastGrantForApp) / 86400000
+| @timestamp = LastGrantForApp  // surface only the most-recent grant per app
+| DormancyDays &gt; 30
+| sort(DormancyDays, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q9</span> AsyncApexJob DELETE by integration user (anti-forensics)</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1070.009</div>
+      <div><strong>D3FEND:</strong> D3-FA</div>
+      <div><strong>Timeframe:</strong> Last 180 days</div>
+      <div><strong>Requires:</strong> RestApi / ApiEvent</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> UNC6395 explicitly deleted Bulk API <code>AsyncApexJob</code> rows to thin out their query trail. The act is itself anomalous — automated integrations almost never <code>DELETE</code> their own job records.</p>
+      <p><strong>FP Notes:</strong> Some ETL platforms (Mulesoft, Talend) clean up after themselves. Allowlist after first triage.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q9" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q9">// HUNT: UNC6395 - T1070.009 - AsyncApexJob/BulkApiJob deletion (anti-forensics)
+// HYPOTHESIS: Integration user deleting their own job records = attempting to clean up the trail.
+// FP RISK: Low
+// CONFIDENCE: High
+// TIMEFRAME: Last 180 days
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(RestApi|ApiEvent|BulkApi|BulkApiV2)$/
+| (METHOD_NAME = /(?i)(delete|DELETE)/ OR URI = /(?i)\/(async-queries|jobs|asyncApexJob)\/.+/)
+| ENTITY_NAME = /^(AsyncApexJob|BulkApiJob|QueryJob)$/
+| groupBy([USER_NAME, ENTITY_NAME, SOURCE_IP, USER_AGENT],
+          function=[count(as=Deletions), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)])
+| sort(Deletions, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q10</span> Recon SOQL — <code>SELECT COUNT()</code> burst across multiple objects</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟡 MEDIUM</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1087, T1217</div>
+      <div><strong>D3FEND:</strong> D3-IRA</div>
+      <div><strong>Timeframe:</strong> Last 90 days</div>
+      <div><strong>Requires:</strong> <code>ApiEvent</code> with <code>QUERY</code> capture or <code>UniqueQuery</code> EventLogFile</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> GTIG documented the literal recon pattern — <code>SELECT COUNT() FROM Account</code>, then <code>FROM Opportunity</code>, then <code>FROM User</code>, then <code>FROM Case</code>, all in quick succession. That fingerprint is unique to scripted bulk-tenant sizing.</p>
+      <p><strong>FP Notes:</strong> Health-check scripts may issue COUNT()s. Threshold: ≥3 distinct sensitive objects within 5 min from the same user.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q10" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q10">// HUNT: UNC6395 - T1087/T1217 - recon SOQL COUNT() burst
+// HYPOTHESIS: SELECT COUNT() against >=3 sensitive objects in <=5min = scripted recon.
+// FP RISK: Low (allowlist SF health-check users)
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(ApiEvent|UniqueQuery|RestApi)$/
+| QUERY = /(?i)SELECT\s+COUNT\(\s*\)\s+FROM\s+(Account|Opportunity|User|Case|Contact|Lead|Asset)/
+| TargetObject := regex("FROM\\s+(?&lt;obj&gt;[A-Za-z_]+)", strict=false, field=QUERY)
+| bucket(field=@timestamp, span=5m, function=[
+    count(as=Hits),
+    countDistinct(field=TargetObject, as=DistinctObjects),
+    collect(field=TargetObject, as=Objects)
+  ], series=[USER_NAME, SOURCE_IP])
+| DistinctObjects &gt;= 3
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q11</span> IdP refresh-token grant from new ASN/geo for known service principal</div>
+      <div>
+        <span class="badge warn">FP RISK: MEDIUM</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟡 MEDIUM</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1550.001, T1078.004</div>
+      <div><strong>D3FEND:</strong> D3-IRA</div>
+      <div><strong>Timeframe:</strong> Last 90 days; baseline 365 days</div>
+      <div><strong>Requires:</strong> Entra signinLogs <em>or</em> Okta system log</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> A stolen refresh-token used from an ASN/geo the legitimate integration has never used = the integration's identity is compromised. Standing detection, valuable for next OAuth-theft campaign of any shape.</p>
+      <p><strong>FP Notes:</strong> Cloud migrations and new region rollouts create legit drift. Tune baseline window; require ASN <em>and</em> country to drift before alerting.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q11" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q11">// HUNT: UNC6395-class - T1550.001/T1078.004 - service-principal ASN/geo drift
+// HYPOTHESIS: Refresh-token grant for a service principal from a never-before-seen ASN+country.
+// FP RISK: Medium (allowlist cloud migrations)
+// CONFIDENCE: High
+// TIMEFRAME: Recent 7d vs baseline 365d
+
+(#repo = "azure_signinlogs" OR #repo = "okta_system_log")
+| (servicePrincipalId != "" OR target.type = "AppInstance")
+| AppKey := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
+| ASN := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
+| Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
+| join(query={
+    (#repo = "azure_signinlogs" OR #repo = "okta_system_log")
+    | @timestamp &lt; (now() - 7d)
+    | AppKey := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
+    | ASN := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
+    | Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
+    | groupBy([AppKey], function=[collect(ASN, as=KnownASNs), collect(Country, as=KnownCountries)])
+  }, field=[AppKey], include=[KnownASNs, KnownCountries])
+| @timestamp &gt;= (now() - 7d)
+| !in(field=ASN, values=KnownASNs)
+| !in(field=Country, values=KnownCountries)
+| groupBy([AppKey, ASN, Country, ipAddress],
+          function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)])
+| sort(FirstSeen, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q12</span> New OAuth consent for high-privilege scopes (admin-consent path)</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1528, T1098.001</div>
+      <div><strong>D3FEND:</strong> D3-MFA, D3-AL</div>
+      <div><strong>Timeframe:</strong> Last 90 days</div>
+      <div><strong>Requires:</strong> Entra <code>AuditLogs</code> / Okta admin events</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> UNC6040's companion path (per FBI FLASH) is vishing the helpdesk into authorizing a malicious connected-app with broad scopes. The consent event is loud — catch it.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q12" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q12">// HUNT: UNC6040 - T1528 - admin-consent for malicious connected-app
+// HYPOTHESIS: New connected-app receiving admin-consent for full/Mail.Read/Directory.Read.All etc.
+// FP RISK: Low (review every event - they're rare)
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+(#repo = "azure_auditlogs" OR #repo = "okta_system_log")
+| (eventType = /(?i)(consent.to.application|application.consent|app\.oauth2\.as\.consent\.grant)/
+   OR activityDisplayName = /(?i)consent to application/)
+| ConsentScopes := coalesce([targetResources.modifiedProperties.newValue, debugContext.debugData.consentedScopes])
+| ConsentScopes = /(?i)(full|api|refresh_token|directory\.read\.all|mail\.read|files\.readwrite\.all|user\.read\.all|application\.readwrite\.all|offline_access)/
+| table([@timestamp, initiatedBy, AppName, ConsentScopes, ipAddress])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q13</span> Drift-app baseline-rate anomaly (3-sigma volume spike pre-revocation)</div>
+      <div>
+        <span class="badge warn">FP RISK: MEDIUM</span>
+        <span class="badge good">CONF: MEDIUM-HIGH</span>
+        <span class="badge">COST: 🟡 MEDIUM</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1119</div>
+      <div><strong>D3FEND:</strong> D3-ISVA</div>
+      <div><strong>Timeframe:</strong> Aug 2025 windowed against 90-day pre-baseline</div>
+      <div><strong>Requires:</strong> RestApi / BulkApi history</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> Drift's <em>legitimate</em> Salesforce call volume against your tenant has a stable baseline. The exfiltration window blew through it. Even without IOC matches, the volume departure is detectable retrospectively.</p>
+      <p><strong>FP Notes:</strong> Marketing campaign launches may legitimately spike Drift volume. Cross-check with marketing-ops calendar.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q13" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q13">// HUNT: UNC6395 - T1119 - Drift connected-app volume anomaly
+// HYPOTHESIS: Drift's per-day SF API volume during compromise window exceeds its baseline by >3 sigma.
+// FP RISK: Medium (marketing spikes)
+// CONFIDENCE: Medium-High
+// TIMEFRAME: Aug 2025 vs preceding 90 days
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(RestApi|BulkApi|BulkApiV2|ApiEvent)$/
+| CONNECTED_APP_NAME = /(?i)(drift|salesloft)/
+| Day := formatTime(format="%Y-%m-%d", field=@timestamp)
+| groupBy([Day], function=[count(as=Calls), sum(coalesce([ROWS_PROCESSED, ROWS_FETCHED], 0), as=Rows)])
+| eventStats(function=[avg(Calls, as=BaselineAvg), stddev(Calls, as=BaselineStd)])
+| ZScore := (Calls - BaselineAvg) / BaselineStd
+| ZScore &gt; 3
+| sort(Day, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q14</span> Endpoint TruffleHog execution against case/support exports</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1552.001</div>
+      <div><strong>D3FEND:</strong> D3-PV</div>
+      <div><strong>Timeframe:</strong> Last 90 days</div>
+      <div><strong>Requires:</strong> Falcon endpoint sensor (ProcessRollup2)</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> If you're hunting an internal copycat of this campaign — or running your own legit hunt of your exfil exposure — TruffleHog will be invoked locally. Use this both for catching attacker behavior and for confirming your own incident-response team's evidence trail.</p>
+      <p><strong>FP Notes:</strong> Your security team's own TruffleHog runs match. Allowlist by user.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q14" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q14">// HUNT: UNC6395 secondary - T1552.001 - local TruffleHog / secret-grep against case exports
+// HYPOTHESIS: Internal copycat or unauthorized analyst running secret-scanner against SF dumps.
+// FP RISK: Low (allowlist your IR team)
+// CONFIDENCE: High
+// TIMEFRAME: Last 90 days
+
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (ImageFileName = /\/(trufflehog|gitleaks|detect-secrets|noseyparker)(\.exe)?$/i
+   OR CommandLine = /(?i)\b(trufflehog|gitleaks|detect-secrets|noseyparker)\b.*(filesystem|--regex|--rules|--include|case|salesforce|export|csv|json)/)
+| !in(field=UserName, values=["secops_svc","irteam_svc"], ignoreCase=true)
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="query">
+    <div class="query-head">
+      <div class="query-title"><span class="qid">Q15</span> Corporate egress to UNC6395 infrastructure IPs (network correlation)</div>
+      <div>
+        <span class="badge good">FP RISK: LOW</span>
+        <span class="badge good">CONF: VERY HIGH</span>
+        <span class="badge">COST: 🟢 LIGHT</span>
+      </div>
+    </div>
+    <div class="query-meta">
+      <div><strong>MITRE:</strong> T1567.002, T1041</div>
+      <div><strong>D3FEND:</strong> D3-NTA</div>
+      <div><strong>Timeframe:</strong> 2025-07-01 → present</div>
+      <div><strong>Requires:</strong> Network telemetry (firewall logs, proxy, Falcon NetworkConnect)</div>
+    </div>
+    <div class="query-body">
+      <p><strong>Hypothesis:</strong> If your own internal endpoints contacted the UNC6395 infra IPs, you're dealing with more than the SaaS-side exfil — likely a co-resident foothold. Run this regardless of Salesforce findings.</p>
+      <div class="code-wrap">
+        <div class="code-actions">
+          <button class="btn" onclick="copyQuery(this)">Copy</button>
+          <a class="btn open-falcon" data-query-id="q15" href="#" target="_blank" rel="noopener">Open in Falcon ↗</a>
+        </div>
+<pre id="q15">// HUNT: UNC6395 - T1567.002 - corporate egress to known attacker IPs
+// HYPOTHESIS: Any outbound from your fleet to UNC6395 infrastructure = co-resident foothold.
+// FP RISK: Very Low
+// CONFIDENCE: Very High
+// TIMEFRAME: 2025-07-01 -&gt; present
+
+(#event_simpleName = /NetworkConnect(IP4|IP6)?/ OR #repo = /(firewall|proxy|zeek|netflow)/)
+| (RemoteAddressIP4 OR dst_ip OR id.resp_h OR destinationIp) = /^(208\.68\.36\.90|44\.215\.108\.109|154\.41\.95\.2|176\.65\.149\.100|179\.43\.159\.198|185\.130\.47\.58|185\.207\.107\.130|185\.220\.101\.(33|133|143|164|167|169|180|185)|192\.42\.116\.(20|179)|194\.15\.36\.117|195\.47\.238\.(83|178)|23\.162\.8\.66|23\.94\.126\.63|51\.89\.240\.10|64\.95\.11\.225)$/
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="parity">
+  <h2>7. Multi-SIEM Parity (Sigma / KQL / SPL)</h2>
+  <p>The highest-fidelity detection from this pack — bespoke UNC6395 user-agents on any Salesforce API call (Q2) — translated to the major SIEM dialects. Same hypothesis, same IOCs, three rule formats.</p>
+
+  <div class="tabs">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab(event,'sigma')">Sigma</button>
+      <button class="tab-btn" onclick="showTab(event,'kql')">KQL (Sentinel / Defender XDR)</button>
+      <button class="tab-btn" onclick="showTab(event,'spl')">SPL (Splunk)</button>
+      <button class="tab-btn" onclick="showTab(event,'lucene')">Lucene (Elastic)</button>
+    </div>
+    <div id="sigma" class="tab-panel active">
+<pre>title: UNC6395 - Salesloft Drift - Salesforce API access with known UNC6395 user-agents
+id: 7e0f4d40-9c11-4f53-a82c-driftunc6395
+status: experimental
+description: |
+  Detects Salesforce API calls (RestApi / BulkApi / ApiEvent) whose user-agent matches
+  the IOC set published by Google GTIG for UNC6395 / Salesloft Drift OAuth-theft campaign.
+references:
+  - https://cloud.google.com/blog/topics/threat-intelligence/data-theft-salesforce-instances-via-salesloft-drift
+  - https://www.ic3.gov/CSA/2025/250912.pdf
+author: threat-hunter (web-hunter pipeline)
+date: 2026-05-19
+logsource:
+  product: salesforce
+  service: eventlogfile
+detection:
+  selection_event:
+    EVENT_TYPE:
+      - RestApi
+      - BulkApi
+      - BulkApiV2
+      - ApiEvent
+      - UniqueQuery
+  selection_ua:
+    USER_AGENT|contains:
+      - "Salesforce-Multi-Org-Fetcher"
+      - "Salesforce-CLI/1.0"
+      - "TruffleHog"
+      - "python-requests/2.32.4"
+      - "aiohttp/3.12.15"
+  condition: selection_event and selection_ua
+fields:
+  - USER_NAME
+  - USER_AGENT
+  - SOURCE_IP
+  - CONNECTED_APP_NAME
+  - ENTITY_NAME
+  - ROWS_PROCESSED
+level: high
+tags:
+  - attack.t1199
+  - attack.t1119
+  - attack.t1550.001
+  - attack.initial_access
+  - attack.collection</pre>
+    </div>
+    <div id="kql" class="tab-panel">
+<pre>// Sentinel / Defender XDR / Log Analytics
+// Salesforce EventLogFile ingested via Logic App / data connector to a custom table SalesforceEvent_CL
+SalesforceEvent_CL
+| where EVENT_TYPE_s in ("RestApi","BulkApi","BulkApiV2","ApiEvent","UniqueQuery")
+| where USER_AGENT_s has_any (
+    "Salesforce-Multi-Org-Fetcher",
+    "Salesforce-CLI/1.0",
+    "TruffleHog",
+    "python-requests/2.32.4",
+    "aiohttp/3.12.15"
+)
+| summarize Hits=count(),
+            FirstSeen=min(TimeGenerated),
+            LastSeen=max(TimeGenerated),
+            Objects=make_set(ENTITY_NAME_s, 50),
+            Methods=make_set(METHOD_NAME_s, 50)
+        by USER_NAME_s, USER_AGENT_s, SOURCE_IP_s, CONNECTED_APP_NAME_s
+| order by Hits desc</pre>
+    </div>
+    <div id="spl" class="tab-panel">
+<pre>index=salesforce sourcetype=salesforce:eventlog
+EVENT_TYPE IN (RestApi, BulkApi, BulkApiV2, ApiEvent, UniqueQuery)
+(USER_AGENT="*Salesforce-Multi-Org-Fetcher*"
+ OR USER_AGENT="*Salesforce-CLI/1.0*"
+ OR USER_AGENT="*TruffleHog*"
+ OR USER_AGENT="*python-requests/2.32.4*"
+ OR USER_AGENT="*aiohttp/3.12.15*")
+| stats count AS Hits, min(_time) AS FirstSeen, max(_time) AS LastSeen,
+        values(ENTITY_NAME) AS Objects, values(METHOD_NAME) AS Methods
+        by USER_NAME USER_AGENT SOURCE_IP CONNECTED_APP_NAME
+| sort - Hits</pre>
+    </div>
+    <div id="lucene" class="tab-panel">
+<pre>// Elastic / OpenSearch Query DSL (concept)
+event.dataset:"salesforce.eventlog"
+AND salesforce.event_type:(RestApi OR BulkApi OR BulkApiV2 OR ApiEvent OR UniqueQuery)
+AND user_agent.original:(*"Salesforce-Multi-Org-Fetcher"*
+                     OR *"Salesforce-CLI/1.0"*
+                     OR *"TruffleHog"*
+                     OR *"python-requests/2.32.4"*
+                     OR *"aiohttp/3.12.15"*)
+// Then aggregate in Kibana on user.name + user_agent.original + source.ip + salesforce.connected_app_name</pre>
+    </div>
+  </div>
+
+  <h3>Bonus: Tor-egress detection portable to Sigma (Q6 parity)</h3>
+<pre>title: UNC6395 - Salesforce service-account access via Tor
+id: 22e1c89a-0e1c-4b4f-92ee-driftunc6395tor
+status: experimental
+logsource: { product: salesforce, service: eventlogfile }
+detection:
+  selection_event:
+    EVENT_TYPE: [Login, LoginEvent, RestApi, BulkApi, BulkApiV2, ApiEvent]
+  selection_user:
+    USER_TYPE: Integration
+  selection_tor:
+    SOURCE_IP|expand: '%TorExitNodes%'
+  condition: selection_event and selection_user and selection_tor
+level: high
+tags: [attack.t1090.003, attack.t1041]</pre>
+</section>
+
+<section id="backstops">
+  <h2>8. Salesforce Transaction Security &amp; Real-Time Event Monitoring Backstops</h2>
+  <p>The CQL queries above are <em>detection</em>. The controls below run <em>inside Salesforce</em> and can <em>block</em> the abuse pattern in flight, even before logs reach NG-SIEM. Strongly recommended even if you have no current evidence of compromise.</p>
+
+  <h3>8.1 Block bulk anonymous reads from integration users (TSP/Apex)</h3>
+  <p>Transaction Security Policy (TSP) on the <code>ApiEvent</code> stream — block or 2FA-challenge when an integration user pulls more than N records of <code>Case</code>/<code>CaseComment</code> in a single window.</p>
+<pre>// Salesforce Transaction Security Apex Condition
+// Setup → Transaction Security Policies → New (Event: ApiEvent, Action: Block)
+public class DriftBulkCaseBlock implements TxnSecurity.EventCondition {
+    public Boolean evaluate(SObject e) {
+        ApiEvent a = (ApiEvent) e;
+        // Block any Bulk/REST query on Case-family objects with rows &gt; 5000 from a non-allowlisted integration user.
+        Set&lt;String&gt; allowlist = new Set&lt;String&gt;{
+            'analytics_etl@yourorg.com',
+            'mulesoft_bridge@yourorg.com'
+        };
+        Set&lt;String&gt; sensitiveObjects = new Set&lt;String&gt;{
+            'Case','CaseComment','FeedItem','FeedComment','EmailMessage','CaseHistory'
+        };
+        Boolean isBulkOrApi = a.EventType == 'ApiEvent' || a.EventType == 'BulkApi';
+        Boolean targetsSensitive = sensitiveObjects.contains(a.QueriedEntities);
+        Boolean overThreshold = a.RowsProcessed != null &amp;&amp; a.RowsProcessed &gt; 5000;
+        Boolean notAllowlisted = !allowlist.contains(a.Username);
+        return isBulkOrApi &amp;&amp; targetsSensitive &amp;&amp; overThreshold &amp;&amp; notAllowlisted;
+    }
+}</pre>
+
+  <h3>8.2 Block IP-anonymized access via Login Flow / TSP LoginEvent</h3>
+<pre>// TSP on LoginEvent - block service-principal logins from anonymizer ASNs / Tor
+public class TorLoginBlock implements TxnSecurity.EventCondition {
+    public Boolean evaluate(SObject e) {
+        LoginEvent l = (LoginEvent) e;
+        Set&lt;String&gt; anonymizerCidr = new Set&lt;String&gt;{
+            '185.220.101.', '192.42.116.', '195.47.238.', '154.41.95.',
+            '179.43.159.', '185.130.47.', '185.207.107.', '194.15.36.',
+            '176.65.149.'  // partial list - extend with maintained Tor list
+        };
+        Boolean isIntegration = l.UserType == 'Integration';
+        Boolean isAnon = false;
+        if (l.SourceIp != null) {
+            for (String prefix : anonymizerCidr) {
+                if (l.SourceIp.startsWith(prefix)) { isAnon = true; break; }
+            }
+        }
+        return isIntegration &amp;&amp; isAnon;
+    }
+}</pre>
+
+  <h3>8.3 Standing rules to enable</h3>
+  <table>
+    <tr><th>#</th><th>Salesforce control</th><th>Setting</th><th>Why for this campaign</th></tr>
+    <tr><td>8.3.1</td><td>Login IP Ranges on the Drift / Salesloft Connected App profile</td><td>Restrict to Drift's published egress only; revoke Allow-all</td><td>Would have nullified UNC6395 from AWS/DO/Tor</td></tr>
+    <tr><td>8.3.2</td><td>Session Settings → "Lock sessions to the IP address from which they originated"</td><td>Enabled</td><td>Refresh-token reuse from new IP gets blocked</td></tr>
+    <tr><td>8.3.3</td><td>Session Settings → Session Timeout</td><td>2 hours (was 24)</td><td>Shortens stolen-token usefulness</td></tr>
+    <tr><td>8.3.4</td><td>Connected App → OAuth Policies → Permitted Users</td><td>"Admin-approved users are pre-authorized"</td><td>Removes ambient user-grant path</td></tr>
+    <tr><td>8.3.5</td><td>Connected App → IP Relaxation</td><td>"Enforce IP restrictions"</td><td>Belt + suspenders with 8.3.1</td></tr>
+    <tr><td>8.3.6</td><td>Permission Sets → strip "API Enabled" from profiles</td><td>Grant only via PS on authorized users</td><td>Reduces blast radius if a user-token is stolen</td></tr>
+    <tr><td>8.3.7</td><td>Real-Time Event Monitoring → ApiAnomalyEvent stream</td><td>Subscribed + alerting</td><td>Salesforce's own ML detector for bulk-exfil patterns</td></tr>
+    <tr><td>8.3.8</td><td>Enhanced Transaction Security (Salesforce Shield)</td><td>On for ApiEvent + ReportEvent + LoginEvent</td><td>Real-time block, not just detect</td></tr>
+  </table>
+</section>
+
+<section id="soql">
+  <h2>9. SOQL Triage Pack (Workbench / sf CLI)</h2>
+  <p>Run from <a href="https://workbench.developerforce.com/" target="_blank" rel="noopener">workbench.developerforce.com</a> or <code>sf data query --query "..."</code> in the Salesforce CLI. These are the queries an IR analyst should run inside the tenant once an indicator above hits — not part of the standing detection set.</p>
+
+  <h3>9.1 List all currently-issued OAuth refresh tokens (the "what's still hot" view)</h3>
+<pre>SELECT Id, AppName, UserId, User.Username, CreatedDate, LastUsedDate, UseCount,
+       AppMenuItemId, AppMenuItem.Label
+FROM OauthToken
+ORDER BY LastUsedDate DESC NULLS LAST</pre>
+
+  <h3>9.2 Revoke a specific token (delete row = revoke)</h3>
+<pre>// Workbench → REST Explorer → DELETE /services/data/v60.0/sobjects/OauthToken/&lt;Id&gt;
+// or via sf CLI:
+sf data delete record --sobject OauthToken --record-id 0Lq...XYZ</pre>
+
+  <h3>9.3 Audit Connected-App scopes and IP restrictions</h3>
+<pre>SELECT Id, Name, OptionsAllowAdminApprovedUsersOnly, OptionsFullContentPushNotifications,
+       OptionsHasSessionLevelPolicyRequired, ConsumerKey, MobileStartUrl, StartUrl
+FROM ConnectedApplication
+WHERE Name LIKE '%Drift%' OR Name LIKE '%Salesloft%'
+ORDER BY Name</pre>
+
+  <h3>9.4 Find Case/CaseComment text containing known secret patterns</h3>
+<pre>// SOSL is the right tool for unstructured text search.
+FIND {AKIA OR snowflakecomputing OR xoxb OR xoxp OR xoxa OR xoxr OR eyJhbGciOi OR ghp_ OR github_pat_}
+IN ALL FIELDS RETURNING
+  Case(Id, CaseNumber, Subject, Description, CreatedDate),
+  CaseComment(Id, ParentId, CommentBody, CreatedDate),
+  FeedItem(Id, Body, ParentId, CreatedDate),
+  EmailMessage(Id, Subject, TextBody, ParentId, CreatedDate),
+  Attachment(Id, Name, ParentId, CreatedDate)</pre>
+
+  <h3>9.5 Recently exported reports (data shipped out via Reports UI)</h3>
+<pre>SELECT Id, EventDate, Username, ReportId, ReportName, Operation
+FROM ReportEvent
+WHERE EventDate &gt;= 2025-08-01T00:00:00Z
+ORDER BY EventDate DESC
+LIMIT 200</pre>
+
+  <h3>9.6 EventLogFile pull — RestApi + BulkApi for August 2025</h3>
+<pre>SELECT Id, EventType, LogDate, LogFile, LogFileLength, LogFileContentType, ApiVersion
+FROM EventLogFile
+WHERE LogDate &gt;= 2025-08-01T00:00:00Z AND LogDate &lt;= 2025-09-01T00:00:00Z
+  AND EventType IN ('RestApi','BulkApi','BulkApiV2','Login','ApiEvent','UniqueQuery','ApiAnomalyEvent')
+ORDER BY LogDate DESC</pre>
+
+  <h3>9.7 Pull EventLogFile CSV content via REST (loop the IDs from 9.6)</h3>
+<pre>curl -H "Authorization: Bearer $SF_ACCESS_TOKEN" \
+     "https://$SF_INSTANCE.my.salesforce.com/services/data/v60.0/sobjects/EventLogFile/$ID/LogFile" \
+     -o eventlog-$ID.csv
+// Then grep for the IOC user-agents / IPs locally; treat as forensic evidence.</pre>
+
+  <h3>9.8 Users that have <code>API Enabled</code> permission (the blast-radius view)</h3>
+<pre>SELECT AssigneeId, Assignee.Username, Assignee.IsActive, PermissionSetId, PermissionSet.Name
+FROM PermissionSetAssignment
+WHERE PermissionSet.PermissionsApiEnabled = true
+ORDER BY Assignee.Username</pre>
+</section>
+
+<section id="canary">
+  <h2>10. Honey-Case Canary Recipe</h2>
+  <p>A canary <code>Case</code> with embedded fake-but-tempting secret strings, owned by a no-login user, never linked from any UI. <em>Anything</em> that reads it is hostile.</p>
+
+  <h3>Create the honey-case (Apex snippet)</h3>
+<pre>// Setup → Developer Console → Execute Anonymous
+User canaryOwner = [SELECT Id FROM User WHERE Username='honey-owner@yourorg.com.suffix' LIMIT 1];
+
+Case honey = new Case(
+    Subject = 'PROD outage troubleshooting — credentials inside',
+    Description =
+      'Diagnostic info attached.\n' +
+      'AWS API key: AKIAZ9CANARYCANARY99\n' +
+      'Snowflake: canary.snowflakecomputing.com — user=svc_etl  pw=Sp3cialCanary!23\n' +
+      'Slack bot: xoxb-0000000000-0000000000000-canarycanarycanary99\n' +
+      'GitHub PAT: ghp_canarycanarycanarycanarycanarycanary\n' +
+      'See ticket history for full repro steps.',
+    Status = 'Closed',
+    Origin = 'Email',
+    OwnerId = canaryOwner.Id,
+    Priority = 'Low',
+    IsClosed = true
+);
+insert honey;
+
+// Suppress visibility:
+// 1. Place in a private folder / restricted record type
+// 2. Owner is a frozen, no-login user
+// 3. Sharing rules: no public read
+// 4. Tag CaseNumber in a watchlist (see §13)</pre>
+
+  <h3>Honey-canary CQL detection (drop into the standing-detection set)</h3>
+<pre>// HUNT: UNC6395 honey-canary - any read of the canary Case record
+// FP RISK: Zero (the canary has no legitimate readers)
+// CONFIDENCE: Very High
+
+#repo = "salesforce"
+| EVENT_TYPE = /^(ApiEvent|RestApi|UniqueQuery|ReportExport)$/
+| (QUERY = /(?i)CaseNumber\s*=\s*['"]?00001234['"]?/
+   OR ENTITY_ID = "500XXXXXXXXXXXXXXX"  // substitute the real canary Case.Id
+   OR URI = /(?i)\/sobjects\/Case\/500XXXXXXXXXXXXXXX/)
+| table([@timestamp, USER_NAME, USER_AGENT, SOURCE_IP, CONNECTED_APP_NAME, EVENT_TYPE, QUERY])
+| sort(@timestamp, order=desc)</pre>
+
+  <div class="callout callout-good">
+    <strong>Why this works:</strong> UNC6395-class tools enumerate all Case records or do SOSL grep for AKIA/xoxb. Either path lands on the honey Case. You get a high-fidelity alert <em>and</em> a usable forensic anchor (which user-agent / IP / connected-app read it).
+  </div>
+</section>
+
+<section id="validation">
+  <h2>11. Detection Validation Plays</h2>
+  <p>Atomic-Red-Team-style validation tests for this campaign — safe to run in a sandbox tenant or with explicit RoE in production. The goal is to prove each query in §6 actually fires when the bad thing happens.</p>
+
+  <h3>11.1 — Validate Q2 (known UA detection)</h3>
+<pre># From any host with sf CLI installed; run against a sandbox tenant
+# Auth first: sf org login web --alias sandbox
+sf data query --target-org sandbox \
+  --query "SELECT Id FROM Case LIMIT 1" \
+  --use-tooling-api \
+  -H "User-Agent: Salesforce-Multi-Org-Fetcher/1.0"
+# Expected outcome: Q2 fires within the next EventLogFile rotation (≤1h hourly stream, 24h daily).</pre>
+
+  <h3>11.2 — Validate Q4 (bulk Case export &gt; 10k)</h3>
+<pre># Sandbox only - generates legitimate bulk-export EventLogFile entry
+sf data export tree --target-org sandbox \
+  --query "SELECT Id, CaseNumber, Subject, Description FROM Case LIMIT 12000" \
+  --output-dir /tmp/case-export-test
+# Expected: Q4 fires (ROWS_PROCESSED &gt; 10000, ENTITY_NAME=Case)</pre>
+
+  <h3>11.3 — Validate Q7 (scope drift)</h3>
+<pre>Setup &gt; Apps &gt; App Manager &gt; (pick test connected-app) &gt; Edit Policies
+  &gt; Add OAuth scope "Full access (full)"  &gt; Save
+# Expected: Q7 fires from SetupAuditTrail within minutes</pre>
+
+  <h3>11.4 — Validate Q10 (recon COUNT() burst)</h3>
+<pre>for OBJ in Account Opportunity User Case; do
+  sf data query --target-org sandbox --query "SELECT COUNT() FROM $OBJ"
+  sleep 30
+done
+# Expected: Q10 fires (≥3 distinct sensitive objects in &lt;5 min window)</pre>
+
+  <h3>11.5 — Validate honey-case (§10) detection</h3>
+<pre>sf data query --target-org sandbox \
+  --query "SELECT Id, Subject, Description FROM Case WHERE Id = '500XXXXXXXXXXXXXXX'"
+# Expected: honey-case detection fires immediately on next log flush</pre>
+
+  <h3>11.6 — Validate Q12 (admin-consent for high-privilege scope) — Entra</h3>
+<pre># Register a low-privilege test app, then grant a broad scope via admin consent:
+az ad app create --display-name "ConsentDriftTest"
+az ad app permission add --id &lt;appId&gt; --api 00000003-0000-0000-c000-000000000000 \
+  --api-permissions df021288-bdef-4463-88db-98f22de89214=Role  # User.Read.All (app)
+az ad app permission grant --id &lt;appId&gt; --api 00000003-0000-0000-c000-000000000000 \
+  --scope "User.Read.All"
+# Expected: Q12 fires on the "Consent to application" audit event</pre>
+
+  <table>
+    <tr><th>Query</th><th>Validation play</th><th>Expected latency to fire</th><th>Safe in prod?</th></tr>
+    <tr><td>Q1</td><td>Cannot safely simulate (requires source IP from Tor/UNC6395 infra)</td><td>n/a</td><td>No — use historical data review</td></tr>
+    <tr><td>Q2</td><td>11.1 — UA injection via sf CLI</td><td>≤ 1 hour (hourly EventLogFile)</td><td>Yes (read-only)</td></tr>
+    <tr><td>Q3</td><td>Historical review only — Drift app no longer exists in your tenant</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>Q4</td><td>11.2 — sf data export tree LIMIT 12000</td><td>≤ 1 hour</td><td>Sandbox only (consumes API quota)</td></tr>
+    <tr><td>Q5</td><td>Insert a Case with a fake AKIA value, then re-export</td><td>≤ 1 hour</td><td>Sandbox only</td></tr>
+    <tr><td>Q6</td><td>Route an integration user through a Tor SOCKS proxy</td><td>real-time</td><td>Sandbox only</td></tr>
+    <tr><td>Q7</td><td>11.3 — Add OAuth scope to a test connected-app</td><td>Minutes (SetupAuditTrail)</td><td>Production-safe if reverted</td></tr>
+    <tr><td>Q8</td><td>Pause integration for 31d then trigger refresh; or fake timestamps in baseline lookup</td><td>real-time</td><td>Production-safe</td></tr>
+    <tr><td>Q9</td><td>Manually <code>sf data delete record --sobject AsyncApexJob</code> in sandbox</td><td>≤ 1 hour</td><td>Sandbox only</td></tr>
+    <tr><td>Q10</td><td>11.4 — COUNT() loop</td><td>≤ 1 hour</td><td>Production-safe</td></tr>
+    <tr><td>Q11</td><td>Trigger token refresh through a corp VPN exit that's never been used (regional rollover)</td><td>real-time</td><td>Production-safe</td></tr>
+    <tr><td>Q12</td><td>11.6 — Az CLI admin consent</td><td>real-time</td><td>Sandbox tenant only</td></tr>
+    <tr><td>Q13</td><td>Historical review only</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>Q14</td><td>Run TruffleHog against a directory by a non-allowlisted user</td><td>≤ 1 minute</td><td>Yes (read-only)</td></tr>
+    <tr><td>Q15</td><td>curl 208.68.36.90 (sinkholed) from a test host</td><td>≤ 1 minute</td><td>Production-safe (no payload)</td></tr>
+  </table>
+</section>
+
+<section id="iocs">
+  <h2>12. IOC Blocklist Template</h2>
+  <p>Drop straight into <strong>CrowdStrike Falcon → Endpoint security → IOC Management</strong> (CSV import below), or your firewall/proxy blocklist. <strong>Source</strong>: GTIG advisory 2025-08-26 + FBI FLASH 2025-09-12 + community reporting through 2026-Q1.</p>
+
+  <h3>12.1 IP addresses (block at network egress + alert on inbound where possible)</h3>
+  <table>
+    <tr><th>IP</th><th>Provider</th><th>First Seen</th><th>Action</th><th>Source</th></tr>
+    <tr><td><code>208.68.36.90</code></td><td>DigitalOcean</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>44.215.108.109</code></td><td>AWS</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>154.41.95.2</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>176.65.149.100</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>179.43.159.198</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>185.130.47.58</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>185.207.107.130</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>185.220.101.33 / .133 / .143 / .164 / .167 / .169 / .180 / .185</code></td><td>Tor exit (Foundation cluster)</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>192.42.116.20 / .179</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>194.15.36.117</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>195.47.238.83 / .178</code></td><td>Tor exit</td><td>2025-08-08</td><td>BLOCK + ALERT</td><td>GTIG</td></tr>
+    <tr><td><code>23.162.8.66, 23.94.126.63, 51.89.240.10, 64.95.11.225</code></td><td>Mixed VPS</td><td>2025-09+</td><td>ALERT</td><td>Community reporting (2026 update)</td></tr>
+  </table>
+
+  <h3>12.2 User-Agent strings (block at WAF / proxy for Salesforce, alert in NG-SIEM)</h3>
+  <table>
+    <tr><th>User-Agent</th><th>Confidence</th><th>Action</th></tr>
+    <tr><td><code>Salesforce-Multi-Org-Fetcher/1.0</code></td><td>HIGH (bespoke)</td><td>BLOCK + ALERT — no legitimate use</td></tr>
+    <tr><td><code>Salesforce-CLI/1.0</code></td><td>HIGH (bespoke; the real CLI uses different UA)</td><td>BLOCK + ALERT</td></tr>
+    <tr><td><code>TruffleHog</code></td><td>HIGH</td><td>ALERT — legitimate dev tool but should never hit your SF tenant directly</td></tr>
+    <tr><td><code>python-requests/2.32.4</code></td><td>MEDIUM</td><td>ALERT — combine with sensitive-object access for fidelity</td></tr>
+    <tr><td><code>Python/3.11 aiohttp/3.12.15</code></td><td>MEDIUM</td><td>ALERT — combine with sensitive-object access for fidelity</td></tr>
+  </table>
+
+  <h3>12.3 CrowdStrike IOC Management CSV (paste-ready)</h3>
+<pre>type,value,action,severity,description,platforms,applied_globally,expiration
+ipv4,208.68.36.90,detect,high,UNC6395 Salesloft Drift exfil infra (DigitalOcean) - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,44.215.108.109,detect,high,UNC6395 Salesloft Drift exfil infra (AWS) - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,154.41.95.2,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,176.65.149.100,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,179.43.159.198,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.130.47.58,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.207.107.130,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.33,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.133,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.143,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.164,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.167,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.169,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.180,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,185.220.101.185,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,192.42.116.20,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,192.42.116.179,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,194.15.36.117,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,195.47.238.83,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31
+ipv4,195.47.238.178,detect,medium,UNC6395 Tor exit - GTIG 2025-08-26,linux;windows;mac,true,2026-12-31</pre>
+
+  <h3>12.4 Salesforce-side IOC ingest (paste into a LogScale lookup file)</h3>
+<pre>// File: unc6395_iocs.csv — register in Falcon NG-SIEM Lookup Files
+ioc_type,value,source,first_seen,severity
+ip,208.68.36.90,GTIG,2025-08-08,high
+ip,44.215.108.109,GTIG,2025-08-08,high
+ua,Salesforce-Multi-Org-Fetcher/1.0,GTIG,2025-08-08,high
+ua,Salesforce-CLI/1.0,GTIG,2025-08-08,high
+ua,TruffleHog,Cloudflare-IR,2025-08-09,high
+ua,python-requests/2.32.4,GTIG,2025-08-08,medium
+ua,Python/3.11 aiohttp/3.12.15,GTIG,2025-08-08,medium
+connected_app,Drift,Salesforce-AppExchange,2025-08-08,high
+connected_app,Salesloft,Salesforce-AppExchange,2025-08-08,high
+connected_app,Drift Email,Salesloft-2025-08-28,2025-08-28,high</pre>
+
+  <div class="callout callout-warn">
+    <strong>Tor blocking caveat:</strong> Tor exit list rotates daily. The IPs above were UNC6395-attested at the time of the campaign — many will no longer be exit nodes today (and new exits will be active). Maintain a refresh job from <code>check.torproject.org/exit-addresses</code> or <code>dan.me.uk/torlist</code> on at least a weekly cadence for the standing Tor block.
+  </div>
+</section>
+
+<section id="ioa">
+  <h2>13. Custom IOA &amp; Watchlist Recommendations</h2>
+  <p>Patterns to operationalize beyond the one-shot queries. These belong in a long-running rule store (NG-SIEM correlation rule, Sentinel analytic, Splunk ES, Okta Workflows) — not in an ad-hoc hunt.</p>
+
+  <table>
+    <tr><th>#</th><th>Pattern</th><th>Where it runs</th><th>Why standing</th></tr>
+    <tr><td>IOA-1</td><td>Salesforce <code>RestApi</code>/<code>BulkApi</code> volume per integration user, per hour — alert on &gt;3σ spike vs 30-day rolling baseline</td><td>NG-SIEM correlation</td><td>Catches UNC6395-shape exfil without requiring known IOCs</td></tr>
+    <tr><td>IOA-2</td><td>OAuth <code>refresh_token</code> grant from any ASN where the same service principal hasn't issued an access-token in 90 days</td><td>NG-SIEM (Q11)</td><td>Survives Tor/CDN rotation; catches the next campaign of this shape</td></tr>
+    <tr><td>IOA-3</td><td>Connected-app permission scope expansion → require approval via service-now ticket; auto-alert on any unticketed scope change</td><td>NG-SIEM + ITSM webhook</td><td>Forces change-management into the OAuth surface</td></tr>
+    <tr><td>IOA-4</td><td>Bulk API <code>DELETE</code> against <code>AsyncApexJob</code>/<code>BulkApiJob</code> by any user — alert always</td><td>NG-SIEM (Q9)</td><td>Anti-forensics is itself the signal</td></tr>
+    <tr><td>IOA-5</td><td>Salesforce session lock-by-IP enabled across all profiles; alert if any profile drops the setting</td><td>SetupAuditTrail rule</td><td>Drift-class attacks fail when sessions are IP-bound</td></tr>
+    <tr><td>IOA-6</td><td>Honey-Case read (§10) — alert immediately, page on-call</td><td>NG-SIEM</td><td>Zero-FP tripwire; covers tools that don't hit any other IOC</td></tr>
+    <tr><td>IOA-7</td><td>SOSL/SOQL containing literal token patterns (<code>AKIA</code>, <code>xoxb-</code>, <code>snowflakecomputing</code>) as part of the query, not just the response</td><td>NG-SIEM (Q5 inverted — query text)</td><td>Attackers grep on-tenant when they're greedy; legit users don't</td></tr>
+    <tr><td>IOA-8</td><td>Any new connected-app authorization where the app's publisher cert isn't in your allowlist</td><td>SetupAuditTrail rule</td><td>Catches UNC6040 vishing-driven malicious-app installs</td></tr>
+    <tr><td>IOA-9</td><td>Salesloft / Drift / Salesloft Drift Email connected-apps — alert on ANY new authorization attempt (should be impossible post-2025-08-28)</td><td>NG-SIEM (Q3 extended)</td><td>Eternal tripwire for re-installation attempts</td></tr>
+    <tr><td>IOA-10</td><td>Helpdesk-confirmed identity-reset workflow: any password/MFA reset for a privileged user must be confirmed via 2nd channel (Slack, in-person, voice-callback to a number on file — never inbound)</td><td>Process control + ServiceNow gate</td><td>Counters the Scattered-Spider / UNC6040 vishing path</td></tr>
+  </table>
+
+  <h3>Watchlist objects (NG-SIEM Watchlists or Sentinel Watchlist)</h3>
+  <ul>
+    <li><strong>SF_INTEGRATION_USERS</strong> — every service / integration user in Salesforce, with their expected IP range and expected daily call volume. Joins to Q4/Q6/Q11/Q13 for cross-reference.</li>
+    <li><strong>SF_CONNECTED_APPS_ALLOWLIST</strong> — every connected-app and its approved owner + business justification. Q3/Q7/Q12 check membership.</li>
+    <li><strong>SECRET_REGEX_PATTERNS</strong> — your maintained list of credential-shape regexes (AKIA, xoxb-, ghp_, eyJ, custom org-specific tokens). Feeds Q5 + IOA-7.</li>
+    <li><strong>TOR_EXIT_NODES</strong> — refreshed weekly. Feeds Q6 + Q15.</li>
+    <li><strong>HIGH_PRIV_OAUTH_SCOPES</strong> — your platform-specific list of dangerous scopes (Salesforce <code>full</code>/<code>api</code>/<code>refresh_token</code>, Entra <code>Directory.Read.All</code> / <code>Mail.ReadWrite</code>, Slack <code>admin</code>, etc.). Feeds Q7 + Q12.</li>
+  </ul>
+</section>
+
+<section id="hardening">
+  <h2>14. Hardening Recommendations (28 controls)</h2>
+  <p>Layered controls so the next OAuth supply-chain campaign — and there will be a next — finds you cheaper to defend. Numbered for traceability into ServiceNow / Jira.</p>
+
+  <h3>A. Salesforce platform (10 controls)</h3>
+  <table>
+    <tr><th>#</th><th>Control</th><th>Effort</th><th>Impact</th></tr>
+    <tr><td>H-01</td><td>Enforce Login IP Ranges on every Connected App (no app should be "any IP")</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-02</td><td>Set session timeout to ≤ 2 hours for integration users; ≤ 8 hours for humans</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-03</td><td>Enable "Lock sessions to IP address" globally</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-04</td><td>Strip "API Enabled" permission from all profiles; grant via Permission Set to named users only</td><td>Medium</td><td>HIGH</td></tr>
+    <tr><td>H-05</td><td>"Admin-approved users are pre-authorized" on every connected-app — kills end-user OAuth consent</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-06</td><td>License + enable Salesforce Shield Event Monitoring + Real-Time Event Monitoring</td><td>$ (license)</td><td>CRITICAL</td></tr>
+    <tr><td>H-07</td><td>Subscribe NG-SIEM to <code>ApiEvent</code>, <code>LoginEvent</code>, <code>ReportEvent</code>, <code>ApiAnomalyEvent</code> Pub/Sub streams</td><td>Medium</td><td>CRITICAL</td></tr>
+    <tr><td>H-08</td><td>Enable Transaction Security Policy: bulk-Case block (§8.1) and Tor-login block (§8.2)</td><td>Medium</td><td>HIGH</td></tr>
+    <tr><td>H-09</td><td>Quarterly Connected-App attestation — each app's owner re-justifies scope &amp; usage or it's revoked</td><td>Medium (recurring)</td><td>MEDIUM</td></tr>
+    <tr><td>H-10</td><td>Disable Connected-App refresh-token issuance for apps that should run only with short-lived JWTs</td><td>Low</td><td>HIGH</td></tr>
+  </table>
+
+  <h3>B. Identity provider (Entra / Okta) (8 controls)</h3>
+  <table>
+    <tr><th>#</th><th>Control</th><th>Effort</th><th>Impact</th></tr>
+    <tr><td>H-11</td><td>Disable user-consent for any app requesting <code>full</code>, <code>api</code>, <code>refresh_token</code>, or any <code>*.ReadWrite.All</code> scope</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-12</td><td>Enable Conditional Access policy: workload identities (service principals) must come from a named-location list</td><td>Medium</td><td>HIGH</td></tr>
+    <tr><td>H-13</td><td>Enforce phishing-resistant MFA (FIDO2 / passkeys) on every privileged human; allow no SMS/voice</td><td>Medium</td><td>HIGH</td></tr>
+    <tr><td>H-14</td><td>Helpdesk identity-verification SOP: never reset MFA on inbound call without 2nd-channel callback to a number on file</td><td>Low (process)</td><td>HIGH</td></tr>
+    <tr><td>H-15</td><td>Enable refresh-token revocation hook from your IGA when a connected-app owner leaves the company</td><td>Medium</td><td>MEDIUM</td></tr>
+    <tr><td>H-16</td><td>Token lifetimes: cap refresh-token lifetime at 90 days max; rotate access-token every 1h</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-17</td><td>Continuous-Access-Evaluation (CAE) where supported — kills tokens on user/state changes mid-session</td><td>Low</td><td>HIGH</td></tr>
+    <tr><td>H-18</td><td>Monitor OAuth audit log for grants to apps without a verified publisher</td><td>Low</td><td>MEDIUM</td></tr>
+  </table>
+
+  <h3>C. SaaS vendor / third-party trust (5 controls)</h3>
+  <table>
+    <tr><th>#</th><th>Control</th><th>Effort</th><th>Impact</th></tr>
+    <tr><td>H-19</td><td>SaaS-vendor inventory: every connected-app + the scopes it has + the data classes it touches</td><td>High (one-time)</td><td>HIGH</td></tr>
+    <tr><td>H-20</td><td>SaaS Security Posture Management (SSPM) — AppOmni / Adaptive Shield / Obsidian / Nudge — picks up scope drift continuously</td><td>$ (license)</td><td>HIGH</td></tr>
+    <tr><td>H-21</td><td>Contractually require third-party vendors to notify on credential/key compromise within 24h</td><td>Medium (legal)</td><td>MEDIUM</td></tr>
+    <tr><td>H-22</td><td>Tier vendors by data sensitivity; tier-1 vendors require quarterly SOC-2 / pentest evidence</td><td>Medium</td><td>MEDIUM</td></tr>
+    <tr><td>H-23</td><td>"Trust but verify" — for any SaaS vendor with broad scope, periodically diff their declared egress IPs against what your logs actually see</td><td>Medium</td><td>MEDIUM</td></tr>
+  </table>
+
+  <h3>D. Secret handling (the "stop putting AKIA in support tickets" set, 5 controls)</h3>
+  <table>
+    <tr><th>#</th><th>Control</th><th>Effort</th><th>Impact</th></tr>
+    <tr><td>H-24</td><td>Customer-facing support form: client-side regex strip of <code>AKIA</code>, <code>xoxb-</code>, <code>eyJ</code>, <code>ghp_</code> before submit (CSP banner: "do not paste credentials")</td><td>Medium (engineering)</td><td>HIGH</td></tr>
+    <tr><td>H-25</td><td>Server-side scrubber on Case insertion: replace matching secret patterns with <code>[REDACTED-AKIA]</code> at write time</td><td>Medium (Salesforce trigger)</td><td>HIGH</td></tr>
+    <tr><td>H-26</td><td>Continuous secret-scan job over historical Case/CaseComment text (Trufflehog / GitGuardian / your own)</td><td>Medium (recurring)</td><td>HIGH</td></tr>
+    <tr><td>H-27</td><td>Customer-side: out-of-band channel for sensitive support material (encrypted upload box) — never inline in the case body</td><td>Medium (process + UI)</td><td>HIGH</td></tr>
+    <tr><td>H-28</td><td>Token egress alerting — any cloud-credential-shape string egressing from Salesforce via Reports / Export wires to NG-SIEM</td><td>Medium</td><td>HIGH</td></tr>
+  </table>
+
+  <div class="callout callout-good">
+    <strong>If you only do five things, do these:</strong> H-01 (IP allowlist Drift-equivalents), H-04 (no ambient API Enabled), H-06+H-07 (Shield + RTEM ingest), H-13 (phishing-resistant MFA + helpdesk SOP), H-25 (server-side Case scrubber). Those five would have made UNC6395 hit a wall in your tenant even with valid stolen tokens.
+  </div>
+</section>
+
+<section id="containment">
+  <h2>15. Containment Runbook (T+0 → T+60 min)</h2>
+  <p>Trigger: any of Q1 / Q2 / Q4 / honey-Case / Q15 fires <em>or</em> external notification (vendor, FBI, Mandiant, GTIG, press) names you as a victim.</p>
+
+  <h3>T+0 → T+5 min — Confirm &amp; freeze</h3>
+  <ol>
+    <li>Open the alert. <strong>Confirm IOC matches</strong> against §12 — UA, IP, connected-app name. Take screenshots / preserve the EventLogFile entries.</li>
+    <li>Page SOC manager + Salesforce admin owner (RACI §18).</li>
+    <li>If the hit is a Drift / Salesloft / Drift Email connected-app: <strong>revoke its OAuth refresh tokens immediately</strong> (Setup → Connected Apps → OAuth Usage → Revoke; or §9.2 SOQL <code>DELETE OauthToken</code>).</li>
+    <li>If the hit is an unknown connected-app: <strong>disable</strong> it (Setup → Connected Apps → Edit Policies → "Admin approved users are pre-authorized" → remove all profiles) and revoke its tokens.</li>
+    <li>Snapshot active sessions: <code>SELECT Id, UsersId, LoginType, SourceIp, CreatedDate FROM AuthSession WHERE IsCurrent = true</code>. Revoke any matching the IOC IPs.</li>
+  </ol>
+
+  <h3>T+5 → T+15 min — Scope</h3>
+  <ol start="6">
+    <li>Run §9.1 (OauthToken list) — note every still-valid token's <code>LastUsedDate</code>; freeze anything &lt; 24h.</li>
+    <li>Run §9.6 + §9.7 — pull <code>RestApi</code>, <code>BulkApi</code>, <code>ApiEvent</code>, <code>LoginEvent</code> EventLogFile rows for ±7 days around the alert. Grep locally for full IOC list.</li>
+    <li>Run Q4 across the last 180 days — anything &gt; 10k Case rows pulled by any integration user is now an investigation target.</li>
+    <li>Run Q5 (or 9.4 SOSL) — secret-pattern hunt across Case / CaseComment / FeedItem. Triage AKIA hits first, then Slack / Snowflake / JWT.</li>
+    <li>Identify the data classification of every record touched in the alert window — needed for §19 regulator-notification clock.</li>
+  </ol>
+
+  <h3>T+15 → T+30 min — Contain</h3>
+  <ol start="11">
+    <li>Apply Login IP Range restriction to <em>all</em> integration users (H-01) — even if only one is suspect, blanket-tighten while investigating.</li>
+    <li>Force re-auth on every active human session (Setup → Session Management → End All Sessions).</li>
+    <li>Open ITSM tickets for credential rotation against every secret class Q5 identified (AWS keys, Snowflake tokens, Slack tokens, GitHub PATs). Rotation owners run in parallel.</li>
+    <li>Notify your SaaS vendor PSIRT contact if the integration owner is a third party.</li>
+    <li>Disable the affected integration in your IGA — kill its outbound credential refresh from Vault / Secrets Manager.</li>
+  </ol>
+
+  <h3>T+30 → T+60 min — Communicate &amp; evidence</h3>
+  <ol start="16">
+    <li>Notify Legal &amp; Privacy — they will need to assess regulator notification clocks (see §19). In the US, state breach laws and GDPR-equivalent triggers depend on the data classes touched.</li>
+    <li>Preserve evidence: export full EventLogFile coverage to immutable storage (S3 Object Lock / Azure immutable blob). Don't rely on Salesforce retention.</li>
+    <li>Open the formal IR case (Jira / ServiceNow security incident). Link this runbook execution + all screenshots.</li>
+    <li>Start the §17 hunt-summary ticket — that's the artifact leadership reads.</li>
+    <li>If extortion email is received (ShinyHunters pattern): <strong>do not engage</strong>. Forward to law enforcement (FBI IC3) and Legal. Begin §19 comms template prep.</li>
+  </ol>
+
+  <h3>T+60 min → T+7 days — Eradicate &amp; recover</h3>
+  <ol start="21">
+    <li>Reinstall Salesforce H-01 through H-10 controls if not already in place.</li>
+    <li>Force re-issuance of every secret class with non-zero exposure from Q5.</li>
+    <li>Re-baseline Drift-replacement / chatbot integration's behavior — review scope, IP allowlist, token TTL <em>before</em> re-enabling.</li>
+    <li>Schedule the §11 validation plays against the sandbox to prove the new controls fire correctly.</li>
+    <li>Submit detection-engineering tickets for any IOC missed in the first pass (the next variant will look similar but UA/IP-shifted — your detection set must be resilient).</li>
+  </ol>
+</section>
+
+<section id="coverage">
+  <h2>16. Detection Coverage Map</h2>
+  <table>
+    <tr><th>Phase</th><th>Sub-step</th><th>EventLogFile</th><th>RTEM</th><th>SetupAudit</th><th>Endpoint</th><th>IdP</th><th>Network</th></tr>
+    <tr><td>Vendor compromise</td><td>GitHub/AWS pivot at Salesloft</td><td class="cov-gap">✗ (not yours)</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td></tr>
+    <tr><td>OAuth token theft</td><td>Refresh-token replay against your tenant</td><td class="cov-good">✓ Q1, Q3</td><td class="cov-good">✓ Q1</td><td class="cov-partial">~</td><td class="cov-gap">✗</td><td class="cov-good">✓ Q11</td><td class="cov-partial">~ Q15</td></tr>
+    <tr><td>Tenant recon</td><td>SELECT COUNT() bursts</td><td class="cov-good">✓ Q10</td><td class="cov-good">✓ Q10 (ApiEvent)</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td></tr>
+    <tr><td>Bulk exfil</td><td>BulkAPI 2.0 dump of Case/Account/User</td><td class="cov-good">✓ Q2, Q4</td><td class="cov-good">✓ ApiAnomalyEvent</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-partial">~ Q15</td></tr>
+    <tr><td>Secret-pattern hunting</td><td>Inline SOSL/SOQL for AKIA, xoxb-, etc.</td><td class="cov-good">✓ Q5</td><td class="cov-good">✓ Q5</td><td class="cov-gap">✗</td><td class="cov-partial">~ Q14 (local TruffleHog)</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td></tr>
+    <tr><td>Anti-forensics</td><td>DELETE AsyncApexJob</td><td class="cov-good">✓ Q9</td><td class="cov-good">✓ Q9</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td></tr>
+    <tr><td>Scope drift / persistence</td><td>New OAuth scope on existing app</td><td class="cov-partial">~</td><td class="cov-gap">✗</td><td class="cov-good">✓ Q7</td><td class="cov-gap">✗</td><td class="cov-good">✓ Q12</td><td class="cov-gap">✗</td></tr>
+    <tr><td>Secondary breach</td><td>Stolen AWS / Snowflake / Slack creds used</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-partial">~ (correlate later)</td><td class="cov-good">✓ Q11 in that platform's IdP</td><td class="cov-good">✓ depending on egress</td></tr>
+    <tr><td>Extortion</td><td>ShinyHunters outreach</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td><td class="cov-gap">✗</td></tr>
+  </table>
+
+  <h3>Gaps to remediate</h3>
+  <ul>
+    <li>If <strong>Shield Event Monitoring not licensed</strong>: 11 of 15 queries dark. Highest-leverage gap in the whole pack.</li>
+    <li>If <strong>RTEM not subscribed</strong>: detection latency shifts from real-time to ≤ 1 hour. Acceptable for batch hunts; insufficient for stopping live exfil.</li>
+    <li>If <strong>IdP OAuth audit log not in NG-SIEM</strong>: Q8 / Q11 / Q12 dark. Strongly recommended ingest.</li>
+    <li>If <strong>no SaaS Security Posture Management (SSPM)</strong>: scope-drift detection is point-in-time only. Add Adaptive Shield / AppOmni / Obsidian / Valence for continuous baseline.</li>
+  </ul>
+</section>
+
+<section id="ticket">
+  <h2>17. Hunt Summary Ticket</h2>
+  <p>Paste into your ITSM / IR ticketing system. Fill the <code>{{ }}</code> placeholders.</p>
+<pre>SUMMARY: SaaS Supply-Chain OAuth Theft Hunt — UNC6395 / Salesloft Drift
+SEVERITY: {{ critical | high | medium }}  (default: HIGH if any Q1/Q2/Q4 hits land)
+HUNT OWNER: {{ analyst }}
+START: {{ ISO8601 }}
+END:   {{ ISO8601 }}
+
+SCOPE:
+- Salesforce tenant(s): {{ list of org IDs }}
+- IdP coverage: {{ Entra | Okta | both }}
+- Log window: 2025-07-15 → present (and rolling forward as standing detection)
+
+INTEL BASIS:
+- Google GTIG advisory 2025-08-26
+- FBI IC3 FLASH 250912.pdf
+- Cloudflare incident-response blog 2025-09-02
+- Salesforce status notice 20000217 + KB 005134951
+- Internal CTI brief generated 2026-05-19
+
+QUERIES RUN (✓ = ran; H = hit; - = N/A):
+[ ] Q1  Login from known UNC6395 IPs
+[ ] Q2  Known IOC user-agents on SF API
+[ ] Q3  Drift/Salesloft connected-app activity after 2025-08-08
+[ ] Q4  Bulk Case/Comment/Feed export &gt;10k by integration user
+[ ] Q5  Secret patterns in case bodies
+[ ] Q6  SF API via Tor (integration users)
+[ ] Q7  Connected-app scope drift
+[ ] Q8  Refresh-token to dormant integration
+[ ] Q9  AsyncApexJob DELETE (anti-forensics)
+[ ] Q10 Recon COUNT() burst
+[ ] Q11 IdP token grant from new ASN/geo
+[ ] Q12 Admin-consent for high-priv scope
+[ ] Q13 Drift-app volume anomaly
+[ ] Q14 Endpoint TruffleHog runs
+[ ] Q15 Egress to UNC6395 infra IPs
+
+FINDINGS:
+- {{ summarize hits / negative findings }}
+
+EXPOSURE (Q5 secret-class summary):
+- AWS: {{ N }} keys found in Case text
+- Snowflake: {{ N }}
+- Slack: {{ N }}
+- JWT: {{ N }}
+- GitHub PAT: {{ N }}
+- Other: {{ N }}
+
+ACTIONS TAKEN:
+- {{ token revocations, scope tightening, IP allowlist, rotated secrets, etc. }}
+
+CONTROLS GAPS IDENTIFIED:
+- {{ which §14 controls were not in place }}
+
+NEXT STEPS:
+- {{ tickets opened, owners, due dates }}
+
+ATTACHMENTS:
+- EventLogFile evidence bundle (immutable storage URL)
+- §11 validation results (post-hardening)
+- §19 comms template (if external-facing notification required)</pre>
+</section>
+
+<section id="raci">
+  <h2>18. Decision-Rights / RACI</h2>
+  <table>
+    <tr><th>Action</th><th>SOC analyst</th><th>SOC manager</th><th>Salesforce admin</th><th>IAM team</th><th>Legal / Privacy</th><th>CISO</th></tr>
+    <tr><td>Run hunt queries §6</td><td class="raci-y">R</td><td class="raci-y">A</td><td class="raci-n">C</td><td class="raci-n">—</td><td class="raci-n">—</td><td class="raci-n">I</td></tr>
+    <tr><td>Revoke OAuth tokens (Q3 / Q8 hit)</td><td class="raci-n">C</td><td class="raci-y">A</td><td class="raci-y">R</td><td class="raci-n">C</td><td class="raci-n">I</td><td class="raci-n">I</td></tr>
+    <tr><td>Disable connected-app entirely</td><td class="raci-n">C</td><td class="raci-y">A</td><td class="raci-y">R</td><td class="raci-n">C</td><td class="raci-n">I</td><td class="raci-n">I</td></tr>
+    <tr><td>Rotate AWS keys found in Case text</td><td class="raci-n">I</td><td class="raci-n">C</td><td class="raci-n">I</td><td class="raci-y">R+A</td><td class="raci-n">I</td><td class="raci-n">I</td></tr>
+    <tr><td>Rotate Snowflake / Slack tokens</td><td class="raci-n">I</td><td class="raci-n">C</td><td class="raci-n">I</td><td class="raci-y">R+A</td><td class="raci-n">I</td><td class="raci-n">I</td></tr>
+    <tr><td>Enforce IP restrictions on integrations (H-01)</td><td class="raci-n">I</td><td class="raci-y">A</td><td class="raci-y">R</td><td class="raci-n">C</td><td class="raci-n">—</td><td class="raci-n">I</td></tr>
+    <tr><td>Customer / regulator notification</td><td class="raci-n">I</td><td class="raci-n">C</td><td class="raci-n">I</td><td class="raci-n">I</td><td class="raci-y">R</td><td class="raci-y">A</td></tr>
+    <tr><td>Engage law-enforcement (FBI IC3)</td><td class="raci-n">I</td><td class="raci-n">C</td><td class="raci-n">I</td><td class="raci-n">I</td><td class="raci-y">R</td><td class="raci-y">A</td></tr>
+    <tr><td>Extortion response (ShinyHunters)</td><td class="raci-n">I</td><td class="raci-n">C</td><td class="raci-n">—</td><td class="raci-n">—</td><td class="raci-y">R</td><td class="raci-y">A</td></tr>
+    <tr><td>Post-incident report &amp; hardening backlog</td><td class="raci-n">C</td><td class="raci-y">R</td><td class="raci-n">C</td><td class="raci-n">C</td><td class="raci-n">C</td><td class="raci-y">A</td></tr>
+  </table>
+  <p style="font-size: 0.85em; color: var(--fg-muted);">R = Responsible · A = Accountable · C = Consulted · I = Informed · — = no role</p>
+</section>
+
+<section id="comms">
+  <h2>19. Customer / Regulator Comms Template</h2>
+  <p>Two drafts: one for affected customers whose data was in the exfil window, one for regulators. <strong>Legal owns the final wording.</strong> The drafts below are skeletons that frame the facts in line with GTIG / Salesforce / Salesloft public statements.</p>
+
+  <h3>19.1 Customer notification (affected accounts)</h3>
+<pre>Subject: Security notice regarding the Salesloft Drift incident — action requested
+
+Dear [Customer name],
+
+On [date], we became aware of a security incident at one of our third-party
+software providers, Salesloft, affecting their "Drift" integration with our
+Salesforce environment. Between August 8 and August 18, 2025, an unauthorized
+party (tracked by Google Threat Intelligence Group as UNC6395) used stolen
+OAuth tokens to access data from approximately 700 Salesforce customer
+tenants, including ours.
+
+Based on our investigation, the following data classes <strong>related to your
+account</strong> may have been accessed:
+  - Standard contact information (name, business email, phone, title)
+  - Account and opportunity metadata
+  - {{ Support case text — IMPORTANT: ONLY include if Q5 indicates Case exposure }}
+  - {{ Other applicable data classes }}
+
+<strong>If you ever included credentials, API keys, tokens, or other secrets in a
+support ticket with us, please treat those as compromised and rotate them
+immediately.</strong> We have already begun rotation of every secret class we
+identified in our own historical case data; please do the same on your side.
+
+What we have done:
+  - Revoked all OAuth tokens associated with the Drift integration on
+    [date], in coordination with Salesforce and Salesloft.
+  - Disconnected the Drift integration from our Salesforce environment.
+  - Engaged our Incident Response team (and {{ external IR firm }}).
+  - Tightened OAuth controls across our entire Salesforce connected-app
+    inventory.
+  - Reported the incident to law enforcement.
+
+What you should do:
+  - Rotate any credentials you may have shared with us in support tickets.
+  - Be alert for phishing or social-engineering attempts that reference your
+    account data — this incident's data has been used in extortion attempts
+    against other affected organizations.
+  - If you have specific questions about your data, reply to this email and
+    we will respond directly.
+
+We deeply regret this incident and the trust impact it has on our relationship.
+
+Sincerely,
+[CISO name / signature block]</pre>
+
+  <h3>19.2 Regulator notification (skeleton — adapt per jurisdiction)</h3>
+<pre>To: [State AG / Data Protection Authority]
+Re:  Notification of personal-data security incident — UNC6395 / Salesloft Drift
+Date: [ISO date]
+
+[Company name], [registered address], [DPO contact], submits the following
+notification pursuant to [applicable statute — e.g., GDPR Art. 33, CCPA §1798.82,
+state breach-notification law].
+
+1. Nature of the incident
+   Between August 8 and August 18, 2025, an unauthorized third party accessed
+   data from our Salesforce environment via stolen OAuth tokens associated
+   with the third-party "Salesloft Drift" integration. The compromise was
+   external (at the vendor) and not the result of any vulnerability in our
+   own systems.
+
+2. Categories and approximate number of data subjects
+   - Categories: [contact data | support-case text | account metadata]
+   - Approximate count of EU/CA/state data subjects affected: [N]
+   - Sensitive categories per Art. 9 GDPR (if applicable): [yes/no — describe]
+
+3. Likely consequences
+   Risk of secondary fraud or social engineering against affected individuals
+   based on contact information; risk of credential exposure where customers
+   pasted credentials into support cases (rotation guidance issued).
+
+4. Measures taken / proposed
+   - Token revocation completed [date]
+   - Integration disconnected [date]
+   - Affected individuals notified [date or planned date]
+   - Hardening backlog filed: [reference to §14 controls applied]
+   - Forensic evidence preserved [retention details]
+
+5. Contact for further information
+   [DPO name, email, phone]</pre>
+
+  <div class="callout callout-warn">
+    <strong>Timing reminder:</strong> GDPR Art. 33 requires notification within <strong>72 hours</strong> of awareness. Many US state laws cluster around 30–60 days. State AG notification thresholds vary widely. <strong>Legal owns the clock — alert them at T+30 min minimum.</strong>
+  </div>
+</section>
+
+<section id="refs">
+  <h2>20. References</h2>
+
+  <h3>Primary sources (T1)</h3>
+  <ul>
+    <li><a href="https://cloud.google.com/blog/topics/threat-intelligence/data-theft-salesforce-instances-via-salesloft-drift" target="_blank" rel="noopener">Google Threat Intelligence Group — "Widespread Data Theft Targets Salesforce Instances via Salesloft Drift"</a> (2025-08-26; canonical IOC list)</li>
+    <li><a href="https://www.ic3.gov/CSA/2025/250912.pdf" target="_blank" rel="noopener">FBI IC3 FLASH — "Cyber Criminal Groups UNC6040 and UNC6395..."</a> (2025-09-12)</li>
+    <li><a href="https://help.salesforce.com/s/articleView?id=005134951" target="_blank" rel="noopener">Salesforce — Drift App (Salesloft) Unauthorized Access Incident</a> (KB 005134951)</li>
+    <li><a href="https://status.salesforce.com/generalmessages/20000217" target="_blank" rel="noopener">Salesforce Trust — General Message 20000217</a></li>
+    <li><a href="https://trust.salesloft.com/" target="_blank" rel="noopener">Salesloft Trust Center — Drift/Salesforce Security Notification</a></li>
+    <li><a href="https://blog.cloudflare.com/response-to-salesloft-drift-incident/" target="_blank" rel="noopener">Cloudflare — "The impact of the Salesloft Drift breach on Cloudflare and our customers"</a> (2025-09-02; technical IR detail)</li>
+    <li><a href="https://www.virustotal.com/gui/collection/cc8d746bdcff0383a7b52b5bae028bc45881f3722ebe19e99ef560267dc5dc75" target="_blank" rel="noopener">GTIG VirusTotal IOC collection</a> (requires VT account)</li>
+  </ul>
+
+  <h3>Secondary reporting (T2)</h3>
+  <ul>
+    <li><a href="https://www.bleepingcomputer.com/news/security/salesloft-breached-to-steal-oauth-tokens-for-salesforce-data-theft-attacks/" target="_blank" rel="noopener">BleepingComputer — Salesloft breach &amp; OAuth token theft</a></li>
+    <li><a href="https://cyberscoop.com/salesloft-drift-attack-root-cause-github-oauth/" target="_blank" rel="noopener">CyberScoop — GitHub root cause</a></li>
+    <li><a href="https://thehackernews.com/2025/09/github-account-compromise-led-to.html" target="_blank" rel="noopener">The Hacker News — GitHub account compromise scope</a></li>
+    <li><a href="https://www.cybersecuritydive.com/news/salesloft-drift-restored-probe-github/759506/" target="_blank" rel="noopener">Cybersecurity Dive — platform restoration &amp; investigation update</a></li>
+    <li><a href="https://socradar.io/blog/salesloft-drift-breach-everything-you-need-to-know/" target="_blank" rel="noopener">SOCRadar — Salesloft Drift breach overview</a></li>
+    <li><a href="https://www.driftbreach.com/" target="_blank" rel="noopener">DriftBreach tracker</a> — community-maintained victim &amp; status board</li>
+  </ul>
+
+  <h3>Analyst / vendor write-ups (T3)</h3>
+  <ul>
+    <li><a href="https://permiso.io/blog/anatomy-of-the-salesloft-breach" target="_blank" rel="noopener">Permiso — Anatomy of the Salesloft Breach</a></li>
+    <li><a href="https://appomni.com/blog/drift-breach-salesforce-unc6395-saas-prevention/" target="_blank" rel="noopener">AppOmni — Drift breach &amp; SaaS prevention</a></li>
+    <li><a href="https://www.darktrace.com/blog/unpacking-the-salesloft-incident-insights-from-darktrace-observations" target="_blank" rel="noopener">Darktrace — Salesloft incident observations</a></li>
+    <li><a href="https://www.tarlogic.com/blog/salesloft/" target="_blank" rel="noopener">Tarlogic — "When a token opens too many doors"</a></li>
+    <li><a href="https://www.mitiga.io/blog/shinyhunters-and-unc6395-inside-the-salesforce-and-salesloft-breaches" target="_blank" rel="noopener">Mitiga — ShinyHunters &amp; UNC6395 overlap</a></li>
+    <li><a href="https://astrix.security/learn/blog/critical-update-astrix-research-team-discovers-unc6395-oauth-compromise-spanning-salesforce-google-workspace-and-aws/" target="_blank" rel="noopener">Astrix Security — UNC6395 cross-platform OAuth compromise</a></li>
+    <li><a href="https://www.threatintelreport.com/2026/02/09/threat_actor_profiles/salesforce-connected-apps-supply-chain-campaign-unc6040-unc6395-shinyhunters-scattered-spider-overlap/" target="_blank" rel="noopener">Threat Intel Report — UNC6040/UNC6395 &amp; Scattered Spider overlap (2026)</a></li>
+    <li><a href="https://www.anomali.com/blog/salesloft-drift-breach-recap" target="_blank" rel="noopener">Anomali — Salesforce / Salesloft Drift OAuth supply-chain recap</a></li>
+  </ul>
+
+  <h3>Salesforce documentation</h3>
+  <ul>
+    <li><a href="https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile_supportedeventtypes.htm" target="_blank" rel="noopener">EventLogFile Supported Event Types</a></li>
+    <li><a href="https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile_restapi.htm" target="_blank" rel="noopener">REST API Event Type</a></li>
+    <li><a href="https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile_bulkapi.htm" target="_blank" rel="noopener">Bulk API Event Type</a></li>
+    <li><a href="https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile_login.htm" target="_blank" rel="noopener">Login Event Type</a></li>
+    <li><a href="https://help.salesforce.com/s/articleView?id=xcloud.connected_app_continuous_ip.htm" target="_blank" rel="noopener">Connected App — IP restriction</a></li>
+    <li><a href="https://help.salesforce.com/s/articleView?id=platform.login_ip_ranges.htm" target="_blank" rel="noopener">Login IP Ranges</a></li>
+  </ul>
+
+  <h3>Frameworks &amp; standards</h3>
+  <ul>
+    <li><a href="https://attack.mitre.org/" target="_blank" rel="noopener">MITRE ATT&amp;CK</a></li>
+    <li><a href="https://d3fend.mitre.org/" target="_blank" rel="noopener">MITRE D3FEND</a></li>
+    <li><a href="https://github.com/trufflesecurity/trufflehog" target="_blank" rel="noopener">TruffleHog</a></li>
+    <li><a href="https://check.torproject.org/exit-addresses" target="_blank" rel="noopener">Tor Project — current exit-address list</a></li>
+    <li><a href="https://sigmahq.io/" target="_blank" rel="noopener">SigmaHQ</a></li>
+  </ul>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    Generated 2026-05-19 · web-hunter → threat-hunter → crowdstrike-logscale → threat-hardening → falcon-deeplink · Validated against GTIG advisory, FBI IC3 FLASH 250912.pdf, Cloudflare IR blog, Salesforce KB 005134951, Salesloft Trust Center · Self-contained, share this file freely · Falcon-cloud selection is saved to your browser localStorage.
+    <br><br>
+    <strong>Re-hunt triggers:</strong> any new SaaS vendor disclosing OAuth-token compromise · ShinyHunters / UNC6395 / UNC6040 named in fresh reporting · any internal alert on Q1 / Q2 / Q4 / honey-Case · new Salesforce RTEM event type published · IdP refresh-token grant from unexpected ASN.
+    <br>
+    <strong>Validation date:</strong> 2026-05-19. <strong>Re-validate:</strong> quarterly, or on any new OAuth supply-chain campaign disclosure.
+  </div>
+</footer>
+
+<script>
+  // === Cloud switching ===
+  const STORAGE_KEY = "drifttoken_hunt_falcon_cloud";
+  const select = document.getElementById("cloudSelect");
+  const currentHost = document.getElementById("currentHost");
+
+  function updateCloud() {
+    const host = select.value;
+    currentHost.textContent = host;
+    try { localStorage.setItem(STORAGE_KEY, host); } catch (e) {}
+    rebuildFalconLinks(host);
+  }
+
+  function rebuildFalconLinks(host) {
+    document.querySelectorAll("a.open-falcon").forEach(a => {
+      const qid = a.getAttribute("data-query-id");
+      const queryEl = document.getElementById(qid);
+      if (!queryEl) return;
+      const raw = queryEl.innerText || queryEl.textContent || "";
+      const encoded = encodeURIComponent(raw);
+      a.href = host + "/investigate/search?repo=all&start=30d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=" + encoded;
+    });
+  }
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === saved) { select.selectedIndex = i; break; }
+      }
+    }
+  } catch (e) {}
+  updateCloud();
+
+  // === Tabs (multi-SIEM parity) ===
+  function showTab(evt, id) {
+    const panels = evt.currentTarget.closest('.tabs').querySelectorAll('.tab-panel');
+    const buttons = evt.currentTarget.closest('.tab-bar').querySelectorAll('.tab-btn');
+    panels.forEach(p => p.classList.remove('active'));
+    buttons.forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    evt.currentTarget.classList.add('active');
+  }
+
+  // === Copy buttons ===
+  function copyQuery(btn) {
+    const wrap = btn.closest(".code-wrap");
+    if (!wrap) return;
+    const pre = wrap.querySelector("pre");
+    if (!pre) return;
+    const text = pre.innerText || pre.textContent || "";
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(fallback);
+    } else { fallback(); }
+    const original = btn.textContent;
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1500);
+  }
+</script>
+
+</body>
+</html>
