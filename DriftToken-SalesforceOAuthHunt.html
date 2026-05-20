@@ -127,9 +127,6 @@
       <span class="badge info">TTP-DRIVEN HUNT</span>
     </div>
     <h1>Drift Token — SaaS Supply-Chain OAuth Theft Hunt &amp; Hardening Pack</h1>
-  <div style="background:#1a3a4a;border-left:4px solid #4FC3F7;padding:12px 16px;margin:16px 0;font-size:0.92em;border-radius:4px;">
-    <strong style="color:#4FC3F7;">REVIEWED 2026-05-20 — Patched copy.</strong> Six queries received fixes (Q3, Q4, Q8, Q11, Q13, Q15). Bug class: <code>DuplicatedFunctionArgument: 'as'</code> from combining LHS <code>:=</code> with RHS <code>as=</code> on <code>if()</code> calls — same rule already documented for <code>default()</code>. Fixed in Q4, Q8, Q11, Q13. Also: Q3/Q13 added <code>parseInt</code> before <code>sum(ROWS_PROCESSED)</code>; Q13 replaced empty <code>field=[]</code> join key with a constant <code>_joinkey</code>; Q15 swapped regex tag-filter for <code>in()</code> over indexed <code>#event_simpleName</code>; Q8/Q11 normalized <code>(#repo = X or #repo = Y)</code> to <code>in(#repo, ...)</code>. See per-query <code>REVIEWED 2026-05-20</code> comment in each <code>&lt;pre&gt;</code> for specifics. Q4 validated running in tenant.
-  </div>
     <div class="subtitle">UNC6395 / Salesloft Drift / Salesforce data-theft campaign (Aug 8–18, 2025) &amp; the secondary breach wave it kicked off (AWS keys, Snowflake tokens, Slack tokens harvested from support cases). Switchable Falcon cloud for shareable deep-links.</div>
 
     <div class="sev-strip">
@@ -797,13 +794,19 @@
 // TIMEFRAME: Last 7d (recent) vs prior 90d (baseline)
 // PATTERN: groupBy + join against a prior-window subquery (canonical baseline-lookup in CQL).
 // REVIEWED 2026-05-20: removed `:=` + `as=` double-assignment on LastPriorGrant (DuplicatedFunctionArgument);
-//                       (#repo = X or #repo = Y) → in(#repo, values=[...]) for index lookup.
+//                       (#repo = X or #repo = Y) → in(#repo, values=[...]) for index lookup;
+//                       now() function call moved out of filter expression into := assignment
+//                       (LogScale v1.237 rejects function calls in filter RHS).
 
 | in(#repo, values=["azure_signinlogs", "okta_system_log"])
 | (eventType = "app.oauth2.as.token.grant" or tokenIssuerType = "AzureAD")
 | (grantType = "refresh_token" or properties.grantType = "refresh_token")
 | AppKey := coalesce([appId, appDisplayName, target.id])
-| @timestamp &gt;= (now() - 604800000)              // last 7 days
+
+// Move now()-arithmetic out of the filter — assignments accept function calls, filters don't.
+| Cutoff7d := now() - 604800000
+| @timestamp &gt;= Cutoff7d                          // last 7 days
+
 | groupBy([AppKey], function=[
     min(@timestamp, as=FirstGrantThisWeek),
     max(@timestamp, as=LastGrantThisWeek),
@@ -814,8 +817,10 @@
     | (eventType = "app.oauth2.as.token.grant" or tokenIssuerType = "AzureAD")
     | (grantType = "refresh_token" or properties.grantType = "refresh_token")
     | AppKey := coalesce([appId, appDisplayName, target.id])
-    | @timestamp &lt; (now() - 604800000)            // prior 90 days
-    | @timestamp &gt;= (now() - 7776000000)
+    | Cutoff7d  := now() - 604800000
+    | Cutoff90d := now() - 7776000000
+    | @timestamp &lt; Cutoff7d                       // prior window upper bound
+    | @timestamp &gt;= Cutoff90d                     // prior 90d lower bound
     | groupBy([AppKey], function=[max(@timestamp, as=LastPriorGrant)], limit=5000)
   }, field=[AppKey], include=[LastPriorGrant], mode=left)
 | LastPriorGrant := if(LastPriorGrant != "", then=LastPriorGrant, else=0)
@@ -946,19 +951,24 @@
 // TIMEFRAME: Recent 7d (search window) vs baseline 358d (365d - 7d)
 // NOTE: in()/!in() don't accept a field list as values; we materialize the baseline as a CSV-like string per AppKey, then test membership via regex.
 // REVIEWED 2026-05-20: removed `:=` + `as=` double-assignment on KnownASNs and KnownCountries
-//                       (DuplicatedFunctionArgument); (#repo = X or #repo = Y) → in(#repo, ...).
+//                       (DuplicatedFunctionArgument); (#repo = X or #repo = Y) → in(#repo, ...);
+//                       now() function call moved out of filter expression into := assignment
+//                       (LogScale v1.237 rejects function calls in filter RHS).
 
 | in(#repo, values=["azure_signinlogs", "okta_system_log"])
 | (servicePrincipalId != "" or target.type = "AppInstance")
-| @timestamp &gt;= (now() - 604800000)                  // recent 7d
+| Cutoff7d := now() - 604800000
+| @timestamp &gt;= Cutoff7d                              // recent 7d
 | AppKey  := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
 | ASN     := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
 | Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
 | join(query={
     | in(#repo, values=["azure_signinlogs", "okta_system_log"])
     | (servicePrincipalId != "" or target.type = "AppInstance")
-    | @timestamp &lt; (now() - 604800000)
-    | @timestamp &gt;= (now() - 31536000000)            // 365d total window
+    | Cutoff7d   := now() - 604800000
+    | Cutoff365d := now() - 31536000000
+    | @timestamp &lt; Cutoff7d
+    | @timestamp &gt;= Cutoff365d                        // 365d total window
     | AppKey  := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
     | ASN     := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
     | Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
@@ -1992,6 +2002,33 @@ state breach-notification law].
     <li><a href="https://check.torproject.org/exit-addresses" target="_blank" rel="noopener">Tor Project — current exit-address list</a></li>
     <li><a href="https://sigmahq.io/" target="_blank" rel="noopener">SigmaHQ</a></li>
   </ul>
+</section>
+
+<section id="review-changelog">
+  <h2>Review Changelog — 2026-05-20</h2>
+  <div style="background:#1a3a4a;border-left:4px solid #4FC3F7;padding:14px 18px;margin:16px 0;font-size:0.94em;border-radius:4px;">
+    <p style="margin-top:0;"><strong style="color:#4FC3F7;">Patched copy.</strong> Eight queries received fixes in two passes. The original pack's post-publish audit caught most of the syntax issues but missed two bug classes that fail on LogScale v1.237+.</p>
+
+    <p><strong>Pass 1 — <code>DuplicatedFunctionArgument: 'as'</code>.</strong> Same rule already documented for <code>default()</code>: LHS <code>:=</code> and RHS <code>as=</code> are both assignment, can't be combined on the same call. Fixed in <strong>Q4, Q8, Q11, Q13</strong> on <code>if()</code> calls. The skill ref documents the rule for <code>default()</code> only — needs updating to cover <code>if()</code> too.</p>
+
+    <p><strong>Pass 2 — <code>FunctionCallsNotSupportedInFilterExpressions</code>.</strong> v1.237+ rejects function calls inside filter-expression RHS, including the canonical <code>@timestamp &gt;= (now() - 604800000)</code> pattern that the skill ref shows as portable. Workaround: hoist the arithmetic into a <code>:=</code> assignment first, then filter against the assigned field. Fixed in <strong>Q8, Q11</strong>.</p>
+
+    <p><strong>Other fixes:</strong></p>
+    <ul>
+      <li><strong>Q3, Q13</strong> — added <code>parseInt(ROWS_PROCESSED)</code> before <code>sum()</code>; sum over a string-typed field misbehaves silently in some builds.</li>
+      <li><strong>Q4</strong> — removed per-call <code>RowsAny &gt; 10000</code> filter that defeated paginated-exfil detection (UNC6395's <code>queryMore</code> loop runs ~2k rows per call); threshold now applied to the aggregate. Added <code>ROWS_RETURNED</code> to coalesce and a <code>RowsPerSec</code> derivation.</li>
+      <li><strong>Q13</strong> — replaced empty <code>field=[]</code> join key with a constant <code>_joinkey := "ALL"</code> idiom for portable single-row baseline broadcasting.</li>
+      <li><strong>Q15</strong> — swapped regex tag-filter (<code>#event_simpleName = /NetworkConnect(IP4|IP6)?/</code>) for <code>in()</code> over the indexed field for index-speed lookup.</li>
+      <li><strong>Q8, Q11</strong> — normalized <code>(#repo = X or #repo = Y)</code> to <code>in(#repo, values=[...])</code>, same index-lookup reasoning.</li>
+      <li><strong>All patched queries</strong> — added explicit <code>limit=</code> on every <code>groupBy</code> and <code>sort</code>, per best-practices §2 (cardinality management).</li>
+    </ul>
+
+    <p><strong>Per-query specifics:</strong> see the <code>// REVIEWED 2026-05-20</code> comment block at the top of each patched <code>&lt;pre&gt;</code> in §6.</p>
+
+    <p><strong>Validated running in tenant:</strong> Q4. Other patched queries (Q3, Q8, Q11, Q13, Q15) corrected against the documented v1.237 error grammar but not all individually executed.</p>
+
+    <p style="margin-bottom:0;"><strong>Unchanged (passed audit):</strong> Q1, Q2, Q5, Q6, Q7, Q9, Q10, Q12, Q14.</p>
+  </div>
 </section>
 
 </div>
