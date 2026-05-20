@@ -105,6 +105,4 @@ Built for **CrowdStrike Falcon LogScale** and **Falcon Next-Gen SIEM** (CQL). Qu
 
 Hunts live as single-file HTML reports so they're easy to share, version, and preview without a build step. PRs welcome.
 
-## License
 
-See repository.
