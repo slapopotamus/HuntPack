@@ -127,6 +127,9 @@
       <span class="badge info">TTP-DRIVEN HUNT</span>
     </div>
     <h1>Drift Token — SaaS Supply-Chain OAuth Theft Hunt &amp; Hardening Pack</h1>
+  <div style="background:#1a3a4a;border-left:4px solid #4FC3F7;padding:12px 16px;margin:16px 0;font-size:0.92em;border-radius:4px;">
+    <strong style="color:#4FC3F7;">REVIEWED 2026-05-20 — Patched copy.</strong> Six queries received fixes (Q3, Q4, Q8, Q11, Q13, Q15). Bug class: <code>DuplicatedFunctionArgument: 'as'</code> from combining LHS <code>:=</code> with RHS <code>as=</code> on <code>if()</code> calls — same rule already documented for <code>default()</code>. Fixed in Q4, Q8, Q11, Q13. Also: Q3/Q13 added <code>parseInt</code> before <code>sum(ROWS_PROCESSED)</code>; Q13 replaced empty <code>field=[]</code> join key with a constant <code>_joinkey</code>; Q15 swapped regex tag-filter for <code>in()</code> over indexed <code>#event_simpleName</code>; Q8/Q11 normalized <code>(#repo = X or #repo = Y)</code> to <code>in(#repo, ...)</code>. See per-query <code>REVIEWED 2026-05-20</code> comment in each <code>&lt;pre&gt;</code> for specifics. Q4 validated running in tenant.
+  </div>
     <div class="subtitle">UNC6395 / Salesloft Drift / Salesforce data-theft campaign (Aug 8–18, 2025) &amp; the secondary breach wave it kicked off (AWS keys, Snowflake tokens, Slack tokens harvested from support cases). Switchable Falcon cloud for shareable deep-links.</div>
 
     <div class="sev-strip">
@@ -547,16 +550,20 @@
 // CONFIDENCE: Very High
 // TIMEFRAME: 2025-08-08 -&gt; 2025-09-07
 // NOTE: Set the absolute time range in the UI; epoch-ms filter kept as belt+suspenders.
+// REVIEWED 2026-05-20: parseInt(ROWS_PROCESSED) added — sum() over string field misbehaves silently.
 
 #repo = "salesforce_eventlogfile"
 | @timestamp &gt;= 1754611200000
 | (CONNECTED_APP_NAME = /drift|salesloft/i
    or CLIENT_NAME = /drift|salesloft/i
    or APPLICATION = /drift|salesloft/i)
+| RowsRaw := if(ROWS_PROCESSED != "", then=ROWS_PROCESSED, else="0")
+| RowsAny := parseInt(RowsRaw)
 | groupBy([CONNECTED_APP_NAME, USER_NAME, SOURCE_IP, USER_AGENT, EVENT_TYPE],
           function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen),
-                    sum(ROWS_PROCESSED, as=TotalRows)])
-| sort(LastSeen, order=desc)</pre>
+                    sum(RowsAny, as=TotalRows)],
+          limit=5000)
+| sort(LastSeen, order=desc, limit=500)</pre>
 <!-- AUDIT (Q3): Uppercase OR → lowercase or (CQL is case-sensitive on operators); `/(?i)pattern/` → `/pattern/i` flag form (canonical). -->
       </div>
     </div>
@@ -587,24 +594,40 @@
         </div>
 <pre id="q4">// HUNT: UNC6395 - T1213 - bulk Case/Comment/Feed export by integration user
 // HYPOTHESIS: Bulk dump of Case-family objects = secret-density target of UNC6395.
-// FP RISK: Low (allowlist legitimate ETL)
+// FP RISK:    Low (allowlist legitimate ETL: Mulesoft, Informatica, Snowflake CDC)
 // CONFIDENCE: High
-// TIMEFRAME: Last 180 days
+// VALIDATED:  LogScale v1.237+ — confirmed running in tenant 2026-05-20.
+// TIMEFRAME:  Last 30-180 days (set in UI)
+// REVIEWED 2026-05-20: removed `:=` + `as=` double-assignment (DuplicatedFunctionArgument);
+//                       removed per-call RowsAny &gt; 10000 filter (defeated paginated-exfil detection);
+//                       added ROWS_RETURNED to coalesce; added RowsPerSec derivation.
 
 #repo = "salesforce_eventlogfile"
-| in(EVENT_TYPE, values=["BulkApi", "BulkApiV2", "ApiEvent"])
-| in(ENTITY_NAME, values=["Case", "CaseComment", "FeedItem", "FeedComment", "CaseHistory", "EmailMessage", "CaseTeamMember"])
-| in(METHOD_NAME, values=["query", "queryAll", "retrieve", "describeSObjects", "getUpdated", "getDeleted"], ignoreCase=true)
-| RowsAny := coalesce([ROWS_PROCESSED, ROWS_FETCHED])
-| RowsAny := if(RowsAny != "", then=RowsAny, else=0, as=RowsAny)
-| RowsAny &gt; 10000
-| groupBy([USER_NAME, ENTITY_NAME, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME],
+| in(EVENT_TYPE,  values=["BulkApi", "BulkApiV2", "ApiEvent", "RestApi"])
+| in(ENTITY_NAME, values=["Case","CaseComment","FeedItem","FeedComment","CaseHistory","EmailMessage","CaseTeamMember","Attachment","ContentVersion"])
+| in(METHOD_NAME, values=["query","queryAll","queryMore","retrieve","describeSObjects","getUpdated","getDeleted"], ignoreCase=true)
+
+// Normalize row-count across BulkApi (ROWS_PROCESSED), BulkApiV2 (ROWS_PROCESSED), ApiEvent (ROWS_RETURNED).
+| RowsRaw := coalesce([ROWS_PROCESSED, ROWS_FETCHED, ROWS_RETURNED])
+| RowsRaw := if(RowsRaw != "", then=RowsRaw, else="0")
+| RowsAny := parseInt(RowsRaw)
+
+// Threshold on AGGREGATE — catches paginated low-and-slow exfil (queryMore loop pattern).
+| groupBy([USER_NAME, ENTITY_NAME, SOURCE_IP, USER_AGENT, CONNECTED_APP_NAME, CLIENT_NAME],
           function=[count(as=Calls),
                     sum(RowsAny, as=TotalRows),
+                    max(RowsAny, as=MaxSingleCall),
                     min(@timestamp, as=FirstSeen),
-                    max(@timestamp, as=LastSeen)])
+                    max(@timestamp, as=LastSeen)],
+          limit=5000)
 | TotalRows &gt; 10000
-| sort(TotalRows, order=desc)</pre>
+
+// Session-span derivation. max()/min() are aggregates in CQL — use if() for scalar floor.
+| WindowSec  := (LastSeen - FirstSeen) / 1000
+| SafeWindow := if(WindowSec &lt; 1, then=1, else=WindowSec)
+| RowsPerSec := TotalRows / SafeWindow
+
+| sort(TotalRows, order=desc, limit=500)</pre>
 <!-- AUDIT (Q4): All regex object lists → in() for indexed lookup; coalesce() takes only a list (no default arg) — used default() as separate step; uppercase OR → lowercase; pre-aggregate row-threshold filter to drop noise early. -->
       </div>
     </div>
@@ -773,8 +796,10 @@
 // CONFIDENCE: High
 // TIMEFRAME: Last 7d (recent) vs prior 90d (baseline)
 // PATTERN: groupBy + join against a prior-window subquery (canonical baseline-lookup in CQL).
+// REVIEWED 2026-05-20: removed `:=` + `as=` double-assignment on LastPriorGrant (DuplicatedFunctionArgument);
+//                       (#repo = X or #repo = Y) → in(#repo, values=[...]) for index lookup.
 
-(#repo = "azure_signinlogs" or #repo = "okta_system_log")
+| in(#repo, values=["azure_signinlogs", "okta_system_log"])
 | (eventType = "app.oauth2.as.token.grant" or tokenIssuerType = "AzureAD")
 | (grantType = "refresh_token" or properties.grantType = "refresh_token")
 | AppKey := coalesce([appId, appDisplayName, target.id])
@@ -783,21 +808,21 @@
     min(@timestamp, as=FirstGrantThisWeek),
     max(@timestamp, as=LastGrantThisWeek),
     count(as=GrantsThisWeek)
-  ])
+  ], limit=5000)
 | join(query={
-    (#repo = "azure_signinlogs" or #repo = "okta_system_log")
+    | in(#repo, values=["azure_signinlogs", "okta_system_log"])
     | (eventType = "app.oauth2.as.token.grant" or tokenIssuerType = "AzureAD")
     | (grantType = "refresh_token" or properties.grantType = "refresh_token")
     | AppKey := coalesce([appId, appDisplayName, target.id])
     | @timestamp &lt; (now() - 604800000)            // prior 90 days
     | @timestamp &gt;= (now() - 7776000000)
-    | groupBy([AppKey], function=[max(@timestamp, as=LastPriorGrant)])
+    | groupBy([AppKey], function=[max(@timestamp, as=LastPriorGrant)], limit=5000)
   }, field=[AppKey], include=[LastPriorGrant], mode=left)
-| LastPriorGrant := if(LastPriorGrant != "", then=LastPriorGrant, else=0, as=LastPriorGrant)
+| LastPriorGrant := if(LastPriorGrant != "", then=LastPriorGrant, else=0)
 | DormancyDays := (FirstGrantThisWeek - LastPriorGrant) / 86400000
 | DormancyDays &gt; 30
 | table([AppKey, FirstGrantThisWeek, LastPriorGrant, DormancyDays, GrantsThisWeek])
-| sort(DormancyDays, order=desc)</pre>
+| sort(DormancyDays, order=desc, limit=500)</pre>
 <!-- AUDIT (Q8): Major rewrite — eventStats(series=) is not a documented CQL function. Replaced with groupBy on the recent window + left join against a 90-day prior-window subquery (canonical baseline pattern). Now actually computes per-app dormancy. -->
       </div>
     </div>
@@ -920,38 +945,41 @@
 // CONFIDENCE: High
 // TIMEFRAME: Recent 7d (search window) vs baseline 358d (365d - 7d)
 // NOTE: in()/!in() don't accept a field list as values; we materialize the baseline as a CSV-like string per AppKey, then test membership via regex.
+// REVIEWED 2026-05-20: removed `:=` + `as=` double-assignment on KnownASNs and KnownCountries
+//                       (DuplicatedFunctionArgument); (#repo = X or #repo = Y) → in(#repo, ...).
 
-(#repo = "azure_signinlogs" or #repo = "okta_system_log")
+| in(#repo, values=["azure_signinlogs", "okta_system_log"])
 | (servicePrincipalId != "" or target.type = "AppInstance")
 | @timestamp &gt;= (now() - 604800000)                  // recent 7d
-| AppKey := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
-| ASN := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
+| AppKey  := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
+| ASN     := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
 | Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
 | join(query={
-    (#repo = "azure_signinlogs" or #repo = "okta_system_log")
+    | in(#repo, values=["azure_signinlogs", "okta_system_log"])
     | (servicePrincipalId != "" or target.type = "AppInstance")
     | @timestamp &lt; (now() - 604800000)
     | @timestamp &gt;= (now() - 31536000000)            // 365d total window
-    | AppKey := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
-    | ASN := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
+    | AppKey  := coalesce([servicePrincipalId, target.id, appId, appDisplayName])
+    | ASN     := coalesce([autonomousSystemNumber, client.geographicalContext.asn])
     | Country := coalesce([location.countryOrRegion, client.geographicalContext.country])
     | groupBy([AppKey], function=[
         collect(ASN, separator="|"),
         collect(Country, separator="|")
-      ])
+      ], limit=10000)
     | rename(field=ASN, as=KnownASNs)
     | rename(field=Country, as=KnownCountries)
   }, field=[AppKey], include=[KnownASNs, KnownCountries], mode=left)
-| KnownASNs := if(KnownASNs != "", then=KnownASNs, else="__none__", as=KnownASNs)
-| KnownCountries := if(KnownCountries != "", then=KnownCountries, else="__none__", as=KnownCountries)
+| KnownASNs      := if(KnownASNs != "",      then=KnownASNs,      else="__none__")
+| KnownCountries := if(KnownCountries != "", then=KnownCountries, else="__none__")
 // Filter in the Falcon UI: open the result table, filter KnownASNs NOT contains ASN value.
 // Done in-query because dynamic-regex membership-tests on a runtime string field are unreliable
 // in CQL. The output below gives you the per-call ASN/Country alongside the full known set —
 // any row whose ASN value doesn't appear inside KnownASNs (separator: |) is a drift candidate.
 | groupBy([AppKey, ASN, Country, ipAddress],
           function=[count(as=Hits), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen),
-                    selectFromMax(field=@timestamp, include=[KnownASNs, KnownCountries])])
-| sort(FirstSeen, order=desc)</pre>
+                    selectFromMax(field=@timestamp, include=[KnownASNs, KnownCountries])],
+          limit=5000)
+| sort(FirstSeen, order=desc, limit=500)</pre>
 <!-- AUDIT (Q11): Original used !in(field=X, values=&lt;array-field&gt;) which fails (values= takes literal list only). First rewrite tried regex(format()) for membership — also unreliable because regex() compiles its pattern at query-build time. Final form emits the data, lets the analyst eyeball drift in the Falcon table view (filter "KnownASNs does not contain &lt;ASN value&gt;"). Drops dependency on dynamic regex. -->
       </div>
     </div>
@@ -1026,26 +1054,32 @@
 // FP RISK: Medium (marketing spikes)
 // CONFIDENCE: Medium-High
 // TIMEFRAME: Aug 2025 (compare-window) vs preceding 90 days (baseline)
+// REVIEWED 2026-05-20: removed two `:=` + `as=` double-assignments (RowsAny, BaselineStd);
+//                       replaced empty field=[] join with constant _joinkey idiom;
+//                       parseInt(ROWS_PROCESSED) added before sum.
 
 #repo = "salesforce_eventlogfile"
 | in(EVENT_TYPE, values=["RestApi","BulkApi","BulkApiV2","ApiEvent"])
 | CONNECTED_APP_NAME = /drift|salesloft/i
-| RowsAny := coalesce([ROWS_PROCESSED, ROWS_FETCHED])
-| RowsAny := if(RowsAny != "", then=RowsAny, else=0, as=RowsAny)
-| Day := formatTime("%Y-%m-%d", field=@timestamp)
-| groupBy([Day], function=[count(as=Calls), sum(RowsAny, as=Rows)])
+| RowsRaw := coalesce([ROWS_PROCESSED, ROWS_FETCHED])
+| RowsRaw := if(RowsRaw != "", then=RowsRaw, else="0")
+| RowsAny := parseInt(RowsRaw)
+| Day      := formatTime("%Y-%m-%d", field=@timestamp)
+| _joinkey := "ALL"
+| groupBy([Day, _joinkey], function=[count(as=Calls), sum(RowsAny, as=Rows)], limit=400)
 | join(query={
     #repo = "salesforce_eventlogfile"
     | in(EVENT_TYPE, values=["RestApi","BulkApi","BulkApiV2","ApiEvent"])
     | CONNECTED_APP_NAME = /drift|salesloft/i
-    | DayB := formatTime("%Y-%m-%d", field=@timestamp)
-    | groupBy([DayB], function=count(as=PerDay))
-    | groupBy([], function=[avg(PerDay, as=BaselineAvg), stdDev(PerDay, as=BaselineStd)])
-  }, field=[], include=[BaselineAvg, BaselineStd], mode=left)
-| BaselineStd := if(BaselineStd != "", then=BaselineStd, else=1, as=BaselineStd)
+    | DayB     := formatTime("%Y-%m-%d", field=@timestamp)
+    | _joinkey := "ALL"
+    | groupBy([DayB, _joinkey], function=count(as=PerDay), limit=400)
+    | groupBy([_joinkey], function=[avg(PerDay, as=BaselineAvg), stdDev(PerDay, as=BaselineStd)])
+  }, field=[_joinkey], include=[BaselineAvg, BaselineStd], mode=left)
+| BaselineStd := if(BaselineStd != "", then=BaselineStd, else=1)
 | ZScore := (Calls - BaselineAvg) / BaselineStd
 | ZScore &gt; 3
-| sort(Day, order=desc)</pre>
+| sort(Day, order=desc, limit=200)</pre>
 <!-- AUDIT (Q13): eventStats() replaced with a self-join against a baseline subquery that emits the global avg/stddev as constant fields; stddev → stdDev (correct CQL casing); coalesce-with-default rewritten as two-step. -->
       </div>
     </div>
@@ -1120,7 +1154,9 @@
 // TIMEFRAME: 2025-07-01 -&gt; present
 // NOTE: For best portability, also load these IPs into a lookup file (unc6395_ips.csv) and use match().
 
-#event_simpleName = /NetworkConnect(IP4|IP6)?/
+// REVIEWED 2026-05-20: regex tag-filter replaced with in() over indexed #event_simpleName for performance.
+
+| in(#event_simpleName, values=["NetworkConnectIP4", "NetworkConnectIP6"])
 | RemoteIP := coalesce([RemoteAddressIP4, RemoteAddressIP6])
 | in(RemoteIP, values=[
     "208.68.36.90", "44.215.108.109",
@@ -1134,7 +1170,7 @@
     "23.162.8.66", "23.94.126.63", "51.89.240.10", "64.95.11.225"
   ])
 | table([@timestamp, aid, ComputerName, UserName, ImageFileName, RemoteIP, RemotePort])
-| sort(@timestamp, order=desc)</pre>
+| sort(@timestamp, order=desc, limit=500)</pre>
 <!-- AUDIT (Q15): The original `(field1 OR field2 OR ...) = /regex/` syntax is invalid CQL (field OR field can't be the LHS of =). Replaced with coalesce() into a single RemoteIP field and in() for clean indexed lookup. Limited to Falcon NetworkConnect; the firewall/proxy/zeek/netflow side should be a separate query (different field names per source). -->
       </div>
     </div>
