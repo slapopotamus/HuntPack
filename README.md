@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### Amber Albatross Hunt
+**Pyarmor-obfuscated PyInstaller stealer (Red Canary 2026 TDR #1)**
+PUP-and-fake-PDF-utility delivery → Base64-encoded PowerShell → Pyarmor PyInstaller binary that runs only with `--safetorun --channel=<hex>`. Covers the 11 abused EV code-signing thumbprints, 12 published C2 domains, Chrome `CloudManagementEnrollmentToken` recon, browser-profile theft, and a honey-token canary recipe.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/AmberAlbatross-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/AmberAlbatross-Hunt.html)
+
+---
+
 ### Drift Token — Salesforce OAuth Hunt
 **SaaS supply-chain OAuth theft (UNC6395 / Salesloft Drift)**
 Hunt for abuse of stolen Drift OAuth tokens against Salesforce orgs — covers token replay, suspicious Bulk API exports, and downstream credential pivots.
@@ -104,5 +112,3 @@ Built for **CrowdStrike Falcon LogScale** and **Falcon Next-Gen SIEM** (CQL). Qu
 ## Contributing
 
 Hunts live as single-file HTML reports so they're easy to share, version, and preview without a build step. PRs welcome.
-
-
