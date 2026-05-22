@@ -30,13 +30,6 @@ Detections for APT28 / Fancy Bear PRISMEX-aligned tradecraft — credential harv
 
 [Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/APT28-PRISMEX-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/APT28-PRISMEX-Hunt.html)
 
----
-
-### DirtyFrag Hunt
-**Active Directory fragmentation / Kerberos abuse**
-Hunts for DirtyFrag-class AD exploitation — ticket manipulation, certificate abuse, and post-exploit privilege escalation patterns.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/DirtyFrag-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/DirtyFrag-Hunt.html)
 
 ---
 
