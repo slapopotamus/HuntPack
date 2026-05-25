@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### Mini Shai-Hulud v4.1 — Defender Hunt & Hardening Pack
+**Active npm/PyPI supply-chain worm (TeamPCP / CVE-2026-45321)**
+Refreshed defender hunt package for the May 2026 Mini Shai-Hulud campaign — covers CrowdStrike LogScale CQL hunts, confirmed artifacts, C2/payload infrastructure, package-manager lifecycle execution, developer-secret access, GitHub Actions workflow tampering, dead-drop repository creation, CI runner exposure, IMDS credential-harvest behavior, Custom IOA guidance, and deployable hardening playbooks.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-v4.1-Hunt-Pack.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-v4.1-Hunt-Pack.html)
+
+---
+
 ### Amber Albatross Hunt
 **Pyarmor-obfuscated PyInstaller stealer (Red Canary 2026 TDR #1)**
 PUP-and-fake-PDF-utility delivery → Base64-encoded PowerShell → Pyarmor PyInstaller binary that runs only with `--safetorun --channel=<hex>`. Covers the 11 abused EV code-signing thumbprints, 12 published C2 domains, Chrome `CloudManagementEnrollmentToken` recon, browser-profile theft, and a honey-token canary recipe.
