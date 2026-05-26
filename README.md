@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### LummaC2 Hunt
+**Windows infostealer / fake CAPTCHA delivery / browser credential theft**
+Defender hunt package for Red Canary's LummaC2 tracking and related Microsoft, FBI/CISA, CIS, MITRE, and Bitdefender enrichment - covers mshta-to-PowerShell delivery, fodhelper and OpenWith UAC bypass pivots, Chrome remote-debugging abuse, browser credential theft, staging artifacts, C2 infrastructure, Falcon LogScale CQL hunts, Custom IOA guidance, IOC action handling, validation gates, hardening, and containment.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/LummaC2-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/LummaC2-Hunt.html)
+
+---
+
 ### Mini Shai-Hulud — Defender Hunt & Hardening Pack
 **Active npm/PyPI supply-chain worm (TeamPCP / CVE-2026-45321)**
 Refreshed defender hunt package for the May 2026 Mini Shai-Hulud campaign — covers CrowdStrike LogScale CQL hunts, native GitHub/npm/PyPI/cloud audit-log checks, confirmed artifacts, C2/payload infrastructure, package-manager lifecycle execution, developer-secret access, GitHub Actions workflow tampering, dead-drop repository creation, CI runner exposure, IMDS credential-harvest behavior, Custom IOA guidance, machine-readable IOC appendices, detection validation gates, and deployable hardening playbooks.
