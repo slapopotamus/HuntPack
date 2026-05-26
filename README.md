@@ -81,6 +81,14 @@ Detections for SilentCanvas-style covert-channel activity inside browsers — fi
 
 ---
 
+### Tampered Chef Hunt
+**Signed fake productivity apps with steganographic / homoglyph command delivery**
+Hunt pack for Red Canary's Tampered Chef tracking and adjacent TamperedChef-style malvertising clusters — covers RecipeLister, Calendaromatic, AppSuite-style PDF tools, code-signing pivots, Chrome/search hijacking, suspicious Electron/NeutralinoJS execution, browser credential-store access, persistence, Custom IOA guidance, and hardening playbooks.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TamperedChef-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TamperedChef-Hunt.html)
+
+---
+
 ### The Gentlemen — Ransomware Hunt
 **The Gentlemen ransomware operation**
 Hunt pack for The Gentlemen's intrusion set — initial access, lateral movement, defense evasion, and pre-encryption staging behaviors.
