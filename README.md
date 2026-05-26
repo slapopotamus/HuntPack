@@ -57,6 +57,14 @@ Hunt for MimiCRAT tradecraft — LSASS access, credential dumping, and the persi
 
 ---
 
+### NetSupport Manager Hunt
+**Abused legitimate RMM / remote access tool**
+Hunt pack for Red Canary's NetSupport Manager tracking and related Scarlet Goldfinch, SocGholish, ClickFix, and RMM-abuse delivery chains — covers suspicious `client32.exe` execution, renamed NetSupport binaries, non-standard install paths, attacker-controlled configuration files, persistence, gateway/C2 traffic, Custom IOA guidance, validation gates, and RMM hardening playbooks.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/NetSupportManager-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/NetSupportManager-Hunt.html)
+
+---
+
 ### PhantomVault Hunt
 **Credential-vault / secrets-manager abuse**
 Detections for PhantomVault-class attacks against Windows Credential Manager, DPAPI, and browser credential stores.
