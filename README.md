@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### Qilin Ransomware Hunt
+**Ransomware-as-a-Service / Veeam exploitation / RMM and ESXi impact**
+Hunt pack for Red Canary's Qilin ransomware coverage and related Cybernews, Sophos, Trend Micro, Microsoft, HHS, CIS/MS-ISAC, Halcyon, and CrowdStrike enrichment - covers Veeam CVE-2023-27532/CVE-2024-40711 precursors, Admon admin creation, GPO-based Chrome credential theft, ScreenConnect/MSP pivoting, recovery inhibition, ESXi/Linux behavior, IOC action guidance, Falcon LogScale CQL hunts, Custom IOA candidates, validation gates, hardening, and containment.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Qilin-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Qilin-Hunt.html)
+
+---
+
 ### LummaC2 Hunt
 **Windows infostealer / fake CAPTCHA delivery / browser credential theft**
 Defender hunt package for Red Canary's LummaC2 tracking and related Microsoft, FBI/CISA, CIS, MITRE, and Bitdefender enrichment - covers mshta-to-PowerShell delivery, fodhelper and OpenWith UAC bypass pivots, Chrome remote-debugging abuse, browser credential theft, staging artifacts, C2 infrastructure, Falcon LogScale CQL hunts, Custom IOA guidance, IOC action handling, validation gates, hardening, and containment.
