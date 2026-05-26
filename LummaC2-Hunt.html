@@ -1343,6 +1343,43 @@ User lure -&gt; fake CAPTCHA / malvertising / phishing / cracked software
     <section id="queries">
       <h2>CrowdStrike LogScale CQL Hunt Queries</h2>
       <p>Syntax review: these queries use Falcon LogScale pipe syntax, tagged event filters such as <code>#event_simpleName</code>, regular-expression filters, <code>in()</code>, <code>table()</code>, and <code>groupBy()</code>. Field names can vary by tenant, parser, and Falcon data source; adjust local field aliases before promotion.</p>
+      <div class="note">
+        <strong>Query review verdict:</strong> keep all 18 in the report, but do not operationalize them equally. Q1, Q2, Q5-Q9, Q11, Q12, Q15, and Q17 are the core set worth considering for scheduled detection after tenant baseline. Q3, Q4, Q10, Q13, and Q14 are investigation-confirmation hunts. Q16 is optional enrichment. Q18 is a triage rollup, not an alert.
+      </div>
+      <h3>Recommended Run Progression</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run order</th>
+              <th>Query</th>
+              <th>Stage</th>
+              <th>Operational verdict</th>
+              <th>Why it is placed here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>Q18</td><td>Host scoring preflight</td><td>Run manually; do not alert.</td><td>Fast way to rank hosts before deeper pivots. It is intentionally broad and aggregates multiple weak and strong signals.</td></tr>
+            <tr><td>1</td><td>Q2</td><td>Primary execution</td><td>Core scheduled candidate.</td><td>Red Canary primary behavior: <code>mshta.exe</code> spawning suspicious hidden PowerShell. High signal when command line is present.</td></tr>
+            <tr><td>2</td><td>Q1</td><td>Primary UAC bypass</td><td>Core scheduled candidate.</td><td>Red Canary primary behavior: script interpreter to <code>fodhelper.exe</code>. Low expected enterprise volume.</td></tr>
+            <tr><td>3</td><td>Q6</td><td>Registry UAC bypass</td><td>Core scheduled candidate.</td><td>High-confidence enrichment pivot for <code>ms-settings\shell\open\command</code> hijack. Keep separate from process/task hunts because registry telemetry catches missed ancestry.</td></tr>
+            <tr><td>4</td><td>Q7</td><td>Persistence task</td><td>Core scheduled candidate.</td><td>Specific scheduled task naming plus <code>OpenWith.exe</code> is stronger than generic task creation.</td></tr>
+            <tr><td>5</td><td>Q5</td><td>OpenWith process evidence</td><td>Core scheduled candidate after baseline.</td><td>Complements Q6/Q7 when registry or task events are missing. Possible benign shell-open activity needs tuning.</td></tr>
+            <tr><td>6</td><td>Q11</td><td>Staging artifacts</td><td>Core scheduled candidate where file telemetry exists.</td><td>Looks for Lumma-style staging paths and Chrome debug artifacts. Stronger than generic file-write hunts.</td></tr>
+            <tr><td>7</td><td>Q12</td><td>Chrome ABE bypass</td><td>Core scheduled candidate with developer exclusions.</td><td><code>--remote-debugging-port=9222</code> is high-value collection behavior, but developer/test automation may need allowlisting.</td></tr>
+            <tr><td>8</td><td>Q17</td><td>Credential-store access</td><td>Core where file-read telemetry is reliable; otherwise hunt-only.</td><td>Directly validates the theft objective. Noise depends on backup, EDR scanner, browser, and password-manager behavior.</td></tr>
+            <tr><td>9</td><td>Q8</td><td>DNS infrastructure</td><td>Core IOC sweep with expiry review.</td><td>Low-noise domain pivot, but infrastructure can be sinkholed or aged. Keep tied to IOC action guidance.</td></tr>
+            <tr><td>10</td><td>Q9</td><td>IP infrastructure</td><td>Core retro sweep; block only after currentness check.</td><td>Useful for historical scoping, but IP reuse risk is higher than domain or hash pivots.</td></tr>
+            <tr><td>11</td><td>Q15</td><td>Hash sweep</td><td>Core retro sweep and block candidate.</td><td>Lowest false-positive rate for known samples. Lowest resilience against variants, so it should never be the only detection.</td></tr>
+            <tr><td>12</td><td>Q10</td><td>HTTP C2 confirmation</td><td>Investigation-confirmation hunt.</td><td><code>/c2sock</code> is useful when URL/proxy fields exist, but the URI is too generic to alert without process/domain context.</td></tr>
+            <tr><td>13</td><td>Q14</td><td>Injected collection host processes</td><td>Investigation-confirmation hunt.</td><td>Good follow-up for suspicious hosts. Build tools and COM activity can create noise, so use with parent/network context.</td></tr>
+            <tr><td>14</td><td>Q13</td><td>Local Chrome debug access</td><td>Investigation-confirmation hunt.</td><td>Confirms likely abuse of the debugging endpoint after Q12. Localhost telemetry can be uneven.</td></tr>
+            <tr><td>15</td><td>Q3</td><td>Delivery discovery</td><td>Broad hunt; tune before alerting.</td><td>Finds fake CAPTCHA / ClickFix-style PowerShell. Valuable for discovery, but broader than LummaC2 alone.</td></tr>
+            <tr><td>16</td><td>Q4</td><td>Payload launch discovery</td><td>Broad hunt; tune before alerting.</td><td>Temp CPL/DLL execution is suspicious but not Lumma-specific. Use after core hits or during delivery-chain hunting.</td></tr>
+            <tr><td>17</td><td>Q16</td><td>Adjacent LOLBin enrichment</td><td>Optional hunt.</td><td><code>more.com</code> and <code>dialer.exe</code> are enrichment pivots. Keep for analyst expansion, not baseline scheduled detection.</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="query">
         <div class="query-head"><strong>Q1 - Red Canary fodhelper from script parents</strong><div class="btn-row"><button class="btn copy" onclick="copyQuery(this)">Copy</button><a class="btn open-falcon" data-query-id="q1" href="#" target="_blank" rel="noopener">Open in Falcon</a></div></div>
