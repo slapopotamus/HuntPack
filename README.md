@@ -8,11 +8,11 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
-### Mini Shai-Hulud v4.1 — Defender Hunt & Hardening Pack
+### Mini Shai-Hulud — Defender Hunt & Hardening Pack
 **Active npm/PyPI supply-chain worm (TeamPCP / CVE-2026-45321)**
-Refreshed defender hunt package for the May 2026 Mini Shai-Hulud campaign — covers CrowdStrike LogScale CQL hunts, confirmed artifacts, C2/payload infrastructure, package-manager lifecycle execution, developer-secret access, GitHub Actions workflow tampering, dead-drop repository creation, CI runner exposure, IMDS credential-harvest behavior, Custom IOA guidance, and deployable hardening playbooks.
+Refreshed defender hunt package for the May 2026 Mini Shai-Hulud campaign — covers CrowdStrike LogScale CQL hunts, native GitHub/npm/PyPI/cloud audit-log checks, confirmed artifacts, C2/payload infrastructure, package-manager lifecycle execution, developer-secret access, GitHub Actions workflow tampering, dead-drop repository creation, CI runner exposure, IMDS credential-harvest behavior, Custom IOA guidance, machine-readable IOC appendices, detection validation gates, and deployable hardening playbooks.
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-v4.1-Hunt-Pack.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-v4.1-Hunt-Pack.html)
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-Hunt.html)
 
 ---
 
