@@ -81,6 +81,14 @@ Hunt pack for Red Canary's NetSupport Manager tracking and related Scarlet Goldf
 
 ---
 
+### Scarlet Goldfinch Hunt
+**ClickFix / SmartApeSG / NetSupport Manager delivery**
+Hunt pack for Red Canary's Scarlet Goldfinch tracking and related Blumira, SANS ISC, ThreatDown, Proofpoint, and Team Cymru enrichment - covers fake CAPTCHA and ClickFix lures, cmd delayed-expansion and caret obfuscation, curl/mshta/msiexec/finger/forfiles LOLBAS execution, WMI process creation, persistence, NetSupport Manager and Remcos handoff, IOC handling, Custom IOA guidance, validation gates, hardening, and containment.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ScarletGoldfinch-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/ScarletGoldfinch-Hunt.html)
+
+---
+
 ### PhantomVault Hunt
 **Credential-vault / secrets-manager abuse**
 Detections for PhantomVault-class attacks against Windows Credential Manager, DPAPI, and browser credential stores.
@@ -141,6 +149,10 @@ Every HuntPack report follows the same structure:
 ## Platform
 
 Built for **CrowdStrike Falcon LogScale** and **Falcon Next-Gen SIEM** (CQL). Queries reference standard Falcon telemetry — `#event_simpleName`, `ProcessRollup2`, `DnsRequest`, `NetworkConnectIP4`, AD events, identity events, etc.
+
+## Templates
+
+Reusable authoring assets live in [templates](templates/): the HuntPack HTML template, authoring guide, and intake JSON. New packs should include a source-review / web-hunter pass before query writing so IOCs, IOAs, and references are corroborated instead of single-sourced.
 
 ## Contributing
 
