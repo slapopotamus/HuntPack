@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### PayoutsKing Hunt
+**Ransomware / QEMU evasion / remote access and exfiltration**
+Behavior-first HuntPack for PayoutsKing ransomware and associated GOLD ENCOUNTER/STAC4713 intrusion tradecraft — covers QEMU-based covert access, suspicious scheduled tasks, Quick Assist and ScreenConnect abuse, AD credential staging, Rclone/SFTP exfiltration, recovery inhibition, Falcon LogScale CQL hunts, Custom IOA candidates, IOC action handling, validation gates, hardening, and containment.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html)
+
+---
+
 ### Qilin Ransomware Hunt
 **Ransomware-as-a-Service / Veeam exploitation / RMM and ESXi impact**
 Hunt pack for Red Canary's Qilin ransomware coverage and related Cybernews, Sophos, Trend Micro, Microsoft, HHS, CIS/MS-ISAC, Halcyon, and CrowdStrike enrichment - covers Veeam CVE-2023-27532/CVE-2024-40711 precursors, Admon admin creation, GPO-based Chrome credential theft, ScreenConnect/MSP pivoting, recovery inhibition, ESXi/Linux behavior, IOC action guidance, Falcon LogScale CQL hunts, Custom IOA candidates, validation gates, hardening, and containment.
@@ -97,13 +105,6 @@ Detections for PhantomVault-class attacks against Windows Credential Manager, DP
 
 ---
 
-### PayoutsKing Hunt
-**Ransomware / QEMU evasion / remote access and exfiltration**
-Behavior-first HuntPack for PayoutsKing ransomware and associated GOLD ENCOUNTER/STAC4713 intrusion tradecraft — covers QEMU-based covert access, suspicious scheduled tasks, Quick Assist and ScreenConnect abuse, AD credential staging, Rclone/SFTP exfiltration, recovery inhibition, Falcon LogScale CQL hunts, Custom IOA candidates, IOC action handling, validation gates, hardening, and containment.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html)
-
----
 ### QEMU Hunt
 **Living-off-the-land virtualization abuse**
 Hunts for QEMU being weaponized for evasion — adversary-controlled VMs used to bypass EDR, hide C2, and stage payloads outside the host's visibility.
