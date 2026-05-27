@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayoutsKing - Defender Hunt & Hardening Pack</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1f2633;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #9ca3af;
+      --accent: #58a6ff;
+      --good: #7ee787;
+      --warn: #d29922;
+      --crit: #f85149;
+      --code: #080c12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.55;
+    }
+    a { color: var(--accent); }
+    code, pre, .mono { font-family: Consolas, Menlo, Monaco, "Courier New", monospace; }
+    .container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .hero {
+      padding: 38px 0 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, #12233a 0%, #171c24 52%, #0d1117 100%);
+    }
+    .badge-row, .meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .badge {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: .74rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .badge.critical { color: var(--crit); border-color: rgba(248,81,73,.55); background: rgba(248,81,73,.12); }
+    .badge.warning { color: var(--warn); border-color: rgba(210,153,34,.55); background: rgba(210,153,34,.12); }
+    .badge.good { color: var(--good); border-color: rgba(126,231,135,.45); background: rgba(126,231,135,.09); }
+    h1 { margin: 14px 0 8px; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; letter-spacing: 0; }
+    .subtitle { max-width: 1050px; color: var(--muted); font-size: 1.05rem; margin: 0 0 18px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 20px 0 16px; }
+    .stat { border: 1px solid var(--border); border-radius: 7px; background: rgba(31,38,51,.82); padding: 11px 12px; }
+    .stat-label { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { display: block; margin-top: 3px; font-weight: 800; overflow-wrap: anywhere; }
+    .meta-row { border-top: 1px solid rgba(255,255,255,.08); padding-top: 13px; color: var(--muted); font-size: .9rem; }
+    .meta-row strong { color: var(--text); }
+    .toc { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.95); backdrop-filter: blur(8px); }
+    .toc .container { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
+    .toc a { border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; background: var(--panel); color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .utility-bar { position: sticky; top: var(--toc-height, 88px); z-index: 19; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.96); backdrop-filter: blur(8px); }
+    .utility-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 0; color: var(--muted); font-size: .88rem; }
+    .utility-inner strong { color: var(--text); }
+    select {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 6px 10px;
+    }
+    .host {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 5px 8px;
+      background: var(--panel);
+      color: var(--accent);
+      font-size: .84rem;
+      overflow-wrap: anywhere;
+    }
+    section { padding: 34px 0; border-bottom: 1px solid var(--border); scroll-margin-top: calc(var(--toc-height, 88px) + 62px); }
+    h2 { display: inline-block; margin: 0 0 16px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); font-size: 1.45rem; line-height: 1.2; }
+    h3 { margin: 20px 0 10px; font-size: 1.08rem; }
+    p { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
+    th, td { border: 1px solid var(--border); padding: 9px 10px; vertical-align: top; }
+    th { background: var(--panel-2); text-align: left; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+    td { background: rgba(22,27,34,.72); }
+    .note { border-left: 4px solid var(--warn); background: rgba(210,153,34,.09); padding: 12px 14px; margin: 12px 0; }
+    .query-card { border: 1px solid var(--border); border-radius: 7px; background: var(--panel); margin: 16px 0; overflow: hidden; }
+    .query-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 13px 14px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+    .query-title { margin: 0 0 5px; }
+    .query-meta { color: var(--muted); font-size: .84rem; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .button {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 6px 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: .82rem;
+    }
+    .button:hover { border-color: var(--accent); color: var(--accent); }
+    .button.primary { background: rgba(88,166,255,.12); border-color: rgba(88,166,255,.55); color: #a5d6ff; }
+    .query-summary { padding: 12px 14px; color: var(--muted); }
+    .query-summary strong { color: var(--text); }
+    pre { margin: 0; padding: 14px; overflow-x: auto; background: var(--code); color: #dbeafe; border-top: 1px solid var(--border); }
+    ul { margin-top: 6px; }
+    @media (max-width: 720px) {
+      .query-head { display: block; }
+      .button-row { justify-content: flex-start; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <div class="badge-row">
+        <span class="badge critical">High urgency</span>
+        <span class="badge warning">Ransomware / double extortion</span>
+        <span class="badge">Windows / AD / VPN / virtualization</span>
+        <span class="badge good">Draft v0.1</span>
+      </div>
+      <h1>PayoutsKing</h1>
+      <p class="subtitle">Behavior-first HuntPack for PayoutsKing ransomware and associated GOLD ENCOUNTER/STAC4713 intrusion tradecraft, emphasizing QEMU-based covert access, credential staging, remote support abuse, exfiltration tooling, and ransomware impact behaviors.</p>
+      <div class="stats">
+        <div class="stat"><span class="stat-label">Objective</span><span class="stat-value">Data theft and encryption</span></div>
+        <div class="stat"><span class="stat-label">Initial access</span><span class="stat-value">VPN exposure, social engineering, vulnerable edge apps</span></div>
+        <div class="stat"><span class="stat-label">Platforms</span><span class="stat-value">Windows hosts, AD, VMware/ESXi, remote access</span></div>
+        <div class="stat"><span class="stat-label">Queries</span><span class="stat-value">6 CQL cards</span></div>
+        <div class="stat"><span class="stat-label">Indicators</span><span class="stat-value">18 hunt/enrich pivots</span></div>
+      </div>
+      <div class="meta-row">
+        <span><strong>Generated:</strong> 2026-05-26</span>
+        <span><strong>Updated:</strong> 2026-05-26</span>
+        <span><strong>CVE/advisory:</strong> CVE-2025-26399, CVE-2025-5777</span>
+        <span><strong>Threat actor:</strong> PayoutsKing / GOLD ENCOUNTER / STAC4713</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <div class="container">
+      <a href="#summary">1. Executive Summary</a><a href="#source-review">2. Source Review</a><a href="#brief">3. Hunt Brief</a><a href="#iocs">4. IOCs</a><a href="#affected">5. Telemetry</a><a href="#mitre">6. ATT&amp;CK</a><a href="#audit">7. Native Hunts</a><a href="#queries">8. CQL</a><a href="#ioa">9. IOA</a><a href="#iocappendix">10. IOC JSON</a><a href="#validation">11. Validation</a><a href="#hardening">12. Hardening</a><a href="#playbooks">13. Playbooks</a><a href="#containment">14. Containment</a><a href="#coverage">15. Coverage</a><a href="#ticket">16. Ticket</a><a href="#changelog">17. Changelog</a><a href="#refs">18. References</a>
+    </div>
+  </nav>
+
+  <div class="utility-bar">
+    <div class="container utility-inner">
+      <strong>Falcon cloud:</strong>
+      <select id="falcon-cloud" aria-label="Falcon cloud">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="host" id="falcon-host">https://falcon.crowdstrike.com</span>
+      <span>Copy and Open in Falcon controls use the selected cloud.</span>
+    </div>
+  </div>
+
+  <main>
+    <section id="summary"><div class="container">
+      <h2>1. Executive Summary</h2>
+      <p>PayoutsKing is an active ransomware and extortion operation observed from mid-2025 into 2026. Public reporting connects the group to pragmatic ransomware tradecraft: credential abuse, exposed remote access, social engineering through Microsoft Teams and Quick Assist, data theft, security control interference, backup deletion, and ransomware encryption.</p>
+      <p>The highest-value defensive angle is not a single hash or leak-site artifact. The most actionable hunting coverage is behavior: unauthorized QEMU execution as SYSTEM with SSH port forwarding, suspicious virtual disk files, credential database staging, remote support tooling appearing after social engineering, Rclone or SFTP exfiltration, and ransomware preparation actions such as shadow copy deletion and event log clearing.</p>
+      <div class="note"><strong>Defender priority:</strong> Baseline and hunt for QEMU, ScreenConnect, Quick Assist, Rclone, shadow-copy operations, and AD credential file staging across servers, admin workstations, and VPN-exposed environments.</div>
+      <table><thead><tr><th>Metric</th><th>Value</th><th>Why It Matters</th></tr></thead><tbody>
+        <tr><td>First public tracking</td><td>2025-07-07</td><td>Ransomware.live lists the group as active with victim claims into May 2026.</td></tr>
+        <tr><td>Victimology</td><td>Manufacturing, business services, technology, food, healthcare</td><td>Prioritize industrial, identity, file server, and hypervisor telemetry.</td></tr>
+        <tr><td>Novelty</td><td>Moderate</td><td>QEMU-as-backdoor is distinctive; ransomware impact behaviors remain familiar and huntable.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="source-review"><div class="container">
+      <h2>2. Source Review &amp; Web Hunter Notes</h2>
+      <table><thead><tr><th>Source</th><th>Tier</th><th>Key Finding</th><th>Carry Forward</th></tr></thead><tbody>
+        <tr><td><a href="https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery">Sophos X-Ops: QEMU abused to evade detection and enable ransomware delivery</a></td><td>Primary vendor research</td><td>STAC4713 linked to PayoutsKing; QEMU scheduled task TPMProfiler, port forwarding to SSH, Alpine VM, AdaptixC2, Chisel, Rclone, VSS and NTDS/SAM/SYSTEM staging.</td><td>yes: main source for behavior hunts and IOCs.</td></tr>
+        <tr><td><a href="https://www.zscaler.com/blogs/security-research/payouts-king-takes-aim-ransomware-throne">Zscaler ThreatLabz: Payouts King Takes Aim at the Ransomware Throne</a></td><td>Primary vendor research</td><td>Ransomware internals, anti-analysis, security process termination, shadow copy deletion, event log clearing, ransom note behavior, sample hashes.</td><td>yes: impact-stage and malware-hash coverage.</td></tr>
+        <tr><td><a href="https://www.ransomware.live/group/payoutsking">Ransomware.live group profile</a></td><td>Leak-site aggregator and victimology tracker</td><td>Active group page, victim counts, sectors, countries, leak-site onion, ransom note and TOX pivots.</td><td>partial: useful for context; do not treat victim claims as independent technical proof.</td></tr>
+        <tr><td><a href="https://www.bleepingcomputer.com/news/security/payouts-king-ransomware-uses-qemu-vms-to-bypass-endpoint-security/">BleepingComputer coverage</a></td><td>Secondary reporting</td><td>Summarizes Sophos and Zscaler findings, including QEMU VM abuse and Quick Assist/Teams social engineering.</td><td>partial: corroborating narrative only.</td></tr>
+      </tbody></table>
+      <table><thead><tr><th>Decision</th><th>Rationale</th><th>Pack Change</th></tr></thead><tbody>
+        <tr><td>yes</td><td>Behavior observed by Sophos is specific enough for endpoint and network hunts.</td><td>Added QEMU, scheduled task, port forward, credential staging, and Rclone queries.</td></tr>
+        <tr><td>partial</td><td>Infrastructure and TOX values can be stale or investigative-only.</td><td>Marked IPs, onion, and TOX handles as hunt/enrich pivots with review dates.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="brief"><div class="container">
+      <h2>3. Hunt Brief &amp; Attack Chain</h2>
+      <p><strong>Working hypothesis:</strong> A PayoutsKing-aligned intrusion will leave at least one durable signal before encryption: abnormal remote access, hidden virtualization, credential staging, lateral discovery, exfiltration tooling, backup interference, or ransomware preparation.</p>
+      <table><thead><tr><th>Step</th><th>Telemetry</th><th>Hunt or Audit Check</th></tr></thead><tbody>
+        <tr><td>Initial access through exposed VPN, vulnerable edge application, or helpdesk impersonation.</td><td>VPN auth, edge appliance logs, identity logs, remote support installs.</td><td>Review unusual VPN logons, MFA gaps, Quick Assist and ScreenConnect installation bursts.</td></tr>
+        <tr><td>Covert access through QEMU VM or legitimate remote support tooling.</td><td>Process, scheduled task, service, firewall, netstat, DNS, network connection telemetry.</td><td>Q1, Q2, Q3.</td></tr>
+        <tr><td>Credential access and discovery using NTDS/SAM/SYSTEM staging, BloodHound/NetExec-style tooling, or native utilities.</td><td>File create, command line, SMB admin shares, process creation.</td><td>Q4 plus native DC audit checks.</td></tr>
+        <tr><td>Exfiltration and ransomware impact.</td><td>Rclone/SFTP/FTP, file staging, vssadmin, event log clear, process termination.</td><td>Q5, Q6, IOA candidates.</td></tr>
+      </tbody></table>
+      <table><thead><tr><th>Objective</th><th>Hunt Logic</th><th>Impact</th></tr></thead><tbody>
+        <tr><td>Find hidden virtualization access</td><td>QEMU as SYSTEM, unusual virtual disks, SSH port forwarding, scheduled task TPMProfiler.</td><td>Detect long-term covert access before payload execution.</td></tr>
+        <tr><td>Find ransomware preparation</td><td>Shadow copy deletion, event log clearing, security tool termination, ransom note creation.</td><td>Interrupt encryption and preserve evidence.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="iocs"><div class="container">
+      <h2>4. Consolidated IOC Table</h2>
+      <table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody>
+        <tr><td>sha256</td><td class="mono">335ad12a950f885073acdfebb250c93fb28ca3f374bbba5189986d9234dcbff4</td><td>high</td><td>detect</td><td>Zscaler PayoutsKing ransomware sample.</td></tr>
+        <tr><td>sha256</td><td class="mono">d68ce82e82801cd487f9cd2d24f7b30e353cafd0704dcdf0bb8f12822d4227c2</td><td>high</td><td>detect</td><td>Zscaler PayoutsKing ransomware sample.</td></tr>
+        <tr><td>sha256</td><td class="mono">7ae413b76424508055154ee262c7567705dc1ac00607f5ac2e43d032221b34b3</td><td>high</td><td>detect</td><td>Sophos AdaptixC2 agent associated with STAC4713.</td></tr>
+        <tr><td>sha256</td><td class="mono">c6b848c6a61685724fa9e2b3f6e3a118323ee0c165d1aa8c8a574205a4c4be59</td><td>high</td><td>detect</td><td>Sophos malicious QEMU disk image disguised as vault.db.</td></tr>
+        <tr><td>sha256</td><td class="mono">61c14c01460810f6f5f760daf8edbda82eea908b1a95052f8e0f9c4162c2900c</td><td>high</td><td>detect</td><td>Sophos malicious QEMU disk image disguised as bisrv.dll.</td></tr>
+        <tr><td>sha256</td><td class="mono">a65f0144101d93656c5f9ad445b3993336e1f295a838351aeca6332c0949b463</td><td>medium</td><td>hunt</td><td>Legitimate QEMU executable observed in attacks; do not block globally without environment review.</td></tr>
+        <tr><td>domain</td><td class="mono">vtps.us</td><td>medium</td><td>hunt</td><td>ScreenConnect relay from Sophos STAC3725 reporting; validate local exposure.</td></tr>
+        <tr><td>ip</td><td class="mono">144.208.127.190</td><td>medium</td><td>enrich</td><td>Suspected QEMU SSH C2 from Sophos; volatile infrastructure.</td></tr>
+        <tr><td>ip</td><td class="mono">74.242.216.76</td><td>medium</td><td>enrich</td><td>Suspected QEMU SSH C2 from Sophos; volatile infrastructure.</td></tr>
+        <tr><td>string</td><td class="mono">TPMProfiler</td><td>high</td><td>hunt</td><td>Scheduled task name used to launch QEMU in STAC4713.</td></tr>
+        <tr><td>path/name</td><td class="mono">readme_locker.txt</td><td>medium</td><td>hunt</td><td>Zscaler ransom note name when note is written to disk.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="affected"><div class="container">
+      <h2>5. Affected Surface &amp; Telemetry Matrix</h2>
+      <table><thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead><tbody>
+        <tr><td>Windows servers and admin workstations</td><td>ProcessRollup2, command line, file create, scheduled tasks, services.</td><td>Critical</td><td>Without full command line, QEMU port forwarding and ransomware prep are much harder to separate from benign admin activity.</td></tr>
+        <tr><td>Domain controllers</td><td>File access, SMB, process, security events, NTDS/SAM/SYSTEM access.</td><td>Critical</td><td>Credential staging may be missed if only endpoint detections are available on member servers.</td></tr>
+        <tr><td>VPN and edge appliances</td><td>Authentication, admin changes, vulnerability exposure, geo and impossible travel.</td><td>High</td><td>Initial access may remain invisible to Falcon endpoint-only queries.</td></tr>
+        <tr><td>Network egress</td><td>DNS, proxy, firewall, SSH/SFTP/FTP outbound, unusual ports.</td><td>High</td><td>Hidden VM traffic may look like host egress unless host-process network attribution exists.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="mitre"><div class="container">
+      <h2>6. ATT&amp;CK Mapping</h2>
+      <table><thead><tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Query or Control</th></tr></thead><tbody>
+        <tr><td>Initial Access</td><td>T1190 Exploit Public-Facing Application; T1133 External Remote Services</td><td>SolarWinds Web Help Desk, CitrixBleed2/NetScaler, SonicWall/Cisco VPN exposure.</td><td>Native edge/VPN audit hunts.</td></tr>
+        <tr><td>Execution</td><td>T1059 Command and Scripting Interpreter</td><td>Command-line launch of QEMU, Rclone, credential copy, Defender modification.</td><td>Q1, Q4, Q5.</td></tr>
+        <tr><td>Persistence</td><td>T1053.005 Scheduled Task; T1543.003 Windows Service</td><td>TPMProfiler scheduled task, AppMgmt service, ScreenConnect persistence.</td><td>Q2, Q3.</td></tr>
+        <tr><td>Defense Evasion</td><td>T1564 Hide Artifacts; T1562 Impair Defenses</td><td>Hidden VM, security process termination, event log clearing, Defender exclusion changes.</td><td>Q1, Q6, IOA-2.</td></tr>
+        <tr><td>Credential Access</td><td>T1003.003 NTDS; T1003.002 SAM</td><td>NTDS.dit, SAM, SYSTEM copied to temp/staging directories.</td><td>Q4.</td></tr>
+        <tr><td>Exfiltration</td><td>T1048 Exfiltration Over Alternative Protocol</td><td>Rclone/SFTP/FTP staging and transfer.</td><td>Q5.</td></tr>
+        <tr><td>Impact</td><td>T1486 Data Encrypted for Impact; T1490 Inhibit System Recovery</td><td>Ransomware encryption, shadow copy deletion, backup interference.</td><td>Q6, IOA-3.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="audit"><div class="container">
+      <h2>7. Native Audit-Log Hunts</h2>
+      <table><thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead><tbody>
+        <tr><td>VPN access without strong MFA</td><td>SonicWall, Cisco SSL VPN, identity provider logs</td><td>New device, new ASN, no MFA, failed-then-successful patterns, privileged account use outside change window.</td><td>Disable session, reset credentials, review appliance patch level and auth method.</td></tr>
+        <tr><td>Quick Assist or Teams helpdesk impersonation</td><td>Microsoft 365 audit, Teams, endpoint process logs</td><td>High email volume followed by Teams contact and Quick Assist launch from user workstation.</td><td>Isolate host, revoke tokens, preserve chat/email evidence.</td></tr>
+        <tr><td>Unauthorized ScreenConnect</td><td>Software inventory, service logs, DNS/proxy</td><td>New ScreenConnect client, relay domain not in approved RMM inventory, service installed as SYSTEM.</td><td>Contain host, block relay, identify deployment source.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="queries"><div class="container">
+      <h2>8. CrowdStrike LogScale CQL Hunt Queries</h2>
+      <div class="note">Field names are schema-dependent. Validate `#event_simpleName`, `ImageFileName`, `CommandLine`, `FileName`, `TargetFileName`, `RemoteAddressIP4`, and user/host fields against your Falcon tenant before promoting detections.</div>
+
+      <article class="query-card" id="query-card-q1">
+        <div class="query-head"><div><h3 class="query-title">Q1. QEMU Launch With SSH Port Forwarding or Suspicious Disk</h3><div class="query-meta">CONF: high | FP: medium | COST: low-medium | Requires: process command line</div></div><div class="button-row"><button class="button copy" type="button" data-copy-target="query-q1">Copy CQL</button><button class="button primary open-falcon" type="button" data-query-target="query-q1">Open in Falcon</button></div></div>
+        <p class="query-summary"><strong>Looks for:</strong> <code>qemu-system-x86_64.exe</code> launched with SSH forwarding, odd VM disk names, or STAC4713 port values. <strong>Accomplishes:</strong> catches covert VM-based access before the attacker hides tooling and tunnels inside the guest OS.</p>
+        <pre id="query-q1">#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ImageFileName=/\\qemu-system-x86_64\.exe$/i
+| CommandLine=/(hostfwd|guestfwd|redir|:22|32567|22022|\.qcow2|vault\.db|bisrv\.dll|custom\.qcow2)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData])</pre>
+      </article>
+
+      <article class="query-card" id="query-card-q2">
+        <div class="query-head"><div><h3 class="query-title">Q2. TPMProfiler Scheduled Task or SYSTEM QEMU Persistence</h3><div class="query-meta">CONF: high | FP: low-medium | COST: low | Requires: process and scheduled task telemetry</div></div><div class="button-row"><button class="button copy" type="button" data-copy-target="query-q2">Copy CQL</button><button class="button primary open-falcon" type="button" data-query-target="query-q2">Open in Falcon</button></div></div>
+        <p class="query-summary"><strong>Looks for:</strong> the reported <code>TPMProfiler</code> scheduled task, QEMU launch strings, and suspicious disk names. <strong>Accomplishes:</strong> identifies persistence used to relaunch hidden virtualization under privileged context.</p>
+        <pre id="query-q2">#event_simpleName=/ProcessRollup2|ScheduledTaskRegistered|ScheduledTaskModified/i
+| (CommandLine=/TPMProfiler|qemu-system-x86_64|vault\.db|bisrv\.dll/i OR FileName=/TPMProfiler/i)
+| table([@timestamp, ComputerName, UserName, EventType, ParentBaseFileName, ImageFileName, CommandLine, FileName])</pre>
+      </article>
+
+      <article class="query-card" id="query-card-q3">
+        <div class="query-head"><div><h3 class="query-title">Q3. New Remote Support or RMM Tool After User Interaction</h3><div class="query-meta">CONF: medium | FP: medium-high | COST: medium | Requires: process, service, file, optional identity logs</div></div><div class="button-row"><button class="button copy" type="button" data-copy-target="query-q3">Copy CQL</button><button class="button primary open-falcon" type="button" data-query-target="query-q3">Open in Falcon</button></div></div>
+        <p class="query-summary"><strong>Looks for:</strong> Quick Assist, ScreenConnect, suspicious relay references, and service names tied to reported campaigns. <strong>Accomplishes:</strong> helps detect social-engineering-to-remote-control handoff before hands-on-keyboard activity accelerates.</p>
+        <pre id="query-q3">#event_simpleName=/ProcessRollup2|ServiceStarted|ServiceInstalled|PeFileWritten/i
+| (ImageFileName=/\\quickassist\.exe$|\\ScreenConnect\.ClientService\.exe$/i OR CommandLine=/QuickAssist|ScreenConnect|CtxAppVCOMService|AppMgmt|vtps\.us/i OR FileName=/ScreenConnect|QuickAssist/i)
+| table([@timestamp, ComputerName, UserName, EventType, ParentBaseFileName, ImageFileName, CommandLine, FileName, TargetFileName])</pre>
+      </article>
+
+      <article class="query-card" id="query-card-q4">
+        <div class="query-head"><div><h3 class="query-title">Q4. AD Credential Database and Registry Hive Staging</h3><div class="query-meta">CONF: high | FP: low-medium | COST: medium | Requires: process and file write telemetry on DCs</div></div><div class="button-row"><button class="button copy" type="button" data-copy-target="query-q4">Copy CQL</button><button class="button primary open-falcon" type="button" data-query-target="query-q4">Open in Falcon</button></div></div>
+        <p class="query-summary"><strong>Looks for:</strong> NTDS.dit, SAM, and SYSTEM hive access or copies, including VSS-assisted staging. <strong>Accomplishes:</strong> detects credential theft preparation that often precedes privilege escalation, lateral movement, and broad encryption.</p>
+        <pre id="query-q4">#event_simpleName=/ProcessRollup2|PeFileWritten|FileCreateInfo/i
+| (CommandLine=/ntds\.dit|\\SAM\b|\\SYSTEM\b|vssuirun|shadowcopy|copy .*\\\\.*\\admin\$|print /i OR TargetFileName=/\\ntds\.dit$|\\SAM$|\\SYSTEM$/i)
+| table([@timestamp, ComputerName, UserName, EventType, ParentBaseFileName, ImageFileName, CommandLine, TargetFileName])</pre>
+      </article>
+
+      <article class="query-card" id="query-card-q5">
+        <div class="query-head"><div><h3 class="query-title">Q5. Rclone, SFTP, FTP, or SSH Exfiltration Tooling</h3><div class="query-meta">CONF: medium-high | FP: medium | COST: medium | Requires: process and network telemetry</div></div><div class="button-row"><button class="button copy" type="button" data-copy-target="query-q5">Copy CQL</button><button class="button primary open-falcon" type="button" data-query-target="query-q5">Open in Falcon</button></div></div>
+        <p class="query-summary"><strong>Looks for:</strong> Rclone and transfer utilities using SSH, SFTP, FTP, unusual ports, or sync/copy syntax. <strong>Accomplishes:</strong> spots data staging and outbound movement that can drive the double-extortion phase.</p>
+        <pre id="query-q5">#event_simpleName=/ProcessRollup2|NetworkConnectIP4/i
+| (ImageFileName=/\\rclone\.exe$|\\ssh\.exe$|\\sftp\.exe$|\\ftp\.exe$/i OR CommandLine=/rclone|sftp|ftp |--config|--transfers|--bwlimit|copy .*:|sync .*:/i OR RemotePort=/22|2222|22022|32567/)
+| table([@timestamp, ComputerName, UserName, EventType, ImageFileName, CommandLine, RemoteAddressIP4, RemotePort])</pre>
+      </article>
+
+      <article class="query-card" id="query-card-q6">
+        <div class="query-head"><div><h3 class="query-title">Q6. Ransomware Preparation: Shadow Copies, Event Logs, and Ransom Note</h3><div class="query-meta">CONF: high | FP: medium | COST: low | Requires: process, file, and Windows event telemetry</div></div><div class="button-row"><button class="button copy" type="button" data-copy-target="query-q6">Copy CQL</button><button class="button primary open-falcon" type="button" data-query-target="query-q6">Open in Falcon</button></div></div>
+        <p class="query-summary"><strong>Looks for:</strong> shadow copy deletion, recovery tampering, event log clearing, and the reported ransom note name. <strong>Accomplishes:</strong> gives responders a late-stage tripwire for active ransomware preparation and evidence destruction.</p>
+        <pre id="query-q6">#event_simpleName=/ProcessRollup2|FileCreateInfo|EventLogCleared/i
+| (CommandLine=/vssadmin.*delete shadows|wmic.*shadowcopy.*delete|wevtutil.*cl|Clear-EventLog|bcdedit.*recoveryenabled|readme_locker\.txt/i OR TargetFileName=/\\readme_locker\.txt$/i)
+| table([@timestamp, ComputerName, UserName, EventType, ParentBaseFileName, ImageFileName, CommandLine, TargetFileName])</pre>
+      </article>
+    </div></section>
+
+    <section id="ioa"><div class="container">
+      <h2>9. CrowdStrike Custom IOA Recommendations</h2>
+      <table><thead><tr><th>IOA Name</th><th>Field Patterns and Behavior</th><th>Expected Benign Exclusions</th><th>Deployment Path</th></tr></thead><tbody>
+        <tr><td>Suspicious QEMU SSH tunnel</td><td>Image Filename: <span class="mono">.*\\qemu-system-x86_64\.exe</span>; Command Line includes <span class="mono">hostfwd|guestfwd|:22|32567|22022|vault\.db|bisrv\.dll|custom\.qcow2</span>.</td><td>Approved developer virtualization paths, lab hosts, sanctioned QEMU management tooling.</td><td>Start monitor/detect-only; promote to prevention for servers and non-developer workstations after baseline.</td></tr>
+        <tr><td>Credential hive staging from DC</td><td>Command Line or Target Filename includes <span class="mono">ntds\.dit|\\SAM\b|\\SYSTEM\b</span> and staging path such as temp, admin share, or user profile.</td><td>Domain controller backup products, authorized AD recovery testing, EDR forensic acquisition.</td><td>Detect-only with immediate severity; prevention after backup and IR exclusions are confirmed.</td></tr>
+        <tr><td>Ransomware recovery inhibition</td><td>Command Line includes <span class="mono">vssadmin.*delete shadows|wmic.*shadowcopy.*delete|wevtutil.*cl|Clear-EventLog</span>.</td><td>Approved backup maintenance and log rotation tooling by signer/path.</td><td>Prevention candidate for user workstations; detect-only for backup/admin servers until tuned.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="iocappendix"><div class="container">
+      <h2>10. Machine-Readable IOC Appendix</h2>
+      <pre id="ioc-json">{
+  "hunt": "payoutsking",
+  "updated": "2026-05-26",
+  "indicators": [
+    {"type":"sha256","value":"335ad12a950f885073acdfebb250c93fb28ca3f374bbba5189986d9234dcbff4","confidence":"high","action":"detect","source":"Zscaler ThreatLabz","expiry":"2026-11-26"},
+    {"type":"sha256","value":"d68ce82e82801cd487f9cd2d24f7b30e353cafd0704dcdf0bb8f12822d4227c2","confidence":"high","action":"detect","source":"Zscaler ThreatLabz","expiry":"2026-11-26"},
+    {"type":"sha256","value":"7ae413b76424508055154ee262c7567705dc1ac00607f5ac2e43d032221b34b3","confidence":"high","action":"detect","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"sha256","value":"c6b848c6a61685724fa9e2b3f6e3a118323ee0c165d1aa8c8a574205a4c4be59","confidence":"high","action":"detect","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"sha256","value":"61c14c01460810f6f5f760daf8edbda82eea908b1a95052f8e0f9c4162c2900c","confidence":"high","action":"detect","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"sha256","value":"a65f0144101d93656c5f9ad445b3993336e1f295a838351aeca6332c0949b463","confidence":"medium","action":"hunt","source":"Sophos X-Ops","expiry":"2026-08-26"},
+    {"type":"domain","value":"vtps.us","confidence":"medium","action":"hunt","source":"Sophos X-Ops","expiry":"2026-08-26"},
+    {"type":"ip","value":"144.208.127.190","confidence":"medium","action":"enrich","source":"Sophos X-Ops","expiry":"2026-06-26"},
+    {"type":"ip","value":"74.242.216.76","confidence":"medium","action":"enrich","source":"Sophos X-Ops","expiry":"2026-06-26"},
+    {"type":"ip","value":"194.110.172.152","confidence":"medium","action":"enrich","source":"Sophos X-Ops","expiry":"2026-06-26"},
+    {"type":"ip","value":"98.81.138.214","confidence":"medium","action":"enrich","source":"Sophos X-Ops","expiry":"2026-06-26"},
+    {"type":"ip","value":"158.158.0.165","confidence":"medium","action":"enrich","source":"Sophos X-Ops","expiry":"2026-06-26"},
+    {"type":"string","value":"TPMProfiler","confidence":"high","action":"hunt","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"filename","value":"vault.db","confidence":"medium","action":"hunt","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"filename","value":"bisrv.dll","confidence":"medium","action":"hunt","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"filename","value":"custom.qcow2","confidence":"medium","action":"hunt","source":"Sophos X-Ops","expiry":"2026-11-26"},
+    {"type":"filename","value":"readme_locker.txt","confidence":"medium","action":"hunt","source":"Zscaler ThreatLabz","expiry":"2026-11-26"},
+    {"type":"onion","value":"payoutsgn7cy6uliwevdqspncjpfxpmzgirwl2au65la7rfs5x3qnbqd.onion","confidence":"medium","action":"pivot","source":"Ransomware.live","expiry":"2026-06-26"}
+  ]
+}</pre>
+    </div></section>
+
+    <section id="validation"><div class="container">
+      <h2>11. Detection Validation Gates</h2>
+      <table><thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead><tbody>
+        <tr><td>Telemetry ready</td><td>Confirm process command line, file create, network connections, scheduled tasks, service installs, and event log clear events are populated.</td><td>Saved query screenshots or exported event samples from a seven-day baseline.</td></tr>
+        <tr><td>Benign baseline</td><td>Inventory approved QEMU, Rclone, ScreenConnect, Quick Assist, backup, and forensic tooling.</td><td>Known-good host group and signer/path allowlist.</td></tr>
+        <tr><td>Positive tests</td><td>Run controlled QEMU with hostfwd to SSH in lab; create benign scheduled task named differently; simulate vssadmin query but not destructive deletion unless in isolated lab.</td><td>Lab host detections tied to expected query IDs.</td></tr>
+        <tr><td>Promotion</td><td>Move IOAs from monitor to prevention only after two clean business cycles and owner approval.</td><td>Detection owner sign-off and false-positive notes.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="hardening"><div class="container">
+      <h2>12. Hardening - Tiered &amp; Deployable</h2>
+      <h3>Immediate</h3>
+      <ul><li>Audit and restrict exposed SonicWall, Cisco SSL VPN, NetScaler, and SolarWinds Web Help Desk surfaces; verify MFA and patch status.</li><li>Block or approval-gate unsanctioned QEMU, Rclone, ScreenConnect, and remote support execution on servers.</li><li>Alert on shadow copy deletion and event log clearing from non-backup tooling.</li></ul>
+      <h3>Near Term</h3>
+      <ul><li>Deploy application control for virtualization and RMM utilities by host role.</li><li>Centralize VPN, Teams, Quick Assist, and endpoint telemetry for social-engineering correlation.</li><li>Protect domain controllers with enhanced file access auditing for NTDS.dit, SAM, and SYSTEM.</li></ul>
+      <h3>Strategic</h3>
+      <ul><li>Segment hypervisor management and restrict admin paths to hardened workstations.</li><li>Implement recovery testing for immutable backups and out-of-band identity recovery.</li><li>Continuously validate ransomware controls through safe attack emulation.</li></ul>
+    </div></section>
+
+    <section id="playbooks"><div class="container">
+      <h2>13. Deployable Playbooks</h2>
+      <article class="query-card">
+        <div class="query-head"><h3 class="query-title">Rapid QEMU Triage</h3><div class="query-meta">Scope: SOC / endpoint owner / identity owner</div></div>
+        <pre id="playbook-1">1. Identify host, user, parent process, command line, signer, and install path.
+2. Check for TPMProfiler, qemu-system-x86_64.exe, vault.db, bisrv.dll, custom.qcow2, port forwarding, and outbound SSH.
+3. Isolate if QEMU is unauthorized on a server, DC, admin workstation, or VPN-adjacent host.
+4. Pull process tree, scheduled tasks, services, persistence keys, file artifacts, and network connections.
+5. Review domain controller and privileged account activity within 72 hours before first QEMU execution.</pre>
+      </article>
+    </div></section>
+
+    <section id="containment"><div class="container">
+      <h2>14. Containment Runbook</h2>
+      <table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody>
+        <tr><td>Confirm</td><td>Validate QEMU/Rclone/remote support execution, credential staging, and suspicious egress.</td><td>SOC lead</td><td>Falcon event exports, process trees, network logs.</td></tr>
+        <tr><td>Contain</td><td>Isolate impacted endpoints, disable suspected accounts, revoke sessions, block egress destinations, preserve VM disk artifacts.</td><td>IR lead</td><td>Containment timestamps and host list.</td></tr>
+        <tr><td>Recover</td><td>Rotate credentials, rebuild unauthorized remote access, verify backups, restore clean systems, monitor for re-entry.</td><td>Infrastructure and identity owners</td><td>Recovery checklist and clean monitoring window.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="coverage"><div class="container">
+      <h2>15. Detection Coverage Map</h2>
+      <table><thead><tr><th>Behavior</th><th>Primary Detection</th><th>Fallback Detection</th><th>Known Gap</th></tr></thead><tbody>
+        <tr><td>QEMU covert VM</td><td>Q1/Q2 process and scheduled task hunts</td><td>Software inventory and network SSH egress</td><td>Traffic inside VM may be opaque to host EDR.</td></tr>
+        <tr><td>Remote support abuse</td><td>Q3 plus M365/Teams audit</td><td>RMM inventory diff</td><td>Legitimate IT usage can be noisy.</td></tr>
+        <tr><td>Credential staging</td><td>Q4 file/process telemetry on DCs</td><td>Windows Security logs and backup audit logs</td><td>Insufficient DC telemetry weakens confidence.</td></tr>
+        <tr><td>Exfiltration</td><td>Q5 process and network telemetry</td><td>Proxy/firewall/DNS anomalies</td><td>SFTP destination may be short-lived.</td></tr>
+        <tr><td>Ransomware impact</td><td>Q6 and IOA-3</td><td>Backup platform alerts and file server canaries</td><td>Late-stage detection leaves little response time.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="ticket"><div class="container">
+      <h2>16. Hunt Summary Ticket</h2>
+      <pre id="ticket-text">Title: PayoutsKing - Hunt and hardening review
+Scope: Last 30 days across Windows servers, domain controllers, admin workstations, VPN-connected hosts, and remote support fleet
+Hypothesis: PayoutsKing-aligned activity will show unauthorized QEMU, remote support abuse, credential staging, exfiltration tooling, or ransomware preparation before encryption.
+Queries run: Q1, Q2, Q3, Q4, Q5, Q6
+Data sources searched: Falcon endpoint process/file/network telemetry, VPN logs, M365/Teams logs, firewall/proxy/DNS, DC security logs
+Findings: Record hosts, users, command lines, parent processes, remote destinations, and whether each hit matches approved admin behavior.
+Gaps: Confirm tenant field mappings, DC file telemetry, VPN audit coverage, and approved QEMU/RMM inventory.
+Actions: Triage true positives, isolate unauthorized hosts, reset impacted credentials, tune IOAs, and open hardening tasks.
+Owner: SOC detection engineering</pre>
+    </div></section>
+
+    <section id="changelog"><div class="container">
+      <h2>17. Changelog</h2>
+      <table><thead><tr><th>Version</th><th>Date</th><th>Change Summary</th></tr></thead><tbody>
+        <tr><td>v0.1</td><td>2026-05-26</td><td>Initial PayoutsKing HuntPack based on Sophos, Zscaler, ransomware.live, and secondary reporting.</td></tr>
+      </tbody></table>
+    </div></section>
+
+    <section id="refs"><div class="container">
+      <h2>18. References</h2>
+      <table><thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead><tbody>
+        <tr><td>Primary vendor research</td><td><a href="https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery">Sophos X-Ops: QEMU abused to evade detection and enable ransomware delivery</a></td><td>QEMU, STAC4713, GOLD ENCOUNTER, credential staging, IOCs, validation guidance.</td><td>2026-05-26</td></tr>
+        <tr><td>Primary vendor research</td><td><a href="https://www.zscaler.com/blogs/security-research/payouts-king-takes-aim-ransomware-throne">Zscaler ThreatLabz: Payouts King Takes Aim at the Ransomware Throne</a></td><td>Ransomware internals, process termination, shadow copy deletion, event log clearing, sample hashes.</td><td>2026-05-26</td></tr>
+        <tr><td>Aggregator / victimology</td><td><a href="https://www.ransomware.live/group/payoutsking">Ransomware.live: Payoutsking / Payouts king</a></td><td>Activity window, sectors, countries, leak-site context, TOX/onion pivots.</td><td>2026-05-26</td></tr>
+        <tr><td>Secondary reporting</td><td><a href="https://www.bleepingcomputer.com/news/security/payouts-king-ransomware-uses-qemu-vms-to-bypass-endpoint-security/">BleepingComputer: Payouts King ransomware uses QEMU VMs to bypass endpoint security</a></td><td>Corroborating summary and source discovery.</td><td>2026-05-26</td></tr>
+        <tr><td>Context</td><td><a href="https://www.blackfog.com/cybersecurity-101/payouts-king/">BlackFog: Payouts King</a></td><td>High-level profile and common access vectors.</td><td>2026-05-26</td></tr>
+      </tbody></table>
+      <p>PayoutsKing HuntPack v0.1. Validate queries in tenant telemetry before promotion.</p>
+    </div></section>
+  </main>
+  <script>
+    const cloudSelect = document.getElementById("falcon-cloud");
+    const cloudHost = document.getElementById("falcon-host");
+    const toc = document.querySelector(".toc");
+
+    function getTextById(id) {
+      const node = document.getElementById(id);
+      return node ? node.textContent.trim() : "";
+    }
+
+    async function copyText(text, button) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const previous = button.textContent;
+        button.textContent = "Copied";
+        window.setTimeout(() => {
+          button.textContent = previous;
+        }, 1400);
+      } catch (error) {
+        window.prompt("Copy this text:", text);
+      }
+    }
+
+    function updateCloudHost() {
+      cloudHost.textContent = cloudSelect.value;
+    }
+
+    function updateStickyOffsets() {
+      if (toc) {
+        document.documentElement.style.setProperty("--toc-height", `${toc.offsetHeight}px`);
+      }
+    }
+
+    function openInFalcon(query) {
+      const base = cloudSelect.value.replace(/\/$/, "");
+      const encoded = encodeURIComponent(query);
+      window.open(`${base}/investigate/events/en-US/app/eam2/search?query=${encoded}`, "_blank", "noopener");
+    }
+
+    document.addEventListener("click", (event) => {
+      const copyButton = event.target.closest(".copy");
+      if (copyButton) {
+        copyText(getTextById(copyButton.dataset.copyTarget), copyButton);
+      }
+
+      const falconButton = event.target.closest(".open-falcon");
+      if (falconButton) {
+        openInFalcon(getTextById(falconButton.dataset.queryTarget));
+      }
+    });
+
+    cloudSelect.addEventListener("change", updateCloudHost);
+    window.addEventListener("resize", updateStickyOffsets);
+    updateStickyOffsets();
+    updateCloudHost();
+  </script>
+</body>
+</html>
