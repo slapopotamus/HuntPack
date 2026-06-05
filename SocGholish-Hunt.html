@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SocGholish – Defender Hunt &amp; Hardening Pack</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1f2633;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #9ca3af;
+      --accent: #58a6ff;
+      --good: #7ee787;
+      --warn: #d29922;
+      --crit: #f85149;
+      --code: #080c12;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+    a { color: var(--accent); }
+    code, pre, .mono { font-family: Consolas, Menlo, Monaco, "Courier New", monospace; }
+    .container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .hero { padding: 38px 0 24px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, #12233a 0%, #171c24 52%, #0d1117 100%); }
+    .badge-row, .meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .badge { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; background: var(--panel-2); color: var(--muted); font-size: .74rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+    .badge.critical { color: var(--crit); border-color: rgba(248,81,73,.55); background: rgba(248,81,73,.12); }
+    .badge.warning { color: var(--warn); border-color: rgba(210,153,34,.55); background: rgba(210,153,34,.12); }
+    .badge.good { color: var(--good); border-color: rgba(126,231,135,.45); background: rgba(126,231,135,.09); }
+    h1 { margin: 14px 0 8px; font-size: clamp(2rem,5vw,3rem); line-height: 1.05; }
+    .subtitle { max-width: 1050px; color: var(--muted); font-size: 1.05rem; margin: 0 0 18px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 10px; margin: 20px 0 16px; }
+    .stat { border: 1px solid var(--border); border-radius: 7px; background: rgba(31,38,51,.82); padding: 11px 12px; }
+    .stat-label { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { display: block; margin-top: 3px; font-weight: 800; overflow-wrap: anywhere; }
+    .meta-row { border-top: 1px solid rgba(255,255,255,.08); padding-top: 13px; color: var(--muted); font-size: .9rem; }
+    .meta-row strong { color: var(--text); }
+    .toc { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.95); backdrop-filter: blur(8px); }
+    .toc .container { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
+    .toc a { border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; background: var(--panel); color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .toc a:hover { border-color: var(--accent); color: var(--accent); }
+    .utility-bar { position: sticky; top: var(--toc-height,44px); z-index: 19; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.96); backdrop-filter: blur(8px); }
+    .utility-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 0; color: var(--muted); font-size: .88rem; }
+    .utility-inner strong { color: var(--text); }
+    select { border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); padding: 6px 10px; }
+    .host { border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; background: var(--panel); color: var(--accent); font-size: .84rem; overflow-wrap: anywhere; }
+    section { padding: 34px 0; border-bottom: 1px solid var(--border); scroll-margin-top: calc(var(--toc-height,44px) + 52px); }
+    h2 { display: inline-block; margin: 0 0 16px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); font-size: 1.45rem; line-height: 1.2; }
+    h3 { margin: 20px 0 10px; font-size: 1.08rem; }
+    p { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
+    th, td { border: 1px solid var(--border); padding: 9px 10px; vertical-align: top; }
+    th { background: var(--panel-2); text-align: left; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+    td { background: rgba(22,27,34,.72); }
+    .note { border-left: 4px solid var(--warn); background: rgba(210,153,34,.09); padding: 12px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+    .note.crit { border-left-color: var(--crit); background: rgba(248,81,73,.09); }
+    .query-card { border: 1px solid var(--border); border-radius: 7px; background: var(--panel); margin: 16px 0; overflow: hidden; }
+    .query-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 13px 14px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+    .query-title { margin: 0 0 5px; }
+    .query-meta { color: var(--muted); font-size: .84rem; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .button { border: 1px solid var(--border); border-radius: 5px; background: var(--panel); color: var(--text); padding: 6px 10px; cursor: pointer; font-weight: 700; font-size: .82rem; }
+    .button:hover { border-color: var(--accent); color: var(--accent); }
+    .button.primary { background: rgba(88,166,255,.12); border-color: rgba(88,166,255,.55); color: #a5d6ff; }
+    .query-summary { padding: 12px 14px; color: var(--muted); }
+    .query-summary strong { color: var(--text); }
+    pre { margin: 0; padding: 14px; overflow-x: auto; background: var(--code); color: #dbeafe; border-top: 1px solid var(--border); font-size: .88rem; line-height: 1.5; }
+    ul, ol { margin-top: 6px; }
+    li { margin-bottom: 4px; }
+    @media (max-width:720px) { .query-head { display: block; } .button-row { justify-content: flex-start; margin-top: 10px; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="badge-row">
+      <span class="badge warning">Medium urgency</span>
+      <span class="badge warning">Initial access / loader</span>
+      <span class="badge">Windows / Browsers / AD</span>
+      <span class="badge">Active since 2017</span>
+      <span class="badge good">Draft v0.1</span>
+    </div>
+    <h1>SocGholish</h1>
+    <p class="subtitle">Behavior-first HuntPack for SocGholish (FakeUpdates) — a JavaScript-based loader delivered via compromised websites posing as browser updates. Operated by Mustard Tempest (GOLD PRELUDE), with access sold to Indrik Spider (Evil Corp) for ransomware deployment. Ranked #8 in the 2026 Red Canary Threat Detection Report, affecting 2.3% of customers.</p>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">Objective</span><span class="stat-value">Initial access, recon, second-stage delivery</span></div>
+      <div class="stat"><span class="stat-label">Initial Access</span><span class="stat-value">Drive-by compromise, fake browser update lure</span></div>
+      <div class="stat"><span class="stat-label">Platforms</span><span class="stat-value">Windows, browsers, Active Directory</span></div>
+      <div class="stat"><span class="stat-label">Queries</span><span class="stat-value">7 CQL cards</span></div>
+      <div class="stat"><span class="stat-label">2nd-stage rate</span><span class="stat-value">~1 in 4 incidents (2025)</span></div>
+      <div class="stat"><span class="stat-label">Ransomware link</span><span class="stat-value">RansomHub via MintsLoader</span></div>
+    </div>
+    <div class="meta-row">
+      <span><strong>Generated:</strong> 2026-06-02</span>
+      <span><strong>Updated:</strong> 2026-06-02</span>
+      <span><strong>MITRE ID:</strong> S1124</span>
+      <span><strong>Aliases:</strong> FakeUpdates, GOLD PRELUDE</span>
+      <span><strong>Threat actor:</strong> Mustard Tempest / Indrik Spider (Evil Corp)</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="container">
+    <a href="#summary">1. Summary</a>
+    <a href="#source-review">2. Sources</a>
+    <a href="#brief">3. Hunt Brief</a>
+    <a href="#iocs">4. IOCs</a>
+    <a href="#affected">5. Telemetry</a>
+    <a href="#mitre">6. ATT&amp;CK</a>
+    <a href="#audit">7. Native Hunts</a>
+    <a href="#queries">8. CQL</a>
+    <a href="#ioa">9. IOA</a>
+    <a href="#iocappendix">10. IOC JSON</a>
+    <a href="#validation">11. Validation</a>
+    <a href="#hardening">12. Hardening</a>
+    <a href="#playbooks">13. Playbooks</a>
+    <a href="#containment">14. Containment</a>
+    <a href="#coverage">15. Coverage</a>
+    <a href="#ticket">16. Ticket</a>
+    <a href="#changelog">17. Changelog</a>
+    <a href="#refs">18. References</a>
+  </div>
+</nav>
+
+<div class="utility-bar">
+  <div class="container utility-inner">
+    <strong>Falcon cloud:</strong>
+    <select id="falcon-cloud" aria-label="Falcon cloud">
+      <option value="https://falcon.crowdstrike.com">US-1</option>
+      <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+      <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+      <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+    </select>
+    <span class="host" id="falcon-host">https://falcon.crowdstrike.com</span>
+    <span>Copy and Open in Falcon controls use the selected cloud.</span>
+  </div>
+</div>
+
+<main>
+
+<!-- ─── 1. EXECUTIVE SUMMARY ─── -->
+<section id="summary"><div class="container">
+  <h2>1. Executive Summary</h2>
+  <p>SocGholish is a JavaScript-based initial access loader that has operated since at least 2017. It infects users by injecting malicious content into legitimate compromised websites, presenting a convincing fake browser or software update prompt. When the user downloads and executes the lure file — a <code>.js</code> file directly or inside a ZIP — Windows Script Host (<code>wscript.exe</code>) runs the payload, which silently beacons back to C2, performs in-memory reconnaissance, and optionally retrieves second-stage malware.</p>
+  <p>Mustard Tempest (GOLD PRELUDE) operates SocGholish and sells access to groups including Indrik Spider (Evil Corp). In approximately one in four 2025 infections, a second-stage payload was delivered — most commonly MintsLoader loading ASyncRAT or StealC, and in some cases a Python-based backdoor used as ransomware precursor leading to RansomHub.</p>
+  <p>The majority of infections do not progress past initial reconnaissance. The highest-value defensive angles are: catching <code>wscript.exe</code> spawning from a browser with an outbound connection, detecting domain trust enumeration via <code>nltest.exe</code> (ransomware-precursor signal), and blocking <code>wscript.exe</code> as the default handler for <code>.js</code> files via GPO.</p>
+  <div class="note"><strong>Defender priority:</strong> Focus on browser → wscript.exe process chains, nltest.exe domain enumeration, and scheduled task creation under user context. The nltest signal in particular should be treated as a ransomware precursor and escalated immediately.</div>
+</div></section>
+
+<!-- ─── 2. SOURCE REVIEW ─── -->
+<section id="source-review"><div class="container">
+  <h2>2. Source Review &amp; Web Hunter Notes</h2>
+  <table><thead><tr><th>Source</th><th>Tier</th><th>Key Finding</th><th>Carry Forward</th></tr></thead><tbody>
+    <tr><td><a href="https://redcanary.com/threat-detection-report/threats/socgholish/">Red Canary 2026 Threat Detection Report: SocGholish</a></td><td>Primary — vendor detection data</td><td>Ranked #8, 2.3% of customers affected. Drive-by via compromised sites, wscript.exe execution, homoglyph filenames, MintsLoader, ASyncRAT, StealC, RansomHub link. Detailed detection analytics.</td><td>Yes — primary source for all behavior and detection content.</td></tr>
+    <tr><td><a href="https://attack.mitre.org/software/S1124/">MITRE ATT&amp;CK S1124 — SocGholish</a></td><td>Primary — canonical TTP catalog</td><td>17 mapped techniques including T1189, T1059.007, T1482, T1047, T1033, T1082, T1016, T1105, T1036.005. Operated by Mustard Tempest, access sold to Indrik Spider.</td><td>Yes — used for complete ATT&amp;CK mapping.</td></tr>
+    <tr><td><a href="https://www.proofpoint.com/us/blog/threat-insight/part-1-socgholish-very-real-threat-very-fake-update">Proofpoint: SocGholish, A Very Real Threat From A Very Fake Update</a></td><td>Primary — vendor research</td><td>WMI-based profiling, spearphishing link delivery, system owner/user/network discovery, AutoUpdater.js filename masquerade, Base64-encoded C2 URLs.</td><td>Yes — supplements MITRE and Red Canary data.</td></tr>
+    <tr><td><a href="https://www.secureworks.com/research/threat-profiles/gold-prelude">Secureworks: GOLD PRELUDE threat profile</a></td><td>Primary — vendor research</td><td>GOLD PRELUDE attribution, geolocation filtering (North America, Europe, APAC), process discovery, software discovery (browser fingerprinting), AWS-hosted second-stage infrastructure.</td><td>Yes — attribution and infrastructure context.</td></tr>
+    <tr><td><a href="https://www.sentinelone.com/labs/socgholish-diversifies-and-expands-its-malware-staging-infrastructure-to-counter-defenders/">SentinelOne: SocGholish Diversifies and Expands Its Infrastructure</a></td><td>Primary — vendor research</td><td>Infrastructure diversification, Base64-encoded second-stage URLs, AWS S3 staging.</td><td>Partial — infrastructure context only; IOCs perishable.</td></tr>
+  </tbody></table>
+  <table><thead><tr><th>Decision</th><th>Rationale</th><th>Pack Change</th></tr></thead><tbody>
+    <tr><td>Yes</td><td>Red Canary and MITRE provide high-quality behavioral telemetry for endpoint detection. Behaviors are stable and hunt-worthy regardless of infrastructure rotation.</td><td>Built 7 CQL queries targeting wscript.exe chains, nltest, scheduled tasks, second-stage delivery.</td></tr>
+    <tr><td>Partial</td><td>Network IOCs (C2 domains, IPs) rotate frequently. AWS-hosted infrastructure is legitimate by default — cannot block wholesale.</td><td>IOCs flagged as hunt/enrich only, not detect. No IP/domain blocklist generated.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 3. HUNT BRIEF ─── -->
+<section id="brief"><div class="container">
+  <h2>3. Hunt Brief &amp; Attack Chain</h2>
+  <p><strong>Working hypothesis:</strong> A SocGholish infection will leave at least one durable endpoint signal before or during the reconnaissance phase: a browser spawning wscript.exe, wscript.exe creating temp files or making outbound connections, system discovery commands, or domain trust enumeration. The nltest.exe signal specifically indicates hands-on-keyboard escalation toward ransomware.</p>
+  <table><thead><tr><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead><tbody>
+    <tr><td>1. User visits a compromised website; TDS/web inject serves fake update lure.</td><td>Browser process, DNS, HTTP.</td><td>No Falcon endpoint signal at this stage — upstream visibility only.</td></tr>
+    <tr><td>2. User downloads and executes a <code>.js</code> lure file (directly or from ZIP). Windows opens it with <code>wscript.exe</code>.</td><td>ProcessRollup2 — browser spawning wscript.exe. FileCreateInfo for lure file.</td><td><strong>Q1</strong> — browser parent → wscript.exe child.</td></tr>
+    <tr><td>3. JS payload beacons to C2 via HTTP POST; performs in-memory recon and exfiltrates host details.</td><td>NetworkConnectIP4 from wscript.exe. Script load content (if available).</td><td><strong>Q2</strong> — wscript.exe outbound network connections.</td></tr>
+    <tr><td>4. Recon: whoami output written to <code>rad&lt;5hex&gt;.tmp</code> in %TEMP%.</td><td>FileCreateInfo — temp file creation by wscript.exe.</td><td><strong>Q3</strong> — rad*.tmp data staging pattern.</td></tr>
+    <tr><td>5. Recon: system discovery — whoami, computer name, domain membership, process list, browser version.</td><td>ProcessRollup2 — whoami, ipconfig, wmic from wscript.exe parent.</td><td><strong>Q4</strong> — script host spawning discovery utilities.</td></tr>
+    <tr><td>6. (Rare, high-severity) Domain trust enumeration via <code>nltest.exe /domain_trusts</code> — ransomware precursor.</td><td>ProcessRollup2 — nltest.exe command line.</td><td><strong>Q5</strong> — nltest domain trust discovery.</td></tr>
+    <tr><td>7. Persistence via scheduled task creation under victim user context.</td><td>ScheduledTaskRegistered — task registered by wscript/cscript parent.</td><td><strong>Q6</strong> — script host scheduled task persistence.</td></tr>
+    <tr><td>8. (~25% of incidents) Second-stage delivery: MintsLoader → ASyncRAT / StealC, or Python-based backdoor for ransomware prep.</td><td>ProcessRollup2 — python.exe, msiexec, unusual loaders. FileCreateInfo for staged payloads.</td><td><strong>Q7</strong> — second-stage payload indicators.</td></tr>
+  </tbody></table>
+  <table><thead><tr><th>Objective</th><th>Hunt Logic</th><th>Impact</th></tr></thead><tbody>
+    <tr><td>Detect initial lure execution</td><td>Browser → wscript.exe with external network connection.</td><td>Earliest detectable signal — catch before C2 check-in completes.</td></tr>
+    <tr><td>Detect ransomware precursor</td><td>nltest.exe domain trust enumeration from any non-admin context.</td><td>Escalation signal — indicates hands-on-keyboard and potential ransomware preparation.</td></tr>
+    <tr><td>Detect second-stage delivery</td><td>Unusual process ancestry (wscript.exe → python.exe, msiexec, unusual signed binaries).</td><td>Intercept before persistent backdoor establishes full C2 channel.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 4. IOCs ─── -->
+<section id="iocs"><div class="container">
+  <h2>4. Consolidated IOC Table</h2>
+  <div class="note">SocGholish infrastructure rotates frequently. Endpoint behavioral indicators (process chains, filenames, command lines) are more durable than network IOCs. Treat all network indicators as hunt/enrich only.</div>
+  <table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody>
+    <tr><td>Process chain</td><td class="mono">browser → wscript.exe → outbound netconn</td><td>high</td><td>detect</td><td>Core SocGholish execution pattern. Browser spawning wscript.exe with an external network connection is highly anomalous.</td></tr>
+    <tr><td>Filename pattern</td><td class="mono">rad[0-9a-f]{5}\.tmp</td><td>high</td><td>hunt</td><td>SocGholish stages whoami output to a randomly named .tmp file in %TEMP% with this specific pattern.</td></tr>
+    <tr><td>Filename pattern</td><td class="mono">Chrome.Update.zip / Uрdate.js / ChrοmeUрdаteInstаller.js</td><td>high</td><td>hunt</td><td>Homoglyph-based lure filenames. Note Cyrillic/Greek lookalike characters substituted for ASCII.</td></tr>
+    <tr><td>Process name</td><td class="mono">nltest.exe /domain_trusts OR /all_trusts</td><td>high</td><td>detect</td><td>Domain trust enumeration. Rare in SocGholish infections but indicates ransomware-precursor activity.</td></tr>
+    <tr><td>Process name</td><td class="mono">wscript.exe</td><td>medium</td><td>hunt</td><td>Legitimate Windows binary abused as JS executor. High-FP alone; only actionable in browser-parent or outbound-network context.</td></tr>
+    <tr><td>Infrastructure</td><td class="mono">AWS S3 / cloud hosting</td><td>low</td><td>enrich</td><td>SocGholish has used AWS S3 for second-stage hosting. Cannot block wholesale; use as enrichment context only.</td></tr>
+    <tr><td>Loader</td><td class="mono">MintsLoader</td><td>medium</td><td>hunt</td><td>Second-stage loader observed in ~25% of 2025 SocGholish infections. Delivers ASyncRAT or StealC.</td></tr>
+    <tr><td>Payload</td><td class="mono">ASyncRAT</td><td>medium</td><td>detect</td><td>Remote access trojan delivered via MintsLoader. Establishes persistent C2 channel.</td></tr>
+    <tr><td>Payload</td><td class="mono">StealC</td><td>medium</td><td>detect</td><td>Credential stealer delivered via MintsLoader. Targets browser credentials and stored data.</td></tr>
+    <tr><td>Payload</td><td class="mono">python.exe (unexpected context)</td><td>medium</td><td>hunt</td><td>Python-based backdoor observed in ransomware-precursor cluster. python.exe spawning from wscript.exe or browser is anomalous.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 5. TELEMETRY ─── -->
+<section id="affected"><div class="container">
+  <h2>5. Affected Surface &amp; Telemetry Matrix</h2>
+  <table><thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead><tbody>
+    <tr><td>User workstations (all browser users)</td><td>ProcessRollup2 with full command line, NetworkConnectIP4, FileCreateInfo, ScheduledTaskRegistered.</td><td>Critical</td><td>Without full command line logging, homoglyph filename detection and wscript argument inspection are not possible.</td></tr>
+    <tr><td>Domain controllers</td><td>ProcessRollup2 for nltest.exe, identity logs.</td><td>High</td><td>nltest.exe domain trust enumeration on a DC is extremely high severity — ensure DC telemetry is collected.</td></tr>
+    <tr><td>Browser process telemetry</td><td>Parent process tracking (ProcessRollup2 ParentBaseFileName / ParentImageFileName).</td><td>Critical</td><td>Without parent process data, browser → wscript.exe chain detection is impossible.</td></tr>
+    <tr><td>Script load content</td><td>EDR script content capture (if available in sensor config).</td><td>Medium</td><td>JS payload executes in-memory. Script load telemetry provides the only in-execution visibility into payload content.</td></tr>
+    <tr><td>Scheduled task telemetry</td><td>ScheduledTaskRegistered, ScheduledTaskModified events.</td><td>High</td><td>Persistence mechanism. Missing scheduled task telemetry leaves the persistence stage blind.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 6. ATT&CK ─── -->
+<section id="mitre"><div class="container">
+  <h2>6. ATT&amp;CK Mapping</h2>
+  <table><thead><tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Query or Control</th></tr></thead><tbody>
+    <tr><td>Initial Access</td><td>T1189 Drive-by Compromise</td><td>Compromised websites inject fake browser update lure via TDS/web inject.</td><td>No Falcon endpoint signal — upstream proxy/DNS visibility required.</td></tr>
+    <tr><td>Initial Access</td><td>T1566.002 Phishing: Spearphishing Link</td><td>SocGholish has also been distributed via emails containing malicious links.</td><td>Email gateway / M365 audit logs.</td></tr>
+    <tr><td>Execution</td><td>T1059.007 JavaScript</td><td>Malicious .js payload executed via wscript.exe (Windows Script Host).</td><td>Q1, Q2</td></tr>
+    <tr><td>Execution</td><td>T1047 WMI</td><td>WMI calls used for script execution and system profiling.</td><td>Q4</td></tr>
+    <tr><td>Execution</td><td>T1204.001 User Execution: Malicious Link</td><td>User clicks fake update prompt and downloads/executes the JS lure.</td><td>User awareness; browser telemetry.</td></tr>
+    <tr><td>Persistence</td><td>T1053.005 Scheduled Task</td><td>Malicious scheduled tasks created under victim user account for persistence.</td><td>Q6</td></tr>
+    <tr><td>Defense Evasion</td><td>T1036.005 Masquerading: Match Legitimate Resource Name</td><td>Lure filenames mimic browser updates (Chrome.Update.zip, AutoUpdater.js). Homoglyph characters substitute lookalike Unicode for ASCII.</td><td>Q1 (filename inspection)</td></tr>
+    <tr><td>Defense Evasion</td><td>T1027.013 Obfuscated Files: Encrypted/Encoded File</td><td>Second-stage C2 URLs encoded in Base64 (single or double).</td><td>Script content telemetry.</td></tr>
+    <tr><td>Defense Evasion</td><td>T1027.015 Compression</td><td>JS payload delivered within a ZIP archive in ~33% of 2025 incidents.</td><td>Q1 (ZIP lure parent)</td></tr>
+    <tr><td>Discovery</td><td>T1033 System Owner/User Discovery</td><td>whoami executed to identify the victim user.</td><td>Q4</td></tr>
+    <tr><td>Discovery</td><td>T1082 System Information Discovery</td><td>Computer name, domain membership, OS version profiling.</td><td>Q4</td></tr>
+    <tr><td>Discovery</td><td>T1016 System Network Configuration Discovery</td><td>Domain name and AD membership enumerated.</td><td>Q4, Q5</td></tr>
+    <tr><td>Discovery</td><td>T1482 Domain Trust Discovery</td><td>nltest.exe /domain_trusts or /all_trusts — ransomware-precursor signal.</td><td>Q5</td></tr>
+    <tr><td>Discovery</td><td>T1057 Process Discovery</td><td>Process list enumerated for installed security tools and AV.</td><td>Q4</td></tr>
+    <tr><td>Discovery</td><td>T1518 Software Discovery</td><td>Browser fingerprinting to serve correct lure variant.</td><td>Upstream / web telemetry.</td></tr>
+    <tr><td>Discovery</td><td>T1614 System Location Discovery</td><td>IP-based geolocation filtering — limits infections to North America, Europe, select APAC.</td><td>Upstream / web telemetry.</td></tr>
+    <tr><td>Collection</td><td>T1074.001 Data Staged: Local Data Staging</td><td>whoami output written to rad&lt;5hex&gt;.tmp in %TEMP%.</td><td>Q3</td></tr>
+    <tr><td>Command and Control</td><td>T1048.003 Exfiltration Over Alternative Protocol</td><td>Recon data exfiltrated via HTTP POST to C2 domain.</td><td>Q2</td></tr>
+    <tr><td>Command and Control</td><td>T1102 Web Service</td><td>AWS S3 used to host second-stage payloads.</td><td>Network egress monitoring for S3 from wscript.exe.</td></tr>
+    <tr><td>Command and Control</td><td>T1105 Ingress Tool Transfer</td><td>MintsLoader, ASyncRAT, StealC, Python backdoor downloaded to infected hosts.</td><td>Q7</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 7. NATIVE HUNTS ─── -->
+<section id="audit"><div class="container">
+  <h2>7. Native Audit-Log Hunts</h2>
+  <table><thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead><tbody>
+    <tr><td>JS file association check — is wscript.exe the default handler?</td><td>Windows Registry / GPO audit</td><td>Check HKCR\.js and HKCR\JSFile\shell\open\command. If pointing to wscript.exe, the default is dangerous. Should point to Notepad or a text editor.</td><td>Deploy GPO to remap .js file association to Notepad. See Red Canary blog "Open with Notepad: Protecting users from malicious JavaScript."</td></tr>
+    <tr><td>Browser download + immediate script execution</td><td>Browser history / proxy logs + endpoint process telemetry</td><td>Correlate browser download of .zip or .js file with wscript.exe execution within 60 seconds on the same host.</td><td>Isolate host, preserve browser history and temp files, check for rad*.tmp staging artifacts.</td></tr>
+    <tr><td>Scheduled tasks created under non-admin user context</td><td>Windows Security Event Log (Event ID 4698) + Falcon ScheduledTaskRegistered</td><td>New scheduled tasks created by non-system, non-admin accounts, especially from user profile or temp directories.</td><td>Review task XML for payload path, remove if unauthorized, check for wscript.exe persistence payloads.</td></tr>
+    <tr><td>Email lure delivery</td><td>M365 audit, Exchange logs, email gateway</td><td>Emails containing .zip attachments or links to domains serving .js files. Homoglyph subject lines or attachment names.</td><td>Block sender, quarantine message, notify user, scan endpoint for lure execution.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 8. CQL QUERIES ─── -->
+<section id="queries"><div class="container">
+  <h2>8. CrowdStrike LogScale CQL Hunt Queries</h2>
+  <div class="note">Validate <code>#event_simpleName</code>, <code>ParentBaseFileName</code>, <code>ImageFileName</code>, <code>CommandLine</code>, and <code>TargetFileName</code> field names against your Falcon tenant schema before promoting detections. Parent process fields require full process tree telemetry to be enabled.</div>
+
+  <!-- Q1 -->
+  <article class="query-card" id="query-card-q1">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q1. Browser Spawning wscript.exe — Core SocGholish Execution Chain</h3>
+        <div class="query-meta">CONF: high | FP: low-medium | COST: low | Requires: process telemetry with parent tracking</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q1">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q1">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> A browser process (Chrome, Edge, Firefox, IE) spawning <code>wscript.exe</code> as a child — the core execution chain when a user clicks a SocGholish fake update lure.
+      <strong>Accomplishes:</strong> Catches the infection at the earliest detectable endpoint moment, before C2 check-in completes.
+    </p>
+    <div class="note">Common FP: Enterprise software updaters that use wscript.exe may trigger this. Tune by excluding known updater parent paths (e.g., approved IT management tooling) using <code>ParentImageFileName</code> allowlist.</div>
+    <pre id="query-q1">// HUNT: Browser Spawning wscript.exe - SocGholish Execution Chain
+// MITRE: T1059.007, T1204.001, T1189
+// CONF: high | FP: low-medium | COST: low
+// REQUIRES: ProcessRollup2 with parent process tracking
+// FALSE POSITIVES: Enterprise software updaters using wscript; web-based management consoles
+// TUNING: Exclude ParentImageFileName paths for known approved updaters
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ImageFileName=/\\wscript\.exe$/i
+| ParentBaseFileName=/(chrome|msedge|firefox|iexplore|browser|chromium|opera|brave|vivaldi)\.exe/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ParentImageFileName, ImageFileName, CommandLine, SHA256HashData])</pre>
+  </article>
+
+  <!-- Q2 -->
+  <article class="query-card" id="query-card-q2">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q2. wscript.exe Outbound Network Connection — C2 Beacon</h3>
+        <div class="query-meta">CONF: high | FP: medium | COST: low | Requires: process + network telemetry</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q2">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q2">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>wscript.exe</code> making outbound network connections to external IPs — the C2 beacon and recon exfiltration step.
+      <strong>Accomplishes:</strong> Detects the data exfiltration phase and can surface the C2 destination for blocking.
+    </p>
+    <div class="note">Common FP: Legitimate enterprise scripts that call external APIs or internal proxy relay addresses. Tune by excluding known internal IP ranges and trusted update domains. Pivot on <code>RemoteAddressIP4</code> values for threat intel enrichment.</div>
+    <pre id="query-q2">// HUNT: wscript.exe Outbound Network Connection - SocGholish C2 Beacon
+// MITRE: T1048.003, T1102
+// CONF: high | FP: medium | COST: low
+// REQUIRES: NetworkConnectIP4, ProcessRollup2
+// FALSE POSITIVES: Legitimate enterprise scripts calling external APIs, proxy relay
+// TUNING: Exclude known internal CIDR ranges and approved update/CDN destinations
+
+#event_simpleName=NetworkConnectIP4
+| ImageFileName=/\\wscript\.exe$/i
+| RemoteAddressIP4!=/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.)/
+| table([@timestamp, ComputerName, UserName, ImageFileName, RemoteAddressIP4, RemotePort, Protocol])</pre>
+  </article>
+
+  <!-- Q3 -->
+  <article class="query-card" id="query-card-q3">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q3. rad*.tmp Data Staging — whoami Output Written to Temp</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: file creation telemetry</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q3">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q3">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Files matching the <code>rad[5 hex chars].tmp</code> naming convention being written to temp directories — the specific staging artifact SocGholish uses to store whoami output before exfiltration.
+      <strong>Accomplishes:</strong> Low-FP, high-specificity indicator. This exact naming pattern is SocGholish's signature data staging behavior.
+    </p>
+    <pre id="query-q3">// HUNT: rad*.tmp Data Staging - SocGholish whoami Output Staging
+// MITRE: T1074.001, T1033
+// CONF: high | FP: low | COST: low
+// REQUIRES: FileCreateInfo or PeFileWritten
+// FALSE POSITIVES: Very low - this naming pattern is specific to SocGholish behavior
+
+#event_simpleName=/FileCreateInfo|PeFileWritten/i
+| TargetFileName=/\\rad[0-9a-fA-F]{5}\.tmp$/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, TargetFileName])</pre>
+  </article>
+
+  <!-- Q4 -->
+  <article class="query-card" id="query-card-q4">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q4. Script Host Spawning System Discovery Utilities</h3>
+        <div class="query-meta">CONF: medium-high | FP: medium | COST: low | Requires: process telemetry with parent tracking</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q4">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q4">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>wscript.exe</code> or <code>cscript.exe</code> spawning reconnaissance utilities — whoami, ipconfig, net, wmic — the post-execution system profiling SocGholish performs.
+      <strong>Accomplishes:</strong> Catches the in-memory recon phase and provides evidence of active enumeration.
+    </p>
+    <div class="note">Common FP: IT automation scripts (patching tools, inventory collection) legitimately spawn these utilities via wscript. Tune by excluding known IT management parent script paths and signed process hashes.</div>
+    <pre id="query-q4">// HUNT: Script Host Spawning System Discovery Utilities - SocGholish Recon
+// MITRE: T1033, T1082, T1016, T1057, T1047
+// CONF: medium-high | FP: medium | COST: low
+// REQUIRES: ProcessRollup2 with parent process tracking
+// FALSE POSITIVES: IT automation scripts, patching tools using wscript for inventory
+// TUNING: Exclude known IT management parent script paths by ParentImageFileName
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ParentBaseFileName=/(wscript|cscript)\.exe/i
+| ImageFileName=/(whoami|ipconfig|net\.exe|netstat|wmic|systeminfo|hostname|query)\.exe/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ParentImageFileName, ImageFileName, CommandLine])</pre>
+  </article>
+
+  <!-- Q5 -->
+  <article class="query-card" id="query-card-q5">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q5. nltest.exe Domain Trust Enumeration — Ransomware Precursor</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: process telemetry with command line</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q5">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q5">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>nltest.exe</code> invoked with <code>/domain_trusts</code> or <code>/all_trusts</code> — the specific domain enumeration Red Canary identifies as a ransomware-precursor signal in SocGholish infections.
+      <strong>Accomplishes:</strong> High-fidelity escalation signal. This should be treated as an immediate escalation and should trigger a containment decision.
+    </p>
+    <pre id="query-q5">// HUNT: nltest.exe Domain Trust Enumeration - Ransomware Precursor Signal
+// MITRE: T1482
+// CONF: high | FP: low | COST: low
+// REQUIRES: ProcessRollup2 with full command line
+// FALSE POSITIVES: Legitimate AD admin activity from IT accounts - review UserName
+// TUNING: Create an allowlist of known AD admin accounts; alert on all others immediately
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ImageFileName=/\\nltest\.exe$/i
+| CommandLine=/(\/domain_trusts|\/all_trusts)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])</pre>
+  </article>
+
+  <!-- Q6 -->
+  <article class="query-card" id="query-card-q6">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q6. Script Host Creating Scheduled Task — SocGholish Persistence</h3>
+        <div class="query-meta">CONF: medium-high | FP: medium | COST: low | Requires: scheduled task + process telemetry</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q6">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q6">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Scheduled tasks registered where the creating process is a script host (<code>wscript.exe</code>, <code>cscript.exe</code>) or schtasks.exe spawned from a script host parent.
+      <strong>Accomplishes:</strong> Detects the SocGholish persistence mechanism. Scheduled tasks under user context that point to user-writable paths are a high-confidence indicator.
+    </p>
+    <div class="note">Common FP: Legitimate software installers using wscript to create update tasks. Review TaskName and TaskCommand for user-writable paths (AppData, Temp, Downloads) as discriminator.</div>
+    <pre id="query-q6">// HUNT: Script Host Creating Scheduled Task - SocGholish Persistence
+// MITRE: T1053.005
+// CONF: medium-high | FP: medium | COST: low
+// REQUIRES: ScheduledTaskRegistered or ProcessRollup2 for schtasks.exe
+// FALSE POSITIVES: Software installers using wscript to register update tasks
+// TUNING: Filter on TaskCommand paths - AppData/Temp/Downloads are high-confidence; System32 is lower risk
+
+#event_simpleName=/ScheduledTaskRegistered|ScheduledTaskModified/i
+| TaskName=/.+/
+| TaskCommand=/(wscript|cscript|powershell|cmd|mshta|\\AppData\\|\\Temp\\|\\Downloads\\)/i
+| table([@timestamp, ComputerName, UserName, TaskName, TaskCommand, TaskArguments])
+
+union
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ImageFileName=/\\schtasks\.exe$/i
+| ParentBaseFileName=/(wscript|cscript|mshta)\.exe/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])</pre>
+  </article>
+
+  <!-- Q7 -->
+  <article class="query-card" id="query-card-q7">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q7. Second-Stage Payload Indicators — MintsLoader / Python Backdoor / RAT</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: low-medium | Requires: process telemetry with parent tracking</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q7">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q7">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Python interpreter, msiexec, or unusual loaders spawning from a script host parent — the second-stage delivery pattern seen in ~25% of 2025 SocGholish infections leading to ASyncRAT, StealC, or ransomware-precursor backdoors.
+      <strong>Accomplishes:</strong> Catches escalation from initial access to persistent backdoor before full C2 is established.
+    </p>
+    <div class="note">Common FP: Developer workstations where Python is legitimately used via scripts. Tune by creating a Python developer host allowlist. On non-developer hosts, python.exe from a script host parent is anomalous.</div>
+    <pre id="query-q7">// HUNT: Second-Stage Payload - MintsLoader / Python Backdoor / RAT Delivery
+// MITRE: T1105, T1059.007
+// CONF: medium | FP: medium | COST: low-medium
+// REQUIRES: ProcessRollup2 with parent tracking
+// FALSE POSITIVES: Developer workstations with Python; IT automation using msiexec via scripts
+// TUNING: Allowlist known developer host groups; alert on python.exe in user profile paths
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ParentBaseFileName=/(wscript|cscript|mshta|browser|chrome|msedge|firefox)\.exe/i
+| ImageFileName=/(python|pythonw|msiexec|regsvr32|rundll32|certutil)\.exe/i
+| CommandLine!=/\/unregserver|\/RegServer/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ParentImageFileName, ImageFileName, CommandLine, SHA256HashData])</pre>
+  </article>
+
+</div></section>
+
+<!-- ─── 9. IOA ─── -->
+<section id="ioa"><div class="container">
+  <h2>9. CrowdStrike Custom IOA Recommendations</h2>
+  <table><thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Expected Benign Exclusions</th><th>Deployment Path</th></tr></thead><tbody>
+    <tr><td>Browser spawning wscript.exe</td><td>Parent Image Filename: <span class="mono">.*(chrome|msedge|firefox|iexplore)\.exe</span>; Image Filename: <span class="mono">.*\\wscript\.exe</span></td><td>Enterprise software updaters that legitimately spawn wscript from a browser context — exclude by parent path or signed hash.</td><td>Start Detect-only; promote to Prevention on non-developer workstations and servers after two clean business cycles.</td></tr>
+    <tr><td>nltest.exe domain trust enumeration</td><td>Image Filename: <span class="mono">.*\\nltest\.exe</span>; Command Line includes <span class="mono">/domain_trusts</span> or <span class="mono">/all_trusts</span></td><td>AD administrator accounts performing domain inventory — allowlist by username or process parent (SCCM, AD management tools).</td><td>Detect-with-escalation for all accounts; Prevention candidate for user workstations where AD admin tools are not deployed.</td></tr>
+    <tr><td>rad*.tmp staging artifact</td><td>Target Filename matches <span class="mono">\\rad[0-9a-fA-F]{5}\.tmp$</span></td><td>Very low — this naming pattern is SocGholish-specific. No known legitimate software uses this exact convention.</td><td>Prevention candidate — block file creation matching this regex in %TEMP% paths.</td></tr>
+    <tr><td>Script host spawning python.exe outside dev paths</td><td>Parent Base Filename: <span class="mono">(wscript|cscript)\.exe</span>; Image Filename: <span class="mono">.*\\python(w)?\.exe</span>; Image Filename NOT in approved dev paths.</td><td>Developer workstations, data science hosts, Python-based IT automation.</td><td>Detect-only with host-group scoping; Prevention for server and non-developer workstation groups.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 10. IOC JSON ─── -->
+<section id="iocappendix"><div class="container">
+  <h2>10. Machine-Readable IOC Appendix</h2>
+  <pre id="ioc-json">{
+  "hunt": "socgholish",
+  "updated": "2026-06-02",
+  "indicators": [
+    {"type":"process_chain","value":"browser -> wscript.exe -> NetworkConnectIP4","confidence":"high","action":"detect","source":"Red Canary 2026 TDR","expiry":"2026-12-02"},
+    {"type":"filename_pattern","value":"rad[0-9a-fA-F]{5}\\.tmp","confidence":"high","action":"hunt","source":"Red Canary 2026 TDR","expiry":"2026-12-02"},
+    {"type":"cmdline","value":"nltest.exe /domain_trusts","confidence":"high","action":"detect","source":"Red Canary 2026 TDR","expiry":"2026-12-02"},
+    {"type":"cmdline","value":"nltest.exe /all_trusts","confidence":"high","action":"detect","source":"Red Canary 2026 TDR","expiry":"2026-12-02"},
+    {"type":"filename_pattern","value":"Chrome.Update.zip (homoglyph variants)","confidence":"high","action":"hunt","source":"Red Canary 2026 TDR","expiry":"2026-12-02"},
+    {"type":"filename_pattern","value":"Uрdate.js (Cyrillic р U+0440)","confidence":"high","action":"hunt","source":"Red Canary 2026 TDR","expiry":"2026-12-02"},
+    {"type":"process","value":"wscript.exe with external NetworkConnectIP4","confidence":"high","action":"hunt","source":"MITRE S1124","expiry":"2026-12-02"},
+    {"type":"malware_family","value":"MintsLoader","confidence":"medium","action":"detect","source":"Red Canary 2026 TDR","expiry":"2026-09-02"},
+    {"type":"malware_family","value":"ASyncRAT","confidence":"medium","action":"detect","source":"Red Canary 2026 TDR","expiry":"2026-09-02"},
+    {"type":"malware_family","value":"StealC","confidence":"medium","action":"detect","source":"Red Canary 2026 TDR","expiry":"2026-09-02"},
+    {"type":"infrastructure","value":"AWS S3 (second-stage hosting)","confidence":"low","action":"enrich","source":"SentinelOne","expiry":"2026-07-02"}
+  ]
+}</pre>
+</div></section>
+
+<!-- ─── 11. VALIDATION ─── -->
+<section id="validation"><div class="container">
+  <h2>11. Detection Validation Gates</h2>
+  <table><thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead><tbody>
+    <tr><td>Telemetry ready</td><td>Confirm ProcessRollup2 includes ParentBaseFileName and full CommandLine. Confirm NetworkConnectIP4 is populated for workstations. Confirm FileCreateInfo captures temp directory writes. Confirm ScheduledTaskRegistered events are present.</td><td>Saved query screenshots or exported event samples from a 7-day baseline run.</td></tr>
+    <tr><td>Benign baseline</td><td>Inventory all approved enterprise scripts that use wscript.exe. Identify any legitimate software that spawns wscript from browser context. Identify AD admin accounts that legitimately run nltest.exe.</td><td>Known-good host group and approved process hash/path allowlist.</td></tr>
+    <tr><td>Positive tests</td><td>Use Atomic Red Team T1059.007 #2 (JScript via wscript) and T1033 #6 (whoami recon) and T1482 #2 (nltest domain trusts) to verify detections fire. Create a test .tmp file matching rad[5hex].tmp to validate Q3.</td><td>Lab host detections tied to expected query IDs.</td></tr>
+    <tr><td>Promotion</td><td>Move IOAs from Detect to Prevention only after two clean business cycles and owner sign-off. Prioritize browser→wscript.exe and nltest for promotion.</td><td>Detection owner sign-off, FP rate documented, exclusion list reviewed.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 12. HARDENING ─── -->
+<section id="hardening"><div class="container">
+  <h2>12. Hardening — Tiered &amp; Deployable</h2>
+  <h3>Immediate</h3>
+  <ul>
+    <li><strong>Remap .js file association via GPO.</strong> Change the default handler for <code>.js</code> files from <code>wscript.exe</code> to <code>notepad.exe</code>. This single control prevents SocGholish, Gootloader, and most JS-based loaders from executing on double-click. Deploy via GPO: <code>HKCR\.js</code> → set default to <code>txtfile</code>, or create a GPO Software Restriction Policy targeting the .js extension. Red Canary blog "Open with Notepad" covers implementation details.</li>
+    <li><strong>Block wscript.exe / cscript.exe via ASR or AppLocker for standard users.</strong> Attack Surface Reduction rule: Block execution of potentially obfuscated scripts (GUID <code>5BEB7EFE-FD9A-4556-801D-275E5FFC04CC</code>). For AppLocker, deny wscript.exe and cscript.exe for non-admin user groups.</li>
+    <li><strong>Enable Script Block Logging and Script Content Capture</strong> in Falcon sensor policy and Windows PowerShell settings. This provides in-memory visibility into JS payload content.</li>
+  </ul>
+  <h3>Near Term</h3>
+  <ul>
+    <li><strong>Deploy web filtering / DNS-based blocking</strong> to catch known SocGholish TDS infrastructure. Use threat intelligence feeds for current domain blocklists; these rotate, so automation is required.</li>
+    <li><strong>Restrict scheduled task creation</strong> for standard user accounts via GPO (<code>Computer Configuration → Windows Settings → Security Settings → User Rights Assignment → Create scheduled tasks</code> — deny for non-admin groups).</li>
+    <li><strong>Enforce MFA and conditional access</strong> on all accounts. SocGholish infections that lead to ransomware typically involve credential theft (StealC) as a stepping stone. Limiting credential reuse limits blast radius.</li>
+    <li><strong>Monitor and restrict nltest.exe</strong> outside of known AD management tooling. Consider blocking nltest.exe for non-admin accounts entirely via AppLocker/WDAC.</li>
+  </ul>
+  <h3>Strategic</h3>
+  <ul>
+    <li><strong>Implement a browser isolation or RBI solution</strong> for high-risk users (finance, HR, executives). Drive-by compromise requires the browser to render attacker-controlled content.</li>
+    <li><strong>Adopt application control (WDAC or AppLocker)</strong> in audit mode, progressing to enforcement, to restrict unsigned script execution across the fleet.</li>
+    <li><strong>Continuously validate JS execution controls</strong> via Atomic Red Team T1059.007 in your CI/CD-style detection pipeline. SocGholish is a persistent top-10 threat; controls need routine testing.</li>
+  </ul>
+</div></section>
+
+<!-- ─── 13. PLAYBOOKS ─── -->
+<section id="playbooks"><div class="container">
+  <h2>13. Deployable Playbooks</h2>
+  <article class="query-card">
+    <div class="query-head"><h3 class="query-title">SocGholish Initial Triage</h3><div class="query-meta">Scope: SOC L1 / endpoint owner</div></div>
+    <pre id="playbook-1">1. Confirm the alert: verify parent process (browser), child process (wscript.exe), and external network connection.
+2. Identify lure file: check CommandLine of wscript.exe for the .js filename. Note any homoglyph characters.
+3. Check for rad*.tmp artifacts in %TEMP% on the affected host (FileCreateInfo events or live file system).
+4. Check for system discovery commands spawned by wscript.exe: whoami, ipconfig, nltest, net.
+5. If nltest.exe /domain_trusts is present — ESCALATE IMMEDIATELY. This is a ransomware precursor.
+6. Check for scheduled tasks created in the past 2 hours on the affected host.
+7. Check for second-stage processes: python.exe, msiexec, or unusual loaders from wscript.exe parent.
+8. Isolate host if: nltest is present, second-stage payload observed, or domain credentials may be at risk.
+9. Preserve: browser history, %TEMP% contents, scheduled task XML, wscript.exe process tree, network connections.
+10. Reset the affected user's credentials and revoke active sessions if domain credentials were exposed.</pre>
+  </article>
+  <article class="query-card">
+    <div class="query-head"><h3 class="query-title">nltest Escalation Playbook</h3><div class="query-meta">Scope: SOC Lead / IR — escalate immediately on nltest detection</div></div>
+    <pre id="playbook-2">1. Treat any nltest.exe /domain_trusts or /all_trusts from a non-admin account as a confirmed ransomware precursor.
+2. Immediately contain the host via Falcon network containment.
+3. Identify the user account and check for lateral movement: other hosts with the same user's credentials active.
+4. Pull the full process tree on the affected host for the past 72 hours.
+5. Check for credential staging: NTDS.dit access, LSASS dumps, SAM/SYSTEM copies.
+6. Check for RansomHub or similar ransomware staging indicators: shadow copy deletion, event log clearing.
+7. Notify IR lead and initiate incident response if any of the above are present.
+8. Reset all domain credentials associated with the affected user. Revoke Kerberos tickets (klist purge / krbtgt reset if krbtgt is suspected).
+9. Block outbound connections from the affected host while investigation is active.</pre>
+  </article>
+</div></section>
+
+<!-- ─── 14. CONTAINMENT ─── -->
+<section id="containment"><div class="container">
+  <h2>14. Containment Runbook</h2>
+  <table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody>
+    <tr><td>Confirm</td><td>Verify browser → wscript.exe execution chain. Check for rad*.tmp, discovery commands, nltest, scheduled tasks, and second-stage payloads.</td><td>SOC lead</td><td>Falcon event exports, process trees, file system artifacts.</td></tr>
+    <tr><td>Contain</td><td>Network-contain the affected host in Falcon. Disable the affected user account. Revoke active sessions. Block any C2 IPs surfaced from Q2 at perimeter.</td><td>IR lead</td><td>Containment timestamps, blocked IP/domain list.</td></tr>
+    <tr><td>Remediate</td><td>Stop wscript.exe processes. Remove malicious scheduled tasks. Delete payload files from %TEMP%, AppData, Registry. Rebuild the host if second-stage payload is confirmed. Reset user credentials.</td><td>Endpoint / identity owners</td><td>Cleaned host checklist, credential reset confirmation.</td></tr>
+    <tr><td>Recover</td><td>Re-image if second-stage payload confirmed. Restore from known-good backup if required. Re-enable user account with new credentials and MFA confirmed. Monitor for re-infection for 30 days.</td><td>Infrastructure owner</td><td>Clean monitoring window log, user re-enablement ticket.</td></tr>
+    <tr><td>Harden</td><td>Deploy .js file association GPO if not already in place. Enable ASR rule for obfuscated script execution. Review other hosts with same user for lateral spread.</td><td>Detection engineering</td><td>GPO deployment confirmation, ASR policy update.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 15. COVERAGE ─── -->
+<section id="coverage"><div class="container">
+  <h2>15. Detection Coverage Map</h2>
+  <table><thead><tr><th>Behavior</th><th>Primary Detection</th><th>Fallback Detection</th><th>Known Gap</th></tr></thead><tbody>
+    <tr><td>Drive-by compromise / lure delivery</td><td>None — upstream of Falcon endpoint visibility</td><td>Web proxy / DNS filtering for known TDS infrastructure</td><td>No endpoint signal before user executes the file. Web-layer controls required.</td></tr>
+    <tr><td>wscript.exe execution of JS lure</td><td>Q1 — browser → wscript.exe chain</td><td>Native Windows Event Log (Event ID 4688 with command line)</td><td>Without parent process telemetry, Q1 cannot fire. Verify ProcessRollup2 includes ParentBaseFileName.</td></tr>
+    <tr><td>C2 beacon / data exfiltration</td><td>Q2 — wscript.exe outbound network connection</td><td>Proxy/firewall logs for wscript.exe user-agent</td><td>HTTPS-encrypted C2 traffic content is opaque. Destination IP is observable but may be a CDN.</td></tr>
+    <tr><td>whoami output staging</td><td>Q3 — rad*.tmp file creation</td><td>Q4 — whoami spawned from wscript.exe</td><td>In-memory execution leaves no file artifact if staging step is skipped.</td></tr>
+    <tr><td>System discovery</td><td>Q4 — script host spawning discovery utilities</td><td>Windows Security Event Log process creation</td><td>WMI-based discovery (T1047) may not be captured if WMI process telemetry is not enabled.</td></tr>
+    <tr><td>Domain trust enumeration</td><td>Q5 — nltest.exe /domain_trusts</td><td>Windows Security Event Log</td><td>Low gap risk — nltest.exe is a command-line utility with strong process telemetry signal.</td></tr>
+    <tr><td>Scheduled task persistence</td><td>Q6 — script host scheduled task creation</td><td>Windows Security Event ID 4698, native task scheduler audit</td><td>Task XML stored in file system; check %SystemRoot%\System32\Tasks for unauthorized entries.</td></tr>
+    <tr><td>Second-stage payload (MintsLoader / Python / RAT)</td><td>Q7 — unusual child processes from script host</td><td>Falcon Prevent signature for MintsLoader / ASyncRAT / StealC</td><td>New MintsLoader variants or obfuscated droppers may evade Q7. Rely on Falcon Prevent as backstop.</td></tr>
+    <tr><td>Homoglyph filename evasion</td><td>Q1 catches execution regardless of filename; homoglyph detection requires Unicode-aware string matching not yet in Q1</td><td>EDR file creation alerts on .zip/.js in Downloads or Desktop</td><td>CQL regex does not natively match Cyrillic/Greek homoglyphs. Consider a separate file name review query with Unicode-aware logic.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 16. TICKET ─── -->
+<section id="ticket"><div class="container">
+  <h2>16. Hunt Summary Ticket</h2>
+  <pre id="ticket-text">Title: SocGholish (FakeUpdates) — Hunt and Hardening Review
+Scope: Last 30 days across all Windows workstations, focusing on browser users, domain controllers (nltest signal), and user-context scheduled tasks
+Hypothesis: SocGholish infections will show a browser spawning wscript.exe, followed by outbound network connections, recon utilities, and optionally nltest.exe or second-stage payload delivery.
+Queries run: Q1 (browser→wscript), Q2 (wscript outbound net), Q3 (rad*.tmp staging), Q4 (script host discovery), Q5 (nltest domain trusts), Q6 (scheduled task persistence), Q7 (second-stage payload)
+Data sources: Falcon ProcessRollup2, NetworkConnectIP4, FileCreateInfo, ScheduledTaskRegistered; Windows Security Event Log; proxy/DNS logs
+Findings: Record hosts, usernames, parent processes, lure filenames, C2 destinations, and whether any nltest.exe or second-stage payload activity was observed.
+Gaps: Confirm ProcessRollup2 includes ParentBaseFileName field. Verify FileCreateInfo covers %TEMP% writes. Confirm ScheduledTaskRegistered is populated. Review WMI process telemetry for T1047 coverage.
+Actions: Triage true positives. Isolate any host with nltest or second-stage signal. Deploy .js file association GPO if not in place. Tune Q1 for approved enterprise wscript usage. Open hardening tasks for ASR rule deployment.
+Owner: SOC detection engineering
+Author: cap10</pre>
+</div></section>
+
+<!-- ─── 17. CHANGELOG ─── -->
+<section id="changelog"><div class="container">
+  <h2>17. Changelog</h2>
+  <table><thead><tr><th>Version</th><th>Date</th><th>Change Summary</th></tr></thead><tbody>
+    <tr><td>v0.1</td><td>2026-06-02</td><td>Initial SocGholish HuntPack. 7 CQL queries covering execution chain, C2 beacon, data staging, system discovery, domain trust enumeration, scheduled task persistence, and second-stage delivery. Sources: Red Canary 2026 TDR, MITRE S1124, Proofpoint, Secureworks, SentinelOne.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 18. REFERENCES ─── -->
+<section id="refs"><div class="container">
+  <h2>18. References</h2>
+  <table><thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead><tbody>
+    <tr><td>Primary — vendor detection data</td><td><a href="https://redcanary.com/threat-detection-report/threats/socgholish/">Red Canary 2026 Threat Detection Report: SocGholish</a></td><td>All behavioral TTPs, detection analytics, homoglyph IOCs, MintsLoader/ASyncRAT/StealC/RansomHub chain, prevalence statistics.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — canonical TTP catalog</td><td><a href="https://attack.mitre.org/software/S1124/">MITRE ATT&amp;CK S1124: SocGholish</a></td><td>Full technique mapping, Mustard Tempest/Indrik Spider attribution, T1189/T1059.007/T1482 confirmation.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.proofpoint.com/us/blog/threat-insight/part-1-socgholish-very-real-threat-very-fake-update">Proofpoint: SocGholish, A Very Real Threat From A Very Fake Update</a></td><td>WMI-based profiling, AutoUpdater.js masquerade, Base64 C2 URL encoding, spearphishing link delivery.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.secureworks.com/research/threat-profiles/gold-prelude">Secureworks: GOLD PRELUDE Threat Profile</a></td><td>Attribution (GOLD PRELUDE), geolocation filtering, process/software discovery, AWS infrastructure.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.sentinelone.com/labs/socgholish-diversifies-and-expands-its-malware-staging-infrastructure-to-counter-defenders/">SentinelOne: SocGholish Infrastructure Diversification</a></td><td>Infrastructure staging patterns, Base64 second-stage URL encoding, AWS S3 hosting.</td><td>2026-06-02</td></tr>
+  </tbody></table>
+  <p style="color:var(--muted);font-size:.88rem;margin-top:16px;">SocGholish HuntPack v0.1 — Validate queries against tenant telemetry before promotion. Author: cap10.</p>
+</div></section>
+
+</main>
+
+<script>
+  const cloudSelect = document.getElementById("falcon-cloud");
+  const cloudHost = document.getElementById("falcon-host");
+  const toc = document.querySelector(".toc");
+
+  function getTextById(id) {
+    const node = document.getElementById(id);
+    return node ? node.textContent.trim() : "";
+  }
+
+  async function copyText(text, button) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const previous = button.textContent;
+      button.textContent = "Copied";
+      window.setTimeout(() => { button.textContent = previous; }, 1400);
+    } catch (error) {
+      window.prompt("Copy this text:", text);
+    }
+  }
+
+  function updateCloudHost() {
+    cloudHost.textContent = cloudSelect.value;
+  }
+
+  function updateStickyOffsets() {
+    if (toc) {
+      document.documentElement.style.setProperty("--toc-height", `${toc.offsetHeight}px`);
+    }
+  }
+
+  function openInFalcon(query) {
+    const base = cloudSelect.value.replace(/\/$/, "");
+    // Strip // comment lines before sending — they bloat the URL and may confuse the parser
+    const cleanQuery = query.split("\n")
+      .filter(line => !line.trim().startsWith("//"))
+      .join("\n")
+      .trim();
+    const encoded = encodeURIComponent(cleanQuery);
+    const url = `${base}/investigate/search?query=${encoded}`;
+    const win = window.open(url, "_blank", "noopener");
+    if (!win) {
+      // Popup blocked — give the user a copyable URL as fallback
+      window.prompt("Popup blocked. Copy the URL and paste it into your browser:", url);
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    const copyButton = event.target.closest(".copy");
+    if (copyButton) { copyText(getTextById(copyButton.dataset.copyTarget), copyButton); }
+    const falconButton = event.target.closest(".open-falcon");
+    if (falconButton) { openInFalcon(getTextById(falconButton.dataset.queryTarget)); }
+  });
+
+  cloudSelect.addEventListener("change", updateCloudHost);
+  window.addEventListener("resize", updateStickyOffsets);
+  updateStickyOffsets();
+  updateCloudHost();
+</script>
+</body>
+</html>

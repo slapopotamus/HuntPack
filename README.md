@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### SocGholish — Defender Hunt & Hardening Pack
+**JavaScript loader / fake browser-update drive-by (Mustard Tempest / GOLD PRELUDE → Evil Corp)**
+Behavior-first HuntPack for SocGholish (FakeUpdates) — a JavaScript-based loader delivered via compromised websites posing as browser updates. Operated by Mustard Tempest (GOLD PRELUDE), with access sold to Indrik Spider (Evil Corp) for ransomware deployment; ranked #8 in the 2026 Red Canary Threat Detection Report. Covers drive-by compromise and fake-update lures, JavaScript/WScript execution, recon and second-stage delivery, AD-targeted follow-on, RansomHub-via-MintsLoader handoff, Falcon LogScale CQL hunts, Custom IOA guidance, validation gates, and hardening.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/SocGholish-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/SocGholish-Hunt.html)
+
+---
+
 ### Qilin Ransomware Hunt
 **Ransomware-as-a-Service / Veeam exploitation / RMM and ESXi impact**
 Hunt pack for Red Canary's Qilin ransomware coverage and related Cybernews, Sophos, Trend Micro, Microsoft, HHS, CIS/MS-ISAC, Halcyon, and CrowdStrike enrichment - covers Veeam CVE-2023-27532/CVE-2024-40711 precursors, Admon admin creation, GPO-based Chrome credential theft, ScreenConnect/MSP pivoting, recovery inhibition, ESXi/Linux behavior, IOC action guidance, Falcon LogScale CQL hunts, Custom IOA candidates, validation gates, hardening, and containment.
