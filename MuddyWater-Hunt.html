@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MuddyWater – Defender Hunt &amp; Hardening Pack</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1f2633;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #9ca3af;
+      --accent: #58a6ff;
+      --good: #7ee787;
+      --warn: #d29922;
+      --crit: #f85149;
+      --code: #080c12;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+    a { color: var(--accent); }
+    code, pre, .mono { font-family: Consolas, Menlo, Monaco, "Courier New", monospace; }
+    .container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .hero { padding: 38px 0 24px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, #12233a 0%, #171c24 52%, #0d1117 100%); }
+    .badge-row, .meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .badge { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; background: var(--panel-2); color: var(--muted); font-size: .74rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+    .badge.critical { color: var(--crit); border-color: rgba(248,81,73,.55); background: rgba(248,81,73,.12); }
+    .badge.warning { color: var(--warn); border-color: rgba(210,153,34,.55); background: rgba(210,153,34,.12); }
+    .badge.good { color: var(--good); border-color: rgba(126,231,135,.45); background: rgba(126,231,135,.09); }
+    h1 { margin: 14px 0 8px; font-size: clamp(2rem,5vw,3rem); line-height: 1.05; }
+    .subtitle { max-width: 1050px; color: var(--muted); font-size: 1.05rem; margin: 0 0 18px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 10px; margin: 20px 0 16px; }
+    .stat { border: 1px solid var(--border); border-radius: 7px; background: rgba(31,38,51,.82); padding: 11px 12px; }
+    .stat-label { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { display: block; margin-top: 3px; font-weight: 800; overflow-wrap: anywhere; }
+    .meta-row { border-top: 1px solid rgba(255,255,255,.08); padding-top: 13px; color: var(--muted); font-size: .9rem; }
+    .meta-row strong { color: var(--text); }
+    .toc { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.95); backdrop-filter: blur(8px); }
+    .toc .container { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
+    .toc a { border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; background: var(--panel); color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .toc a:hover { border-color: var(--accent); color: var(--accent); }
+    .utility-bar { position: sticky; top: var(--toc-height,44px); z-index: 19; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.96); backdrop-filter: blur(8px); }
+    .utility-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 0; color: var(--muted); font-size: .88rem; }
+    .utility-inner strong { color: var(--text); }
+    select { border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); padding: 6px 10px; }
+    .host { border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; background: var(--panel); color: var(--accent); font-size: .84rem; overflow-wrap: anywhere; }
+    section { padding: 34px 0; border-bottom: 1px solid var(--border); scroll-margin-top: calc(var(--toc-height,44px) + 52px); }
+    h2 { display: inline-block; margin: 0 0 16px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); font-size: 1.45rem; line-height: 1.2; }
+    h3 { margin: 20px 0 10px; font-size: 1.08rem; }
+    p { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
+    th, td { border: 1px solid var(--border); padding: 9px 10px; vertical-align: top; }
+    th { background: var(--panel-2); text-align: left; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+    td { background: rgba(22,27,34,.72); }
+    .note { border-left: 4px solid var(--warn); background: rgba(210,153,34,.09); padding: 12px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+    .note.crit { border-left-color: var(--crit); background: rgba(248,81,73,.09); }
+    .query-card { border: 1px solid var(--border); border-radius: 7px; background: var(--panel); margin: 16px 0; overflow: hidden; }
+    .query-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 13px 14px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+    .query-title { margin: 0 0 5px; }
+    .query-meta { color: var(--muted); font-size: .84rem; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .button { border: 1px solid var(--border); border-radius: 5px; background: var(--panel); color: var(--text); padding: 6px 10px; cursor: pointer; font-weight: 700; font-size: .82rem; }
+    .button:hover { border-color: var(--accent); color: var(--accent); }
+    .button.primary { background: rgba(88,166,255,.12); border-color: rgba(88,166,255,.55); color: #a5d6ff; }
+    .query-summary { padding: 12px 14px; color: var(--muted); }
+    .query-summary strong { color: var(--text); }
+    pre { margin: 0; padding: 14px; overflow-x: auto; background: var(--code); color: #dbeafe; border-top: 1px solid var(--border); font-size: .88rem; line-height: 1.5; }
+    ul, ol { margin-top: 6px; }
+    li { margin-bottom: 4px; }
+    @media (max-width:720px) { .query-head { display: block; } .button-row { justify-content: flex-start; margin-top: 10px; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="badge-row">
+      <span class="badge critical">Critical</span>
+      <span class="badge critical">Nation-state / Iranian MOIS</span>
+      <span class="badge warning">Espionage / Persistent Access</span>
+      <span class="badge">Windows / AD / Cloud</span>
+      <span class="badge">Active since 2017</span>
+      <span class="badge good">v2.0</span>
+    </div>
+    <h1>MuddyWater</h1>
+    <p class="subtitle">Nation-state APT subordinate to Iran's Ministry of Intelligence and Security (MOIS). Operates since 2017 across government, telecom, oil &amp; gas, defense, and finance sectors in the Middle East, Asia, Europe, and North America. Signature TTPs: heavy PowerShell use at every kill-chain stage, systematic RMM tool abuse (Atera, SimpleHelp, ScreenConnect, N-able, Action1, PDQ, Level) as C2 delivered from free file-sharing services, compromised-mailbox spearphishing, and DLL sideloading via GoogleUpdate.exe. Recent campaigns (2024–2026) added BugSleep, Phoenix v4, the UDP-based UDPGangster backdoor, the MuddyViper backdoor (via the Snake-game “Fooder” reflective loader), the VAX One backdoor, and modular browser-credential stealers (CE Notes, LP Notes, Blub, Chromium_Stealer).</p>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">Objective</span><span class="stat-value">Espionage, persistent access, intel collection</span></div>
+      <div class="stat"><span class="stat-label">Initial Access</span><span class="stat-value">Spearphishing PDF/HTA/macro + RMM installer lures from file-sharing</span></div>
+      <div class="stat"><span class="stat-label">Platforms</span><span class="stat-value">Windows, Active Directory, cloud</span></div>
+      <div class="stat"><span class="stat-label">CQL Queries</span><span class="stat-value">21 cards</span></div>
+      <div class="stat"><span class="stat-label">CISA Advisory</span><span class="stat-value">AA22-055A (active)</span></div>
+      <div class="stat"><span class="stat-label">Key Tools</span><span class="stat-value">BugSleep, POWERSTATS, Phoenix v4, UDPGangster, MuddyViper, VAX One</span></div>
+    </div>
+    <div class="meta-row">
+      <span><strong>Generated:</strong> 2026-06-05</span>
+      <span><strong>MITRE ID:</strong> G0069</span>
+      <span><strong>Aliases:</strong> MERCURY, Mango Sandstorm, TA450, Seedworm, Static Kitten, TEMP.Zagros, Earth Vetala</span>
+      <span><strong>Attribution:</strong> Iranian MOIS (confirmed USCYBERCOM)</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="container">
+    <a href="#summary">1. Summary</a>
+    <a href="#sources">2. Sources</a>
+    <a href="#brief">3. Brief</a>
+    <a href="#iocs">4. IOCs</a>
+    <a href="#telemetry">5. Telemetry</a>
+    <a href="#mitre">6. ATT&amp;CK</a>
+    <a href="#native">7. Native Hunts</a>
+    <a href="#queries">8. CQL</a>
+    <a href="#ioa">9. IOA</a>
+    <a href="#iocjson">10. IOC JSON</a>
+    <a href="#validation">11. Validation</a>
+    <a href="#hardening">12. Hardening</a>
+    <a href="#playbooks">13. Playbooks</a>
+    <a href="#containment">14. Containment</a>
+    <a href="#coverage">15. Coverage</a>
+    <a href="#ticket">16. Ticket</a>
+    <a href="#changelog">17. Changelog</a>
+    <a href="#refs">18. References</a>
+  </div>
+</nav>
+
+<div class="utility-bar">
+  <div class="container utility-inner">
+    <strong>Falcon cloud:</strong>
+    <select id="falcon-cloud" aria-label="Falcon cloud">
+      <option value="https://falcon.crowdstrike.com">US-1</option>
+      <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+      <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+      <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+    </select>
+    <span class="host" id="falcon-host">https://falcon.crowdstrike.com</span>
+    <span>Copy and Open in Falcon controls use the selected cloud.</span>
+  </div>
+</div>
+
+<main>
+
+<!-- ─── 1. EXECUTIVE SUMMARY ─── -->
+<section id="summary"><div class="container">
+  <h2>1. Executive Summary</h2>
+  <p>MuddyWater is a persistent Iranian state-sponsored APT assessed with high confidence to be a subordinate element of Iran's Ministry of Intelligence and Security (MOIS). Active since at least 2017, the group targets government, telecom, defense, oil &amp; gas, and financial organizations across the Middle East, Asia, Europe, and North America. USCYBERCOM publicly attributed the group in 2022; CISA Advisory AA22-055A remains active.</p>
+  <p>The group's operational signature is PowerShell at every stage — from initial execution through C2 to exfil — combined with systematic abuse of legitimate Remote Monitoring and Management (RMM) tools (Atera, SimpleHelp, ScreenConnect, Syncro, NetBird, ConnectWise) as C2 infrastructure, deliberately chosen to blend into normal IT traffic. Delivery is consistently spearphishing using PDF/HTA attachments or links to trojanized RMM installers. Recent evolution (2024–2026) added BugSleep, the Phoenix v4 backdoor, and the Rust-based RustyWater RAT — signals the group is investing in custom tooling to reduce reliance on detectable RMM software. DLL sideloading via a renamed <code>GoogleUpdate.exe</code> alongside a malicious <code>goopdate86.dll</code> is a confirmed persistence mechanism.</p>
+  <p><strong>2025–2026 evolution.</strong> In October 2025 Group-IB documented a Phoenix v4 campaign run from <strong>compromised mailboxes</strong> (accessed over NordVPN) against 100+ MENA government entities, with VBA-macro Word lures. In December 2025 ESET disclosed a new toolset — the <strong>MuddyViper</strong> backdoor delivered by the <strong>Fooder</strong> reflective loader (which masquerades as the classic Snake game and uses a Snake-logic delay routine plus the modern CNG crypto API to evade sandboxes), the <strong>VAX One</strong> backdoor (impersonates Veeam/AnyDesk/Xerox/OneDrive-updater), and a stack of credential stealers (CE Notes, LP Notes, Blub). Separately, the <strong>UDPGangster</strong> backdoor (Dec 2025, targeting Turkey/Israel/Azerbaijan) breaks from HTTP C2 entirely — it beacons over raw <strong>UDP/1269</strong> to <code>157.20.182.75</code>, persists by copying itself to <code>%AppData%\RoamingLow\SystemProc.exe</code> with an <code>Explorer\User Shell</code> Run value, and carries heavy anti-VM/anti-debug checks. RMM delivery now spans Atera, SimpleHelp, ScreenConnect, N-able, Action1, PDQ and Level, staged from OneHub, Egnyte, Mega, Sync, TeraBox, filetransfer.io and even Zendesk/Zopim chat uploads. ESET also assesses MuddyWater may act as an <strong>initial-access broker</strong> for other Iran-aligned groups (overlap with Lyceum/OilRig).</p>
+  <p>The highest-value defensive angles are: catching Office apps or browsers spawning <code>mshta.exe</code> / scripting engines (earliest delivery signal), detecting browser-parented RMM installer launches (spearphishing link execution), auditing all unauthorized RMM agents fleet-wide (ongoing access), and catching obfuscated PowerShell download cradles (POWERSTATS/BugSleep loader). The <code>certutil -urlcache</code> and <code>bitsadmin /transfer</code> patterns are low-noise high-confidence IOCs.</p>
+  <div class="note crit"><strong>Defender priority:</strong> Run Q6 (RMM inventory) and Q7 (browser-parented RMM install) immediately — any hit on Q7 is an isolate-and-IR trigger. Run Q13/Q14 (DNS/IP IOC sweeps, now including UDPGangster <code>157.20.182.75</code>) and Q18 (anomalous UDP C2) as a retroactive 90-day sweep. Add Q16 (Run-key persistence) and Q17 (execution from <code>RoamingLow</code>/<code>Public</code> staging) to catch UDPGangster/Fooder, and Q19 (scripting-engine reach-out to file-sharing services) to catch the current RMM delivery vector. Any host touching the known C2 domains/IPs should be treated as actively compromised.</div>
+</div></section>
+
+<!-- ─── 2. SOURCE REVIEW ─── -->
+<section id="sources"><div class="container">
+  <h2>2. Source Review &amp; Intel Notes</h2>
+  <table><thead><tr><th>Source</th><th>Tier</th><th>Key Finding</th><th>Carry Forward</th></tr></thead><tbody>
+    <tr><td><a href="https://attack.mitre.org/groups/G0069/">MITRE ATT&amp;CK G0069 — MuddyWater</a></td><td>Primary — canonical TTP catalog</td><td>44 mapped techniques. Confirmed tools: POWERSTATS, PowGoop, Mimikatz, LaZagne, Browser64, Out1, mshta, regsvr32, rundll32, cmstp, certutil, makecab. RMM tools: Atera, SimpleHelp, ScreenConnect, RemoteUtilities. CVEs: CVE-2020-0688, CVE-2020-1472, CVE-2017-0199.</td><td>Yes — primary source for all technique coverage.</td></tr>
+    <tr><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-055a">CISA Advisory AA22-055A</a></td><td>Primary — government advisory</td><td>USCYBERCOM attribution to MOIS. Confirmed TTPs: PowerShell C2, DLL sideloading, spearphishing. Fleet-wide RMM auditing recommended.</td><td>Yes — drives IOC and hardening priority.</td></tr>
+    <tr><td><a href="https://research.checkpoint.com/2024/new-bugsleep-backdoor-deployed-in-recent-muddywater-campaigns/">Check Point Research — BugSleep</a></td><td>Primary — vendor research</td><td>BugSleep backdoor deployed since May 2024. Sleeps to evade sandbox, decrypts C2 config from mutex. Partially replaces RMM tool C2. C2 domain screenai[.]online confirmed.</td><td>Yes — BugSleep detection logic and IOCs.</td></tr>
+    <tr><td><a href="https://www.group-ib.com/blog/muddywater-espionage/">Group-IB — MuddyWater New Toolkit</a></td><td>Primary — vendor research</td><td>Phoenix v4 backdoor deployed via FakeUpdate injector, VBA macros. Targets 100+ government entities MENA. Domains: stratioai[.]org, bootcamptg[.]org.</td><td>Yes — Phoenix/FakeUpdate detection patterns and IOCs.</td></tr>
+    <tr><td><a href="https://www.deepinstinct.com/blog/darkbeatc2-the-latest-muddywater-attack-framework">Deep Instinct — DarkBeatC2</a></td><td>Primary — vendor research</td><td>DarkBeatC2 framework using Python-based backdoors. C2 over legitimate web services. IP 91[.]121[.]240[.]102 linked to PhonyC2 campaign.</td><td>Yes — C2 IP IOC and Python backdoor hunting.</td></tr>
+    <tr><td><a href="https://www.protoslabs.io/resources/rustywater-rust-rat-campaign">ProtoSLabs — RustyWater RAT</a></td><td>Primary — vendor research</td><td>New Rust-based RAT delivered via spearphishing. Signals investment in custom tooling to evade RMM-based detection. Domain nomercys[.]it[.]com → 159[.]198[.]66[.]153.</td><td>Yes — IOCs and RustyWater delivery chain.</td></tr>
+    <tr><td><a href="https://www.group-ib.com/blog/muddywater-infrastructure-malware/">Group-IB — Tracking MuddyWater in 2025</a></td><td>Primary — vendor research</td><td>Oct 2025 Phoenix v4 campaign from compromised mailbox over NordVPN; 100+ MENA government targets; VBA-macro Word lures; payloads staged on Egnyte, Onehub, Sync, TeraBox. Confirms screenai[.]online re-registered (NameCheap, 2025-08-17) hosting PDQ RMM.</td><td>Yes — compromised-mailbox + file-sharing delivery, Phoenix detection.</td></tr>
+    <tr><td><a href="https://www.helpnetsecurity.com/2025/12/02/eset-muddywater-cyber-campaign/">ESET (via Help Net) — New Backdoors Dec 2025</a></td><td>Primary — vendor research</td><td>New toolset hitting Israel + Egypt: MuddyViper backdoor, Fooder loader (Snake-game masquerade, reflective in-memory load, Snake-logic delay, CNG crypto), VAX One backdoor (impersonates Veeam/AnyDesk/Xerox/OneDrive), stealers CE Notes/LP Notes/Blub. RMM delivery via Atera/Level/PDQ/SimpleHelp from OneHub/Egnyte/Mega. MuddyWater assessed as possible IAB (Lyceum/OilRig overlap).</td><td>Yes — MuddyViper/Fooder/VAX One detection + stealer hunting.</td></tr>
+    <tr><td><a href="https://thehackernews.com/2025/12/muddywater-deploys-udpgangster-backdoor.html">The Hacker News / Fortinet — UDPGangster</a></td><td>Primary — vendor research</td><td>Dec 2025 backdoor targeting Turkey/Israel/Azerbaijan. Raw UDP C2 to 157[.]20[.]182[.]75:1269; persists as %AppData%\RoamingLow\SystemProc.exe with HKCU Explorer\User Shell value; mutex xhxhxhxhxhxpp; VBA Document_Open() base64→C:\Users\Public\ui.txt→CreateProcessA; PDB path C:\Users\gangster\...\udp_3.0.pdb; extensive anti-VM/anti-debug.</td><td>Yes — UDP C2 IOC + behavioral persistence detection.</td></tr>
+    <tr><td><a href="https://harfanglab.io/insidethelab/muddywater-rmm-campaign/">HarfangLab — MuddyWater Atera Campaign (TRR240402)</a></td><td>Primary — vendor research</td><td>Atera Agent abuse via free-trial accounts registered with compromised/leaked OWA credentials; distribution via Egnyte, OneHub, Sync, filetransfer.io, freeupload.store and Zendesk/Zopim chat uploads. Provides 30+ Atera Agent SHA-256 hashes and distribution URLs.</td><td>Yes — Atera hashes + file-sharing distribution IOCs.</td></tr>
+    <tr><td><a href="https://www.securonix.com/blog/venomous-helper-phishing-campaign/">Securonix — VENOMOUS#HELPER (related TTP, not attributed)</a></td><td>Secondary — corroborating TTP</td><td>Apr 2025+ campaign (80+ US orgs) using customized SimpleHelp 5.0.1 + ScreenConnect as a redundant dual-RMM access channel; JWrapper EXE installs as service with Safe-Mode persistence and self-healing watchdog. Attributed to a financially-motivated IAB (STAC6405), <em>not</em> MuddyWater — included only to corroborate the dual-RMM TTP defenders must detect.</td><td>Partial — RMM-as-service persistence pattern; do not attribute IOCs to MuddyWater.</td></tr>
+  </tbody></table>
+  <table><thead><tr><th>Decision</th><th>Rationale</th><th>Pack Change</th></tr></thead><tbody>
+    <tr><td>Full behavioral hunt pack built</td><td>MITRE + vendor research provides high-quality endpoint telemetry. TTPs are stable across tool generations — RMM abuse, PowerShell C2, DLL sideloading patterns persist regardless of whether specific tool is POWERSTATS, BugSleep, or RustyWater.</td><td>15 CQL queries covering full kill chain. IOC sweep queries for known infrastructure.</td></tr>
+    <tr><td>Network IOCs: Detect only</td><td>Domains/IPs rotate. Blocking 159.198.66.153 without confirmation risks collateral damage (shared hosting). Treat all network IOCs as hunt/enrich triggers, not automatic blocks.</td><td>IOC queries generate alerts; no auto-block policy recommended for IPs.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 3. HUNT BRIEF ─── -->
+<section id="brief"><div class="container">
+  <h2>3. Hunt Brief &amp; Attack Chain</h2>
+  <p><strong>Working hypothesis:</strong> A MuddyWater infection will produce at least one durable endpoint signal across the kill chain: an Office app or browser spawning a scripting engine (delivery), obfuscated PowerShell with download cradles (C2 setup), an unauthorized RMM agent installation (persistent access), or credential dumping tools (escalation). The RMM installation signal — especially when the parent is a browser or Outlook — is the highest-confidence single indicator of compromise.</p>
+  <table><thead><tr><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead><tbody>
+    <tr><td>1. Victim receives spearphishing email with PDF/HTA attachment or link to RMM installer. Sent from compromised mailboxes for legitimacy.</td><td>Email gateway; ProcessRollup2 for Outlook spawning child processes.</td><td><strong>Q4</strong> — Office spawning scripting engine / LOLBin.</td></tr>
+    <tr><td>2a. User opens HTA attachment → <code>mshta.exe</code> fetches remote payload via HTTP/S.</td><td>ProcessRollup2 — mshta.exe with https:// in CommandLine.</td><td><strong>Q1</strong> — mshta.exe remote HTA execution.</td></tr>
+    <tr><td>2b. User clicks phishing link → browser downloads and launches RMM installer.</td><td>ProcessRollup2 — browser parent spawning RMM installer.</td><td><strong>Q7</strong> — browser/email-parented RMM install.</td></tr>
+    <tr><td>3. PowerShell backdoor (POWERSTATS / BugSleep loader) executes with obfuscated commands and download cradle.</td><td>ProcessRollup2 — powershell.exe with -EncodedCommand / IEX / DownloadString.</td><td><strong>Q3</strong> — obfuscated PowerShell C2/loader.</td></tr>
+    <tr><td>4. RMM agent installed as persistent C2 channel. Attacker connects via legitimate RMM console.</td><td>ProcessRollup2 — RMM agent process creation, AteraAgent/SimpleHelp/ScreenConnect services.</td><td><strong>Q6</strong> — RMM tool inventory audit.</td></tr>
+    <tr><td>5. DLL sideloading: GoogleUpdate.exe + malicious goopdate86.dll dropped in non-standard directory.</td><td>ProcessRollup2 — GoogleUpdate.exe outside normal Google Update path.</td><td><strong>Q5</strong> — DLL sideload via GoogleUpdate.</td></tr>
+    <tr><td>6. Persistence via scheduled task or registry Run key launching PS1 or RMM agent on reboot.</td><td>ProcessRollup2 — schtasks.exe with scripting engine arguments.</td><td><strong>Q9</strong> — scheduled task persistence.</td></tr>
+    <tr><td>7. Certutil / bitsadmin used to pull down stage-2 payloads (POWERSTATS, BugSleep, Phoenix).</td><td>ProcessRollup2 — certutil -urlcache / bitsadmin /transfer with https:// arg.</td><td><strong>Q8</strong> — certutil/bitsadmin download cradle.</td></tr>
+    <tr><td>8. Credential dumping: Mimikatz, procdump64 against LSASS; LaZagne/Browser64 for stored creds.</td><td>ProcessRollup2 — mimikatz.exe, procdump64.exe, lazagne.exe.</td><td><strong>Q10</strong> — LSASS/credential dumping.</td></tr>
+    <tr><td>9. Data staged using makecab.exe before exfiltration over C2 channel.</td><td>ProcessRollup2 — makecab.exe with non-TrustedInstaller parent.</td><td><strong>Q11</strong> — makecab data staging.</td></tr>
+    <tr><td>2c. Phishing link/PDF points to an RMM installer staged on a free file-sharing service (OneHub, Egnyte, Mega, Sync, TeraBox, Zopim chat). Scripting engine or browser reaches out to fetch it.</td><td>DnsRequest / NetworkConnectIP4 from browser or scripting engine to file-sharing domains.</td><td><strong>Q19</strong> — scripting/RMM reach-out to file-sharing &amp; cloud.</td></tr>
+    <tr><td>6b. UDPGangster/Fooder persistence: self-copy to %AppData%\RoamingLow\SystemProc.exe with an HKCU Run / Explorer User Shell value; loader runs reflectively from a user-writable dir.</td><td>ProcessRollup2 ImageFileName under \RoamingLow\ or \Users\Public\; AsepValueUpdate / RegGenericValueUpdate.</td><td><strong>Q16, Q17</strong> — Run-key persistence &amp; staging-dir execution.</td></tr>
+    <tr><td>8b. Defense evasion: stop/disable AV or security services; sandbox/VM checks before detonation.</td><td>ProcessRollup2 — net stop / sc stop / taskkill / Set-MpPreference against security products.</td><td><strong>Q20</strong> — security-service tampering.</td></tr>
+    <tr><td>8c. Credential theft from browsers (CE Notes / Blub / Chromium_Stealer) — non-browser process reads Login Data / Local State.</td><td>ProcessRollup2 + FileCreateInfo around browser credential stores.</td><td><strong>Q21</strong> — browser credential-store access.</td></tr>
+    <tr><td>10. C2 beacon to known MuddyWater infrastructure (screenai.online, stratioai.org, 159.198.66.153) over HTTP/S, or UDPGangster over raw UDP/1269 to 157.20.182.75.</td><td>DnsRequest, NetworkConnectIP4, NetworkConnectIP6 (UDP).</td><td><strong>Q13, Q14, Q18</strong> — DNS/IP IOC sweeps + anomalous UDP C2.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 4. IOCs ─── -->
+<section id="iocs"><div class="container">
+  <h2>4. Consolidated IOC Table</h2>
+  <div class="note">MuddyWater cycles infrastructure regularly. Behavioral indicators (process chains, command-line patterns) are more durable than network IOCs. Treat all domain/IP entries as hunt/enrich triggers — verify before blocking.</div>
+  <table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Expiry</th><th>Context</th></tr></thead><tbody>
+    <tr><td>Domain</td><td class="mono">screenai[.]online</td><td>High</td><td>Detect</td><td>2026-09-02</td><td>BugSleep C2 — active in 2024–2025 campaigns. Short-lived infra.</td></tr>
+    <tr><td>Domain</td><td class="mono">stratioai[.]org</td><td>High</td><td>Detect</td><td>2026-09-02</td><td>RMM lure / spearphishing delivery domain.</td></tr>
+    <tr><td>Domain</td><td class="mono">bootcamptg[.]org</td><td>High</td><td>Detect</td><td>2026-09-02</td><td>RMM lure / spearphishing delivery domain.</td></tr>
+    <tr><td>Domain</td><td class="mono">nomercys[.]it[.]com</td><td>Medium</td><td>Detect</td><td>2026-09-02</td><td>RustyWater RAT C2. Subdomain of legitimate TLD — confirm before blocking.</td></tr>
+    <tr><td>IPv4</td><td class="mono">159[.]198[.]66[.]153</td><td>High</td><td>Detect</td><td>2026-07-02</td><td>Resolves nomercys[.]it[.]com. NameCheap/Hosterdaddy AS136557.</td></tr>
+    <tr><td>IPv4</td><td class="mono">91[.]121[.]240[.]102</td><td>Medium</td><td>Detect</td><td>2026-07-02</td><td>PhonyC2 / SimpleHarm campaign server. Shared hosting — verify.</td></tr>
+    <tr><td>IPv4</td><td class="mono">157[.]20[.]182[.]75</td><td>High</td><td>Detect</td><td>2026-09-05</td><td>UDPGangster C2 — beacons over <strong>UDP/1269</strong>. Dec 2025 Turkey/Israel/Azerbaijan campaign.</td></tr>
+    <tr><td>Port/Proto</td><td class="mono">UDP/1269</td><td>Medium</td><td>Detect</td><td>Evergreen</td><td>UDPGangster custom C2 channel. Anomalous outbound UDP on this port from a user process = investigate.</td></tr>
+    <tr><td>Domain</td><td class="mono">screenai[.]online (re-reg)</td><td>High</td><td>Detect</td><td>2026-09-05</td><td>Re-registered NameCheap 2025-08-17; hosted PDQ RMM in 2025 (Group-IB). Same string as 2024 BugSleep C2.</td></tr>
+    <tr><td>File path</td><td class="mono">%AppData%\RoamingLow\SystemProc.exe</td><td>High</td><td>Detect</td><td>Evergreen</td><td>UDPGangster self-copy persistence location. No legitimate software runs from RoamingLow.</td></tr>
+    <tr><td>File path</td><td class="mono">C:\Users\Public\ui.txt</td><td>Medium</td><td>Detect</td><td>Evergreen</td><td>UDPGangster stage written by VBA Document_Open() then launched via CreateProcessA.</td></tr>
+    <tr><td>Registry</td><td class="mono">HKCU\...\Explorer\User Shell → SystemProc.exe</td><td>High</td><td>Detect</td><td>Evergreen</td><td>UDPGangster Run-value persistence (also covers generic Run-key abuse — see Q16).</td></tr>
+    <tr><td>Mutex</td><td class="mono">xhxhxhxhxhxpp</td><td>Medium</td><td>Detect</td><td>2026-12-05</td><td>UDPGangster single-instance mutex.</td></tr>
+    <tr><td>PDB string</td><td class="mono">...\udp_3.0 ... \udp_3.0.pdb (user "gangster")</td><td>Medium</td><td>Detect</td><td>2026-12-05</td><td>UDPGangster build artifact for YARA / binary hunting.</td></tr>
+    <tr><td>File-sharing</td><td class="mono">egnyte.com, onehub.com, mega, sync.com, terabox, zopim.io, filetransfer[.]io, freeupload[.]store</td><td>Medium</td><td>Enrich</td><td>Evergreen</td><td>Recurring RMM-installer staging platforms. Hunt for scripting/RMM reach-out (Q19); do not block wholesale (legitimate use).</td></tr>
+    <tr><td>SHA256</td><td class="mono">09e09503962a2a8022859e72b86ad8c69dcbf79839b71897c0bf8a4c4b9f4dd6</td><td>High</td><td>Detect</td><td>2026-12-05</td><td>Malicious Atera Agent (digitalform.msi) — HarfangLab TRR240402.</td></tr>
+    <tr><td>SHA256</td><td class="mono">2722e289767ae391e3c3773b8640a8b9f6eb24c6a9d6e541f29c8765f7a8944b</td><td>High</td><td>Detect</td><td>2026-12-05</td><td>Malicious Atera Agent (IronSword.msi) — HarfangLab TRR240402.</td></tr>
+    <tr><td>Malware</td><td class="mono">UDPGangster</td><td>High</td><td>Detect</td><td>2026-12-05</td><td>UDP-based backdoor (Dec 2025). cmd.exe exec, file transfer, payload drop.</td></tr>
+    <tr><td>Malware</td><td class="mono">MuddyViper + Fooder loader</td><td>High</td><td>Detect</td><td>2026-12-05</td><td>Reflectively-loaded backdoor; Fooder masquerades as Snake game, CNG crypto, Snake-logic delay.</td></tr>
+    <tr><td>Malware</td><td class="mono">VAX One</td><td>Medium</td><td>Detect</td><td>2026-12-05</td><td>Backdoor impersonating Veeam / AnyDesk / Xerox / OneDrive updater.</td></tr>
+    <tr><td>Malware</td><td class="mono">CE Notes / LP Notes / Blub / Chromium_Stealer</td><td>Medium</td><td>Detect</td><td>2026-12-05</td><td>Modular browser-credential stealers (Chrome/Edge/Firefox/Opera/Brave). See Q21.</td></tr>
+    <tr><td>Process chain</td><td class="mono">outlook/browser → mshta.exe → https://</td><td>High</td><td>Detect</td><td>Evergreen</td><td>HTA delivery chain. Mshta.exe has no legitimate reason to fetch remote URLs.</td></tr>
+    <tr><td>Process chain</td><td class="mono">browser/outlook → [RMM installer].exe</td><td>High</td><td>Detect + Isolate</td><td>Evergreen</td><td>Phishing link → RMM install. Any hit = IR trigger.</td></tr>
+    <tr><td>File path pattern</td><td class="mono">GoogleUpdate.exe outside \AppData\Local\Google\Update\</td><td>High</td><td>Detect</td><td>Evergreen</td><td>DLL sideloading via renamed/relocated GoogleUpdate.exe + goopdate86.dll.</td></tr>
+    <tr><td>Malware</td><td class="mono">BugSleep</td><td>High</td><td>Detect</td><td>2026-12-02</td><td>Custom backdoor deployed since May 2024. Mutex + encrypted C2 config.</td></tr>
+    <tr><td>Malware</td><td class="mono">POWERSTATS</td><td>High</td><td>Detect</td><td>Evergreen</td><td>PowerShell-based backdoor. Core MuddyWater tool since 2017.</td></tr>
+    <tr><td>Malware</td><td class="mono">Phoenix v4</td><td>High</td><td>Detect</td><td>2026-12-02</td><td>VBA macro → FakeUpdate injector → Phoenix backdoor chain.</td></tr>
+    <tr><td>Malware</td><td class="mono">RustyWater RAT</td><td>Medium</td><td>Detect</td><td>2026-12-02</td><td>Rust-based RAT. Newer tooling — hash-based detection less stable.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 5. TELEMETRY ─── -->
+<section id="telemetry"><div class="container">
+  <h2>5. Affected Surface &amp; Telemetry Matrix</h2>
+  <table><thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead><tbody>
+    <tr><td>User workstations (all email/browser users)</td><td>ProcessRollup2 with full CommandLine and ParentBaseFileName. NetworkConnectIP4. DnsRequest. FileCreateInfo.</td><td>Critical</td><td>Without full CommandLine, obfuscated PS and certutil detections cannot fire. Without ParentBaseFileName, Office/browser-spawn chains are blind.</td></tr>
+    <tr><td>All Windows endpoints (RMM audit)</td><td>ProcessRollup2 for RMM agent process names. ScheduledTaskRegistered for RMM persistence.</td><td>Critical</td><td>Missing RMM telemetry leaves the primary C2 vector undetected. Run Q6 immediately to baseline authorized agents.</td></tr>
+    <tr><td>Domain controllers</td><td>ProcessRollup2 for credential dumping tools. Identity logs for anomalous auth.</td><td>High</td><td>MuddyWater targets AD credentials. DC-resident procdump/mimikatz is an escalation signal.</td></tr>
+    <tr><td>DNS telemetry</td><td>DnsRequest events in Falcon telemetry.</td><td>High</td><td>IOC domain detections (Q13) require DnsRequest events. Confirm this event type is populated in your tenant.</td></tr>
+    <tr><td>Network connections</td><td>NetworkConnectIP4 with process context.</td><td>High</td><td>C2 IP detection (Q14) requires NetworkConnectIP4 joined to process context. Confirm join fields (ContextProcessId_decimal / TargetProcessId_decimal) are populated.</td></tr>
+    <tr><td>Scheduled task telemetry</td><td>ScheduledTaskRegistered / ScheduledTaskModified events.</td><td>Medium</td><td>Without scheduled task telemetry, persistence via schtasks is only detectable via the schtasks.exe process creation query (Q9 second branch).</td></tr>
+    <tr><td>Registry (ASEP) telemetry</td><td>AsepValueUpdate / RegGenericValueUpdate with RegObjectName + RegStringValue.</td><td>High</td><td>Q16 Run-key persistence requires registry value telemetry. Confirm RegStringValue (value data) is captured — some tenants only log key/value names.</td></tr>
+    <tr><td>UDP / non-HTTP network</td><td>NetworkConnectIP4 with Protocol_decimal and RemotePort_decimal.</td><td>High</td><td>Q18 (UDPGangster UDP C2) needs the protocol field populated. Without it, raw-UDP beacons are invisible to IP/domain IOC sweeps when infra rotates.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 6. ATT&CK ─── -->
+<section id="mitre"><div class="container">
+  <h2>6. ATT&amp;CK Mapping</h2>
+  <table><thead><tr><th>Tactic</th><th>Technique</th><th>MuddyWater Behavior</th><th>Query / Control</th></tr></thead><tbody>
+    <tr><td>Initial Access</td><td>T1566.001 Spearphishing Attachment</td><td>PDF/HTA/macro-laced Office docs sent from compromised mailboxes.</td><td>Q4</td></tr>
+    <tr><td>Initial Access</td><td>T1566.002 Spearphishing Link</td><td>Links to trojanized RMM installer downloads.</td><td>Q7</td></tr>
+    <tr><td>Execution</td><td>T1204.002 User Execution: Malicious File</td><td>Victim opens doc; macro or HTA fires.</td><td>Q4</td></tr>
+    <tr><td>Execution</td><td>T1059.001 PowerShell</td><td>Heavily obfuscated PS1 for C2, download cradles — core of POWERSTATS, BugSleep loader.</td><td>Q3</td></tr>
+    <tr><td>Execution</td><td>T1059.005 VBScript</td><td>VBA macros launch .vbs / HTA stages.</td><td>Q4 (via wscript)</td></tr>
+    <tr><td>Execution</td><td>T1047 WMI</td><td>WMI for remote execution, lateral movement, host enumeration via wmiprvse.exe.</td><td>Q12</td></tr>
+    <tr><td>Defense Evasion</td><td>T1218.005 Mshta</td><td>mshta.exe executing remote HTA payloads over HTTP/S.</td><td>Q1</td></tr>
+    <tr><td>Defense Evasion</td><td>T1218.010 Regsvr32</td><td>Regsvr32 scriptlet (Squiblydoo) execution for COM-based payload delivery.</td><td>Q2</td></tr>
+    <tr><td>Defense Evasion</td><td>T1218.011 Rundll32</td><td>Rundll32 for sideloaded DLL execution.</td><td>Q4 (partial)</td></tr>
+    <tr><td>Defense Evasion</td><td>T1218.003 CMSTP</td><td>CMSTP UAC bypass and payload execution.</td><td>Q15</td></tr>
+    <tr><td>Defense Evasion</td><td>T1574.002 DLL Side-Loading</td><td>GoogleUpdate.exe + malicious goopdate86.dll in non-standard directory.</td><td>Q5</td></tr>
+    <tr><td>Defense Evasion</td><td>T1027 Obfuscated Files</td><td>Heavy base64 + custom encoding on PowerShell scripts.</td><td>Q3</td></tr>
+    <tr><td>Persistence</td><td>T1219 Remote Access Tools</td><td>Atera, SimpleHelp, ScreenConnect, Syncro, NetBird, ConnectWise, Level, PDQ as C2.</td><td>Q6, Q7</td></tr>
+    <tr><td>Persistence</td><td>T1053.005 Scheduled Task</td><td>Scheduled tasks launching PS1 or RMM agents on reboot.</td><td>Q9</td></tr>
+    <tr><td>Persistence</td><td>T1547.001 Registry Run Keys</td><td>Run key / Explorer User Shell persistence for backdoor/RMM agents (e.g. UDPGangster SystemProc.exe).</td><td>Q16</td></tr>
+    <tr><td>Credential Access</td><td>T1003.001 LSASS Memory</td><td>Mimikatz, procdump64 targeting LSASS.</td><td>Q10</td></tr>
+    <tr><td>Credential Access</td><td>T1555 Credentials from Password Stores</td><td>LaZagne, Browser64 targeting browser credential stores.</td><td>Q10 (partial)</td></tr>
+    <tr><td>Discovery</td><td>T1082 System Information Discovery</td><td>Host enum via PowerShell, systeminfo, WMI.</td><td>Partial (Q12)</td></tr>
+    <tr><td>Discovery</td><td>T1087 Account Discovery</td><td>net user, net group, AD enumeration.</td><td>—</td></tr>
+    <tr><td>Collection</td><td>T1560 Archive Collected Data</td><td>makecab.exe compresses staged data before exfil.</td><td>Q11</td></tr>
+    <tr><td>C&amp;C</td><td>T1105 Ingress Tool Transfer</td><td>certutil.exe, bitsadmin.exe pull down stage-2 payloads.</td><td>Q8</td></tr>
+    <tr><td>C&amp;C</td><td>T1071.001 Web Protocols</td><td>HTTP/S C2 to actor-controlled infrastructure.</td><td>Q13, Q14</td></tr>
+    <tr><td>C&amp;C</td><td>T1102 Web Service</td><td>Free file-sharing / cloud services (OneHub, Egnyte, Mega, Sync, TeraBox, Zopim) for installer staging &amp; C2.</td><td>Q19</td></tr>
+    <tr><td>Initial Access</td><td>T1078 Valid Accounts</td><td>Compromised business mailboxes (leaked/reused OWA creds) used to send lures and register Atera free-trial agents.</td><td>Native (email/identity)</td></tr>
+    <tr><td>Defense Evasion</td><td>T1036 Masquerading</td><td>VAX One impersonates Veeam/AnyDesk/Xerox/OneDrive; Fooder masquerades as Snake game; renamed GoogleUpdate.exe.</td><td>Q5, Q17</td></tr>
+    <tr><td>Defense Evasion</td><td>T1562.001 Disable/Modify Tools</td><td>Stopping/disabling AV &amp; security services prior to detonation.</td><td>Q20</td></tr>
+    <tr><td>Defense Evasion</td><td>T1497 Virtualization/Sandbox Evasion</td><td>UDPGangster anti-VM/anti-debug, CPU/RAM/MAC checks; Fooder Snake-logic delay.</td><td>Behavioral (see Q17 note)</td></tr>
+    <tr><td>Credential Access</td><td>T1555.003 Credentials from Web Browsers</td><td>CE Notes / Blub / Chromium_Stealer harvest Chrome/Edge/Firefox/Opera/Brave logins.</td><td>Q21</td></tr>
+    <tr><td>C&amp;C</td><td>T1095 Non-Application Layer Protocol</td><td>UDPGangster beacons over raw UDP/1269 instead of HTTP.</td><td>Q18</td></tr>
+    <tr><td>Exfiltration</td><td>T1041 Exfiltration Over C2 Channel</td><td>Data exfiltrated over established RMM or HTTP/S C2.</td><td>—</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 7. NATIVE HUNTS ─── -->
+<section id="native"><div class="container">
+  <h2>7. Native Audit-Log Hunts</h2>
+  <table><thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead><tbody>
+    <tr><td>RMM agent inventory — fleet-wide</td><td>Falcon process telemetry + software inventory</td><td>Query ProcessRollup2 for all instances of Atera, SimpleHelp, ScreenConnect, Syncro, NetBird, Level, PDQ, ConnectWise, AnyDesk in the past 90 days. Compare against authorized deployment list from IT.</td><td>Any agent not in the authorized list = investigate. Determine installation vector (was it deployed via SCCM/Intune or manually installed?) and check for browser/email parent (Q7).</td></tr>
+    <tr><td>Office macro policy audit</td><td>Registry / GPO audit on endpoints</td><td>Check HKCU\Software\Microsoft\Office\{version}\{app}\Security → VBAWarnings. Value 1 = all macros enabled (high risk). Should be 3 (disable without notification) for internet-sourced docs.</td><td>Deploy GPO: "Block macros from internet-sourced Office files." See Hardening section.</td></tr>
+    <tr><td>Scheduled task audit for script-based persistence</td><td>Windows Task Scheduler + Falcon ScheduledTaskRegistered</td><td>Enumerate all scheduled tasks where the action path contains: powershell, mshta, wscript, cscript, cmd, AppData, Temp, or Downloads. Filter to tasks created/modified in last 30 days.</td><td>Review task XML. Remove unauthorized tasks. Check for RMM agent autostart tasks.</td></tr>
+    <tr><td>Email lure delivery review</td><td>Exchange/M365 audit, email gateway logs</td><td>Search for emails with PDF or Office attachments sent from external senders containing links to RMM installer domains (atera.com, simplehelp.net, screenconnect.com, syncromsp.com etc.) or to unknown domains matching the IOC list.</td><td>Quarantine, notify affected users, scan endpoints that received and opened attachments.</td></tr>
+    <tr><td>Compromised-mailbox &amp; file-sharing lure review</td><td>M365 / OWA sign-in + message-trace logs</td><td>Hunt for internal mailboxes sending lures (anomalous sign-in from VPN/hosting ASNs, e.g. NordVPN; impossible travel; legacy-auth), and for inbound messages linking to file-sharing services (egnyte, onehub, mega, sync, terabox, zopim/zendesk, filetransfer.io, freeupload.store).</td><td>Reset credentials + revoke sessions on compromised mailboxes; quarantine lures; enable Q19 endpoint correlation.</td></tr>
+    <tr><td>Atera free-trial / unauthorized RMM tenant audit</td><td>Atera/RMM admin console + email registration records</td><td>Review RMM agents calling back to tenants/accounts not owned by IT. MuddyWater registers Atera free trials with leaked third-party email addresses.</td><td>Disable rogue agents, block the attacker tenant, correlate with Q6/Q7 endpoint hits.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 8. CQL QUERIES ─── -->
+<section id="queries"><div class="container">
+  <h2>8. CrowdStrike LogScale CQL Hunt Queries</h2>
+  <div class="note">Validate <code>#event_simpleName</code>, <code>ParentBaseFileName</code>, <code>ImageFileName</code>, <code>CommandLine</code>, and field names against your Falcon tenant schema before promoting detections. All process queries use <code>/ProcessRollup2|SyntheticProcessRollup2/</code> to avoid missing long-running processes.</div>
+
+  <!-- Q1 -->
+  <article class="query-card" id="query-card-q1">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q1. Mshta Executing Remote HTA Payload — T1218.005</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2 + CommandLine</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q1">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q1">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>mshta.exe</code> with an HTTP/S URL in CommandLine — MuddyWater's HTA payload fetch.
+      <strong>Accomplishes:</strong> Catches delivery at the earliest executable moment before C2 check-in.
+    </p>
+    <div class="note">FP: Some enterprise apps use mshta.exe for local HTA UI — these never contain remote http/https URLs. Very low FP expected.</div>
+    <pre id="query-q1">// HUNT: MuddyWater - T1218.005 Mshta Remote HTA Execution
+// HYPOTHESIS: MuddyWater delivers HTA payloads via mshta.exe fetching from remote URLs.
+// FP RISK: Low — mshta.exe has no legitimate need to fetch from internet URIs in managed envs
+// FP NOTES: Rare enterprise HTA apps use local/intranet UNC paths, never http://
+// CONFIDENCE: High
+// TIMEFRAME: 30 days recommended; extend to 90 for retroactive sweep
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\mshta\.exe$/i
+| CommandLine=/https?:\/\//i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q2 -->
+  <article class="query-card" id="query-card-q2">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q2. Regsvr32 Scriptlet (Squiblydoo) — T1218.010</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2 + CommandLine</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q2">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q2">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>regsvr32.exe</code> loading remote <code>.sct</code> scriptlets or <code>scrobj.dll</code> — the Squiblydoo technique used by MuddyWater for COM-based payload delivery.
+      <strong>Accomplishes:</strong> Catches scriptlet-based execution that bypasses AppLocker script rules.
+    </p>
+    <div class="note">FP: Legitimate regsvr32 registers local DLLs without scrobj.dll or remote URL args. Near-zero FP expected.</div>
+    <pre id="query-q2">// HUNT: MuddyWater - T1218.010 Regsvr32 Scriptlet Execution
+// HYPOTHESIS: Regsvr32 loading remote .sct scriptlets or scrobj.dll is a MuddyWater delivery mechanism.
+// FP RISK: Low — legitimate regsvr32 never uses scrobj.dll or remote URL arguments
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\regsvr32\.exe$/i
+| CommandLine=/scrobj\.dll|\/[iuUsS].*https?:|\.sct/i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q3 -->
+  <article class="query-card" id="query-card-q3">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q3. Obfuscated PowerShell C2 / Loader — T1059.001 + T1027</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: ProcessRollup2 + CommandLine</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q3">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q3">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> PowerShell with encoded commands, IEX, or download cradles — the POWERSTATS and BugSleep loader pattern.
+      <strong>Accomplishes:</strong> Catches in-memory C2 beacon setup and stage-2 retrieval.
+    </p>
+    <div class="note">FP: Medium — legitimate tooling (Chocolatey, SCCM scripts, deployment tools) uses -EncodedCommand. Prioritize rows where ParentBaseFileName is winword.exe, excel.exe, outlook.exe, or mshta.exe. Those are high confidence.</div>
+    <pre id="query-q3">// HUNT: MuddyWater - T1059.001 + T1027 Obfuscated PowerShell C2 / Loader
+// HYPOTHESIS: MuddyWater PS scripts use -EncodedCommand, IEX, DownloadString for in-memory C2 beacon
+// FP RISK: Medium — legitimate deployment tools use -EncodedCommand
+// FP NOTES: Prioritize parent = winword/excel/outlook/mshta. Filter known-good parents (SCCM, NinjaOne).
+// CONFIDENCE: Medium
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\powershell\.exe$/i
+| CommandLine=/(-[Ee][Nn][Cc]|-[Ee][Cc])|([Ii][Ee][Xx]|Invoke-Expression)|([Dd]ownload[Ss]tring|[Dd]ownload[Ff]ile|[Ww]eb[Cc]lient)/i
+| groupBy(
+    [ComputerName, UserName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q4 -->
+  <article class="query-card" id="query-card-q4">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q4. Office App Spawning LOLBin — T1566.001 + T1204.002</h3>
+        <div class="query-meta">CONF: high | FP: low-medium | COST: low | Requires: ProcessRollup2 with parent tracking</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q4">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q4">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Office apps (Word, Excel, Outlook, PowerPoint, OneNote) spawning scripting engines or LOLBins — the primary initial execution chain for MuddyWater spearphishing payloads.
+      <strong>Accomplishes:</strong> Catches macro/HTA execution at the earliest endpoint-visible moment.
+    </p>
+    <div class="note">FP: Some finance/legal add-ins spawn cmd.exe. After initial sweep, add exclusions for known-benign parent+child combinations before promoting to IOA Block.</div>
+    <pre id="query-q4">// HUNT: MuddyWater - T1566.001 + T1204.002 Office Spawning LOLBin
+// HYPOTHESIS: MuddyWater macros/HTA cause Office apps to spawn mshta, wscript, cscript, powershell, certutil, rundll32
+// FP RISK: Low-Medium — some add-ins legitimately spawn cmd.exe
+// FP NOTES: Tune by adding ParentImageFileName exclusions for known add-in paths after initial sweep
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/(winword|excel|powerpnt|outlook|onenote)\.exe/i
+| ImageFileName=/\\(mshta|wscript|cscript|powershell|cmd|regsvr32|certutil|rundll32|msiexec)\.exe$/i
+| groupBy(
+    [ComputerName, UserName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q5 -->
+  <article class="query-card" id="query-card-q5">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q5. DLL Sideloading via GoogleUpdate — T1574.002</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2 + ImageFileName</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q5">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q5">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>GoogleUpdate.exe</code> running outside its legitimate path (<code>\AppData\Local\Google\Update\</code>) — MuddyWater's DLL sideloading persistence pattern.
+      <strong>Accomplishes:</strong> Catches sideloaded <code>goopdate86.dll</code> executions that masquerade as legitimate Google updater traffic.
+    </p>
+    <div class="note">FP: Legitimate GoogleUpdate.exe always lives in \AppData\Local\Google\Update\. Any instance outside that path is suspicious by definition.</div>
+    <pre id="query-q5">// HUNT: MuddyWater - T1574.002 DLL Side-Loading via GoogleUpdate
+// HYPOTHESIS: MuddyWater places GoogleUpdate.exe + malicious goopdate86.dll in non-standard directories
+// FP RISK: Low — legitimate GoogleUpdate.exe only lives in \AppData\Local\Google\Update\
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\googleupdate\.exe$/i
+| ImageFileName!=/\\AppData\\Local\\Google\\Update\\/i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q6 -->
+  <article class="query-card" id="query-card-q6">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q6. Unauthorized RMM Tool Installation — T1219</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: ProcessRollup2</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q6">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q6">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Known RMM agent executables (Atera, SimpleHelp, ScreenConnect, Syncro, NetBird, ConnectWise, Level, PDQ) running anywhere in the environment — fleet-wide inventory query.
+      <strong>Accomplishes:</strong> Surfaces all RMM agents; compare against authorized deployment list to identify unauthorized C2 channels.
+    </p>
+    <div class="note">FP: Medium — authorized IT departments deploy RMM tools. Export results and cross-reference against your authorized deployment list. Any agent NOT in the list is a potential MuddyWater implant.</div>
+    <pre id="query-q6">// HUNT: MuddyWater - T1219 Remote Access Tool Abuse — Fleet Inventory
+// HYPOTHESIS: MuddyWater installs RMM agents as persistent C2. Any unauthorized RMM agent = investigate.
+// FP RISK: Medium — legitimate IT-deployed RMM agents will appear here
+// FP NOTES: Export results and compare against authorized deployment list. Focus on unusual parent processes.
+// CONFIDENCE: Medium (as inventory) / High (when cross-referenced against authorized list)
+// TIMEFRAME: 90 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/(AteraAgent|AgentPackageNetworkDiscovery|SimpleHelp|[Ss]creen[Cc]onnect|[Ss]yncro|[Nn]et[Bb]ird|level\.io|pdqconnect|[Cc]onnect[Ww]ise|[Cc]ontrol[Aa]pp)/i
+| groupBy(
+    [ComputerName, UserName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q7 -->
+  <article class="query-card" id="query-card-q7">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q7. Browser / Email Spawning RMM Installer — T1219 + T1566.002</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2 with parent tracking</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q7">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q7">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> A browser or email client spawning an RMM tool installer — the behavioral signature of a victim clicking a MuddyWater phishing link and launching the trojanized payload.
+      <strong>Accomplishes:</strong> High-confidence IR trigger. Any hit should result in host isolation and immediate investigation.
+    </p>
+    <div class="note crit">Any result where parent is outlook.exe = immediate escalate and isolate. IT staff occasionally install RMM via browser — correlate with change tickets before dismissing.</div>
+    <pre id="query-q7">// HUNT: MuddyWater - T1219 + T1566.002 Browser/Email-Parented RMM Installer
+// HYPOTHESIS: Victim clicks phishing link → browser downloads and launches RMM installer
+// FP RISK: Low — browser-parented RMM installs are anomalous; outlook-parented = near-zero FP
+// FP NOTES: IT staff occasionally manually download agents — correlate against change tickets
+// CONFIDENCE: High
+// TIMEFRAME: 90 days — retroactive sweep
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/(chrome|msedge|firefox|iexplore|outlook|thunderbird|opera|brave)\.exe/i
+| CommandLine=/(atera|simplehelp|screenconnect|syncro|netbird|level|pdq|connectwise|anydesk)/i
+| groupBy(
+    [ComputerName, UserName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q8 -->
+  <article class="query-card" id="query-card-q8">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q8. Certutil / BITSAdmin Payload Download — T1105</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2 + CommandLine</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q8">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q8">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>certutil -urlcache / -decode</code> or <code>bitsadmin /transfer</code> with HTTP/S — MuddyWater's stage-2 download mechanism for POWERSTATS, BugSleep, and Phoenix.
+      <strong>Accomplishes:</strong> Catches payload retrieval before it executes.
+    </p>
+    <div class="note">FP: certutil -decode is used by some PKI scripts; bitsadmin is deprecated. Any http/https arg is suspicious in modern environments. Low FP overall.</div>
+    <pre id="query-q8">// HUNT: MuddyWater - T1105 Ingress Tool Transfer via certutil / bitsadmin
+// HYPOTHESIS: MuddyWater uses certutil -decode/-urlcache and bitsadmin /transfer to pull stage-2 payloads
+// FP RISK: Low — https: argument is the key discriminator
+// FP NOTES: certutil -decode with local file args is low-risk; -urlcache with http/https is high risk
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\(certutil|bitsadmin)\.exe$/i
+| CommandLine=/(-decode|-urlcache|-split|\/transfer|\/download|https?:)/i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q9 -->
+  <article class="query-card" id="query-card-q9">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q9. Scheduled Task Persistence (PS1 / Scripting Engine) — T1053.005</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: ProcessRollup2 + ScheduledTaskRegistered</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q9">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q9">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Scheduled tasks created to launch PowerShell, mshta, wscript, or RMM agents — MuddyWater's reboot persistence mechanism.
+      <strong>Accomplishes:</strong> Detects persistence implanted after initial access.
+    </p>
+    <div class="note">FP: Software installers create schtasks for update tasks. Discriminate by command path — AppData/Temp = high confidence; System32 = lower risk. Filter on known-benign task names after initial sweep. <strong>⚠ Validate scheduled-task field names (TaskExecCommand/TaskName) against your tenant before promoting.</strong></div>
+    <pre id="query-q9">// HUNT: MuddyWater - T1053.005 Scheduled Task Persistence
+// HYPOTHESIS: MuddyWater creates scheduled tasks to re-launch PS1 backdoors or RMM agents after reboots
+// FP RISK: Medium — legitimate software installers create update tasks
+// FP NOTES: Prioritize task/command paths in AppData/Temp/Downloads. System32 paths are lower risk.
+// TUNING: After baseline, exclude known-good TaskName updaters and ParentBaseFileName=msiexec.exe for signed installers.
+// CONFIDENCE: Medium
+// TIMEFRAME: 30 days
+// FIX (v2.0): 'union' is NOT valid CQL. This single query covers BOTH the scheduled-task telemetry
+//   event and the schtasks.exe process-creation path via a grouped OR. Missing fields simply do not
+//   match per event type. Validate TaskExecCommand/TaskName names in your tenant (some schemas use
+//   TaskCommand/TaskArguments instead).
+
+#event_simpleName=/ScheduledTaskRegistered|ScheduledTaskModified|ProcessRollup2|SyntheticProcessRollup2/
+| (
+    TaskExecCommand=/(powershell|mshta|wscript|cscript|rundll32|regsvr32|\\AppData\\|\\Temp\\|\\Downloads\\)/i
+    or (ImageFileName=/\\schtasks\.exe$/i CommandLine=/(\/create|\/tr).*(powershell|mshta|wscript|cscript|rundll32|regsvr32)/i)
+  )
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([TaskName, TaskExecCommand, ImageFileName, CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q10 -->
+  <article class="query-card" id="query-card-q10">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q10. LSASS Credential Dumping (Mimikatz / procdump / LaZagne) — T1003.001</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q10">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q10">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Known credential dumping tools — Mimikatz, procdump64, and LaZagne — by process name.
+      <strong>Accomplishes:</strong> Detects credential theft phase. Any procdump64 targeting lsass = assume all credentials on that host are compromised.
+    </p>
+    <div class="note crit">Any procdump64.exe or mimikatz.exe hit = isolate immediately and assume all domain credentials on that host are stolen. Reset affected accounts before re-enabling.</div>
+    <pre id="query-q10">// HUNT: MuddyWater - T1003.001 Credential Dumping (Mimikatz / procdump / LaZagne)
+// HYPOTHESIS: MuddyWater uses Mimikatz and procdump64 for LSASS dump; LaZagne/Browser64 for browser creds
+// FP RISK: Low — these tool names are not used by legitimate software
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/(\\mimikatz|\\mimilib|\\procdump64|\\procdump|\\lazagne|\\browser64)\.exe$/i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q11 -->
+  <article class="query-card" id="query-card-q11">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q11. makecab Data Staging — T1560</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q11">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q11">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>makecab.exe</code> invoked by a non-system process — MuddyWater's confirmed method for compressing staged data before exfiltration.
+      <strong>Accomplishes:</strong> Detects data staging immediately before exfil. Catching this prevents data leaving the environment.
+    </p>
+    <div class="note">FP: Windows Update and Windows Installer use makecab legitimately (parent = TrustedInstaller). Any other parent is suspicious. Very low FP expected.</div>
+    <pre id="query-q11">// HUNT: MuddyWater - T1560 Archive Collected Data via makecab
+// HYPOTHESIS: MuddyWater uses makecab.exe to compress staged data prior to exfiltration
+// FP RISK: Low — makecab.exe from non-TrustedInstaller parent is anomalous
+// FP NOTES: Windows Update uses makecab (parent = TrustedInstaller/wuauclt). All others are suspicious.
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\makecab\.exe$/i
+| ParentBaseFileName!=/trustedinstaller\.exe/i
+| groupBy(
+    [ComputerName, UserName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q12 -->
+  <article class="query-card" id="query-card-q12">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q12. WMI Spawning Scripting Engine (Remote Execution) — T1047</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: ProcessRollup2 with parent tracking</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q12">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q12">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>wmiprvse.exe</code> spawning PowerShell, mshta, wscript, cmd, or regsvr32 — MuddyWater's WMI-based lateral movement and remote execution pattern.
+      <strong>Accomplishes:</strong> Detects WMI-based execution of payloads on remote targets.
+    </p>
+    <div class="note">FP: WMI is used for legitimate monitoring (ping, ipconfig) — PowerShell or mshta as child of wmiprvse is high confidence. Filter known monitoring tool children.</div>
+    <pre id="query-q12">// HUNT: MuddyWater - T1047 WMI Execution (Remote Lateral Movement)
+// HYPOTHESIS: MuddyWater uses WMI to spawn payloads on remote systems via wmiprvse.exe
+// FP RISK: Medium — WMI is used for monitoring. PowerShell/mshta from wmiprvse = high confidence.
+// FP NOTES: Filter known monitoring children (ping.exe, ipconfig.exe, hostname.exe)
+// CONFIDENCE: Medium
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^wmiprvse\.exe$/i
+| ImageFileName=/\\(powershell|mshta|wscript|cscript|cmd|regsvr32|rundll32)\.exe$/i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q13 -->
+  <article class="query-card" id="query-card-q13">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q13. DNS Lookup — Known MuddyWater C2 Domains (IOC) — T1071.001</h3>
+        <div class="query-meta">CONF: high | FP: none | COST: low | Requires: DnsRequest events</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q13">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q13">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> DNS resolution of known MuddyWater C2 domains — any hit indicates active C2 beacon or compromise.
+      <strong>Accomplishes:</strong> Retroactive 90-day sweep for beaconing activity to known infrastructure.
+    </p>
+    <div class="note crit">Any DNS hit to these domains = treat as active compromise. Isolate the endpoint immediately and begin IR. These domains have no legitimate use.</div>
+    <pre id="query-q13">// HUNT: MuddyWater - T1071.001 C2 DNS IOC Lookup
+// HYPOTHESIS: Endpoints resolving known MuddyWater C2 domains are actively compromised
+// FP RISK: None — these domains are confirmed MuddyWater infrastructure
+// CONFIDENCE: High
+// TIMEFRAME: 90 days retroactive sweep
+// FIX (v2.0): 'DomainName in (...)' is not valid CQL. Use a single regex matching apex + any subdomain.
+
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)(screenai\.online|stratioai\.org|bootcamptg\.org|nomercys\.it\.com)$/i
+| table([@timestamp, ComputerName, UserName, DomainName, aid])</pre>
+  </article>
+
+  <!-- Q14 -->
+  <article class="query-card" id="query-card-q14">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q14. C2 IP Connection — Known MuddyWater Infrastructure (IOC) — T1071.001</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: NetworkConnectIP4 + join</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q14">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q14">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Network connections to known MuddyWater C2 IPs (incl. UDPGangster <code>157.20.182.75</code>), joined to the originating process for triage context.
+      <strong>Accomplishes:</strong> Identifies active C2 channel and the process responsible.
+    </p>
+    <div class="note">FP: Shared hosting is possible — 159.198.66.153 and 91.121.240.102 could theoretically host other services. Verify the connecting process before isolating. If process = mshta/powershell/RMM agent, it's confirmed.</div>
+    <pre id="query-q14">// HUNT: MuddyWater - T1071.001 C2 IP IOC
+// HYPOTHESIS: Connection to known MuddyWater C2 IPs indicates active compromise
+// FP RISK: Low — shared hosting possible; verify connecting process before action
+// CONFIDENCE: High (especially when connecting process is mshta/powershell/RMM agent)
+// TIMEFRAME: 90 days
+// FIX (v2.0): use in(field, values=[...]) — not SQL-style 'field in (...)'. Added UDPGangster C2
+//   157.20.182.75. rename+join is the documented pattern for joining network events to process context.
+
+#event_simpleName=NetworkConnectIP4
+| in(RemoteAddressIP4, values=["159.198.66.153", "91.121.240.102", "157.20.182.75"])
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/}, field=TargetProcessId_decimal, include=[ImageFileName, CommandLine, ParentBaseFileName])
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, RemoteAddressIP4, RemotePort, aid])</pre>
+  </article>
+
+  <!-- Q15 -->
+  <article class="query-card" id="query-card-q15">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q15. CMSTP UAC Bypass — T1218.003</h3>
+        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: ProcessRollup2</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q15">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q15">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Any execution of <code>cmstp.exe</code> — MuddyWater uses this deprecated Connection Manager Profile Installer for UAC bypass and payload execution.
+      <strong>Accomplishes:</strong> CMSTP is essentially never used legitimately in modern enterprises; any hit warrants investigation.
+    </p>
+    <div class="note">FP: Occasionally used by legacy VPN clients. Verify with the endpoint owner. If no known VPN dependency, treat as suspicious.</div>
+    <pre id="query-q15">// HUNT: MuddyWater - T1218.003 CMSTP UAC Bypass
+// HYPOTHESIS: MuddyWater uses cmstp.exe to bypass UAC and execute payloads
+// FP RISK: Low — cmstp.exe is rarely used in modern environments
+// FP NOTES: Some legacy VPN clients use cmstp. Verify with endpoint/asset owner.
+// CONFIDENCE: High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\cmstp\.exe$/i
+| groupBy(
+    [ComputerName, UserName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q16 -->
+  <article class="query-card" id="query-card-q16">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q16. Registry Run-Key / User Shell Persistence — T1547.001</h3>
+        <div class="query-meta">CONF: medium-high | FP: medium | COST: low | Requires: AsepValueUpdate / RegGenericValueUpdate</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q16">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q16">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Run / RunOnce / Explorer User Shell / Winlogon values whose data points to a user-writable path or a scripting engine — closes the v1.0 T1547.001 gap and catches UDPGangster's <code>SystemProc.exe</code> autostart.
+      <strong>Accomplishes:</strong> Surfaces backdoor and RMM reboot-persistence implanted in the registry.
+    </p>
+    <div class="note">FP: legitimate apps add Run keys; the value-path filter is the discriminator. <strong>&#9888; Validate RegStringValue/RegValueName field names in your tenant.</strong> Prioritize values referencing AppData/Temp/Public/RoamingLow or powershell/mshta.</div>
+    <pre id="query-q16">// HUNT: MuddyWater - T1547.001 Registry Run-Key / User Shell Persistence
+// HYPOTHESIS: Backdoors (e.g. UDPGangster SystemProc.exe) persist via Run / Explorer User Shell
+//   values pointing to user-writable paths or scripting engines.
+// FP RISK: Medium — legit apps add Run keys; the path filter is the discriminator.
+// FP NOTES: Prioritize values pointing to AppData/Temp/Public/RoamingLow or powershell/mshta/wscript.
+// TUNING: Allowlist signed vendor updaters once baselined.
+// REQUIRES: AsepValueUpdate / RegGenericValueUpdate
+// CONFIDENCE: Medium-High (with path filter)
+// TIMEFRAME: 30 days
+
+#event_simpleName=/AsepValueUpdate|RegGenericValueUpdate/
+| platform=Win
+| RegObjectName=/\\CurrentVersion\\(Run|RunOnce)|\\Explorer\\User Shell Folders|\\Winlogon\\(Shell|Userinit)/i
+| RegStringValue=/(\\AppData\\|\\Temp\\|\\Users\\Public\\|\\RoamingLow\\|powershell|mshta|wscript|cscript|rundll32|regsvr32|\.vbs|\.hta|\.ps1)/i
+| groupBy(
+    [ComputerName, UserName, RegObjectName, RegValueName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([RegStringValue])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q17 -->
+  <article class="query-card" id="query-card-q17">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q17. Execution From Anomalous Staging Dir (RoamingLow / Public) — T1036 / UDPGangster</h3>
+        <div class="query-meta">CONF: medium-high | FP: medium | COST: low | Requires: ProcessRollup2 + ImageFileName</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q17">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q17">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> Processes running from <code>%AppData%\RoamingLow\</code>, <code>C:\Users\Public\</code>, or named <code>SystemProc.exe</code> — the UDPGangster/Fooder persistence and reflective-loader staging pattern.
+      <strong>Accomplishes:</strong> Catches custom-backdoor execution from non-standard, user-writable directories.
+    </p>
+    <div class="note">FP: installers/updaters briefly run from Temp/AppData. Any exe under <code>\RoamingLow\</code> and <code>SystemProc.exe</code> are high confidence. UDPGangster's anti-VM/anti-debug (T1497) is not directly queryable — treat any hit here on a multi-sleep, low-network process as suspicious.</div>
+    <pre id="query-q17">// HUNT: MuddyWater - Execution From Anomalous User-Writable Staging Dirs
+// HYPOTHESIS: UDPGangster (%AppData%\RoamingLow\SystemProc.exe), Fooder loaders and dropped RMM
+//   payloads run from user-writable dirs rather than Program Files.
+// FP RISK: Medium — installers/updaters briefly run from Temp/AppData.
+// FP NOTES: SystemProc.exe and any exe under \RoamingLow\ are high confidence. Public\*.exe is rare.
+// TUNING: Exclude known updater paths (Slack/Teams/Microsoft updaters) after baseline.
+// REQUIRES: ProcessRollup2 + ImageFileName
+// CONFIDENCE: Medium-High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\RoamingLow\\|\\Users\\Public\\[^\\]+\.exe$|\\SystemProc\.exe$/i
+| groupBy(
+    [ComputerName, UserName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([ImageFileName, CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q18 -->
+  <article class="query-card" id="query-card-q18">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q18. Anomalous Outbound UDP C2 (UDPGangster) — T1095</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: medium | Requires: NetworkConnectIP4 + Protocol + join</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q18">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q18">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> User processes sending outbound <strong>UDP</strong> to public IPs on uncommon ports — UDPGangster beacons over raw UDP (observed <code>UDP/1269</code>) to evade HTTP inspection.
+      <strong>Accomplishes:</strong> Detects the non-HTTP C2 channel that IOC domain/IP sweeps may miss when infra rotates.
+    </p>
+    <div class="note">FP: Medium — legitimate UDP apps exist (QUIC, DNS, NTP, conferencing). The filter excludes common UDP ports and svchost/browser/Teams. Constrain the timeframe; this is a broad network scan (COST: medium).</div>
+    <pre id="query-q18">// HUNT: MuddyWater - T1095 Anomalous Outbound UDP C2 (UDPGangster)
+// HYPOTHESIS: UDPGangster beacons over raw UDP (observed UDP/1269) to external IPs, bypassing HTTP inspection.
+// FP RISK: Medium — legit UDP apps exist (QUIC/443, DNS/53, NTP/123, conferencing). Filter those.
+// FP NOTES: Focus on user processes (not svchost/system) sending UDP to public IPs on uncommon ports.
+// TUNING: Exclude additional conferencing/AV UDP ranges; allowlist svchost.exe.
+// REQUIRES: NetworkConnectIP4 + Protocol_decimal + join to process
+// CONFIDENCE: Medium
+// TIMEFRAME: 90 days
+// COST: medium — broad network event scan; constrain timeframe.
+
+#event_simpleName=NetworkConnectIP4
+| Protocol_decimal=17
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|169\.254\.|224\.|255\.)/
+| !in(RemotePort_decimal, values=[53, 123, 137, 138, 443, 500, 1900, 3478, 5353])
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/}, field=TargetProcessId_decimal, include=[ImageFileName, CommandLine, ParentBaseFileName])
+| ImageFileName!=/\\(svchost|System|chrome|msedge|firefox|ms-teams|teams)\.exe$/i
+| groupBy(
+    [ComputerName, ImageFileName, RemoteAddressIP4, RemotePort_decimal, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen)]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q19 -->
+  <article class="query-card" id="query-card-q19">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q19. Scripting/RMM Reach-out to File-Sharing &amp; Cloud — T1102 / T1105</h3>
+        <div class="query-meta">CONF: medium | FP: medium-high | COST: low | Requires: DnsRequest + join</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q19">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q19">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> A scripting engine, LOLBin, or RMM agent resolving a free file-sharing / cloud domain (Egnyte, OneHub, Mega, Sync, TeraBox, Zopim/Zendesk, filetransfer.io, freeupload.store) — the current MuddyWater RMM-installer staging vector. Closes the v1.0 T1102 gap.
+      <strong>Accomplishes:</strong> Catches delivery-stage retrieval of RMM/payloads from legitimate-looking infrastructure.
+    </p>
+    <div class="note">FP: Medium-High — these services have legitimate business use. <strong>Pivot on the PROCESS, not the domain.</strong> A scripting engine/LOLBin or a fresh RMM agent reaching these is the signal; allowlist sanctioned corporate tenants.</div>
+    <pre id="query-q19">// HUNT: MuddyWater - T1102/T1105 Reach-out to File-Sharing & Cloud (RMM staging)
+// HYPOTHESIS: MuddyWater stages RMM installers on free file-sharing/cloud services; scripting engines,
+//   LOLBins or fresh RMM agents fetch from them during delivery.
+// FP RISK: Medium-High — these services have legitimate business use. Pivot on the PROCESS, not the domain.
+// FP NOTES: A scripting engine (mshta/powershell/certutil/curl) or new RMM agent reaching these is the signal.
+// TUNING: Restrict to scripting/LOLBin processes; allowlist sanctioned corporate file-sharing tenants.
+// REQUIRES: DnsRequest + join to process context
+// CONFIDENCE: Medium
+// TIMEFRAME: 30 days
+
+#event_simpleName=DnsRequest
+| DomainName=/(egnyte\.com|onehub\.com|mega\.nz|\.mega\.io|sync\.com|terabox\.com|1024terabox\.com|zopim\.io|zendesk\.com|filetransfer\.io|freeupload\.store)$/i
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/}, field=TargetProcessId_decimal, include=[ImageFileName, CommandLine, ParentBaseFileName])
+| ImageFileName=/\\(mshta|powershell|pwsh|wscript|cscript|certutil|bitsadmin|curl|rundll32|regsvr32|AteraAgent|ScreenConnect|SimpleHelp)\.exe$/i
+| groupBy(
+    [ComputerName, UserName, ImageFileName, DomainName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q20 -->
+  <article class="query-card" id="query-card-q20">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q20. Security Service / AV Tampering — T1562.001</h3>
+        <div class="query-meta">CONF: medium-high | FP: medium | COST: low | Requires: ProcessRollup2 + CommandLine</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q20">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q20">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> <code>net stop</code> / <code>sc config start=disabled</code> / <code>Set-MpPreference -Disable*</code> / <code>taskkill</code> targeting AV/EDR/security service names — defense evasion before payload detonation. Closes the v1.0 T1562 gap.
+      <strong>Accomplishes:</strong> Detects attempts to blind endpoint defenses. (Falcon's own sensor is protected natively by Tamper Protection — this catches attacks on <em>all</em> security tooling.)
+    </p>
+    <div class="note">FP: Medium — admins occasionally restart security services during maintenance. The CommandLine + security-product-name combination disambiguates. Allowlist approved patch windows.</div>
+    <pre id="query-q20">// HUNT: MuddyWater - T1562.001 Disable/Modify Security Tools
+// HYPOTHESIS: Operators stop or disable AV/EDR/security services before detonating payloads.
+// FP RISK: Medium — admins occasionally restart security services. CommandLine context disambiguates.
+// FP NOTES: net stop / sc config start=disabled / Set-MpPreference -Disable / taskkill vs. security names.
+// TUNING: Allowlist legitimate maintenance windows and management ParentBaseFileName.
+// REQUIRES: ProcessRollup2 + CommandLine
+// CONFIDENCE: Medium-High
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\(net1?|sc|taskkill|powershell|pwsh|wmic)\.exe$/i
+| CommandLine=/(stop|delete|disabl|config.*start\s*=\s*disabled|Set-MpPreference\s+-Disable|Stop-Service)/i
+| CommandLine=/(windefend|securityhealth|wscsvc|mssense|sense|csfalcon|csagent|crowdstrike|falcon|sentinel|sentinelone|carbonblack|cb|sophos|mcafee|symantec|cylance|huntress|eset|defend)/i
+| groupBy(
+    [ComputerName, UserName, ImageFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine, ParentBaseFileName])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+  <!-- Q21 -->
+  <article class="query-card" id="query-card-q21">
+    <div class="query-head">
+      <div>
+        <h3 class="query-title">Q21. Browser Credential-Store Access by Non-Browser — T1555.003</h3>
+        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: ProcessRollup2 + CommandLine</div>
+      </div>
+      <div class="button-row">
+        <button class="button copy" type="button" data-copy-target="query-q21">Copy CQL</button>
+        <button class="button primary open-falcon" type="button" data-query-target="query-q21">Open in Falcon</button>
+      </div>
+    </div>
+    <p class="query-summary">
+      <strong>Looks for:</strong> A non-browser process referencing Chromium/Gecko credential artifacts (<code>Login Data</code>, <code>Local State</code>, <code>logins.json</code>, <code>key4.db</code>) — the CE Notes / LP Notes / Blub / Chromium_Stealer browser-credential harvest.
+      <strong>Accomplishes:</strong> Deepens Q10 (tool-name) with a behavioral credential-theft signal that survives renaming/masquerade.
+    </p>
+    <div class="note">FP: Medium — backup/sync tools touch browser profiles. A non-browser (often masqueraded, e.g. calculator) process reading credential stores is the signal. Allowlist backup agents + the browser's own binary.</div>
+    <pre id="query-q21">// HUNT: MuddyWater - T1555.003 Browser Credential Store Access (CE Notes/Blub/Chromium_Stealer)
+// HYPOTHESIS: Credential stealers read Chromium/Gecko 'Login Data' / 'Local State' from a non-browser process.
+// FP RISK: Medium — backup/sync tools touch profiles. Non-browser process + creds path is the signal.
+// FP NOTES: Stealers often masquerade (e.g. calculator). Pivot on unsigned/odd ImageFileName reading creds.
+// TUNING: Allowlist backup agents and the matching browser's own binary.
+// REQUIRES: ProcessRollup2 + CommandLine (add FileOpenInfo if available in tenant)
+// CONFIDENCE: Medium
+// TIMEFRAME: 30 days
+
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(Login Data|Local State|\\User Data\\|logins\.json|key4\.db|cookies\.sqlite|Web Data)/i
+| ImageFileName!=/\\(chrome|msedge|firefox|opera|brave|browser)\.exe$/i
+| groupBy(
+    [ComputerName, UserName, ImageFileName, ParentBaseFileName, aid],
+    function=[count(as=HitCount), max(@timestamp, as=LastSeen), collect([CommandLine])]
+  )
+| sort(HitCount, order=desc)</pre>
+  </article>
+
+
+</div></section>
+
+<!-- ─── 9. IOA ─── -->
+<section id="ioa"><div class="container">
+  <h2>9. CrowdStrike Custom IOA Recommendations</h2>
+  <div class="note">All IOAs start in Detect mode. Measure FP rate for 14+ days before promoting to Prevent. Create rules in Falcon UI: Endpoint Security → Custom IOA Rules.</div>
+  <table><thead><tr><th>IOA Name</th><th>Rule Type</th><th>Field Patterns</th><th>Expected FP Exclusions</th><th>Promote to Prevent?</th></tr></thead><tbody>
+    <tr><td>MuddyWater_Office_Spawns_Scripting_Engine</td><td>Process Creation</td><td>Parent Image Filename: <span class="mono">.*(winword|excel|powerpnt|outlook)\.exe$</span><br>Image Filename: <span class="mono">.*\\(mshta|wscript|cscript|regsvr32|rundll32)\.exe$</span></td><td>Finance/legal add-ins that spawn cmd.exe — exclude by parent image path after 14-day FP review.</td><td>Yes — after 14 days Detect with &lt;5% FP rate. Block is high-value on workstations.</td></tr>
+    <tr><td>MuddyWater_Mshta_Remote_Fetch</td><td>Process Creation</td><td>Image Filename: <span class="mono">.*\\mshta\.exe$</span><br>Command Line: <span class="mono">.*https?://.*</span></td><td>Very low — no known legitimate enterprise software fetches remote URLs via mshta. Safe to promote within 7 days.</td><td>Yes — promote to Prevent after 7-day clean window. High signal/noise ratio.</td></tr>
+    <tr><td>MuddyWater_Browser_Spawns_RMM_Installer</td><td>Process Creation</td><td>Parent Base Filename: <span class="mono">.*(chrome|msedge|firefox|outlook|thunderbird)\.exe$</span><br>Command Line: <span class="mono">.*(atera|simplehelp|screenconnect|syncro|netbird|connectwise|anydesk).*</span></td><td>IT staff manually installing via browser — correlate against change tickets. Outlook-parented = near-zero FP.</td><td>Yes — after 14 days. Especially prioritize for workstations; servers should rarely have browser-parented installs.</td></tr>
+    <tr><td>MuddyWater_Certutil_Remote_Download</td><td>Process Creation</td><td>Image Filename: <span class="mono">.*\\certutil\.exe$</span><br>Command Line: <span class="mono">.*(-urlcache|-decode).*https?:.*</span></td><td>Some PKI scripts use certutil -decode with local file args — those don't contain https: and won't match.</td><td>Yes — after 7-day clean window. certutil downloading from internet = very high confidence IOC.</td></tr>
+    <tr><td>MuddyWater_Exec_From_RoamingLow</td><td>Process Creation</td><td>Image Filename: <span class="mono">.*\\RoamingLow\\.*\.exe$</span> OR <span class="mono">.*\\SystemProc\.exe$</span></td><td>Near-zero — no legitimate software runs from \RoamingLow\. Validate Public\*.exe exclusions for any in-house tools.</td><td>Yes — promote to Prevent after 7-day clean window. Direct UDPGangster persistence block.</td></tr>
+    <tr><td>MuddyWater_Security_Service_Tamper</td><td>Process Creation</td><td>Image Filename: <span class="mono">.*\\(net1?|sc|taskkill)\.exe$</span><br>Command Line: <span class="mono">.*(stop|disabled).*(falcon|defend|sense|sentinel|sophos|mcafee).*</span></td><td>Maintenance windows — correlate with change tickets; allowlist management hosts.</td><td>Detect first; promote selectively after 14-day FP review.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 10. IOC JSON ─── -->
+<section id="iocjson"><div class="container">
+  <h2>10. Machine-Readable IOC Appendix</h2>
+  <pre id="ioc-json">{
+  "hunt": "MuddyWater",
+  "mitre_id": "G0069",
+  "updated": "2026-06-05",
+  "analyst": "ai@hutzley.com",
+  "indicators": [
+    {"type":"domain","value":"screenai.online","confidence":"high","action":"detect","source":"Check Point Research — BugSleep","expiry":"2026-09-02","tags":["actor:MuddyWater","campaign:BugSleep","tlp:white"]},
+    {"type":"domain","value":"stratioai.org","confidence":"high","action":"detect","source":"Group-IB — Phoenix backdoor","expiry":"2026-09-02","tags":["actor:MuddyWater","campaign:RMMLure","tlp:white"]},
+    {"type":"domain","value":"bootcamptg.org","confidence":"high","action":"detect","source":"Group-IB — Phoenix backdoor","expiry":"2026-09-02","tags":["actor:MuddyWater","campaign:RMMLure","tlp:white"]},
+    {"type":"domain","value":"nomercys.it.com","confidence":"medium","action":"detect","source":"ProtoSLabs — RustyWater","expiry":"2026-09-02","tags":["actor:MuddyWater","campaign:RustyWater","tlp:white"]},
+    {"type":"ipv4","value":"159.198.66.153","confidence":"high","action":"detect","source":"ProtoSLabs — RustyWater","expiry":"2026-07-02","tags":["actor:MuddyWater","campaign:RustyWater","as:AS136557","tlp:white"]},
+    {"type":"ipv4","value":"91.121.240.102","confidence":"medium","action":"detect","source":"Deep Instinct — DarkBeatC2","expiry":"2026-07-02","tags":["actor:MuddyWater","campaign:PhonyC2","tlp:white"]},
+    {"type":"process_chain","value":"outlook/browser -> mshta.exe -> https://","confidence":"high","action":"detect","source":"MITRE G0069","expiry":"2026-12-02","tags":["actor:MuddyWater","technique:T1218.005"]},
+    {"type":"process_chain","value":"browser/outlook -> [RMM installer].exe","confidence":"high","action":"detect+isolate","source":"CISA AA22-055A","expiry":"2026-12-02","tags":["actor:MuddyWater","technique:T1219"]},
+    {"type":"malware","value":"BugSleep","confidence":"high","action":"detect","source":"Check Point Research","expiry":"2026-12-02","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"malware","value":"POWERSTATS","confidence":"high","action":"detect","source":"MITRE G0069","expiry":"2027-01-01","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"malware","value":"Phoenix v4 backdoor","confidence":"high","action":"detect","source":"Group-IB","expiry":"2026-12-02","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"malware","value":"RustyWater RAT","confidence":"medium","action":"detect","source":"ProtoSLabs","expiry":"2026-12-02","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"ipv4","value":"157.20.182.75","confidence":"high","action":"detect","source":"Fortinet/THN — UDPGangster","expiry":"2026-09-05","tags":["actor:MuddyWater","campaign:UDPGangster","proto:udp","port:1269","tlp:white"]},
+    {"type":"mutex","value":"xhxhxhxhxhxpp","confidence":"medium","action":"detect","source":"UDPGangster","expiry":"2026-12-05","tags":["actor:MuddyWater","campaign:UDPGangster","tlp:white"]},
+    {"type":"filepath","value":"%AppData%\\RoamingLow\\SystemProc.exe","confidence":"high","action":"detect","source":"UDPGangster","expiry":"2026-12-05","tags":["actor:MuddyWater","technique:T1547.001","tlp:white"]},
+    {"type":"filepath","value":"C:\\Users\\Public\\ui.txt","confidence":"medium","action":"detect","source":"UDPGangster","expiry":"2026-12-05","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"sha256","value":"09e09503962a2a8022859e72b86ad8c69dcbf79839b71897c0bf8a4c4b9f4dd6","confidence":"high","action":"detect","source":"HarfangLab TRR240402","expiry":"2026-12-05","tags":["actor:MuddyWater","tool:AteraAgent","file:digitalform.msi","tlp:white"]},
+    {"type":"sha256","value":"2722e289767ae391e3c3773b8640a8b9f6eb24c6a9d6e541f29c8765f7a8944b","confidence":"high","action":"detect","source":"HarfangLab TRR240402","expiry":"2026-12-05","tags":["actor:MuddyWater","tool:AteraAgent","file:IronSword.msi","tlp:white"]},
+    {"type":"malware","value":"UDPGangster","confidence":"high","action":"detect","source":"Fortinet/THN","expiry":"2026-12-05","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"malware","value":"MuddyViper","confidence":"high","action":"detect","source":"ESET","expiry":"2026-12-05","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"malware","value":"Fooder loader","confidence":"high","action":"detect","source":"ESET","expiry":"2026-12-05","tags":["actor:MuddyWater","tlp:white"]},
+    {"type":"malware","value":"VAX One","confidence":"medium","action":"detect","source":"ESET","expiry":"2026-12-05","tags":["actor:MuddyWater","tlp:white"]}
+  ]
+}</pre>
+</div></section>
+
+<!-- ─── 11. VALIDATION ─── -->
+<section id="validation"><div class="container">
+  <h2>11. Detection Validation Gates</h2>
+  <table><thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead><tbody>
+    <tr><td>Telemetry ready</td><td>Confirm ProcessRollup2 includes ParentBaseFileName and full CommandLine. Confirm NetworkConnectIP4 is populated with process context (ContextProcessId_decimal). Confirm DnsRequest events are present. Confirm ScheduledTaskRegistered events are available.</td><td>Saved query screenshots or exported event samples from a 7-day baseline run against each event type.</td></tr>
+    <tr><td>RMM baseline</td><td>Run Q6 and export the complete list of RMM agents seen in your environment in the past 90 days. Compare against your authorized deployment list. Document all authorized agents, versions, and approved parent processes.</td><td>Signed-off authorized RMM agent inventory with approved process hashes/paths.</td></tr>
+    <tr><td>Positive tests</td><td>Use Atomic Red Team T1218.005 (mshta remote URL), T1059.001 (encoded PowerShell), and T1218.010 (regsvr32 scriptlet) on an isolated test endpoint to verify Q1, Q3, Q2 fire. Verify Q5 by placing a copy of a benign exe named googleupdate.exe outside the legitimate Google path.</td><td>Lab host detections tied to expected query IDs. Do not use real malware for validation.</td></tr>
+    <tr><td>Positive tests — v2.0 queries</td><td>Atomic Red Team T1547.001 (add a Run/User-Shell value to a script in %AppData%) for Q16; T1562.001 (disable a test AV service / Set-MpPreference -DisableRealtimeMonitoring in lab) for Q20; T1555.003 (copy a browser "Login Data" file with a non-browser process) for Q21. For Q17, run a benign exe placed under %AppData%\RoamingLow\ and named SystemProc.exe. For Q18, send benign UDP to a lab IP on port 1269 from a user process. For Q19, fetch a benign file from one of the listed file-sharing domains via powershell/curl.</td><td>Lab host detections tied to expected query IDs. Do not use real malware for validation.</td></tr>
+    <tr><td>IOA Detect mode baseline</td><td>Deploy all 4 IOA rules in Detect mode to a canary sensor group (10–20 diverse endpoints). Run for 14 days minimum. Document every alert as TP or FP. Measure FP rate.</td><td>TP/FP log with FP rate &lt;5% per rule before promotion to Prevent.</td></tr>
+    <tr><td>IOC sweep confirmation</td><td>Run Q13 (DNS IOC) and Q14 (IP IOC) over 90 days. Any hit requires immediate IR triage — do not dismiss as FP without verified alternative explanation.</td><td>Query results exported and triaged within 24h of running. No open hits after triage.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 12. HARDENING ─── -->
+<section id="hardening"><div class="container">
+  <h2>12. Hardening — Tiered &amp; Deployable</h2>
+  <h3>Immediate (MuddyWater-specific)</h3>
+  <ul>
+    <li><strong>Block mshta.exe outbound network access.</strong> Prevent <code>mshta.exe</code> from establishing internet connections via Windows Firewall outbound rule. AppLocker: deny mshta.exe execution for user contexts if HTA apps are not required. This single control stops HTA payload delivery cold.</li>
+    <li><strong>Audit all RMM agent installations fleet-wide.</strong> Run Q6 and Q7 immediately. Any RMM agent not in your authorized inventory = investigate and remove. Block unauthorized MSI package installation via Software Restriction Policy or WDAC.</li>
+    <li><strong>Enable PowerShell Script Block Logging + Transcription.</strong> GPO Path: <code>Computer Config → Admin Templates → Windows Components → Windows PowerShell</code>. Enable "Turn on Script Block Logging" + "Turn on PowerShell Transcription." Output to a monitored UNC share. This forces in-memory PowerShell to disk — catches POWERSTATS/BugSleep loader even after obfuscation.</li>
+    <li><strong>Block macro execution from internet-sourced Office documents.</strong> GPO: <code>User Config → Admin Templates → Microsoft Office → Security Settings → Block macros from running in Office files from the Internet = Enabled</code>. This blocks the primary MuddyWater VBA macro delivery chain.</li>
+    <li><strong>Restrict certutil and bitsadmin outbound access.</strong> Windows Firewall outbound rules blocking <code>certutil.exe</code> and <code>bitsadmin.exe</code> from reaching internet IPs. In managed environments neither tool has a legitimate need to reach internet URIs.</li>
+  </ul>
+  <h3>Near Term</h3>
+  <ul>
+    <li><strong>Restrict regsvr32 remote scriptlet execution.</strong> Windows Firewall outbound: block regsvr32.exe from internet access. AppLocker: deny cmstp.exe for non-admin users.</li>
+    <li><strong>Deploy Credential Guard.</strong> Prevents LSASS memory dumping by Mimikatz. GPO: <code>Computer Config → Admin Templates → System → Device Guard → Turn On Virtualization Based Security</code>. Requires modern hardware + Secure Boot.</li>
+    <li><strong>Enable LSA Protection (RunAsPPL).</strong> Registry: <code>HKLM\SYSTEM\CurrentControlSet\Control\Lsa</code> → <code>RunAsPPL = DWORD 1</code>. Blocks procdump64-based LSASS access.</li>
+    <li><strong>Disable WPAD + LLMNR + NBT-NS.</strong> Prevents credential theft via poisoning used in MuddyWater lateral movement. Disable LLMNR via GPO: <code>Computer Config → Admin Templates → Network → DNS Client → Turn Off Multicast Name Resolution = Enabled</code>.</li>
+    <li><strong>Enforce MFA + conditional access on all remote access and email — especially OWA/M365.</strong> MuddyWater registers Atera free-trial agents and sends lures from <em>compromised mailboxes</em> (often via leaked/reused OWA credentials). MFA + impossible-travel/legacy-auth blocking directly counters this. Priority: OWA/M365, VPN, RMM console access.</li>
+    <li><strong>Application-control RMM tools (allowlist).</strong> Permit only your sanctioned RMM agent (by publisher/path/hash) via WDAC or AppLocker; block all others (Atera, SimpleHelp, ScreenConnect, Syncro, NetBird, Level, PDQ, Action1, N-able, AnyDesk) from executing. This neutralizes the group's primary C2 delivery vector regardless of lure.</li>
+    <li><strong>Block execution from user-writable staging dirs.</strong> WDAC/AppLocker path-deny rules for <code>%AppData%\RoamingLow\</code>, <code>C:\Users\Public\</code>, and <code>%Temp%</code> stop UDPGangster (<code>SystemProc.exe</code>) and Fooder loaders from running.</li>
+  </ul>
+  <h3>Strategic</h3>
+  <ul>
+    <li><strong>Implement WDAC (Windows Defender Application Control)</strong> in audit mode progressing to enforcement to restrict unsigned script/DLL execution. Directly counters DLL sideloading.</li>
+    <li><strong>Deploy email sandboxing / attachment detonation</strong> at the gateway (Proofpoint, Defender for Office 365 Safe Attachments). MuddyWater's primary delivery vector is email — detonating attachments before delivery catches the delivery stage with no endpoint risk.</li>
+    <li><strong>Continuously monitor for new RMM tool installations</strong> via automated alerting on Q6 results delta — alert on any new RMM agent process seen that wasn't in the prior 90-day baseline.</li>
+    <li><strong>Web-proxy category control for unsanctioned file-sharing.</strong> Block or step-up-authenticate access to free file-sharing services (Egnyte, OneHub, Mega, Sync, TeraBox, filetransfer.io, freeupload.store) for endpoints that have no business need — this breaks the current RMM-installer delivery chain (Q19).</li>
+    <li><strong>Egress-filter non-standard outbound UDP.</strong> Default-deny outbound UDP except to approved ports/destinations at the perimeter firewall; this blocks UDPGangster's raw UDP/1269 C2 (Q18) and similar non-HTTP channels.</li>
+  </ul>
+</div></section>
+
+<!-- ─── 13. PLAYBOOKS ─── -->
+<section id="playbooks"><div class="container">
+  <h2>13. Deployable Playbooks</h2>
+  <article class="query-card">
+    <div class="query-head"><div><h3 class="query-title">MuddyWater Initial Triage</h3><div class="query-meta">Scope: SOC L1 / endpoint owner</div></div></div>
+    <pre id="playbook-1">1. Confirm the alert: identify trigger query, affected host (ComputerName), user (UserName), and timestamp.
+2. Q1/Q4 hit: check CommandLine of mshta.exe or child process. Identify the parent (Office app / browser?).
+3. Q7 hit (browser/email → RMM installer): ESCALATE IMMEDIATELY. Identify RMM agent installed, check if agent is now running.
+4. Q3 hit (obfuscated PS): attempt to decode the -EncodedCommand base64 payload. Look for DownloadString URLs.
+5. Q6 hit: cross-reference the RMM agent against authorized inventory. If unauthorized, treat as MuddyWater C2.
+6. Check for scheduled tasks created in the past 2 hours on the affected host (Q9).
+7. Check for credential dumping tools on the affected host (Q10). If present: ISOLATE and reset all credentials.
+8. Run Q13/Q14 against the affected host's aid for C2 domain/IP hits.
+9. Preserve: process trees, CommandLine history, all scheduled tasks, RMM agent config files, network connections.
+10. If RMM agent is confirmed unauthorized or C2 IOC is present: isolate host via Falcon containment, notify IR lead.</pre>
+  </article>
+  <article class="query-card">
+    <div class="query-head"><div><h3 class="query-title">Unauthorized RMM Agent Escalation Playbook</h3><div class="query-meta">Scope: SOC Lead / IR — escalate on Q7 or unauthorized Q6 hit</div></div></div>
+    <pre id="playbook-2">1. Treat any browser/email-parented RMM installer as a confirmed MuddyWater delivery attempt.
+2. Immediately contain the host via Falcon network containment.
+3. Identify the RMM agent: name, version, install path, associated tenant/console. Check if agent is phoning home.
+4. Pull the full process tree on the affected host for the past 72 hours.
+5. Check for persistence: scheduled tasks, Run keys, service installations related to the RMM agent.
+6. Check for lateral movement: other hosts with the same user's credentials active, unusual auth events.
+7. Check for credential dumping: procdump64, mimikatz, LaZagne on the host or from this user.
+8. Notify IR lead. Initiate full incident response if lateral movement or credential theft is confirmed.
+9. Reset all domain credentials associated with the affected user. Revoke active sessions.
+10. Remove RMM agent: uninstall via Falcon RTR, delete persistence mechanisms, verify removal.
+11. Block attacker's RMM tenant from connecting to your environment if console details are known.</pre>
+  </article>
+</div></section>
+
+<!-- ─── 14. CONTAINMENT ─── -->
+<section id="containment"><div class="container">
+  <h2>14. Containment Runbook</h2>
+  <table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody>
+    <tr><td>Confirm</td><td>Verify trigger query, affected host, process tree, IOC presence. Confirm RMM agent is unauthorized or C2 IOC is positive. Rule out authorized IT deployment.</td><td>SOC lead</td><td>Falcon event exports, process trees, RMM agent config.</td></tr>
+    <tr><td>Contain</td><td>Network-contain affected host in Falcon. Disable affected user account. Revoke active sessions and Kerberos tickets. Block C2 IPs/domains at perimeter if not already in detect mode.</td><td>IR lead</td><td>Containment timestamps, blocked IOC list, user account disable confirmation.</td></tr>
+    <tr><td>Remediate</td><td>Terminate RMM agent processes. Remove scheduled task persistence. Uninstall unauthorized RMM agents. Delete payload files (POWERSTATS, BugSleep artifacts) from temp/AppData. Remove registry Run keys. Rebuild if BugSleep/Phoenix confirmed active.</td><td>Endpoint / identity owners</td><td>Cleaned host checklist, credential reset confirmation, removed artifacts list.</td></tr>
+    <tr><td>Recover</td><td>Re-image if custom backdoor (BugSleep, Phoenix, RustyWater) confirmed. Restore from known-good backup if needed. Re-enable user with new credentials + MFA confirmed. Monitor for re-infection for 30 days.</td><td>Infrastructure owner</td><td>Clean monitoring window log, user re-enablement ticket with MFA confirmed.</td></tr>
+    <tr><td>Harden</td><td>Deploy mshta.exe firewall block. Enable PS Script Block Logging. Review other hosts for same RMM agent or shared user credentials. Run Q6 fleet-wide as immediate follow-up. Deploy IOA rules if not already active.</td><td>Detection engineering</td><td>GPO deployment confirmation, IOA rule activation, Q6 clean result.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 15. COVERAGE ─── -->
+<section id="coverage"><div class="container">
+  <h2>15. Detection Coverage Map</h2>
+  <table><thead><tr><th>MITRE Technique</th><th>Technique Name</th><th>CQL Query</th><th>Custom IOA</th><th>IOC Block</th><th>Coverage</th></tr></thead><tbody>
+    <tr><td>T1566.001</td><td>Spearphishing Attachment</td><td>Q4</td><td>IOA-1</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1566.002</td><td>Spearphishing Link</td><td>Q7</td><td>IOA-3</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1204.002</td><td>User Execution: Malicious File</td><td>Q4</td><td>IOA-1</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1218.005</td><td>Mshta</td><td>Q1</td><td>IOA-2</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1218.010</td><td>Regsvr32 Scriptlet</td><td>Q2</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1218.011</td><td>Rundll32</td><td>Q4 (partial)</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1218.003</td><td>CMSTP</td><td>Q15</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1059.001</td><td>PowerShell</td><td>Q3</td><td>—</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1059.005</td><td>VBScript</td><td>Q4 (via wscript)</td><td>IOA-1</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1574.002</td><td>DLL Side-Loading</td><td>Q5</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1219</td><td>Remote Access Tools</td><td>Q6, Q7</td><td>IOA-3</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1047</td><td>WMI Execution</td><td>Q12</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1053.005</td><td>Scheduled Task</td><td>Q9</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1547.001</td><td>Registry Run Keys</td><td>Q16</td><td>—</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1003.001</td><td>LSASS Memory Dump</td><td>Q10</td><td>—</td><td>—</td><td>Partial (tool-name only)</td></tr>
+    <tr><td>T1555</td><td>Credential from Password Stores</td><td>Q10 (LaZagne)</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1105</td><td>Ingress Tool Transfer</td><td>Q8</td><td>IOA-4</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1071.001 (IOC)</td><td>C2 Domain Beacon</td><td>Q13</td><td>—</td><td>Detect (domain)</td><td>Good</td></tr>
+    <tr><td>T1071.001 (IOC)</td><td>C2 IP Connection</td><td>Q14</td><td>—</td><td>Detect (IP)</td><td>Good</td></tr>
+    <tr><td>T1102</td><td>Web Service C2 / File-sharing staging</td><td>Q19</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1560</td><td>Archive Collected Data</td><td>Q11</td><td>—</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1562.001</td><td>Disable/Modify Security Tools</td><td>Q20</td><td>—</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1095</td><td>Non-Application Layer Protocol (UDP C2)</td><td>Q18</td><td>—</td><td>Detect (IP)</td><td>Good</td></tr>
+    <tr><td>T1555.003</td><td>Credentials from Web Browsers</td><td>Q21</td><td>—</td><td>—</td><td>Good</td></tr>
+    <tr><td>T1036</td><td>Masquerading (VAX One, Fooder, GoogleUpdate)</td><td>Q5, Q17</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1078</td><td>Valid Accounts (compromised mailboxes)</td><td>Native (email/identity)</td><td>—</td><td>—</td><td>Partial</td></tr>
+    <tr><td>T1497</td><td>Virtualization/Sandbox Evasion</td><td>Q17 (context)</td><td>—</td><td>—</td><td>⚠ Partial</td></tr>
+    <tr><td>T1027</td><td>Obfuscated Files</td><td>Q3 (partial)</td><td>—</td><td>—</td><td>Partial</td></tr>
+  </tbody></table>
+  <p><strong>Coverage Summary (v2.0):</strong> 27 of 28 identified techniques now have at least partial detection. The three v1.0 gaps (T1547.001, T1102, T1562) are closed by Q16, Q19 and Q20. <strong>1 hard gap</strong> remains plus one detection-only-light area.</p>
+  <table><thead><tr><th>Gap</th><th>Technique</th><th>Why It's Hard</th><th>Recommended Mitigation</th></tr></thead><tbody>
+    <tr><td>Hard gap</td><td>T1497 Sandbox/VM Evasion</td><td>Anti-analysis (CPU/RAM/MAC/debugger checks) happens in-memory before any noisy behavior and produces little durable telemetry.</td><td>Not directly queryable. Rely on Q17 (execution-from-staging-dir) as the proxy signal and on Falcon ML/behavioral prevention. Detonate suspicious samples in an instrumented sandbox.</td></tr>
+    <tr><td>Light</td><td>T1102 Web Service / T1041 Exfil over C2</td><td>HTTPS to legitimate file-sharing/CDN is hard to separate from normal use without DLP/CASB; exfil rides the established C2 channel.</td><td>Q19 covers the delivery-side reach-out (pivot on process). For exfil, add DLP/CASB and alert on large transfers from anomalous processes (mshta/powershell).</td></tr>
+    <tr><td>Native</td><td>T1562 — Falcon sensor self-protection</td><td>Q20 catches attacks on third-party AV/EDR; tampering with the Falcon sensor itself is handled by Tamper Protection.</td><td>Verify Tamper Protection is enabled: Falcon console → Configuration → Sensor Update Policies.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 16. TICKET ─── -->
+<section id="ticket"><div class="container">
+  <h2>16. Hunt Summary Ticket</h2>
+  <pre id="ticket-text">Title: MuddyWater (G0069) — Hunt and Hardening Review
+Analyst: ai@hutzley.com
+Date: 2026-06-05
+Intel Sources: MITRE G0069, CISA AA22-055A, Check Point (BugSleep), Group-IB (2024 Phoenix + 2025 infra), Deep Instinct (DarkBeatC2), ProtoSLabs (RustyWater), ESET (MuddyViper/Fooder/VAX One, Dec 2025), Fortinet/THN (UDPGangster, Dec 2025), HarfangLab (Atera TRR240402)
+
+Scope:
+- Last 30 days for behavioral queries (Q1–Q12, Q15, Q16, Q17, Q19, Q20, Q21)
+- Last 90 days for RMM inventory (Q6, Q7) and IOC / UDP-C2 sweeps (Q13, Q14, Q18)
+- All Windows workstations, servers, and domain controllers
+
+Hypothesis:
+MuddyWater infections will produce at least one of: Office/browser spawning mshta/scripting engine,
+obfuscated PowerShell with download cradles, unauthorized RMM agent installation, certutil/bitsadmin
+download cradles, or DNS/IP beacon to known C2 infrastructure.
+
+Priority Queue (run in this order):
+1. Q13 — C2 domain IOC sweep (90 days) — any hit = active IR
+2. Q14 — C2 IP IOC sweep (90 days) — any hit = active IR
+3. Q7 — Browser/email spawning RMM installer (90 days) — any hit = isolate and IR
+4. Q6 — RMM fleet inventory audit (90 days) — export and cross-reference authorized list
+5. Q4 — Office app spawning LOLBin (30 days)
+6. Q1 — Mshta remote HTA execution (30 days)
+7. Q3 — Obfuscated PowerShell (30 days) — prioritize rows with Office/mshta parents
+8. Q8 — Certutil/bitsadmin download (30 days)
+9. Q9 — Scheduled task persistence (30 days)
+10. Q10 — Credential dumping tools (30 days)
+11. Q11 — makecab data staging (30 days)
+12. Q12 — WMI spawning scripting engine (30 days)
+13. Q2 — Regsvr32 scriptlet (30 days)
+14. Q5 — DLL sideload via GoogleUpdate (30 days)
+15. Q15 — CMSTP execution (30 days)
+16. Q18 — Anomalous outbound UDP C2 / UDPGangster (90 days)
+17. Q16 — Registry Run-key / User Shell persistence (30 days)
+18. Q17 — Execution from RoamingLow / Public staging dir (30 days)
+19. Q19 — Scripting/RMM reach-out to file-sharing & cloud (30 days)
+20. Q20 — Security-service / AV tampering (30 days)
+21. Q21 — Browser credential-store access by non-browser (30 days)
+
+Expected Findings:
+- Q7/Q13/Q14 hits: treat as confirmed compromise — isolate and initiate IR immediately
+- Q6 results: export all RMM agents seen; any not in authorized inventory = investigate
+- Q4/Q1 hits: single host with Office/mshta parent = high confidence; isolated hits = validate
+- Q10 hits: any mimikatz/procdump64 = assume all credentials on host stolen; reset immediately
+
+Pending Actions:
+[ ] Deploy IOA rules IOA-1 through IOA-4 in Detect mode on pilot sensor group
+[ ] Enable PS Script Block Logging + Transcription via GPO
+[ ] Block mshta.exe outbound (Windows Firewall)
+[ ] Block macros from internet-sourced Office docs (GPO)
+[ ] Import IOC CSV to CrowdStrike IOC Management
+
+Follow-Up Schedule:
+- Re-run all queries: 2026-06-09 (7 days)
+- IP IOC expiry review: 2026-07-02 (30 days)
+- Domain IOC expiry review: 2026-09-02 (90 days)
+- IOA FP rate review / promote candidates: 2026-06-16 (14 days Detect)
+- Monitor for new MuddyWater IOCs: weekly — Check Point Research, Group-IB, Deep Instinct blogs
+- Re-hunt trigger: new CISA KEV from MOIS/MuddyWater; new BugSleep/RustyWater IOC publication</pre>
+</div></section>
+
+<!-- ─── 17. CHANGELOG ─── -->
+<section id="changelog"><div class="container">
+  <h2>17. Changelog</h2>
+  <table><thead><tr><th>Version</th><th>Date</th><th>Change Summary</th></tr></thead><tbody>
+    <tr><td>v2.0</td><td>2026-06-05</td><td>Review + intel refresh. <strong>CQL fixes:</strong> Q9 invalid <code>union</code> replaced with a single valid combined query; Q13 &amp; Q14 SQL-style <code>field in (...)</code> replaced with regex / <code>in(field, values=[...])</code>; Q14 now uses the documented rename+join pattern and includes UDPGangster C2 157.20.182.75. <strong>+6 queries</strong> (Q16 Run-key persistence, Q17 staging-dir execution, Q18 UDP C2, Q19 file-sharing reach-out, Q20 security-service tampering, Q21 browser-credential access) — closes all three v1.0 coverage gaps (T1547.001, T1102, T1562). <strong>New intel (2025–2026):</strong> UDPGangster (UDP/1269, 157.20.182.75), Phoenix v4 compromised-mailbox campaign (Group-IB), MuddyViper + Fooder loader + VAX One + CE Notes/LP Notes/Blub stealers (ESET), expanded RMM set (N-able/Action1/PDQ/Level) staged from file-sharing, Atera sample hashes (HarfangLab). New ATT&amp;CK rows (T1078, T1095, T1497, T1555.003, T1562.001, T1036). Coverage now 27/28 techniques. Note: VENOMOUS#HELPER cited as corroborating dual-RMM TTP only — attributed to a financially-motivated IAB, not MuddyWater.</td></tr>
+    <tr><td>v1.0</td><td>2026-06-02</td><td>Initial MuddyWater HuntPack. 15 CQL queries covering full kill chain: mshta HTA delivery, regsvr32 scriptlet, obfuscated PS, Office LOLBin, GoogleUpdate sideload, RMM fleet inventory, browser-parented RMM install, certutil/bitsadmin download, scheduled task persistence, LSASS dumping, makecab staging, WMI execution, C2 DNS/IP IOC sweeps, CMSTP. 4 Custom IOA rules. 3 coverage gaps identified (T1547.001, T1102, T1562). Sources: MITRE G0069, CISA AA22-055A, Check Point Research, Group-IB, Deep Instinct, ProtoSLabs.</td></tr>
+  </tbody></table>
+</div></section>
+
+<!-- ─── 18. REFERENCES ─── -->
+<section id="refs"><div class="container">
+  <h2>18. References</h2>
+  <table><thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead><tbody>
+    <tr><td>Primary — canonical TTP catalog</td><td><a href="https://attack.mitre.org/groups/G0069/">MITRE ATT&amp;CK G0069: MuddyWater</a></td><td>All technique mappings, tool inventory (POWERSTATS, PowGoop, Mimikatz, LaZagne, Browser64), CVE exploitation history, RMM tool list.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — government advisory</td><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-055a">CISA Advisory AA22-055A</a></td><td>USCYBERCOM attribution to MOIS, fleet-wide RMM auditing recommendation, hardening priorities.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://research.checkpoint.com/2024/new-bugsleep-backdoor-deployed-in-recent-muddywater-campaigns/">Check Point Research: BugSleep</a></td><td>BugSleep backdoor technical details, C2 domain screenai[.]online, mutex-based evasion, deployment timeline (May 2024+).</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.group-ib.com/blog/muddywater-espionage/">Group-IB: MuddyWater New Toolkit</a></td><td>Phoenix v4 backdoor, FakeUpdate injector, VBA macro delivery, campaign targets (100+ MENA government entities), domains stratioai[.]org and bootcamptg[.]org.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.deepinstinct.com/blog/darkbeatc2-the-latest-muddywater-attack-framework">Deep Instinct: DarkBeatC2</a></td><td>DarkBeatC2 framework, Python-based backdoors, C2 over legitimate web services, IP 91[.]121[.]240[.]102.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.protoslabs.io/resources/rustywater-rust-rat-campaign">ProtoSLabs: RustyWater RAT</a></td><td>Rust-based RAT delivery chain, domain nomercys[.]it[.]com, IP 159[.]198[.]66[.]153, NameCheap/AS136557 infrastructure pattern.</td><td>2026-06-02</td></tr>
+    <tr><td>Secondary — vendor advisory</td><td><a href="https://www.picussecurity.com/resource/ttps-and-malware-used-by-muddywater-cyber-espionage-group">Picus Security: MuddyWater TTPs</a></td><td>Corroboration of technique list, additional context on PowGoop and DLL sideloading.</td><td>2026-06-02</td></tr>
+    <tr><td>Secondary — vendor advisory</td><td><a href="https://rewterz.com/threat-advisory/new-bugsleep-backdoor-leveraged-by-muddywater-apt-in-middle-east-cyberattacks-active-iocs">Rewterz: BugSleep Active IOCs</a></td><td>Active IOC corroboration for BugSleep campaign.</td><td>2026-06-02</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.group-ib.com/blog/muddywater-infrastructure-malware/">Group-IB: Tracking MuddyWater in 2025</a></td><td>Oct 2025 Phoenix v4 compromised-mailbox campaign, 100+ MENA gov targets, file-sharing staging, screenai[.]online re-registration.</td><td>2026-06-05</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://www.helpnetsecurity.com/2025/12/02/eset-muddywater-cyber-campaign/">ESET (via Help Net Security): New MuddyWater Backdoors (Dec 2025)</a></td><td>MuddyViper backdoor, Fooder Snake-game loader, VAX One backdoor, CE Notes/LP Notes/Blub stealers, CNG crypto, IAB/Lyceum overlap.</td><td>2026-06-05</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://thehackernews.com/2025/12/muddywater-deploys-udpgangster-backdoor.html">The Hacker News / Fortinet: UDPGangster Backdoor</a></td><td>UDP/1269 C2 to 157.20.182.75, RoamingLow\SystemProc.exe persistence, mutex, PDB path, anti-VM, VBA Document_Open() chain.</td><td>2026-06-05</td></tr>
+    <tr><td>Primary — vendor research</td><td><a href="https://harfanglab.io/insidethelab/muddywater-rmm-campaign/">HarfangLab: MuddyWater Atera Campaign (TRR240402)</a></td><td>Atera Agent abuse via leaked OWA creds; 30+ Atera SHA-256 hashes; file-sharing/Zopim distribution URLs; YARA rules.</td><td>2026-06-05</td></tr>
+    <tr><td>Secondary — corroborating TTP</td><td><a href="https://www.securonix.com/blog/venomous-helper-phishing-campaign/">Securonix: VENOMOUS#HELPER (STAC6405)</a></td><td>Dual-RMM (SimpleHelp + ScreenConnect) persistence TTP. Attributed to a financially-motivated IAB, <strong>not</strong> MuddyWater — TTP corroboration only.</td><td>2026-06-05</td></tr>
+  </tbody></table>
+  <p style="color:var(--muted);font-size:.88rem;margin-top:16px;">MuddyWater HuntPack v2.0 — 21 CQL queries. Validate all queries against your tenant telemetry before promotion (esp. Q9 TaskExecCommand, Q16 RegStringValue, Q18 Protocol_decimal). Analyst: ai@hutzley.com</p>
+</div></section>
+
+</main>
+
+<script>
+  const cloudSelect = document.getElementById("falcon-cloud");
+  const cloudHost = document.getElementById("falcon-host");
+  const toc = document.querySelector(".toc");
+
+  function getTextById(id) {
+    const node = document.getElementById(id);
+    return node ? node.textContent.trim() : "";
+  }
+
+  async function copyText(text, button) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const previous = button.textContent;
+      button.textContent = "Copied";
+      window.setTimeout(() => { button.textContent = previous; }, 1400);
+    } catch (error) {
+      window.prompt("Copy this text:", text);
+    }
+  }
+
+  function updateCloudHost() {
+    cloudHost.textContent = cloudSelect.value;
+  }
+
+  function updateStickyOffsets() {
+    if (toc) {
+      document.documentElement.style.setProperty("--toc-height", `${toc.offsetHeight}px`);
+    }
+  }
+
+  function openInFalcon(query) {
+    const base = cloudSelect.value.replace(/\/$/, "");
+    const cleanQuery = query.split("\n")
+      .filter(line => !line.trim().startsWith("//"))
+      .join("\n")
+      .trim();
+    const encoded = encodeURIComponent(cleanQuery);
+    const url = `${base}/investigate/search?query=${encoded}`;
+    const win = window.open(url, "_blank", "noopener");
+    if (!win) {
+      window.prompt("Popup blocked. Copy the URL and paste it into your browser:", url);
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    const copyButton = event.target.closest(".copy");
+    if (copyButton) { copyText(getTextById(copyButton.dataset.copyTarget), copyButton); }
+    const falconButton = event.target.closest(".open-falcon");
+    if (falconButton) { openInFalcon(getTextById(falconButton.dataset.queryTarget)); }
+  });
+
+  cloudSelect.addEventListener("change", updateCloudHost);
+  window.addEventListener("resize", updateStickyOffsets);
+  updateStickyOffsets();
+  updateCloudHost();
+</script>
+</body>
+</html>
