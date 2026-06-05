@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### UNC3753 — "Silent Ransom Group" Hunt
+**Vishing / data-theft extortion (Luna Moth / Chatty Spider) — RMM abuse & rapid exfil**
+Behavior-first HuntPack for UNC3753 (aka Luna Moth, Chatty Spider, Silent Ransom Group) — a financially motivated cluster that phones employees posing as internal IT, talks them onto a screen-share, plants a commercial RMM agent, then enumerates document stores and exfiltrates sensitive files, often within a single business day (with in-person USB theft as a fallback). Hunt focus: unauthorized RMM / remote-support tooling, curl→msiexec install chains, Rclone/WinSCP egress, outbound SSH, USB mass-storage, and known C2 IPs — with Falcon LogScale CQL hunts, triage checklist, and hardening.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/UNC3753-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/UNC3753-Hunt.html)
+
+---
+
 ### MuddyWater — Defender Hunt & Hardening Pack
 **Iranian MOIS nation-state APT / PowerShell + RMM abuse / espionage & persistence**
 Behavior-first HuntPack for MuddyWater (Iran MOIS, active since 2017) targeting government, telecom, oil & gas, defense, and finance across the Middle East, Asia, Europe, and North America. Covers heavy PowerShell at every kill-chain stage, systematic RMM-tool abuse (Atera, SimpleHelp, ScreenConnect, N-able, Action1, PDQ, Level) delivered from free file-sharing services, compromised-mailbox spearphishing, GoogleUpdate.exe DLL sideloading, and recent backdoors (BugSleep, Phoenix v4, UDPGangster, MuddyViper via the "Fooder" reflective loader, VAX One) — with Falcon LogScale CQL hunts, Custom IOA guidance, validation gates, and hardening.
