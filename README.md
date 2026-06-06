@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### IronWorm — npm Supply-Chain Worm Hunt
+**Rust credential-stealer & self-replicating npm worm / preinstall ELF / eBPF rootkit**
+Behavior-first HuntPack for IronWorm — a custom Rust implant distributed through 37 trojanized npm package versions published from a single compromised maintainer account. It executes via a malicious `preinstall` script (`tools/setup`, with a `.github/scripts/precheck` variant) the moment `npm install` runs — a UPX-stubbed, string-encrypted ELF that fires before dependency resolution. Once running it sweeps 86 environment variables and 20+ credential file paths (AWS/GCP/Azure, npm, GitHub, SSH, Docker, Vault, Kubernetes, and the 2026 AI-provider keys — Anthropic, OpenAI, Gemini, Cohere, Mistral, Groq, Perplexity, xAI), injects a JavaScript hook into the Exodus desktop wallet to steal the password and seed phrase, loads an eBPF kernel rootkit to hide processes/sockets and resist `ptrace`, bootstraps Tor and beacons to `/api/agent` for tasking, and self-replicates — abusing npm Trusted Publishing (OIDC token exchange) in CI to re-publish trojanized packages. Covers Falcon LogScale CQL hunts, native npm/GitHub/CI audit-log checks, Custom IOA guidance, machine-readable IOC appendices, validation gates, and hardening.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/IronWorm-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/IronWorm-Hunt.html)
+
+---
+
 ### UNC3753 — "Silent Ransom Group" Hunt
 **Vishing / data-theft extortion (Luna Moth / Chatty Spider) — RMM abuse & rapid exfil**
 Behavior-first HuntPack for UNC3753 (aka Luna Moth, Chatty Spider, Silent Ransom Group) — a financially motivated cluster that phones employees posing as internal IT, talks them onto a screen-share, plants a commercial RMM agent, then enumerates document stores and exfiltrates sensitive files, often within a single business day (with in-person USB theft as a fallback). Hunt focus: unauthorized RMM / remote-support tooling, curl→msiexec install chains, Rclone/WinSCP egress, outbound SSH, USB mass-storage, and known C2 IPs — with Falcon LogScale CQL hunts, triage checklist, and hardening.
