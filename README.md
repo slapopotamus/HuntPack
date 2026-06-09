@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### Shai-Hulud "Descends to Hades" — PyPI Wave Hunt & Hardening Pack
+**Cross-ecosystem supply-chain worm / malicious PyPI packages / Python `.pth` → Bun payload**
+HuntPack v0.2 for the Shai-Hulud "Hades" PyPI wave — covers the Python `.pth` startup hook that bootstraps a Bun runtime from a pinned GitHub release, the `.bun_ran` execution sentinel, CI/CD and EDR sandbox-evasion checks, credential-file sweeps (`.aws/credentials`, `.npmrc`, SSH keys), C2 exfil domains, GitHub dead-drop markers, 13 Falcon LogScale CQL hunts with one-click "Open in Falcon" deep-links, Custom IOA candidates, detection validation gates, a grouped IOC quick-copy panel (hashes, network, file paths, 25 malicious PyPI packages / 43 version pins, hunt strings, crypto keys), and deployable hardening playbooks.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ShaiHulud-Hades-PyPI-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ShaiHulud-Hades-PyPI-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/ShaiHulud-Hades-PyPI-Hunt.html)
+
+---
+
 ### IronWorm — npm Supply-Chain Worm Hunt
 **Rust credential-stealer & self-replicating npm worm / preinstall ELF / eBPF rootkit**
 Behavior-first HuntPack for IronWorm — a custom Rust implant distributed through 37 trojanized npm package versions published from a single compromised maintainer account. It executes via a malicious `preinstall` script (`tools/setup`, with a `.github/scripts/precheck` variant) the moment `npm install` runs — a UPX-stubbed, string-encrypted ELF that fires before dependency resolution. Once running it sweeps 86 environment variables and 20+ credential file paths (AWS/GCP/Azure, npm, GitHub, SSH, Docker, Vault, Kubernetes, and the 2026 AI-provider keys — Anthropic, OpenAI, Gemini, Cohere, Mistral, Groq, Perplexity, xAI), injects a JavaScript hook into the Exodus desktop wallet to steal the password and seed phrase, loads an eBPF kernel rootkit to hide processes/sockets and resist `ptrace`, bootstraps Tor and beacons to `/api/agent` for tasking, and self-replicates — abusing npm Trusted Publishing (OIDC token exchange) in CI to re-publish trojanized packages. Covers Falcon LogScale CQL hunts, native npm/GitHub/CI audit-log checks, Custom IOA guidance, machine-readable IOC appendices, validation gates, and hardening.
