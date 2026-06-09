@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### CVE-2026-41089 — Windows Netlogon RCE (Domain Controller Takeover)
+**Pre-auth 0-click stack overflow in `netlogon.dll` → SYSTEM on any Domain Controller**
+HuntPack v0.2 for CVE-2026-41089 (CVSS 9.8, CWE-121) — a stack-based buffer overflow in the Windows Netlogon RPC service (`netlogon.dll`, `BuildSamLogonResponse`). Because every Domain Controller runs Netlogon, any reachable DC is structurally exposed; exploitation is 0-click, unauthenticated, and low-complexity. Patched 2026-05-12 (Patch Tuesday), in-the-wild ~2026-05-29. Covers 8 Falcon LogScale CQL hunts, 5 native audit-log hunts, 4 Custom IOA candidates, consolidated + machine-readable IOC appendices with a grouped IOC quick-copy grid, detection validation gates, tiered DC hardening, 3 deployable playbooks, and a containment runbook. Built from MSRC + CVE.org + NVD + CCB Belgium intel.
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41089-Netlogon-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41089-Netlogon-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41089-Netlogon-Hunt.html)
+
+---
+
 ### Shai-Hulud "Descends to Hades" — PyPI Wave Hunt & Hardening Pack
 **Cross-ecosystem supply-chain worm / malicious PyPI packages / Python `.pth` → Bun payload**
 HuntPack v0.2 for the Shai-Hulud "Hades" PyPI wave — covers the Python `.pth` startup hook that bootstraps a Bun runtime from a pinned GitHub release, the `.bun_ran` execution sentinel, CI/CD and EDR sandbox-evasion checks, credential-file sweeps (`.aws/credentials`, `.npmrc`, SSH keys), C2 exfil domains, GitHub dead-drop markers, 13 Falcon LogScale CQL hunts with one-click "Open in Falcon" deep-links, Custom IOA candidates, detection validation gates, a grouped IOC quick-copy panel (hashes, network, file paths, 25 malicious PyPI packages / 43 version pins, hunt strings, crypto keys), and deployable hardening playbooks.
