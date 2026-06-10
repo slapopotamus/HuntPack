@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salt Typhoon / UAT-9244 — TernDoor · PeerTime · BruteEntry HuntPack v0.2</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f85149;
+  --accent-dim: rgba(248, 81, 73, 0.13);
+  --red: #f85149;
+  --yellow: #d29922;
+  --green: #7ee787;
+  --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 0; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 182px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 220px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+.hp-header { background: linear-gradient(140deg, #2a1414 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+td .mono, code { word-break: break-all; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: rgba(248,81,73,0.07); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy:hover { background: rgba(248,81,73,0.28); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(210,153,34,0.1); color: #d29922; border-color: rgba(210,153,34,0.5); }
+.btn-falcon:hover { background: rgba(210,153,34,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.cloud-sel .host { color: var(--accent); font-family: 'Cascadia Code','Consolas',monospace; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 240px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; }
+.tier-near { border-left: 3px solid #d29922; }
+.tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; }
+.tier-near .tier-lbl { color: #d29922; }
+.tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk h4 { font-size: 12.5px; color: var(--text); margin-bottom: 4px; }
+.tier-blk ul { padding-left: 18px; }
+.tier-blk li { font-size: 12px; margin-bottom: 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+pre.json { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 10.5px; line-height: 1.5; overflow: auto; color: #e6edf3; max-height: 460px; white-space: pre; }
+.phase-hdr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--red); margin: 14px 0 8px; padding: 4px 8px; background: rgba(248,81,73,0.1); border-left: 2px solid var(--red); border-radius: 0 4px 4px 0; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-date { color: var(--text-muted); min-width: 88px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; }
+p { margin-bottom: 7px; font-size: 13px; }
+ul, ol { padding-left: 18px; margin: 6px 0; }
+li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); }
+h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Salt Typhoon / UAT-9244<br>TernDoor · PeerTime · BruteEntry</div>
+    <div class="version">v0.2 · 2026-06-10</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Surface &amp; Telemetry</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <a href="#s7">7 · Native Audit Hunts</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment Runbook</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+<!-- HEADER -->
+<div class="hp-header">
+  <h1>Salt Typhoon / UAT-9244 — TernDoor · PeerTime · BruteEntry</h1>
+  <div class="subtitle">China-nexus telecom espionage toolkit. Windows backdoor (TernDoor), cross-arch ELF P2P backdoor (PeerTime), and a GoLang edge-device brute-force ORB (BruteEntry). Defensive hunt &amp; harden pack — no offensive tradecraft.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Actor</div><div class="mv">UAT-9244 (Talos)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Nation-state espionage · telecom</div></div>
+    <div class="meta-item"><div class="mk">Platforms</div><div class="mv">Windows · Linux · ARM/MIPS edge</div></div>
+    <div class="meta-item"><div class="mk">Disclosed</div><div class="mv">2026-03-05 (Cisco Talos)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.2 (Draft)</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 1 ═══ -->
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Since 2024, <strong>UAT-9244</strong> — a China-nexus APT that Cisco Talos assesses with high confidence as closely overlapping <strong>FamousSparrow</strong> and <strong>Tropic Trooper</strong> — has been compromising telecommunications infrastructure (Windows endpoints, Linux servers, and edge/embedded devices) in South America for long-term espionage. The cluster proliferates access with three custom implants that together cover the IT estate end-to-end.</p>
+    <ul>
+      <li><strong>TernDoor</strong> — a Windows backdoor descended from CrowDoor → SparrowDoor. Delivered by DLL side-loading (<code>wsprint.exe</code> → <code>BugSplatRc64.dll</code> → encrypted <code>WSPrint.dll</code>), decrypted in memory and injected into <code>msiexec.exe</code>. Ships a kernel driver (<code>WSPrint.sys</code>, device <code>\Device\VMTool</code>) that suspends/terminates processes for defense evasion. Persists via the <code>WSPrint</code> scheduled task and/or a Run key, hiding the task by editing the TaskCache registry tree.</li>
+      <li><strong>PeerTime</strong> — a cross-architecture (ARM, AArch64, MIPS, PPC) ELF backdoor that uses the <strong>BitTorrent protocol</strong> for resilient peer-based C2 and payload delivery. Loader runs the payload in memory and renames its process; uses Docker and BusyBox as living-off-the-land helpers. C/C++ and newer Rust variants exist; tracked in VirusTotal as <code>angrypeer</code>.</li>
+      <li><strong>BruteEntry</strong> — a GoLang brute-force agent dropped on Linux edge devices to make them <strong>Operational Relay Boxes (ORBs)</strong>. Registers with a C2, pulls target lists, and brute-forces SSH, Postgres (5432), and Tomcat (<code>/manager/html</code>) with embedded credentials, reporting cracks back.</li>
+    </ul>
+    <div class="callout callout-danger">
+      ⚠ <strong>Defender priority:</strong> CrowdStrike telemetry is richest on the Windows TernDoor chain — the <code>WSPrint</code> scheduled-task/Run-key persistence, msiexec injection, and rogue driver are the highest-fidelity, lowest-FP catches. Treat the Linux/edge implants as a <em>coverage problem first</em>: PeerTime and BruteEntry live on routers, embedded systems, and appliances that frequently carry <strong>no EDR sensor</strong> — pair the host queries with network egress controls and perimeter IOC blocking.
+    </div>
+    <div class="callout callout-warn">
+      <strong>Attribution caveat:</strong> This hunt was requested as "Salt Typhoon." Talos explicitly states that while UAT-9244 and Salt Typhoon <em>both</em> target telecom providers, it could <strong>not</strong> verify a solid connection between the two clusters. This pack hunts the concrete, Talos-attributed UAT-9244 toolkit; the Salt Typhoon label is retained only as the requested entry point.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 2 ═══ -->
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Fwd</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-purple">Primary</span></td><td><a href="https://blog.talosintelligence.com/uat-9244/" target="_blank">Cisco Talos — UAT-9244</a></td><td>Full technical breakdown of all three implants, attack chain, persistence, driver, complete IOC set, ClamAV/Snort coverage (SID 65551)</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-purple">Primary</span></td><td><a href="https://www.welivesecurity.com/en/eset-research/you-will-always-remember-this-as-the-day-you-finally-caught-famoussparrow/" target="_blank">ESET — FamousSparrow / SparrowDoor</a></td><td>TernDoor lineage CrowDoor → SparrowDoor; cluster overlap</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-purple">Primary</span></td><td><a href="https://www.trendmicro.com/en_us/research/24/k/breaking-down-earth-estries-persistent-ttps-in-prolonged-cyber-o.html" target="_blank">Trend Micro — Earth Estries</a></td><td>CrowDoor context; shared China-nexus tooling</td><td>Partial</td></tr>
+        <tr><td><span class="badge b-info">Secondary</span></td><td><a href="https://thehackernews.com/2026/03/china-linked-hackers-use-terndoor.html" target="_blank">The Hacker News</a></td><td>Corroborates targeting, implant roles, ORB tradecraft; no new IOCs</td><td>Partial</td></tr>
+        <tr><td><span class="badge b-info">Secondary</span></td><td><a href="https://www.bleepingcomputer.com/news/security/chinese-state-hackers-target-telcos-with-new-malware-toolkit/" target="_blank">BleepingComputer</a></td><td>Corroborates campaign scope and severity</td><td>Partial</td></tr>
+        <tr><td><span class="badge b-med">Tertiary</span></td><td><a href="https://malpedia.caad.fkie.fraunhofer.de/actor/uat-9244" target="_blank">Malpedia — UAT-9244</a></td><td>Actor tracking, cross-references</td><td>Partial</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;font-size:11.5px;color:var(--text-muted);">Confidence: <strong>HIGH</strong> — anchored on a single authoritative vendor primary (Talos) with full reverse-engineered behavior and atomic IOCs; trade press corroborates without adding indicators. "Salt Typhoon" link to UAT-9244 is <strong>unconfirmed</strong> per Talos and is retained only as the requested label.</p>
+  </div>
+</div>
+
+<!-- ═══ SECTION 3 ═══ -->
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> If UAT-9244 is present, we expect (a) a side-loaded <code>wsprint.exe</code>/<code>msiexec.exe</code> chain executing from <code>C:\ProgramData\WSPrint\</code>, (b) a <code>WSPrint</code> onstart-SYSTEM scheduled task and/or Run key with matching TaskCache hiding, (c) a rogue kernel driver exposing <code>\Device\VMTool</code>, (d) TLS beacons to the shared self-signed-cert C2 set on 443, and on Linux/edge (e) Docker/BusyBox-assisted ELF execution and outbound brute-force scanning to SSH/Postgres/Tomcat.</p>
+    <h3>Attack Chain</h3>
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Initial access via brute-forced edge service or side-loaded delivery</td><td>Linux auth logs, NetworkConnect</td><td>Failed→success auth burst; new ORB outbound scanning</td></tr>
+        <tr><td>2</td><td>TernDoor delivery: <code>wsprint.exe</code> side-loads <code>BugSplatRc64.dll</code> → decodes <code>WSPrint.dll</code> in memory</td><td>ProcessRollup2, PeFileWritten</td><td>Implant filenames written outside System32; exec from ProgramData (Q1/Q2)</td></tr>
+        <tr><td>3</td><td>Inject final payload into <code>msiexec.exe</code></td><td>ProcessRollup2, NetworkConnectIP4</td><td>msiexec with no MSI making 443 egress (Q3)</td></tr>
+        <tr><td>4</td><td>Persistence: <code>WSPrint</code> onstart SYSTEM task + Run key</td><td>ProcessRollup2, AsepValueUpdate</td><td>schtasks /create … WSPrint … onstart; Run → ProgramData\WSPrint (Q4/Q4b)</td></tr>
+        <tr><td>5</td><td>Hide task by editing TaskCache tree (delete SD, Index 1→0)</td><td>RegGenericValueUpdate</td><td>SD/Index writes under Schedule\TaskCache\Tree\ (Q5)</td></tr>
+        <tr><td>6</td><td>Load process-killer driver <code>WSPrint.sys</code> (device <code>\Device\VMTool</code>)</td><td>Registry service, driver load</td><td>Service ImagePath → WSPrint.sys; rogue VMTool device (Q6)</td></tr>
+        <tr><td>7</td><td>TernDoor C2 over TLS/443 (shared self-signed cert, CN=8.8.8.8)</td><td>NetworkConnectIP4</td><td>Connections to the 22-IP C2/infra set; cert pivot (Q7)</td></tr>
+        <tr><td>8</td><td>PeerTime on Linux/embedded: Docker+BusyBox staging, BitTorrent C2</td><td>Linux ProcessRollup2, DnsRequest</td><td>docker running ELF from /tmp; busybox cp; angrypeer (Q8/Q10)</td></tr>
+        <tr><td>9</td><td>BruteEntry ORB: register with C2, brute SSH/Postgres/Tomcat</td><td>Linux ProcessRollup2, NetworkConnect</td><td>Outbound 22/5432/8080 fan-out; /tasks polling (Q9)</td></tr>
+      </tbody>
+    </table>
+    <h3 style="margin-top:16px;">Hunt Hypotheses (Priority Order)</h3>
+    <table>
+      <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Conf.</th><th>FP Risk</th></tr></thead>
+      <tbody>
+        <tr><td>H1</td><td>TernDoor implant files (loader/payload/driver) written to a Windows host</td><td>T1574.002, T1014</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-low">LOW</span></td></tr>
+        <tr><td>H2</td><td>WSPrint onstart-SYSTEM scheduled task / Run-key persistence present</td><td>T1053.005, T1547.001</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-low">LOW</span></td></tr>
+        <tr><td>H3</td><td>Rogue driver service (WSPrint.sys / \Device\VMTool) installed</td><td>T1543.003, T1014</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-low">LOW</span></td></tr>
+        <tr><td>H4</td><td>Host beaconing to confirmed UAT-9244 C2 IPs / PeerTime domains</td><td>T1071.001, T1573</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-low">LOW</span></td></tr>
+        <tr><td>H5</td><td>msiexec.exe with no MSI argument making 443 egress (injection)</td><td>T1055, T1071.001</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H6</td><td>TaskCache SD/Index manipulation hiding a scheduled task</td><td>T1562.001, T1564</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H7</td><td>Linux edge host fan-out brute-forcing SSH/Postgres/Tomcat (ORB)</td><td>T1110, T1090</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H8</td><td>PeerTime/BruteEntry Docker+BusyBox staging from temp paths</td><td>T1059.004, T1610</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 4 ═══ -->
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <p style="font-size:11.5px;color:var(--text-muted);">Talos-attributed indicators. Bulk quick-copy blocks and full JSON are in §10.</p>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf.</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>IP (C2)</td><td><code>154.205.154.82:443</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>TernDoor C2</td></tr>
+        <tr><td>IP (C2)</td><td><code>207.148.121.95:443</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>TernDoor C2</td></tr>
+        <tr><td>IP (C2)</td><td><code>207.148.120.52:443</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>TernDoor C2</td></tr>
+        <tr><td>IP (C2/host)</td><td><code>212.11.64.105</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>TernDoor C2; loader + PeerTime/BruteEntry host</td></tr>
+        <tr><td>Domain</td><td><code>bloopencil.net</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>PeerTime C2</td></tr>
+        <tr><td>IP (C2)</td><td><code>185.196.10.38</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>PeerTime C2</td></tr>
+        <tr><td>IP (infra)</td><td><code>185.196.10.247</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>PeerTime remote + BruteEntry infra</td></tr>
+        <tr><td>Domain</td><td><code>xtibh.com</code> · <code>xcit76.com</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>PeerTime remote locations</td></tr>
+        <tr><td>TLS cert (SHA256)</td><td><code>0c7e3668…fdbdecc8</code></td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>Self-signed cert shared across TernDoor C2 (CN=8.8.8.8)</td></tr>
+        <tr><td>IP set (18)</td><td><code>149.28.25.33</code> + 17 more (cert pivot)</td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>Suspected UAT-9244 infra — corroborate before blocking</td></tr>
+        <tr><td>File path</td><td><code>C:\ProgramData\WSPrint\WSPrint.exe</code></td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>TernDoor persistence path</td></tr>
+        <tr><td>File names</td><td><code>BugSplatRc64.dll · WSPrint.dll · WSPrint.sys</code></td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>Side-load loader / payload / driver</td></tr>
+        <tr><td>Sched task</td><td><code>WSPrint</code> (onstart, /ru SYSTEM)</td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>TernDoor persistence</td></tr>
+        <tr><td>Device</td><td><code>\Device\VMTool</code></td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>Rogue driver device object</td></tr>
+        <tr><td>Decode key</td><td><code>qwiozpVngruhg123</code></td><td><span class="badge b-med">MED</span></td><td>Enrich</td><td>WSPrint.dll payload decode key</td></tr>
+        <tr><td>Hash (driver)</td><td><code>2d2ca7d2…dc8f0538</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>WSPrint.sys process-killer driver</td></tr>
+        <tr><td>VT config tag</td><td><code>malware_config:angrypeer</code></td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>PeerTime VirusTotal pivot</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-warn">⚠ <strong>Perishability:</strong> espionage ORB infrastructure rotates fast — treat network IOCs as <code>detect +6mo</code> but re-validate against Talos/VT monthly. The 18-IP suspected set is a <em>cert pivot</em>: hunt and enrich, do not auto-block without corroboration (some may be shared hosting).</div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 5 ═══ -->
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk if Missing</th></tr></thead>
+      <tbody>
+        <tr><td>Windows endpoints/servers (TernDoor)</td><td>Falcon ProcessRollup2, PeFileWritten, AsepValueUpdate, RegGenericValueUpdate, NetworkConnectIP4</td><td><span class="badge b-crit">CRITICAL</span></td><td>Low — strong native coverage</td></tr>
+        <tr><td>Linux servers (PeerTime/BruteEntry)</td><td>Falcon Linux sensor: ProcessRollup2, ElfFileWritten, NetworkConnect, DnsRequest</td><td><span class="badge b-high">HIGH</span></td><td>Medium — only if sensor deployed</td></tr>
+        <tr><td>Routers / embedded / appliances (PeerTime ARM/MIPS, BruteEntry ORB)</td><td>NetFlow, firewall egress logs, appliance syslog, NDR</td><td><span class="badge b-high">HIGH</span></td><td><span style="color:var(--red)">High — typically NO EDR sensor</span></td></tr>
+        <tr><td>Network egress (all C2)</td><td>Firewall / proxy logs, TLS metadata (JA3/cert), DNS logs</td><td><span class="badge b-high">HIGH</span></td><td>Medium — depends on egress visibility</td></tr>
+        <tr><td>BitTorrent C2 (PeerTime)</td><td>NDR / flow analytics for P2P patterns</td><td><span class="badge b-med">MEDIUM</span></td><td><span style="color:var(--red)">High — peer-based, no fixed domain</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 6 ═══ -->
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique ID</th><th>Technique Name</th><th>Observed Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access / Cred Access</td><td>T1110 / T1133</td><td>Brute Force / External Remote Services</td><td>BruteEntry hits SSH/Postgres/Tomcat with embedded creds</td></tr>
+        <tr><td>Execution</td><td>T1059.004 / T1610</td><td>Unix Shell / Deploy Container</td><td>Shell scripts stage ELF; Docker runs PeerTime loader</td></tr>
+        <tr><td>Defense Evasion</td><td>T1574.002</td><td>DLL Side-Loading</td><td>wsprint.exe loads BugSplatRc64.dll</td></tr>
+        <tr><td>Defense Evasion</td><td>T1055</td><td>Process Injection</td><td>Payload injected into msiexec.exe</td></tr>
+        <tr><td>Defense Evasion</td><td>T1036</td><td>Masquerading</td><td>WSPrint mimics print spooler; PeerTime renames process</td></tr>
+        <tr><td>Defense Evasion</td><td>T1014 / T1543.003</td><td>Rootkit / Windows Service</td><td>WSPrint.sys driver suspends/terminates processes via \Device\VMTool</td></tr>
+        <tr><td>Defense Evasion</td><td>T1562.001 / T1564</td><td>Impair Defenses / Hide Artifacts</td><td>TaskCache SD deletion / Index 1→0 to hide task</td></tr>
+        <tr><td>Persistence</td><td>T1053.005</td><td>Scheduled Task</td><td>WSPrint onstart SYSTEM task</td></tr>
+        <tr><td>Persistence</td><td>T1547.001</td><td>Registry Run Key</td><td>HKCU…\Run → ProgramData\WSPrint</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1071.001 / T1573</td><td>Web Protocols / Encrypted Channel</td><td>TLS/443 to shared self-signed cert C2</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1095</td><td>Non-Application Layer (P2P)</td><td>PeerTime BitTorrent C2</td></tr>
+        <tr><td>Resource Development</td><td>T1584.005</td><td>Botnet / ORB</td><td>Edge devices converted to relay boxes</td></tr>
+        <tr><td>Discovery</td><td>T1082</td><td>System Information Discovery</td><td>TernDoor collects host/user/IP/OS bitness</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 7 ═══ -->
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (Non-CQL)</h2></div>
+  <div class="section-body">
+    <p>For surfaces where EDR is blind (edge/embedded devices, appliances) — run these in SIEM, firewall, and NDR logs.</p>
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>Edge brute-force inbound</td><td>SSH (auth.log), Postgres, Tomcat access logs</td><td>High-rate auth failures from one source then a success; Tomcat <code>/manager/html</code> POST bursts</td><td>Lock account, reset creds, isolate source</td></tr>
+        <tr><td>ORB outbound scanning</td><td>Firewall / NetFlow</td><td>Internal edge host initiating wide fan-out to external 22/5432/8080</td><td>Block egress, image device, treat as compromised relay</td></tr>
+        <tr><td>C2 beacon to IOC set</td><td>Firewall / proxy / DNS</td><td>Any traffic to §4 IPs/domains; resolution of bloopencil.net / xtibh.com / xcit76.com</td><td>Block, pivot on all hosts that touched it</td></tr>
+        <tr><td>Self-signed cert pivot</td><td>TLS metadata / Zeek x509</td><td>Cert SHA256 <code>0c7e3668…</code> or CN=8.8.8.8 / O=Internet Widgits on 443 egress</td><td>Hunt all peers presenting the cert</td></tr>
+        <tr><td>BitTorrent from servers</td><td>NDR / flow</td><td>BitTorrent handshake/DHT from telecom servers or edge devices (no business reason)</td><td>Investigate as PeerTime C2</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 8 ═══ -->
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region" onchange="updateHost()">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="host" id="cloud-host">https://falcon.crowdstrike.com</span>
+    </div>
+    <div class="callout callout-info">10 queries, high-fidelity first. Field names validated against the Falcon event reference. <strong>Q9/Q10 require the Linux sensor</strong>; on unmanaged edge/embedded devices use the §7 native hunts instead.</div>
+
+    <!-- Q1 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · TernDoor loader/payload/driver file write</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the TernDoor loader, payload, and driver filenames being written outside System32. <strong>Accomplishes:</strong> catches delivery/staging at step 2 before execution.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: TernDoor loader/payload/driver file write</span>
+<span class="cm">// MITRE: T1574.002, T1014 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: PeFileWritten / NewExecutableWritten telemetry</span>
+<span class="cm">// FALSE POSITIVES: none expected (filenames are implant-specific)</span>
+#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/
+| TargetFileName=/\\(WSPrint\.(exe|dll|sys)|BugSplatRc64\.dll)$/i
+| table([@timestamp, aid, ComputerName, UserName, TargetFileName, SHA256HashData, ContextBaseFileName])</pre>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · TernDoor known-bad hashes (loader · payload · driver)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any execution or write of the seven Talos Windows hashes. <strong>Accomplishes:</strong> deterministic confirmation of TernDoor presence.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: TernDoor hash match (Windows set)</span>
+<span class="cm">// MITRE: T1574.002, T1055, T1014 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: SHA256HashData on process/file events</span>
+#event_simpleName=/^(ProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| in(SHA256HashData, values=[
+    "711d9427ee43bc2186b9124f31cba2db5f54ec9a0d56dc2948e1a4377bada289",
+    "3c098a687947938e36ab34b9f09a11ebd82d50089cbfe6e237d810faa729f8ff",
+    "f36913607356a32ea106103387105c635fa923f8ed98ad0194b66ec79e379a02",
+    "a5e413456ce9fc60bb44d442b72546e9e4118a61894fbe4b5c56e4dfad6055e3",
+    "075b20a21ea6a0d2201a12a049f332ecc61348fc0ad3cfee038c6ad6aa44e744",
+    "1f5635a512a923e98a90cdc1b2fb988a2da78706e07e419dae9e1a54dd4d682b",
+    "2d2ca7d21310b14f5f5641bbf4a9ff4c3e566b1fbbd370034c6844cedc8f0538"])
+| table([@timestamp, aid, ComputerName, UserName, #event_simpleName, ImageFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · msiexec.exe beaconing without an MSI (injection target)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST LOW-MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>msiexec.exe</code> making outbound 443 connections with no install package on the command line. <strong>Accomplishes:</strong> catches TernDoor's injected payload (step 3) when the C2 IP is unknown.</p>
+        <div class="callout callout-warn">Common FP: legitimate installs/repairs occasionally have msiexec reach the internet. Tuning scopes to msiexec started with no <code>.msi</code>/<code>/i</code>/<code>/x</code> argument, which is abnormal; exclude software-deployment hosts.</div>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: msiexec outbound 443 with no MSI argument</span>
+<span class="cm">// MITRE: T1055, T1071.001 | CONF: medium  FP: medium  COST: low-medium</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 + ProcessRollup2 command line</span>
+<span class="cm">// TUNING: exclude msiexec with .msi // /i // /x // /update; exclude deployment hosts</span>
+#event_simpleName=NetworkConnectIP4
+| ContextBaseFileName=/^msiexec\.exe$/i
+| RemotePort=443
+| join(query={
+    #event_simpleName=ProcessRollup2
+    | ImageFileName=/\\msiexec\.exe$/i
+    | CommandLine!=/(\.msi|\s\/i\b|\s\/x\b|\s\/update)/i
+  }, field=[aid, ContextProcessId_decimal], key=[aid, TargetProcessId_decimal], include=[CommandLine, ParentBaseFileName])
+| table([@timestamp, aid, ComputerName, RemoteAddressIP4, RemotePort, CommandLine, ParentBaseFileName])</pre>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · WSPrint scheduled-task persistence (onstart / SYSTEM)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>schtasks /create</code> registering the WSPrint task to run from ProgramData as SYSTEM at startup. <strong>Accomplishes:</strong> catches persistence (step 4) — one of the highest-fidelity signals.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: WSPrint onstart SYSTEM scheduled task creation</span>
+<span class="cm">// MITRE: T1053.005 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 command line</span>
+#event_simpleName=ProcessRollup2
+| ImageFileName=/\\schtasks\.exe$/i
+| CommandLine=/\/create/i
+| CommandLine=/WSPrint/i
+| CommandLine=/(onstart|ProgramData\\WSPrint)/i
+| table([@timestamp, aid, ComputerName, UserName, CommandLine, ParentBaseFileName])</pre>
+      </div>
+    </div>
+
+    <!-- Q4b -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4b · Run-key persistence pointing to ProgramData\WSPrint</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4b',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4b')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a Run key whose value resolves into <code>ProgramData\WSPrint</code>. <strong>Accomplishes:</strong> catches the secondary login persistence the actor sets alongside the task.</p>
+<pre class="cql" id="cql4b"><span class="cm">// HUNT: Run-key persistence -> ProgramData\WSPrint</span>
+<span class="cm">// MITRE: T1547.001 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: AsepValueUpdate / RegGenericValueUpdate</span>
+#event_simpleName=/^(AsepValueUpdate|RegGenericValueUpdate)$/
+| RegObjectName=/\\CurrentVersion\\Run$/i
+| RegStringValue=/ProgramData\\WSPrint/i
+| table([@timestamp, aid, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue])</pre>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Scheduled-task hiding via TaskCache tree edit</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> writes to <code>SD</code> / <code>Index</code> under <code>Schedule\TaskCache\Tree\</code>. <strong>Accomplishes:</strong> catches the task-hiding evasion (step 5), including for renamed variants of the WSPrint task.</p>
+        <div class="callout callout-warn">Common FP: Windows itself and some management tooling touch TaskCache. Tuning scopes to SD value deletions + Index set to 0 and lets you exclude sanctioned RMM/MDM agents.</div>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: TaskCache SD/Index manipulation (hidden task)</span>
+<span class="cm">// MITRE: T1562.001, T1564 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: RegGenericValueUpdate</span>
+<span class="cm">// TUNING: exclude sanctioned RMM/MDM parents; focus on SD deletions + Index=0</span>
+#event_simpleName=/^Reg.*Update$/
+| RegObjectName=/\\Schedule\\TaskCache\\Tree\\/i
+| RegValueName=/^(SD|Index)$/
+| table([@timestamp, aid, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue])</pre>
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Rogue driver / service (WSPrint.sys · \Device\VMTool)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a service whose image path references <code>WSPrint.sys</code>, or registry artifacts of the <code>VMTool</code> device. <strong>Accomplishes:</strong> catches the process-killer driver (step 6) used for defense evasion.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: TernDoor driver service install</span>
+<span class="cm">// MITRE: T1543.003, T1014 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: registry service-key telemetry</span>
+<span class="cm">// FALSE POSITIVES: none expected (driver name is implant-specific)</span>
+#event_simpleName=/^(RegGenericValueUpdate|RegSystemConfigValueUpdate)$/
+| RegObjectName=/\\Services\\/i
+| RegStringValue=/(WSPrint\.sys|\\Device\\VMTool)/i
+| table([@timestamp, aid, ComputerName, RegObjectName, RegValueName, RegStringValue])</pre>
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Outbound to UAT-9244 C2 / infrastructure</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any host connecting to the confirmed C2 IPs and the suspected-infra set. <strong>Accomplishes:</strong> catches C2 (steps 3/7) across all three implants.</p>
+        <div class="callout callout-warn">Common FP: the 18 "suspected" IPs are a cert pivot and may include shared hosting — confirmed IPs → alert; suspected IPs → investigate only.</div>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: UAT-9244 C2 / infra outbound</span>
+<span class="cm">// MITRE: T1071.001, T1573 | CONF: high (confirmed) / medium (suspected)  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// TUNING: confirmed IPs -> alert; suspected IPs -> investigate only</span>
+#event_simpleName=NetworkConnectIP4
+| in(RemoteAddressIP4, values=[
+    "154.205.154.82","207.148.121.95","207.148.120.52","212.11.64.105",
+    "185.196.10.38","185.196.10.247",
+    "149.28.25.33","154.205.154.194","154.205.154.65","154.205.154.70",
+    "154.223.21.130","154.223.21.194","158.247.238.240","216.238.112.222",
+    "216.238.123.242","216.238.94.37","38.54.125.134","38.60.199.34",
+    "45.32.106.94","45.77.34.194","45.77.41.141","47.76.100.159",
+    "64.190.113.170","64.95.10.253"])
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])</pre>
+      </div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · PeerTime C2 domain resolution (DNS)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> resolution of the PeerTime C2 / remote-location domains. <strong>Accomplishes:</strong> catches PeerTime hosts that still use DNS bootstrap before falling back to BitTorrent peers.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: PeerTime C2 domain resolution</span>
+<span class="cm">// MITRE: T1071.001, T1095 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest</span>
+#event_simpleName=DnsRequest
+| DomainName=/^(bloopencil\.net|xtibh\.com|xcit76\.com)$/i
+| table([@timestamp, aid, ComputerName, DomainName, ContextBaseFileName])</pre>
+      </div>
+    </div>
+
+    <!-- Q9 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 · BruteEntry ORB fan-out (Linux outbound 22/5432/8080)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a single Linux host opening many outbound connections to SSH/Postgres/Tomcat ports across many distinct destinations. <strong>Accomplishes:</strong> catches a host turned into a BruteEntry relay (step 9). Requires the Linux sensor.</p>
+        <div class="callout callout-warn">Common FP: sanctioned vuln scanners / config-management fan out similarly. Exclude known scanner hosts and tune the distinct-destination threshold to your environment.</div>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: BruteEntry ORB outbound scanning</span>
+<span class="cm">// MITRE: T1110, T1090, T1584.005 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: Linux NetworkConnectIP4</span>
+<span class="cm">// TUNING: exclude known scanner aids; raise distinct-IP threshold to fit environment</span>
+#event_simpleName=NetworkConnectIP4
+| event_platform=Lin
+| in(RemotePort, values=["22","5432","8080","8443"])
+| groupBy([aid, ComputerName, RemotePort], function=count(RemoteAddressIP4, distinct=true, as=distinct_targets))
+| distinct_targets >= 50
+| sort(distinct_targets, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q10 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q10 · PeerTime/BruteEntry Linux staging (docker · busybox · pgrep)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Docker or BusyBox being used to launch/copy an ELF from a temp/world-writable path. <strong>Accomplishes:</strong> catches PeerTime/BruteEntry living-off-the-land staging (step 8). Requires the Linux sensor.</p>
+        <div class="callout callout-warn">Common FP: legitimate container/build automation uses docker from scripts. Tuning narrows to execution out of <code>/tmp</code>, <code>/dev/shm</code>, <code>/var/tmp</code> and busybox <code>cp</code> into system paths; exclude CI/build hosts.</div>
+<pre class="cql" id="cql10"><span class="cm">// HUNT: PeerTime/BruteEntry Linux LOLbin staging</span>
+<span class="cm">// MITRE: T1059.004, T1610, T1036 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: Linux ProcessRollup2 command line</span>
+<span class="cm">// TUNING: exclude CI/build hosts; require temp-path execution</span>
+#event_simpleName=ProcessRollup2
+| event_platform=Lin
+| CommandLine=/((\bdocker\b\s+[^\s]*\/(tmp|dev\/shm|var\/tmp)\/)|(\bbusybox\b\s+cp\b)|(\bpgrep\b\s+\/(tmp|var)\/))/i
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SECTION 9 ═══ -->
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>DETECT — WSPrint onstart SYSTEM task</td><td>Process <code>schtasks.exe</code>; CommandLine <code>/create.*WSPrint.*(onstart|ProgramData\WSPrint)</code></td><td>None expected</td><td>Custom IOA → Process Creation; <strong>Detect/Block, Critical</strong> (Q4)</td></tr>
+        <tr><td>DETECT — Run key → ProgramData\WSPrint</td><td>Registry value write; data contains <code>ProgramData\WSPrint</code> under a Run key</td><td>None expected</td><td>Custom IOA → Registry Operation; Detect/Block (Q4b)</td></tr>
+        <tr><td>DETECT — WSPrint.sys driver service</td><td>Service/registry ImagePath contains <code>WSPrint.sys</code> or device <code>VMTool</code></td><td>None expected</td><td>Custom IOA → Registry; pair with Vulnerable Driver Blocklist (Q6)</td></tr>
+        <tr><td>DETECT — msiexec no-MSI 443 egress</td><td><code>msiexec.exe</code> network 443 with no <code>.msi//i//x</code> arg</td><td>Software-deployment servers (exclude by host group)</td><td>Custom IOA → Network Connection; Detect→tune→Block (Q3)</td></tr>
+        <tr><td>BLOCK — TernDoor/driver hash</td><td>SHA256 in the 7-hash Windows set (§10)</td><td>None</td><td>IOC Management → Hashes → Block + Detect (Q2)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1/Q2/Q4/Q4b/Q6/Q7(confirmed)/Q8 are strong promotion candidates (low FP). Start every IOA in <strong>Detect</strong> for one baseline cycle, confirm zero benign hits, then promote to <strong>Block</strong>. The msiexec network IOA (Q3) is the only one needing real tuning first. Keep Q5/Q9/Q10 as investigate-only scheduled searches until baselined.</div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 10 ═══ -->
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click plaintext blocks for Falcon IOC ingestion, firewall/proxy blocklists, or TIP watchlists.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">C2 IPs — confirmed</span><span class="igc">6 · block</span></div>
+        <button class="btn-copy" data-label="Copy IPs" onclick="copyBlock('grab-c2',this)" style="margin:0 0 6px;">Copy IPs</button>
+<pre class="code" id="grab-c2">154.205.154.82
+207.148.121.95
+207.148.120.52
+212.11.64.105
+185.196.10.38
+185.196.10.247</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Suspected infra (cert pivot)</span><span class="igc">18 · hunt only</span></div>
+        <button class="btn-copy" data-label="Copy IPs" onclick="copyBlock('grab-susp',this)" style="margin:0 0 6px;">Copy IPs</button>
+<pre class="code" id="grab-susp">149.28.25.33
+154.205.154.194
+154.205.154.65
+154.205.154.70
+154.223.21.130
+154.223.21.194
+158.247.238.240
+216.238.112.222
+216.238.123.242
+216.238.94.37
+38.54.125.134
+38.60.199.34
+45.32.106.94
+45.77.34.194
+45.77.41.141
+47.76.100.159
+64.190.113.170
+64.95.10.253</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Domains</span><span class="igc">3 · block</span></div>
+        <button class="btn-copy" data-label="Copy domains" onclick="copyBlock('grab-dom',this)" style="margin:0 0 6px;">Copy domains</button>
+<pre class="code" id="grab-dom">bloopencil.net
+xtibh.com
+xcit76.com</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Windows hashes (TernDoor)</span><span class="igc">7 · loader/payload/driver</span></div>
+        <button class="btn-copy" data-label="Copy hashes" onclick="copyBlock('grab-winh',this)" style="margin:0 0 6px;">Copy hashes</button>
+<pre class="code" id="grab-winh">711d9427ee43bc2186b9124f31cba2db5f54ec9a0d56dc2948e1a4377bada289
+3c098a687947938e36ab34b9f09a11ebd82d50089cbfe6e237d810faa729f8ff
+f36913607356a32ea106103387105c635fa923f8ed98ad0194b66ec79e379a02
+a5e413456ce9fc60bb44d442b72546e9e4118a61894fbe4b5c56e4dfad6055e3
+075b20a21ea6a0d2201a12a049f332ecc61348fc0ad3cfee038c6ad6aa44e744
+1f5635a512a923e98a90cdc1b2fb988a2da78706e07e419dae9e1a54dd4d682b
+2d2ca7d21310b14f5f5641bbf4a9ff4c3e566b1fbbd370034c6844cedc8f0538</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Linux hashes (PeerTime + BruteEntry)</span><span class="igc">ELF / instrumentor / agent</span></div>
+        <button class="btn-copy" data-label="Copy hashes" onclick="copyBlock('grab-linh',this)" style="margin:0 0 6px;">Copy hashes</button>
+<pre class="code" id="grab-linh"># PeerTime instrumentor
+c9fc2af30f769d856b88b3051f19fdb663b3e0a0916279df9bbcba93c6a110c9
+# PeerTime malware (16)
+34d64b3cd9430e85edefcb883973a086dd5de9917e05fabec89b1f4ab9627e91
+1cedf01dd4b7e50181d0e781825c66957b862941395d77c8bd7705114f319c80
+bfc35f12d00fa4b40c5fbce9e37d704e12a52262709bcbdf09f97890bc40cad5
+f3e899789b56429f483e5096e1f473335024f1f763e2d428132338e30352b89e
+6ec070457d1f6f239cb02c5e1576a3660cca98f3a07eec6e4e107f698d7fe555
+15d937803f90c2b9e277ff94d3e98ff30015ecc7f4623a158e3c98861e5cb278
+7b70cd956f082b1029d02b4cb7608893f2de7fa9c500d7d7febdd0f745ac3cb6
+d78b3c6df8f3756a7e310cf7435fdba201dd03ec9f97420a0db683489a01a7c9
+3fcadde4b414a18b2fed56c1ec59d97977123615fbbf411a1c78425445a6e71c
+3d9fbfc2c056eac857ba54e5ed134aa45a4b8322ee9f9353ba32e5b2ca71b0e3
+c9a42423ef08bd7f183915780d39530eba5e4e25968c51965ff8bb3026965a28
+38eeaa4eaad72feb3f8e6993565fcc548d8e7bb93642590f00fa24aacc0e2862
+56bead2933e91366e4a0d5761daf5b238a7f2c22e597664ef67b3ecae20ab326
+6a2d23cc8746a83e9a3b974788fce0e414706b8e75ff390426dd7e10b19967b3
+9a7225c17e4bad3ffe7f080530d36f4f8aca5c116b913caa91ab9b0cee85638e
+870e791af14caaf395c56028176a9c3f4c1ff0318ef3112d57ecd3d4a1be2ef9
+# BruteEntry instrumentor + agent + install script
+66ce42258062e902bd7f9e90ad5453a901cfc424f0ea497c4d14f063f3acd329
+d5eb979cb8a72706bfa591fa57d4ebf7d13cecdc9377b0192375e2f570f796df
+66adeedfb739774fcc09aa7426c8fad29f8047ab4caee8040d07c0e84d011611
+66bdce93de3b02cf9cdadad18ca1504ac83e379a752d51f60deae6dcbafe4e31
+1fcdd5a417db31e5e07d32cecfa69e53f0dce95b7130ad9c03b92249f001801d</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Host artifacts &amp; pivots</span><span class="igc">triage</span></div>
+        <button class="btn-copy" data-label="Copy artifacts" onclick="copyBlock('grab-art',this)" style="margin:0 0 6px;">Copy artifacts</button>
+<pre class="code" id="grab-art">C:\ProgramData\WSPrint\WSPrint.exe   # persistence path
+BugSplatRc64.dll / WSPrint.dll / WSPrint.sys   # loader/payload/driver
+Scheduled task: WSPrint (onstart, /ru SYSTEM)
+Device: \Device\VMTool   # rogue driver
+Decode key: qwiozpVngruhg123
+TLS cert SHA256: 0c7e36683a100a96f695a952cf07052af9a47f5898e1078311fd58c5fdbdecc8
+VT pivot: malware_config:angrypeer
+Snort SID: 65551</pre>
+      </div>
+
+    </div>
+
+    <h3>Structured JSON</h3>
+    <button class="btn-copy" onclick="copyBlock('ioc-json',this)" data-label="Copy JSON" style="margin:0 0 6px;">Copy JSON</button>
+<pre class="json" id="ioc-json">{
+  "actor": "UAT-9244 (Talos) ~ FamousSparrow / Tropic Trooper; telecom overlap with Salt Typhoon (unconfirmed)",
+  "source": "Cisco Talos, 2026-03-05",
+  "generated": "2026-06-10",
+  "indicators": [
+    {"type":"ipv4","value":"154.205.154.82","port":443,"confidence":"high","action":"detect","context":"TernDoor C2"},
+    {"type":"ipv4","value":"207.148.121.95","port":443,"confidence":"high","action":"detect","context":"TernDoor C2"},
+    {"type":"ipv4","value":"207.148.120.52","port":443,"confidence":"high","action":"detect","context":"TernDoor C2"},
+    {"type":"ipv4","value":"212.11.64.105","confidence":"high","action":"detect","context":"TernDoor C2 + loader/PeerTime/BruteEntry host"},
+    {"type":"ipv4","value":"185.196.10.38","confidence":"high","action":"detect","context":"PeerTime C2"},
+    {"type":"ipv4","value":"185.196.10.247","confidence":"high","action":"detect","context":"PeerTime remote + BruteEntry infra"},
+    {"type":"domain","value":"bloopencil.net","confidence":"high","action":"detect","context":"PeerTime C2"},
+    {"type":"domain","value":"xtibh.com","confidence":"high","action":"detect","context":"PeerTime remote location"},
+    {"type":"domain","value":"xcit76.com","confidence":"high","action":"detect","context":"PeerTime remote location"},
+    {"type":"x509_sha256","value":"0c7e36683a100a96f695a952cf07052af9a47f5898e1078311fd58c5fdbdecc8","confidence":"high","action":"hunt","context":"Shared self-signed TernDoor C2 cert (CN=8.8.8.8)"},
+    {"type":"ipv4_suspected","value":["149.28.25.33","154.205.154.194","154.205.154.65","154.205.154.70","154.223.21.130","154.223.21.194","158.247.238.240","216.238.112.222","216.238.123.242","216.238.94.37","38.54.125.134","38.60.199.34","45.32.106.94","45.77.34.194","45.77.41.141","47.76.100.159","64.190.113.170","64.95.10.253"],"confidence":"medium","action":"hunt","context":"Cert-pivot suspected infra — corroborate before blocking"},
+    {"type":"sha256_windows","value":["711d9427ee43bc2186b9124f31cba2db5f54ec9a0d56dc2948e1a4377bada289","3c098a687947938e36ab34b9f09a11ebd82d50089cbfe6e237d810faa729f8ff","f36913607356a32ea106103387105c635fa923f8ed98ad0194b66ec79e379a02","a5e413456ce9fc60bb44d442b72546e9e4118a61894fbe4b5c56e4dfad6055e3","075b20a21ea6a0d2201a12a049f332ecc61348fc0ad3cfee038c6ad6aa44e744","1f5635a512a923e98a90cdc1b2fb988a2da78706e07e419dae9e1a54dd4d682b","2d2ca7d21310b14f5f5641bbf4a9ff4c3e566b1fbbd370034c6844cedc8f0538"],"confidence":"high","action":"detect","context":"TernDoor loader/payload/driver"},
+    {"type":"sha256_linux","value":["c9fc2af30f769d856b88b3051f19fdb663b3e0a0916279df9bbcba93c6a110c9","34d64b3cd9430e85edefcb883973a086dd5de9917e05fabec89b1f4ab9627e91","66adeedfb739774fcc09aa7426c8fad29f8047ab4caee8040d07c0e84d011611","1fcdd5a417db31e5e07d32cecfa69e53f0dce95b7130ad9c03b92249f001801d"],"confidence":"high","action":"detect","context":"PeerTime/BruteEntry — full set in quick-copy block + Talos report"},
+    {"type":"filepath","value":"C:\\ProgramData\\WSPrint\\WSPrint.exe","confidence":"high","action":"hunt","context":"TernDoor persistence path"},
+    {"type":"scheduled_task","value":"WSPrint","confidence":"high","action":"hunt","context":"onstart /ru SYSTEM"},
+    {"type":"device_object","value":"\\Device\\VMTool","confidence":"high","action":"hunt","context":"Rogue driver device"},
+    {"type":"vt_config","value":"malware_config:angrypeer","confidence":"high","action":"hunt","context":"PeerTime VirusTotal pivot"},
+    {"type":"snort_sid","value":"65551","confidence":"high","action":"detect","context":"Talos Snort coverage"}
+  ]
+}</pre>
+    <div class="callout callout-info">The full PeerTime install-script / additional-script hash set lives in the Talos report — pull it into your TIP from the §18 source link for complete ELF/script coverage.</div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 11 ═══ -->
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>1 — Telemetry ready</td><td>Falcon sensor on Windows + Linux servers; registry/network events flowing; SIEM ingesting edge/appliance logs</td><td>Event volume for ProcessRollup2, AsepValueUpdate, NetworkConnectIP4, DnsRequest (Win+Linux)</td></tr>
+        <tr><td>2 — Benign baseline</td><td>Run Q3/Q5/Q9/Q10 for one cycle; record FP rate and build exclusions</td><td>Exclusion lists for deployment hosts, RMM agents, sanctioned scanners, CI/build boxes</td></tr>
+        <tr><td>3 — Positive tests</td><td>Lab-simulate WSPrint task creation, a Run-key write to ProgramData, and 443 egress to a test IOC IP</td><td>Q4/Q4b/Q7 fire on the simulated activity</td></tr>
+        <tr><td>4 — Promotion</td><td>Convert Q1/Q2/Q4/Q4b/Q6/Q7(confirmed)/Q8 to scheduled detections + IOAs; keep Q3/Q5/Q9/Q10 as tuned hunts</td><td>Scheduled searches live; IOAs in Detect→Block; IOCs ingested</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 12 ═══ -->
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>The prevent half. Controls anchored to MITRE mitigations + platform authority. Telecom touches Windows/AD, Linux, and network/embedded — all three are first-class.</p>
+
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate · this week — low risk, no user-visible change</div>
+      <ul>
+        <li><strong>Block all confirmed IOCs</strong> (§10 IPs, domains, 7 Windows + ELF hashes, Snort SID 65551) at EDR, firewall, proxy, and DNS. <span class="badge b-med">M1031 / M1037</span></li>
+        <li><strong>Enable the Microsoft Vulnerable Driver Blocklist + HVCI / Memory Integrity</strong> on all Windows hosts to blunt the WSPrint.sys process-killer driver and BYOVD. <span class="badge b-med">M1051 · MS Baseline · CIS Win 18.x</span></li>
+        <li><strong>Restrict internet exposure of SSH / Postgres / Tomcat-manager</strong>; bind management to internal/VPN and disable the Tomcat <code>/manager</code> app where unused. <span class="badge b-med">M1035</span></li>
+        <li><strong>Enforce account lockout + kill embedded/default credentials</strong> on SSH/Postgres/Tomcat (BruteEntry relies on credential brute-force). <span class="badge b-med">M1027 · M1032 · CIS Linux 5.x</span></li>
+        <li><strong>Deploy the §8 detections + §9 IOAs in Detect mode</strong> immediately.</li>
+      </ul>
+    </div>
+
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term · 1–4 weeks — pilot on a ring first</div>
+      <ul>
+        <li><strong>WDAC / AppLocker</strong> to block DLL/EXE execution from user-writable paths (<code>C:\ProgramData\*</code>, <code>%TEMP%</code>) — breaks the WSPrint side-load chain. <span class="badge b-med">M1038</span></li>
+        <li><strong>Enable ASR rules</strong>: block executable content from email/webmail, block credential stealing, block persistence via WMI/registry; turn on tamper protection. <span class="badge b-med">M1040 · MS Baseline</span></li>
+        <li><strong>Centralize scheduled-task + driver-load + 4688 auditing</strong> to SIEM so TaskCache hiding and service installs are visible even where IOAs miss. <span class="badge b-med">M1047</span></li>
+        <li><strong>SSH hardening on Linux/edge</strong>: keys-only auth, <code>fail2ban</code>, restrict source IPs; TLS/IP allow-listing for Postgres; remove default Tomcat manager roles. <span class="badge b-med">CIS Linux · DISA STIG</span></li>
+        <li><strong>Egress default-deny</strong> from server/edge segments — denies ORB outbound scanning and unknown C2. <span class="badge b-med">M1037</span></li>
+        <li><strong>Rotate all credentials on any host that touched an IOC</strong>; assume edge devices that brute-forced out are fully compromised.</li>
+      </ul>
+    </div>
+
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic · 1–3 months — architectural / budget</div>
+      <ul>
+        <li><strong>Extend EDR / NDR coverage to Linux servers and supported edge</strong>; where embedded devices can't run a sensor, wrap them in NetFlow + flow analytics. <span class="badge b-info">⚠ best-practice, no formal benchmark</span></li>
+        <li><strong>Segment the management plane</strong> of telecom edge/embedded devices off the user/server network; zero-trust access to management interfaces. <span class="badge b-med">M1030</span></li>
+        <li><strong>Firmware lifecycle program</strong> for routers/appliances (signed firmware, patch cadence, integrity monitoring) — PeerTime's preferred home. <span class="badge b-med">M1051 · vendor guidance</span></li>
+        <li><strong>NDR for P2P/BitTorrent detection</strong> from server segments, since PeerTime's peer-based C2 has no stable domain to block. <span class="badge b-info">⚠ best-practice, no formal benchmark</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 13 ═══ -->
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">P1 · Enable HVCI + Vulnerable Driver Blocklist (PowerShell)</span>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyBlock('pb-1',this)" data-label="Copy">Copy</button></div>
+      </div>
+      <div class="qc-body">
+<pre class="code" id="pb-1"># 1) Microsoft Vulnerable Driver Blocklist ON
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
+# 2) HVCI / Memory Integrity ON (requires reboot)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+# 3) Verify after reboot
+Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard |
+  Select-Object -ExpandProperty SecurityServicesRunning   # expect 2 (HVCI) present</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">P2 · Find &amp; remove TernDoor persistence (PowerShell triage)</span>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyBlock('pb-2',this)" data-label="Copy">Copy</button></div>
+      </div>
+      <div class="qc-body">
+<pre class="code" id="pb-2"># Scheduled task
+Get-ScheduledTask -TaskName "WSPrint" -ErrorAction SilentlyContinue | Format-List *
+# Run key
+Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -ErrorAction SilentlyContinue |
+  Select-Object * | Where-Object { $_ -match "WSPrint" }
+# Artifacts + driver service
+Get-ChildItem "C:\ProgramData\WSPrint" -Force -ErrorAction SilentlyContinue
+Get-CimInstance Win32_SystemDriver | Where-Object { $_.PathName -match "WSPrint\.sys" }
+
+# --- Eradicate (only after confirmation + IR sign-off) ---
+# Unregister-ScheduledTask -TaskName "WSPrint" -Confirm:$false
+# Remove-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Default" -Force
+# sc.exe stop WSPrint ; sc.exe delete WSPrint
+# Remove-Item "C:\ProgramData\WSPrint" -Recurse -Force</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">P3 · Harden SSH + Tomcat + Postgres exposure (Linux/edge)</span>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyBlock('pb-3',this)" data-label="Copy">Copy</button></div>
+      </div>
+      <div class="qc-body">
+<pre class="code" id="pb-3"># SSH: keys only, no root
+sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+systemctl restart sshd
+apt-get install -y fail2ban && systemctl enable --now fail2ban
+# Postgres: do not listen on the world
+sed -i "s/^#\?listen_addresses.*/listen_addresses = 'localhost'/" /etc/postgresql/*/main/postgresql.conf
+systemctl restart postgresql
+# Tomcat: remove manager app if unused
+rm -rf $CATALINA_HOME/webapps/manager $CATALINA_HOME/webapps/host-manager</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">P4 · Bulk-block IOCs in Falcon (falconpy / IOC v2)</span>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyBlock('pb-4',this)" data-label="Copy">Copy</button></div>
+      </div>
+      <div class="qc-body">
+<pre class="code" id="pb-4">from falconpy import IOC
+falcon = IOC(client_id="...", client_secret="...", base_url="https://api.crowdstrike.com")  # set per cloud
+indicators = (
+  [{"type":"sha256","value":h,"action":"prevent","severity":"high","platforms":["windows","linux"],
+    "applied_globally":True,"description":"UAT-9244 (Talos)"} for h in [
+      "711d9427ee43bc2186b9124f31cba2db5f54ec9a0d56dc2948e1a4377bada289",
+      "2d2ca7d21310b14f5f5641bbf4a9ff4c3e566b1fbbd370034c6844cedc8f0538"]]   # extend with §10 set
+  + [{"type":"domain","value":d,"action":"detect","severity":"high","applied_globally":True,
+      "description":"UAT-9244 C2"} for d in ["bloopencil.net","xtibh.com","xcit76.com"]]
+  + [{"type":"ipv4","value":ip,"action":"detect","severity":"high","applied_globally":True,
+      "description":"UAT-9244 C2"} for ip in ["154.205.154.82","207.148.121.95","207.148.120.52","212.11.64.105","185.196.10.38","185.196.10.247"]]
+)
+print(falcon.indicator_create(body={"indicators":indicators,"comment":"UAT-9244 hunt pack"}))</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SECTION 14 ═══ -->
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <div class="callout callout-danger">A confirmed UAT-9244 foothold is a nation-state espionage incident. Assume long-dwell access and credential theft until disproven; coordinate with IR leadership before isolating telecom-critical edge devices — abrupt isolation has service impact.</div>
+    <div class="phase-hdr">Phase 0 · Triage</div>
+    <p>Confirm a hit (Q1/Q2/Q4/Q6/Q7). Scope blast radius: every host that touched an IOC IP/domain or ran a matching hash/task. Owner: SOC L2. Evidence: query results, host list, timeline.</p>
+    <div class="phase-hdr">Phase 1 · Isolate</div>
+    <p>Network-contain affected Windows/Linux hosts in Falcon. For edge/embedded devices with no sensor: block at firewall, pull from routing, treat as compromised ORB. Block all IOCs globally. Owner: SOC + Network. Evidence: containment tickets, firewall rules.</p>
+    <div class="phase-hdr">Phase 2 · Eradicate</div>
+    <p>Remove WSPrint task/Run key/driver/files (P2). Reimage edge devices and rebuild from trusted firmware. Hunt for PeerTime ELF + BruteEntry agents on all Linux hosts (hashes §10). Kill msiexec-injected sessions. Owner: IR. Evidence: removal logs, reimage records.</p>
+    <div class="phase-hdr">Phase 3 · Credentials</div>
+    <p>Rotate every credential reachable from compromised hosts — SSH keys, Postgres, Tomcat, service + domain accounts. Assume embedded creds harvested by BruteEntry are burned. Owner: IAM + IR. Evidence: rotation evidence.</p>
+    <div class="phase-hdr">Phase 4 · Recover</div>
+    <p>Restore from known-good, re-enable services behind hardened config (§12). Deploy detections/IOAs in Block mode. Monitor for re-entry on the same TTPs for 30 days. If a regulated telecom, evaluate breach-notification obligations. Owner: IT + SOC / IR lead. Evidence: restore validation, monitoring dashboard, final IR report.</p>
+  </div>
+</div>
+
+<!-- ═══ SECTION 15 ═══ -->
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Attack-chain behavior</th><th>Primary Detection</th><th>Fallback</th><th>Known Gap</th></tr></thead>
+      <tbody>
+        <tr><td>TernDoor delivery / side-load</td><td>Q1 (file write), Q2 (hash)</td><td>WDAC block (§12)</td><td>Covered</td></tr>
+        <tr><td>msiexec injection + C2</td><td>Q3, Q7</td><td>Q2 hash</td><td>Q3 needs tuning; unknown C2 only via Q3</td></tr>
+        <tr><td>Persistence (task / Run key)</td><td>Q4, Q4b, IOA</td><td>Native task audit (§7)</td><td>Covered</td></tr>
+        <tr><td>Task hiding (TaskCache)</td><td>Q5</td><td>Audit logs</td><td>FP-prone; medium conf</td></tr>
+        <tr><td>Process-killer driver</td><td>Q6 + Driver Blocklist</td><td>HVCI</td><td>Driver-load event detail varies by sensor config</td></tr>
+        <tr><td>C2 (TernDoor TLS)</td><td>Q7, cert pivot (§7)</td><td>Firewall IOC block</td><td>Covered</td></tr>
+        <tr><td>PeerTime C2 (BitTorrent)</td><td>Q8 (DNS bootstrap)</td><td>NDR P2P detection</td><td><span style="color:var(--red)">GAP — peer C2 has no fixed domain; needs NDR</span></td></tr>
+        <tr><td>PeerTime on embedded (ARM/MIPS)</td><td>Q10 (if sensor)</td><td>NetFlow, firmware integrity</td><td><span style="color:var(--red)">GAP — no EDR on routers/embedded</span></td></tr>
+        <tr><td>BruteEntry ORB scanning</td><td>Q9 (if Linux sensor)</td><td>NetFlow fan-out (§7)</td><td><span style="color:var(--red)">GAP — edge devices often unmanaged</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 16 ═══ -->
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — UAT-9244 (TernDoor / PeerTime / BruteEntry) telecom espionage toolkit
+SEVERITY:     High (nation-state espionage; long-dwell access)
+SCOPE:        Windows endpoints/servers, Linux servers, network edge/embedded; egress
+HYPOTHESIS:   UAT-9244 implants present: WSPrint side-load + msiexec injection + task/Run-key
+              persistence + rogue driver (Windows); BitTorrent-C2 ELF backdoor (Linux/embedded);
+              GoLang brute-force ORB on edge (SSH/Postgres/Tomcat).
+QUERIES RUN:  Q1-Q10 (see §8). Promote Q1/Q2/Q4/Q4b/Q6/Q7(confirmed)/Q8; keep Q3/Q5/Q9/Q10 tuned.
+DATA SOURCES: Falcon ProcessRollup2, PeFileWritten, AsepValueUpdate, RegGenericValueUpdate,
+              NetworkConnectIP4, DnsRequest (Win+Linux); SIEM edge/appliance logs; NetFlow/NDR.
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         BitTorrent C2 (PeerTime) and unmanaged edge/embedded devices — covered by network
+              controls + NDR, not EDR. Q3/Q5/Q9/Q10 require environment tuning.
+ACTIONS:      Block IOCs (§10); deploy IOAs (§9); apply Immediate hardening (§12); see Containment (§14).
+ATTRIBUTION:  Talos UAT-9244 ~ FamousSparrow / Tropic Trooper. "Salt Typhoon" link unconfirmed.
+OWNER:        HuntPack
+VERSION:      v0.2 (Draft) - 2026-06-10</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 17 ═══ -->
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-10</span><span>Reformatted to fixed left-sidebar layout with scrollspy nav, a collapsible (hide/show) TOC, and grouped IOC quick-copy grid (§10). Cloud selector moved into the CQL section. Detection content unchanged from v0.1.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-10</span><span>Initial HuntPack from Cisco Talos UAT-9244 report: 10 CQL queries, 5 IOA candidates, full IOC set, tiered hardening + 4 playbooks + containment runbook. Salt Typhoon attribution flagged as unconfirmed.</span></div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 18 ═══ -->
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Accessed</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://blog.talosintelligence.com/uat-9244/" target="_blank">Cisco Talos — UAT-9244</a></td><td>Primary intel: behavior, attack chain, IOCs, coverage (SID 65551)</td><td>2026-06-10</td></tr>
+        <tr><td>1</td><td><a href="https://www.welivesecurity.com/en/eset-research/you-will-always-remember-this-as-the-day-you-finally-caught-famoussparrow/" target="_blank">ESET — FamousSparrow / SparrowDoor</a></td><td>Lineage and cluster overlap</td><td>2026-06-10</td></tr>
+        <tr><td>1</td><td><a href="https://www.trendmicro.com/en_us/research/24/k/breaking-down-earth-estries-persistent-ttps-in-prolonged-cyber-o.html" target="_blank">Trend Micro — Earth Estries</a></td><td>CrowDoor context</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://thehackernews.com/2026/03/china-linked-hackers-use-terndoor.html" target="_blank">The Hacker News</a></td><td>Corroboration</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/chinese-state-hackers-target-telcos-with-new-malware-toolkit/" target="_blank">BleepingComputer</a></td><td>Corroboration</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://malpedia.caad.fkie.fraunhofer.de/actor/uat-9244" target="_blank">Malpedia — UAT-9244</a></td><td>Actor tracking</td><td>2026-06-10</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.2 (Draft) · UAT-9244 (Salt Typhoon entry point) · Generated 2026-06-10 · Defensive use only. Validate field names and tune FP exclusions in your own tenant before promoting any query to Block. Indicators sourced from Cisco Talos; re-validate network IOCs monthly.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Show / hide the table of contents (sidebar)
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+
+// Cloud host label
+function updateHost() {
+  var sel = document.getElementById('cloud-region');
+  var host = document.getElementById('cloud-host');
+  if (sel && host) host.textContent = sel.value;
+}
+
+// Copy CQL to clipboard
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Copy a grouped plaintext block (restores its own label)
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = label; btn.classList.remove('copied'); }, 2000);
+  }
+  navigator.clipboard.writeText(text).then(done).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+
+// Open in Falcon (strips full comment lines, preserves https:// inside queries)
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function(line) {
+    return line.trim().indexOf('//') !== 0;
+  }).join('\n').trim();
+  var query = encodeURIComponent(cleaned);
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + query;
+  window.open(url, '_blank');
+}
+
+// Active sidebar highlight on scroll
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function() {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function(sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function(a) { a.classList.remove('active'); });
+      var id = sec.getAttribute('id');
+      var link = document.querySelector('#sidebar nav a[href="#' + id + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+}, { passive: true });
+</script>
+</body>
+</html>

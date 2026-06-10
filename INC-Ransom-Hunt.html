@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INC Ransom — HuntPack v0.2</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #d29922;
+  --accent-dim: rgba(210, 153, 34, 0.13);
+  --red: #f85149;
+  --yellow: #d29922;
+  --green: #7ee787;
+  --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 0; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+/* TOC show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+.hp-header { background: linear-gradient(140deg, #33291a 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-amber { background: rgba(210,153,34,0.15); color: #d29922; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: rgba(210,153,34,0.07); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy:hover { background: rgba(210,153,34,0.28); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(248,81,73,0.1); color: #f85149; border-color: rgba(248,81,73,0.5); }
+.btn-falcon:hover { background: rgba(248,81,73,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; white-space: pre; }
+.cm { color: #8b949e; font-style: italic; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 240px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; }
+.tier-near { border-left: 3px solid #d29922; }
+.tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; }
+.tier-near .tier-lbl { color: #d29922; }
+.tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk h4 { font-size: 12.5px; color: var(--text); margin-bottom: 4px; }
+.tier-blk ul { padding-left: 18px; }
+.tier-blk li { font-size: 12px; margin-bottom: 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+pre.json { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 10.5px; line-height: 1.5; overflow: auto; color: #e6edf3; max-height: 420px; white-space: pre; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-date { color: var(--text-muted); min-width: 88px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; }
+p { margin-bottom: 7px; font-size: 13px; }
+ul, ol { padding-left: 18px; margin: 6px 0; }
+li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); }
+h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">INC Ransom<br>Professional-Services Extortion</div>
+    <div class="version">v0.2 · 2026-06-10</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Surface &amp; Telemetry</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <a href="#s7">7 · Native Audit Hunts</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment Runbook</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+<!-- HEADER -->
+<div class="hp-header">
+  <h1>INC Ransom — Rapid Extortion Against Professional-Services Firms</h1>
+  <div class="subtitle">RaaS double-extortion operation clustering attacks on legal &amp; professional-services firms in 2026. Defensive hunt &amp; harden pack — no exploit code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">INC Ransom (G1032)</div></div>
+    <div class="meta-item"><div class="mk">Aliases</div><div class="mv">GOLD IONIC · Tarnished Scorpion</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH URGENCY</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Ransomware · Double extortion</div></div>
+    <div class="meta-item"><div class="mk">Initial access</div><div class="mv">Edge / VPN / RMM (3 KEV CVEs)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.2 (Draft)</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 1 ═══ -->
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>INC Ransom is a financially motivated Ransomware-as-a-Service operation active since mid-2023, tracked by MITRE as <code>G1032</code> and by Secureworks as <strong>GOLD IONIC</strong>. The operator maintains the encryptor, the Tor data-leak site (DLS), and payments; affiliates perform intrusions and split proceeds. The model is classic double extortion: steal data, encrypt systems, threaten public release on the DLS to coerce payment.</p>
+    <p>Through H1 2026 the group has concentrated on the <strong>legal and professional-services sector</strong>. Halcyon recorded 20 law-firm/legal-services victims posted in 2026, including 10 inside a single 48-hour window — clustering that points to either a coordinated push or a shared upstream compromise (a common practice-management, document-management, e-discovery, or MSP platform). The ACSC/CERT-Tonga/NCSC joint advisory independently reports professional-services and healthcare as top INC verticals in the same period.</p>
+    <p>Intrusions are heavily living-off-the-land. Initial access comes from exploiting unpatched internet-facing devices (Citrix NetScaler <code>CVE-2023-3519</code>, FortiClient EMS <code>CVE-2023-48788</code>, SimpleHelp RMM <code>CVE-2024-57727</code>) or purchased valid VPN/service-account credentials lacking MFA. Inside, affiliates create new admin accounts, run NetScan/AdFind/Nltest, move over RDP and SMB, stage with 7-Zip/WinRAR, exfiltrate with Rclone/MegaSync/FileZilla, disable Defender (incl. <code>SystemSettingsAdminFlows.exe</code> and BYOVD), then deploy the encryptor via WMIC and PsExec renamed <code>winupd</code> / <code>win.exe</code> as a SYSTEM service.</p>
+    <div class="callout callout-danger">
+      ⚠ <strong>Defender priority:</strong> The encryptor is the last and loudest step. The highest-value detection window is the hands-on-keyboard middle — masqueraded PsExec/service creation, Defender tamper, NetScan/AdFind recon, mass short-lived RDP, and Rclone/MegaSync cloud exfil.
+    </div>
+    <div class="callout callout-info">
+      <strong>Three fastest wins:</strong> (1) Patch the three KEV edge CVEs and enforce phishing-resistant MFA on every remote-access path. (2) Make backups immutable + offline-tested so exfil-only extortion loses its encryption leverage. (3) Deploy the <code>winupd</code>-as-service IOA (Q5) as a high-severity detection today.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 2 ═══ -->
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Fwd</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-amber">Gov</span></td><td><a href="https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/inc-ransom-affiliate-model-enabling-targeting-of-critical-networks" target="_blank">ACSC / CERT Tonga / NCSC advisory</a></td><td>RaaS affiliate model; access via unpatched edge, no-MFA VPN, IAB creds; BYOVD priv-esc; 7-Zip + Rclone exfil; <code>win.exe</code> encryptor; new admin accounts</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-amber">Framework</span></td><td><a href="https://attack.mitre.org/groups/G1032/" target="_blank">MITRE ATT&amp;CK G1032 / S1139</a></td><td>Authoritative techniques: PsExec renamed <code>winupd</code>, SystemSettingsAdminFlows Defender disable, NetScan, AdFind, MegaSync, RDP, WMIC deploy, esentutl</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-info">Vendor</span></td><td><a href="https://www.halcyon.ai/ransomware-alerts/inc-ransom-group-mounts-rapid-campaign-against-law-firms" target="_blank">Halcyon RRC alert (Mar 2026)</a></td><td>20 law-firm victims in 2026; 10 in 48h; suspected shared legal-tech / MSP supply-chain compromise; Citrix/Fortinet/SimpleHelp access; WinSCP/RClone/MegaSync exfil</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-info">Vendor</span></td><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-163a" target="_blank">CISA AA25-163a + Picus / Arctic Wolf</a></td><td>CVE-2024-57727 SimpleHelp path traversal exploited as ransomware initial access since Jan 2025; KEV-listed Feb 2025</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-info">Vendor</span></td><td><a href="https://www.huntress.com/blog/lolbin-to-inc-ransomware" target="_blank">Huntress + Secureworks (GOLD IONIC)</a></td><td>Hands-on-keyboard LOTL chain; esentutl, AnyDesk/PuTTY, lateral copy of encryptor, tool uninstall for cleanup</td><td>Yes</td></tr>
+        <tr><td><span class="badge b-med">Vendor</span></td><td><a href="https://socradar.io/blog/dark-web-profile-inc-ransom/" target="_blank">SOCRadar dark-web profile</a></td><td>Sector skew to professional services; US-heavy victimology; lsassy.py credential access; tool inventory</td><td>Partial</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;font-size:11.5px;color:var(--text-muted);">Confidence: <strong>HIGH</strong> — Tier-1 gov + framework sources corroborated by multiple vendor labs. <strong>Binary hashes intentionally omitted</strong> — the encryptor is recompiled per-affiliate, so hashes are highly perishable and were not consistently published. Detection leans on tool names, behaviors, and the three initial-access CVEs.</p>
+  </div>
+</div>
+
+<!-- ═══ SECTION 3 ═══ -->
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> An INC affiliate has gained a foothold through an unpatched edge appliance or a no-MFA VPN/service account, established a new admin account, and is conducting LOTL discovery and RDP/SMB lateral movement ahead of staging and cloud exfiltration. Encryptor deployment via WMIC/PsExec-as-service is imminent. Detection should fire during discovery/exfil, not at encryption.</p>
+    <h3>Attack Chain</h3>
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Initial access — edge CVE / no-MFA VPN / SimpleHelp RMM</td><td>VPN auth logs, edge logs, ProcessRollup2 under RMM parent</td><td>VPN logon without MFA; RMM agent spawning cmd/powershell (native + Q)</td></tr>
+        <tr><td>2</td><td>Persistence — create admin account</td><td>UserAccountAddedToGroup, ActiveDirectoryAccountCreated, ProcessRollup2</td><td><code>net user /add</code> + add to Administrators/Domain Admins (Q2)</td></tr>
+        <tr><td>3</td><td>Priv-esc — BYOVD / valid privileged accounts</td><td>NewExecutableWritten (.sys), ProcessRollup2</td><td>Unsigned/known-vulnerable driver written then loaded (Q3)</td></tr>
+        <tr><td>4</td><td>Discovery — NetScan, AdFind, Nltest</td><td>ProcessRollup2</td><td>Recon binaries + AdFind domain-enum switches (Q1)</td></tr>
+        <tr><td>5</td><td>Defense evasion — disable Defender</td><td>ProcessRollup2, RegGenericValueUpdate</td><td><code>SystemSettingsAdminFlows.exe</code> Defender disable; AV tamper (Q4)</td></tr>
+        <tr><td>6</td><td>Credential access — lsassy / NTDS</td><td>ProcessRollup2</td><td>esentutl on ntds.dit; comsvcs/lsass dump (Q6)</td></tr>
+        <tr><td>7</td><td>Lateral movement — RDP / SMB, AnyDesk/PuTTY</td><td>UserLogon (LogonType 10), ProcessRollup2</td><td>One source hitting many hosts over RDP in a short window (Q7)</td></tr>
+        <tr><td>8</td><td>Collection / staging — 7-Zip, WinRAR</td><td>ProcessRollup2, ZipFileWritten</td><td>Archive utility with recurse switches on shares (Q8)</td></tr>
+        <tr><td>9</td><td>Exfiltration — Rclone, MegaSync, WinSCP, FileZilla</td><td>ProcessRollup2, NetworkConnectIP4, DnsRequest</td><td>Cloud-sync tooling beaconing to mega.nz / rclone remotes (Q9)</td></tr>
+        <tr><td>10</td><td>Impact — encryptor as service, inhibit recovery</td><td>ProcessRollup2 (winupd/win.exe service), shadow-copy deletion</td><td>PsExec renamed winupd as SYSTEM service; vssadmin/wbadmin delete (Q5 + native)</td></tr>
+      </tbody>
+    </table>
+    <h3 style="margin-top:16px;">Hunt Hypotheses (Priority Order)</h3>
+    <table>
+      <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Conf.</th><th>FP Risk</th></tr></thead>
+      <tbody>
+        <tr><td>H1</td><td>PsExec renamed <code>winupd</code> / <code>win.exe</code> runs as a SYSTEM service — definitive INC deployment signal</td><td>T1036.005, T1569.002</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-low">LOW</span></td></tr>
+        <tr><td>H2</td><td>Defender disabled via <code>SystemSettingsAdminFlows.exe</code> / tamper</td><td>T1562.001</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-low">LOW</span></td></tr>
+        <tr><td>H3</td><td>Recon tooling (NetScan / AdFind / Nltest) executes post-foothold</td><td>T1046, T1087.002</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-med">LOW-MED</span></td></tr>
+        <tr><td>H4</td><td>New local/domain admin account created + elevated</td><td>T1136, T1098</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H5</td><td>Credential dumping (NTDS via esentutl / LSASS)</td><td>T1003.001, T1003.003</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H6</td><td>RDP fan-out: one source → many hosts in a short window</td><td>T1021.001</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H7</td><td>Cloud exfil tooling (Rclone / MegaSync) on server-class hosts</td><td>T1567.002, T1537</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+        <tr><td>H8</td><td>Archive staging with recursion against shares (pre-exfil)</td><td>T1560.001, T1074</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-high">MED-HIGH</span></td></tr>
+        <tr><td>H9</td><td>Vulnerable driver written to user-writable path (BYOVD)</td><td>T1068, T1543.003</td><td><span class="badge b-med">MED</span></td><td><span class="badge b-med">MED</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 4 ═══ -->
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">
+      ⚠ <strong>Behavior- and tool-centric indicators.</strong> No binary hashes are hard-coded (per-affiliate recompilation). Hunt these, validate hits, and tune to your baseline rather than blindly blocking the tool names. Bulk-copy versions are in §10.
+    </div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf.</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>CVE</td><td><code>CVE-2024-57727</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>SimpleHelp RMM path traversal — INC initial access, CISA KEV</td></tr>
+        <tr><td>CVE</td><td><code>CVE-2023-3519</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>Citrix NetScaler RCE — INC initial access</td></tr>
+        <tr><td>CVE</td><td><code>CVE-2023-48788</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>FortiClient EMS SQLi RCE — edge access</td></tr>
+        <tr><td>Filename</td><td><code>winupd.exe</code></td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>PsExec masqueraded as Windows Update, run as SYSTEM service</td></tr>
+        <tr><td>Filename</td><td><code>win.exe</code></td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>Encryptor payload filename observed by ACSC</td></tr>
+        <tr><td>Tool</td><td><code>netscan.exe</code></td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>SoftPerfect NetScan internal recon</td></tr>
+        <tr><td>Tool</td><td><code>AdFind / adfind.exe</code></td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>AD enumeration</td></tr>
+        <tr><td>Tool</td><td><code>rclone.exe</code></td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>Cloud exfiltration</td></tr>
+        <tr><td>Tool</td><td><code>MEGAsyncSetup64.exe / megasync</code></td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>MEGA cloud exfiltration client</td></tr>
+        <tr><td>Tool</td><td><code>SystemSettingsAdminFlows.exe</code></td><td><span class="badge b-med">MED</span></td><td>Hunt</td><td>Native LOLBin abused to disable Defender</td></tr>
+        <tr><td>Process</td><td><code>AnyDesk.exe / putty.exe</code></td><td><span class="badge b-low">LOW</span></td><td>Enrich</td><td>Remote access tooling — context-dependent</td></tr>
+        <tr><td>Domain</td><td><code>*.mega.nz / *.mega.io</code></td><td><span class="badge b-low">LOW</span></td><td>Enrich</td><td>MEGA exfil endpoints — benign in many orgs</td></tr>
+        <tr><td>Behavior</td><td><code>vssadmin delete shadows / wbadmin delete</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>Inhibit recovery before encryption</td></tr>
+        <tr><td>Infra</td><td><code>INC Tor DLS / incransom ransom note</code></td><td><span class="badge b-high">HIGH</span></td><td>Pivot</td><td>Ransom note + leak-site reference confirms attribution</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 5 ═══ -->
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk if Missing</th></tr></thead>
+      <tbody>
+        <tr><td>Internet-facing edge (Citrix / Fortinet / SimpleHelp RMM)</td><td>Appliance/RMM logs, vuln-scan data — often outside Falcon</td><td><span class="badge b-crit">CRITICAL</span></td><td>Appliance logs may not reach Falcon — confirm forwarding</td></tr>
+        <tr><td>VPN / remote-access gateways</td><td>VPN auth logs, MFA enforcement state</td><td><span class="badge b-high">HIGH</span></td><td>Depends on log forwarding + MFA telemetry</td></tr>
+        <tr><td>Windows endpoints / servers</td><td>ProcessRollup2, command line, NewExecutableWritten</td><td><span class="badge b-high">HIGH</span></td><td>Low — core Falcon telemetry</td></tr>
+        <tr><td>Active Directory / identity</td><td>UserLogon, UserAccountAddedToGroup, ActiveDirectory* (Identity Protection)</td><td><span class="badge b-high">HIGH</span></td><td>AD events require Identity Protection license</td></tr>
+        <tr><td>Network egress</td><td>NetworkConnectIP4, DnsRequest</td><td><span class="badge b-med">MEDIUM</span></td><td>Low</td></tr>
+        <tr><td>Backup infrastructure</td><td>Backup-server process/auth telemetry</td><td><span class="badge b-med">MEDIUM</span></td><td>High — backup appliances often unmonitored</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 6 ═══ -->
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique ID</th><th>Technique Name</th><th>Observed Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1190 / T1133 / T1078</td><td>Exploit Public-Facing App / External Remote Services / Valid Accounts</td><td>Edge CVE exploit, no-MFA VPN, IAB creds</td></tr>
+        <tr><td>Persistence</td><td>T1136</td><td>Create Account</td><td>New admin accounts (Q2)</td></tr>
+        <tr><td>Privilege Escalation</td><td>T1068</td><td>Exploitation for Privilege Escalation (BYOVD)</td><td>Vulnerable driver load (Q3)</td></tr>
+        <tr><td>Defense Evasion</td><td>T1562.001 / T1036.005</td><td>Impair Defenses / Masquerading</td><td>Disable Defender; rename PsExec to winupd (Q4, Q5)</td></tr>
+        <tr><td>Credential Access</td><td>T1003</td><td>OS Credential Dumping</td><td>lsassy / cached cred + NTLM dumping (Q6)</td></tr>
+        <tr><td>Discovery</td><td>T1046 / T1087.002 / T1018</td><td>Network Service / Account / Remote System Discovery</td><td>NetScan, AdFind, Nltest (Q1)</td></tr>
+        <tr><td>Lateral Movement</td><td>T1021.001 / T1570</td><td>RDP / Lateral Tool Transfer</td><td>RDP fan-out; copy encryptor across hosts (Q7)</td></tr>
+        <tr><td>Collection</td><td>T1560.001 / T1074</td><td>Archive via Utility / Data Staged</td><td>7-Zip / WinRAR staging (Q8)</td></tr>
+        <tr><td>Exfiltration</td><td>T1567.002 / T1537</td><td>Exfil to Cloud Storage / Transfer to Cloud Account</td><td>Rclone / MegaSync to cloud (Q9)</td></tr>
+        <tr><td>Impact</td><td>T1486 / T1490 / T1569.002</td><td>Data Encrypted / Inhibit Recovery / Service Execution</td><td>Encryptor as SYSTEM service; shadow-copy delete (Q5, native)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 7 ═══ -->
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (Non-CQL)</h2></div>
+  <div class="section-body">
+    <p>Run these against Windows event logs and appliance/VPN logs directly. They close the edge/VPN/backup gaps the EDR sensor can't see alone.</p>
+    <table>
+      <thead><tr><th>Hunt</th><th>Source / Event ID</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>No-MFA VPN logon</td><td>VPN / gateway auth logs</td><td>Successful remote logon with no MFA assertion, esp. legacy/service accounts</td><td>Force MFA; reset account; review session</td></tr>
+        <tr><td>SimpleHelp / Citrix / Fortinet patch state</td><td>Vuln scanner / RMM inventory</td><td>SimpleHelp ≤ 5.5.7, unpatched NetScaler (CVE-2023-3519), FortiClient EMS (CVE-2023-48788)</td><td>Emergency patch; check for prior compromise</td></tr>
+        <tr><td>SimpleHelp path-traversal access</td><td>SimpleHelp web/access logs</td><td>HTTP GET with <code>../../</code> sequences retrieving config/credential files</td><td>Rotate stored creds; isolate host</td></tr>
+        <tr><td>Shadow copy / backup deletion</td><td>System log 524 / vssadmin</td><td>Backup catalog or VSS snapshots deleted</td><td>Treat as imminent encryption — isolate now</td></tr>
+        <tr><td>New privileged AD account off-hours</td><td>Security 4720 / 4728 / 4732</td><td>Account created and added to admin group outside change windows</td><td>Disable; correlate with Q2</td></tr>
+      </tbody>
+    </table>
+    <h3>PowerShell quick checks</h3>
+<pre class="code"><span class="cm"># Shadow copy / backup catalog deletion in the last 7 days (imminent-encryption tripwire)</span>
+Get-WinEvent -FilterHashtable @{LogName='System'; Id=524; StartTime=(Get-Date).AddDays(-7)} |
+  Format-Table TimeCreated, Id, Message -Auto
+
+<span class="cm"># New accounts (4720) and additions to privileged groups (4728/4732)</span>
+Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720,4728,4732; StartTime=(Get-Date).AddDays(-7)} |
+  Format-Table TimeCreated, Id -Auto</pre>
+  </div>
+</div>
+
+<!-- ═══ SECTION 8 ═══ -->
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference. Nine hunts ordered by fidelity. Tune the exclusion lists (jump hosts, backup/inventory service accounts, sanctioned cloud-sync) to your baseline before promoting any query to an alert or IOA.</div>
+
+    <!-- Q1 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Internal recon tooling (NetScan / AdFind / Nltest)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> execution of the discovery utilities INC affiliates consistently run after foothold. <strong>Accomplishes:</strong> catches the recon phase well before encryption (T1046/T1087.002/T1018).</p>
+        <div class="callout callout-warn">Common FP: <code>AdFind</code>/<code>netscan</code> are legitimately used by some sysadmins — exclude known admin hosts/accounts and inventory service accounts.</div>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Internal recon tooling (NetScan / AdFind / Nltest)</span>
+<span class="cm">// MITRE: T1046, T1087.002, T1018 | CONF: high  FP: low-medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with command line</span>
+<span class="cm">// TUNING: exclude known admin workstations and inventory service accounts</span>
+#event_simpleName=ProcessRollup2
+| ImageFileName=/\\(netscan|adfind|nltest)\.exe$/i
+   or CommandLine=/\b(adfind\b.*(-f |objectcategory)|nltest\s+\/dclist|netscan)/i
+| !in(field=UserName, values=["svc-inventory","admin-scan"])
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · New local/domain admin account creation</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>net user /add</code> followed by elevation into Administrators / Domain Admins. <strong>Accomplishes:</strong> detects the affiliate persistence step (T1136) that survives credential resets.</p>
+        <div class="callout callout-warn">Common FP: IT onboarding / provisioning scripts create accounts legitimately — exclude provisioning service accounts and JML automation hosts.</div>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: New admin account creation + group elevation</span>
+<span class="cm">// MITRE: T1136, T1098 | CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with command line</span>
+<span class="cm">// TUNING: exclude provisioning service accounts and JML automation hosts</span>
+#event_simpleName=ProcessRollup2
+| ImageFileName=/\\net1?\.exe$/i
+| CommandLine=/\buser\b.*\/add/i
+   or CommandLine=/localgroup\s+(administrators|administradores)\s+.*\/add/i
+   or CommandLine=/group\s+"?domain admins"?\s+.*\/add/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, CommandLine], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Vulnerable driver written to disk (BYOVD)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a <code>.sys</code> driver dropped into a user-writable/temp path by a non-system process. <strong>Accomplishes:</strong> surfaces the BYOVD priv-esc step (T1068) the joint advisory attributes to INC.</p>
+        <div class="callout callout-warn">Common FP: legitimate installers drop drivers — exclude trusted vendor installer parents; pair with the Microsoft Vulnerable Driver Blocklist.</div>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Vulnerable driver written to user-writable path (BYOVD)</span>
+<span class="cm">// MITRE: T1068, T1543.003 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: NewExecutableWritten or PeFileWritten</span>
+<span class="cm">// TUNING: exclude trusted installer parents; cross-ref MS vulnerable driver blocklist</span>
+#event_simpleName=/NewExecutableWritten|PeFileWritten/
+| TargetFileName=/\.sys$/i
+| TargetFileName=/\\(users|temp|programdata|windows\\temp|appdata)\\/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Windows Defender disabled via LOLBin / tamper</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>SystemSettingsAdminFlows.exe</code> disabling Defender, plus PowerShell/reg Defender-disable patterns. <strong>Accomplishes:</strong> catches the documented INC defense-evasion LOLBin (T1562.001).</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Defender disabled via SystemSettingsAdminFlows / tamper</span>
+<span class="cm">// MITRE: T1562.001 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with command line</span>
+<span class="cm">// TUNING: alert directly; exclude documented EDR-migration maintenance windows</span>
+#event_simpleName=ProcessRollup2
+| (ImageFileName=/\\SystemSettingsAdminFlows\.exe$/i AND CommandLine=/Defender/i)
+   or CommandLine=/Set-MpPreference\s+.*-DisableRealtimeMonitoring\s+\$?true/i
+   or CommandLine=/DisableAntiSpyware.*(\/t\s+REG_DWORD.*\/d\s+1|=\s*1)/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · PsExec masqueraded as winupd / encryptor as SYSTEM service</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a process named <code>winupd</code>/<code>win.exe</code> running from a system root as a service, or PsExec service-install behavior. <strong>Accomplishes:</strong> the highest-fidelity INC signature (T1036.005 + T1569.002) — promote to IOA.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: PsExec renamed winupd / encryptor launched as SYSTEM service</span>
+<span class="cm">// MITRE: T1036.005, T1569.002, T1486 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with parent + command line</span>
+<span class="cm">// TUNING: confirm signer; legit Windows Update does not run %SystemRoot%\winupd.exe</span>
+#event_simpleName=ProcessRollup2
+| (ImageFileName=/\\(winupd|win)\.exe$/i AND ImageFileName=/\\(windows|system32|temp)\\/i)
+   or (ParentBaseFileName=/services\.exe$/i AND ImageFileName=/\\winupd\.exe$/i)
+   or CommandLine=/\\winupd\.exe.*(-accepteula|\\\\)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Credential dumping (NTDS via esentutl / LSASS)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> esentutl copying NTDS.dit and lsassy/comsvcs LSASS dump patterns. <strong>Accomplishes:</strong> detects the credential-access step (T1003) enabling lateral movement.</p>
+        <div class="callout callout-warn">Common FP: <code>esentutl</code> has legitimate DB-maintenance uses — restrict to ntds.dit and shadow-copy source paths; exclude EDR/backup vendors.</div>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Credential dumping (NTDS via esentutl / LSASS dump)</span>
+<span class="cm">// MITRE: T1003.001, T1003.003 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with command line</span>
+<span class="cm">// TUNING: scope esentutl to ntds.dit / shadow-copy paths; exclude EDR/backup vendors</span>
+#event_simpleName=ProcessRollup2
+| (ImageFileName=/\\esentutl\.exe$/i AND CommandLine=/(ntds\.dit|HarddiskVolumeShadowCopy)/i)
+   or CommandLine=/lsassy/i
+   or CommandLine=/comsvcs\.dll.*MiniDump/i
+   or CommandLine=/\\lsass\.exe.*\.dmp/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · RDP lateral-movement fan-out (one source, many hosts)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a single source IP/account producing RemoteInteractive logons to an unusually high number of distinct hosts. <strong>Accomplishes:</strong> surfaces RDP spread (T1021.001) characteristic of the INC hands-on phase.</p>
+        <div class="callout callout-warn">Common FP: jump hosts, VDI brokers, and admin bastions legitimately fan out over RDP — exclude known jump-host source IPs and tune the distinct-host threshold.</div>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: RDP fan-out from a single source</span>
+<span class="cm">// MITRE: T1021.001 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: UserLogon events with LogonType</span>
+<span class="cm">// TUNING: exclude known jump-host source IPs; tune distinct-host threshold</span>
+#event_simpleName=UserLogon
+| LogonType=10
+| groupBy([UserName, RemoteAddressIP4], function=[count(as=logons), count(field=ComputerName, distinct=true, as=distinctHosts), collect(ComputerName, limit=25)])
+| distinctHosts >= 5
+| sort(distinctHosts, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Data staging via archive utilities (7-Zip / WinRAR)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP MED-HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> 7-Zip/WinRAR command lines with recursion + archive creation against share/UNC paths. <strong>Accomplishes:</strong> detects pre-exfil collection/staging (T1560.001).</p>
+        <div class="callout callout-warn">Common FP: archiving is extremely common — require recursion plus a UNC/share source path, and exclude backup/log-rotation service accounts.</div>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: Archive staging with recursion against shares</span>
+<span class="cm">// MITRE: T1560.001, T1074 | CONF: medium  FP: medium-high  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with command line</span>
+<span class="cm">// TUNING: require recursion + UNC/share path; exclude backup/log service accounts</span>
+#event_simpleName=ProcessRollup2
+| ImageFileName=/\\(7z|7za|7zg|rar|winrar)\.exe$/i
+| CommandLine=/\ba\b/i
+| CommandLine=/(-r\b|-recurse|\\\\[a-z0-9._-]+\\)/i
+| !in(field=UserName, values=["svc-backup","svc-logrotate"])
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q9 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 · Cloud exfiltration tooling (Rclone / MegaSync)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Rclone copy/sync flags and MegaSync execution — the INC exfil channel. <strong>Accomplishes:</strong> detects exfiltration (T1567.002/T1537), the last chance before extortion leverage is set.</p>
+        <div class="callout callout-warn">Common FP: Rclone and MEGA have legitimate backup/sync uses — exclude sanctioned backup hosts and business MEGA accounts; weight on server-class hosts.</div>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: Cloud exfiltration via Rclone / MegaSync</span>
+<span class="cm">// MITRE: T1567.002, T1537 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with command line (corroborate with NetworkConnectIP4/DnsRequest)</span>
+<span class="cm">// TUNING: exclude approved backup hosts and business MEGA accounts; focus on servers</span>
+#event_simpleName=ProcessRollup2
+| ImageFileName=/\\(rclone|megasync|megasyncsetup64|filezilla|winscp)\.exe$/i
+   or CommandLine=/rclone\s+(copy|sync|move|copyto).*:/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine], sortby=@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SECTION 9 ═══ -->
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>DETECT — winupd Service Execution</td><td>Image <code>\winupd.exe</code> in system root; Parent <code>services.exe</code></td><td>None expected — legit winupd is not a service binary</td><td>Custom IOA → Process Creation; <strong>Detect→Block, Critical</strong> (Q5)</td></tr>
+        <tr><td>DETECT — Defender Disable LOLBin</td><td><code>SystemSettingsAdminFlows.exe</code> + <code>Defender</code> in command line</td><td>EDR-migration maintenance windows</td><td>Custom IOA → Process Creation; Detect, High (Q4)</td></tr>
+        <tr><td>DETECT — Shadow Copy Deletion</td><td><code>vssadmin/wbadmin delete</code>, <code>wmic shadowcopy delete</code></td><td>Rare backup maintenance — alert and verify</td><td>Custom IOA → Process Creation; Block, High</td></tr>
+        <tr><td>HUNT — Cloud exfil tooling</td><td>Image <code>rclone/megasync/filezilla/winscp</code></td><td>Sanctioned backup/sync hosts</td><td>Scheduled Search / IOA, Medium (Q9)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q5, Q4 and shadow-copy-deletion are strong Custom IOA candidates (low FP, high severity). Q1, Q3, Q6–Q9 are better kept as <em>investigate-only</em> scheduled searches until baselined in your tenant.</div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 10 ═══ -->
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click plaintext blocks for loading into Falcon scheduled searches, host-triage scripts, firewall rules, or a patch-audit checklist. This threat has <strong style="color:var(--text);">no atomic binary hashes</strong> — these are tool names, behaviors, CVEs, and exfil endpoints.</p>
+
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Tooling &amp; Filenames</span><span class="igc">hunt · process / file</span></div>
+        <button class="btn-copy" data-label="Copy tooling" onclick="copyBlock('grab-tools',this)" style="margin:0 0 6px;">Copy tooling</button>
+<pre class="code" id="grab-tools">winupd.exe            # PsExec masqueraded as a SYSTEM service
+win.exe               # encryptor payload filename
+netscan.exe           # SoftPerfect NetScan recon
+adfind.exe            # AD enumeration
+rclone.exe            # cloud exfiltration
+megasync / MEGAsyncSetup64.exe
+filezilla.exe / winscp.exe
+SystemSettingsAdminFlows.exe   # LOLBin used to disable Defender
+anydesk.exe / putty.exe        # remote access (enrich)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">winupd.exe parented by services.exe (SYSTEM service)
+SystemSettingsAdminFlows.exe with "Defender" in cmdline
+CommandLine: net user /add + localgroup administrators /add
+CommandLine: esentutl ... ntds.dit | comsvcs.dll MiniDump
+CommandLine: rclone copy|sync ... remote:
+vssadmin/wbadmin delete | wmic shadowcopy delete
+RDP (LogonType 10) one source -> many distinct hosts
+.sys driver written to users/temp/programdata (BYOVD)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Initial-Access CVEs (patch audit)</span><span class="igc">edge / VPN / RMM</span></div>
+        <button class="btn-copy" data-label="Copy CVEs" onclick="copyBlock('grab-cves',this)" style="margin:0 0 6px;">Copy CVEs</button>
+<pre class="code" id="grab-cves">CVE-2024-57727   # SimpleHelp RMM path traversal (CISA KEV) — patch >5.5.7
+CVE-2023-3519    # Citrix NetScaler RCE
+CVE-2023-48788   # FortiClient EMS SQLi RCE
+# Also: VPN/remote access without phishing-resistant MFA</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Network — Exfil Endpoints</span><span class="igc">egress filter / NDR</span></div>
+        <button class="btn-copy" data-label="Copy network" onclick="copyBlock('grab-net',this)" style="margin:0 0 6px;">Copy network</button>
+<pre class="code" id="grab-net">*.mega.nz          # MEGA cloud exfil (enrich/block from servers)
+*.mega.io
+# Block consumer cloud-sync egress from server VLANs;
+# alert on rclone remote endpoints from non-backup hosts.</pre>
+      </div>
+
+    </div>
+
+    <h3>JSON</h3>
+    <button class="btn-copy" data-label="Copy JSON" onclick="copyBlock('ioc-json',this)" style="margin:0 0 6px;">Copy JSON</button>
+<pre class="json" id="ioc-json">{
+  "threat": "INC Ransom",
+  "aliases": ["GOLD IONIC", "Tarnished Scorpion"],
+  "attack_group": "G1032",
+  "generated": "2026-06-10",
+  "indicators": [
+    { "type": "cve", "value": "CVE-2024-57727", "confidence": "high", "action": "detect", "source": "CISA AA25-163a", "expiry": "2026-12-10" },
+    { "type": "cve", "value": "CVE-2023-3519", "confidence": "high", "action": "detect", "source": "MITRE G1032", "expiry": "2026-12-10" },
+    { "type": "cve", "value": "CVE-2023-48788", "confidence": "high", "action": "detect", "source": "Halcyon", "expiry": "2026-12-10" },
+    { "type": "filename", "value": "winupd.exe", "confidence": "high", "action": "hunt", "source": "Huntress/MITRE", "expiry": "2026-09-10" },
+    { "type": "filename", "value": "win.exe", "confidence": "medium", "action": "hunt", "source": "ACSC", "expiry": "2026-09-10" },
+    { "type": "tool", "value": "netscan.exe", "confidence": "medium", "action": "hunt", "source": "SOCRadar/SentinelOne", "expiry": "2026-09-10" },
+    { "type": "tool", "value": "adfind.exe", "confidence": "medium", "action": "hunt", "source": "Secureworks", "expiry": "2026-09-10" },
+    { "type": "tool", "value": "rclone.exe", "confidence": "medium", "action": "hunt", "source": "Huntress/ACSC", "expiry": "2026-09-10" },
+    { "type": "tool", "value": "megasync", "confidence": "medium", "action": "hunt", "source": "Cybereason/MITRE", "expiry": "2026-09-10" },
+    { "type": "tool", "value": "SystemSettingsAdminFlows.exe", "confidence": "medium", "action": "hunt", "source": "Huntress", "expiry": "2026-09-10" },
+    { "type": "process", "value": "anydesk.exe", "confidence": "low", "action": "enrich", "source": "MITRE", "expiry": "2026-07-10" },
+    { "type": "domain", "value": "*.mega.nz", "confidence": "low", "action": "enrich", "source": "MITRE", "expiry": "2026-07-10" },
+    { "type": "behavior", "value": "vssadmin delete shadows", "confidence": "high", "action": "detect", "source": "Cybereason", "expiry": "2026-12-10" },
+    { "type": "infra", "value": "INC Tor data-leak site / ransom note", "confidence": "high", "action": "pivot", "source": "Halcyon/SOCRadar", "expiry": "2026-12-10" }
+  ]
+}</pre>
+  </div>
+</div>
+
+<!-- ═══ SECTION 11 ═══ -->
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Telemetry ready</td><td>ProcessRollup2 + command line flowing; Identity Protection for AD events; VPN/edge logs forwarded</td><td>Confirm event volume per source over 7 days</td></tr>
+        <tr><td>2 · Benign baseline</td><td>Run Q1–Q9 in hunt mode; catalog legitimate AdFind/NetScan/Rclone/7-Zip users and jump hosts</td><td>Exclusion list per query documented</td></tr>
+        <tr><td>3 · Positive tests</td><td>Lab-execute renamed PsExec service, Defender disable, vssadmin delete, rclone copy</td><td>Each fires the expected query/IOA</td></tr>
+        <tr><td>4 · Promotion</td><td>Promote Q5 + Defender-disable + shadow-delete to Custom IOA after 0 FP over baseline window</td><td>Change record + IOA in Detect→Block</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 12 ═══ -->
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Threat-driven controls anchored to MITRE mitigations + CIS / MS Baselines / vendor guidance. Prioritize 2–4 high-leverage controls per surface over long marginal lists.</p>
+
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate · this week · low risk</div>
+      <ul>
+        <li><strong>Patch the three KEV edge CVEs.</strong> SimpleHelp &gt; 5.5.7 (CVE-2024-57727), Citrix NetScaler (CVE-2023-3519), FortiClient EMS (CVE-2023-48788). <em>M1051, M1016; CISA KEV.</em></li>
+        <li><strong>Enforce phishing-resistant MFA on every remote-access path</strong> — VPN, RMM, RDP gateways, all privileged + legacy/service accounts. <em>M1032; ACSC remote-access guidance.</em></li>
+        <li><strong>Falcon prevention policy in BLOCK</strong> with tamper protection on, plus Microsoft Vulnerable Driver Blocklist (HVCI) to break BYOVD. <em>M1040, M1045.</em></li>
+        <li><strong>Verify backups are immutable + offline-tested.</strong> 3-2-1 with an isolated copy; confirm restore times — removes the encryption half of double extortion. <em>M1053, M1029.</em></li>
+      </ul>
+    </div>
+
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term · 1–4 weeks · pilot first</div>
+      <ul>
+        <li><strong>Restrict/deny unauthorized RMM &amp; remote-access tools</strong> (AnyDesk, PuTTY, unsanctioned RMM) via AppLocker/WDAC + NGFW egress blocks on known RMM C2. <em>M1042, M1037, M1031; CIS 2.</em></li>
+        <li><strong>Segment RDP behind jump hosts; deny lateral SMB/RDP between workstations.</strong> <em>M1030, M1035; CIS 12.</em></li>
+        <li><strong>Block egress to consumer cloud-sync</strong> (mega.nz, rclone remotes) from servers; alert on the rest. <em>M1037.</em></li>
+        <li><strong>LSA Protection (RunAsPPL) + Credential Guard</strong> to blunt LSASS/credential dumping. <em>M1043, M1025; MS Security Baseline.</em></li>
+      </ul>
+    </div>
+
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic · 1–3 months · architectural</div>
+      <ul>
+        <li><strong>Tiered admin model + LAPS + JIT/PIM</strong>; no daily-driver domain admins; unique privileged accounts. <em>M1026, M1018, M1015; MS Baseline.</em></li>
+        <li><strong>Third-party / supply-chain risk program.</strong> Inventory shared legal-tech &amp; MSP platforms, segment their access to client data, require breach notification. <em>M1030, M1019; given the suspected shared-vendor compromise.</em></li>
+        <li><strong>Centralized, tamper-resistant logging</strong> with edge/VPN/backup logs forwarded to the SIEM to close non-EDR telemetry gaps. <em>M1047.</em></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 13 ═══ -->
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">PB1 · Block BYOVD + harden Defender tamper (PowerShell / GPO)</span>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('pb1',this)">Copy</button></div>
+      </div>
+      <div class="qc-body">
+        <p>Surface: Windows endpoints · Authority: M1040, M1045, M1043</p>
+<pre class="cql" id="pb1"># 1. Enable Microsoft Vulnerable Driver Blocklist (HVCI) — breaks BYOVD
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
+
+# 2. Enable LSA Protection (RunAsPPL) — blunts LSASS dumping
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f
+
+# 3. Enforce Defender tamper protection (manage via Intune/MDE for full enforcement)
+Set-MpPreference -DisableTamperProtection $false
+Set-MpPreference -DisableRealtimeMonitoring $false
+
+# 4. Verify
+(Get-MpComputerStatus).IsTamperProtected
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL
+# Reboot required for HVCI + RunAsPPL to take effect</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">PB2 · Restrict unauthorized RMM / remote-access tools (AppLocker)</span>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('pb2',this)">Copy</button></div>
+      </div>
+      <div class="qc-body">
+        <p>Surface: Windows endpoints · Authority: M1042, M1033</p>
+<pre class="cql" id="pb2"># Deny-list unsanctioned remote-access / exfil tooling via AppLocker (publisher + path).
+# GPO: Computer Config > Windows Settings > Security Settings > Application Control Policies > AppLocker
+# Targets: rclone.exe, megasync*.exe, anydesk.exe (if unsanctioned), winscp.exe, filezilla.exe
+
+Set-AppLockerPolicy -XmlPolicy .\inc_denylist.xml -Merge
+# Validate in AUDIT mode for 1-2 weeks before enforce:
+Get-AppLockerPolicy -Effective -Xml
+
+# NGFW: block outbound to mega.nz / mega.io and known RMM C2 from server VLANs</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">PB3 · CQL post-deployment spot-check</span>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('pb3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('pb3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p>Surface: Falcon · Authority: validation</p>
+<pre class="cql" id="pb3"><span class="cm">// Confirm winupd-as-service and Defender-disable behaviors are absent post-hardening</span>
+#event_simpleName=ProcessRollup2
+| (ImageFileName=/\\winupd\.exe$/i AND ParentBaseFileName=/services\.exe$/i)
+   or (ImageFileName=/\\SystemSettingsAdminFlows\.exe$/i AND CommandLine=/Defender/i)
+| groupBy([ComputerName, ImageFileName], function=count())
+<span class="cm">// Expect zero rows after PB1/PB2 + IOA promotion</span></pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SECTION 14 ═══ -->
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain affected hosts in Falcon; disable compromised + newly-created admin accounts; revoke VPN sessions; block egress to identified exfil endpoints</td><td>SOC / IR lead</td><td>Containment timestamps; account-disable records</td></tr>
+        <tr><td>Eradicate</td><td>Remove attacker admin accounts and persistence; patch the entry-point edge/RMM CVE; rotate all credentials exposed via SimpleHelp path traversal; remove dropped tools (winupd, rclone, netscan)</td><td>IR / IT ops</td><td>Patch records; credential-rotation log</td></tr>
+        <tr><td>Recover</td><td>Restore from verified immutable backups; rebuild rather than clean DCs if NTDS access confirmed; re-enable services after validation</td><td>IT ops</td><td>Restore test results; integrity checks</td></tr>
+        <tr><td>Notify</td><td>Engage legal/privilege counsel and regulators per double-extortion data-theft obligations; assess whether peer firms share the same upstream vendor</td><td>Legal / leadership</td><td>Notification timeline</td></tr>
+        <tr><td>Post-incident</td><td>Promote validated detections to IOA; run Q1–Q9 environment-wide; tabletop the supply-chain vector</td><td>Detection eng</td><td>Lessons-learned doc</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 15 ═══ -->
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Behavior</th><th>Primary Detection</th><th>Fallback</th><th>Known Gap</th></tr></thead>
+      <tbody>
+        <tr><td>Edge CVE / SimpleHelp exploit</td><td>Native: vuln scan + SimpleHelp logs</td><td>RMM parent spawning shell</td><td><span class="badge b-high">Appliance logs often outside Falcon</span></td></tr>
+        <tr><td>No-MFA VPN access</td><td>Native: VPN auth logs</td><td>—</td><td><span class="badge b-high">Depends on log forwarding + MFA telemetry</span></td></tr>
+        <tr><td>New admin account</td><td>Q2</td><td>Native 4720/4732</td><td><span class="badge b-low">Covered</span></td></tr>
+        <tr><td>BYOVD priv-esc</td><td>Q3</td><td>MS driver blocklist (prevent)</td><td><span class="badge b-med">Signed-but-vulnerable drivers</span></td></tr>
+        <tr><td>Defender disable</td><td>Q4 + IOA</td><td>Falcon tamper alerts</td><td><span class="badge b-low">Covered</span></td></tr>
+        <tr><td>Recon (NetScan/AdFind)</td><td>Q1</td><td>—</td><td><span class="badge b-low">Covered</span></td></tr>
+        <tr><td>Credential dumping</td><td>Q6</td><td>Falcon LSASS protection</td><td><span class="badge b-med">FP tuning needed</span></td></tr>
+        <tr><td>RDP lateral movement</td><td>Q7</td><td>—</td><td><span class="badge b-med">Threshold tuning</span></td></tr>
+        <tr><td>Archive staging</td><td>Q8</td><td>—</td><td><span class="badge b-med">Medium-high FP</span></td></tr>
+        <tr><td>Cloud exfil</td><td>Q9</td><td>Native: egress logs</td><td><span class="badge b-med">Sanctioned-use overlap</span></td></tr>
+        <tr><td>Encryptor as service</td><td>Q5 + IOA</td><td>RansomwareOpenFile, Falcon prevention</td><td><span class="badge b-low">Covered</span></td></tr>
+        <tr><td>Inhibit recovery</td><td>IOA (shadow-copy delete)</td><td>Native System log 524</td><td><span class="badge b-low">Covered</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 16 ═══ -->
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code">TITLE:        INC Ransom — Professional-Services Extortion Hunt
+SCOPE:        Windows endpoints/servers, AD/identity, VPN &amp; edge appliances, RMM
+HYPOTHESIS:   INC affiliate gained edge/VPN/RMM foothold, created admin account,
+              performing LOTL discovery + RDP/SMB lateral movement ahead of
+              staging, cloud exfil, and PsExec-as-service encryption.
+QUERIES RUN:  Q1 recon | Q2 admin-create | Q3 BYOVD | Q4 Defender-disable |
+              Q5 winupd-service (IOA) | Q6 cred-dump | Q7 RDP fan-out |
+              Q8 archive-staging | Q9 cloud-exfil  (+5 native audit-log hunts)
+DATA SOURCES: Falcon ProcessRollup2, UserLogon, NewExecutableWritten/PeFileWritten,
+              Identity Protection (AD); VPN/edge/RMM logs (native, Q-adjacent)
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Edge/VPN/backup telemetry may be outside Falcon; Q8/Q9 need
+              baseline tuning; no atomic binary hashes published.
+ACTIONS:      Patch 3 KEV edge CVEs; enforce MFA everywhere; immutable backups;
+              promote Q5 + Defender-disable + shadow-delete to Custom IOA.
+OWNER:        HuntPack
+VERSION:      v0.2 (Draft) - 2026-06-10</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 17 ═══ -->
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-10</span><span>Reformatted to fixed left-sidebar layout with scrollspy nav, a collapsible (hide/show) TOC, the Falcon cloud selector relocated inline at the top of §8, and a one-click grouped IOC quick-copy grid (§10). Detection content unchanged from v0.1.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-10</span><span>Initial HuntPack: 9 CQL queries, 5 native hunts, 4 IOA candidates, tiered hardening, 3 playbooks, containment runbook. Built from MITRE G1032 + ACSC/CERT-Tonga/NCSC + Halcyon + CISA AA25-163a + Huntress + Secureworks + SOCRadar.</span></div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 18 ═══ -->
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Accessed</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/inc-ransom-affiliate-model-enabling-targeting-of-critical-networks" target="_blank">ACSC / CERT Tonga / NCSC — INC Ransom Affiliate Model</a></td><td>TTPs, affiliate model, mitigations</td><td>2026-06-10</td></tr>
+        <tr><td>1</td><td><a href="https://attack.mitre.org/groups/G1032/" target="_blank">MITRE ATT&amp;CK — INC Ransom G1032</a></td><td>Technique mapping, tooling</td><td>2026-06-10</td></tr>
+        <tr><td>1</td><td><a href="https://attack.mitre.org/software/S1139/" target="_blank">MITRE ATT&amp;CK — INC Ransomware S1139</a></td><td>Encryptor behavior, impact techniques</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://www.halcyon.ai/ransomware-alerts/inc-ransom-group-mounts-rapid-campaign-against-law-firms" target="_blank">Halcyon RRC — Rapid Campaign Against Law Firms</a></td><td>2026 legal-sector campaign, supply-chain hypothesis</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-163a" target="_blank">CISA AA25-163a — SimpleHelp RMM Exploitation</a></td><td>CVE-2024-57727 initial access</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://www.huntress.com/blog/lolbin-to-inc-ransomware" target="_blank">Huntress — LOLBin to INC Ransomware</a></td><td>LOTL chain, Defender disable, cleanup</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://www.secureworks.com/blog/gold-ionic-deploys-inc-ransomware" target="_blank">Secureworks — GOLD IONIC Deploys INC Ransomware</a></td><td>AdFind, MegaSync, lateral copy</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://socradar.io/blog/dark-web-profile-inc-ransom/" target="_blank">SOCRadar — Dark Web Profile: INC Ransom</a></td><td>Tool inventory, victimology, attack flow</td><td>2026-06-10</td></tr>
+        <tr><td>2</td><td><a href="https://www.picussecurity.com/resource/blog/ransomware-actors-exploit-cve-2024-57727-in-unpatched-simplehelp-rmm" target="_blank">Picus — CVE-2024-57727 in SimpleHelp RMM</a></td><td>Exploitation detail</td><td>2026-06-10</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.2 (Draft) · INC Ransom (G1032) · Generated 2026-06-10 · Defensive use only — no exploit code or offensive tradecraft. Contains no victim, company, or environment-specific identifiers. Validate field names and tune exclusions in your own tenant before promoting any query to alerting.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Show / hide the table of contents (sidebar)
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+
+// Copy CQL / playbook block to clipboard
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = label; btn.classList.remove('copied'); }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = label; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Copy a grouped IOC / JSON plaintext block (restores its own label)
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = label; btn.classList.remove('copied'); }, 2000);
+  }
+  navigator.clipboard.writeText(text).then(done).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+
+// Open in Falcon (strips full comment lines, preserves https:// inside queries)
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function(line) {
+    return line.trim().indexOf('//') !== 0;
+  }).join('\n').trim();
+  var query = encodeURIComponent(cleaned);
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + query;
+  window.open(url, '_blank');
+}
+
+// Active sidebar highlight on scroll
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function() {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function(sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function(a) { a.classList.remove('active'); });
+      var id = sec.getAttribute('id');
+      var link = document.querySelector('#sidebar nav a[href="#' + id + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+}, { passive: true });
+</script>
+</body>
+</html>

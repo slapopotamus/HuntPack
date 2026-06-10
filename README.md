@@ -8,6 +8,22 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### INC Ransom — Rapid Extortion Against Professional-Services Firms
+**RaaS double-extortion operation clustering attacks on legal & professional-services firms in 2026. Defensive hunt & harden pack — no exploit code.**
+**Threat:** INC Ransom (G1032) · **Aliases:** GOLD IONIC · Tarnished Scorpion · **Type:** Ransomware · Double extortion · **Initial access:** Edge / VPN / RMM (3 KEV CVEs) · **Severity:** HIGH URGENCY
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/INC-Ransom-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/INC-Ransom-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/INC-Ransom-Hunt.html)
+
+---
+
+### Salt Typhoon / UAT-9244 — TernDoor · PeerTime · BruteEntry
+**China-nexus telecom espionage toolkit. Windows backdoor (TernDoor), cross-arch ELF P2P backdoor (PeerTime), and a GoLang edge-device brute-force ORB (BruteEntry). Defensive hunt & harden pack — no offensive tradecraft.**
+**Type:** Nation-state espionage · telecom · **Severity:** HIGH
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Salt-Typhoon-UAT-9244-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Salt-Typhoon-UAT-9244-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Salt-Typhoon-UAT-9244-Hunt.html)
+
+---
+
 ### CVE-2026-41089 — Windows Netlogon RCE (Domain Controller Takeover)
 **Pre-auth 0-click stack overflow in `netlogon.dll` → SYSTEM on any Domain Controller**
 HuntPack v0.2 for CVE-2026-41089 (CVSS 9.8, CWE-121) — a stack-based buffer overflow in the Windows Netlogon RPC service (`netlogon.dll`, `BuildSamLogonResponse`). Because every Domain Controller runs Netlogon, any reachable DC is structurally exposed; exploitation is 0-click, unauthenticated, and low-complexity. Patched 2026-05-12 (Patch Tuesday), in-the-wild ~2026-05-29. Covers 8 Falcon LogScale CQL hunts, 5 native audit-log hunts, 4 Custom IOA candidates, consolidated + machine-readable IOC appendices with a grouped IOC quick-copy grid, detection validation gates, tiered DC hardening, 3 deployable playbooks, and a containment runbook. Built from MSRC + CVE.org + NVD + CCB Belgium intel.
@@ -102,7 +118,6 @@ Detections for APT28 / Fancy Bear PRISMEX-aligned tradecraft — credential harv
 
 [Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/APT28-PRISMEX-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/APT28-PRISMEX-Hunt.html)
 
-
 ---
 
 ### Medusa — BYOVD Hunt
@@ -152,6 +167,7 @@ Behavior-first HuntPack for PayoutsKing ransomware and associated GOLD ENCOUNTER
 [Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html)
 
 ---
+
 ### QEMU Hunt
 **Living-off-the-land virtualization abuse**
 Hunts for QEMU being weaponized for evasion — adversary-controlled VMs used to bypass EDR, hide C2, and stage payloads outside the host's visibility.
