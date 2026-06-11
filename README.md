@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### The Gentlemen — Ransomware Hunt & Hardening Pack
+**FortiOS exploit (CVE-2024-55591) → AD recon → BYOVD EDR-kill → self-propagating Go encryptor ( .i8p14s ). Defensive hunt & harden pack — no exploit code.**
+**Threat:** The Gentlemen · Storm-2697 · Phantom Mantis · **Type:** Ransomware · double extortion · self-propagating · **Severity:** ACTIVE RaaS
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html)
+
+---
+
 ### CVE-2026-41091 — Microsoft Defender Link-Following Elevation of Privilege
 **Actively exploited June 2026 Patch Tuesday zero-day. The Malware Protection Engine follows symlinks/junctions before a privileged file op, letting a local attacker reach SYSTEM. Seen in the wild in the "Nightmare Eclipse" Defender exploit wave (BlueHammer / RedSun / UnDefend), chained from compromised FortiGate SSL VPN access. Defensive hunt & harden pack — no exploit code.**
 **Type:** LPE → SYSTEM · EDR tampering · **Severity:** CVSS 7.8
@@ -197,14 +205,6 @@ Detections for SilentCanvas-style covert-channel activity inside browsers — fi
 Hunt pack for Red Canary's Tampered Chef tracking and adjacent TamperedChef-style malvertising clusters — covers RecipeLister, Calendaromatic, AppSuite-style PDF tools, code-signing pivots, Chrome/search hijacking, suspicious Electron/NeutralinoJS execution, browser credential-store access, persistence, Custom IOA guidance, and hardening playbooks.
 
 [Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TamperedChef-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TamperedChef-Hunt.html)
-
----
-
-### The Gentlemen — Ransomware Hunt & Hardening Pack
-**FortiOS exploit (CVE-2024-55591) → AD recon → BYOVD EDR-kill → self-propagating Go encryptor ( .i8p14s ). Defensive hunt & harden pack — no exploit code.**
-**Threat:** The Gentlemen · Storm-2697 · Phantom Mantis · **Type:** Ransomware · double extortion · self-propagating · **Severity:** ACTIVE RaaS
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html)
 
 ---
 
