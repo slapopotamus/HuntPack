@@ -3,556 +3,357 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Gentlemen Ransomware — Hunt &amp; Hardening Pack (CrowdStrike CQL)</title>
+<title>The Gentlemen Ransomware — HuntPack v0.3</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --bg-2: #161b22;
-    --bg-3: #1c2230;
-    --border: #30363d;
-    --fg: #e6edf3;
-    --fg-dim: #9ca3af;
-    --fg-muted: #6e7681;
-    --accent: #ff5555;
-    --accent-2: #ff7a45;
-    --info: #58a6ff;
-    --good: #3fb950;
-    --warn: #d29922;
-    --crit: #f85149;
-    --purple: #b392f0;
-    --code-bg: #0a0e14;
-    --shadow: 0 1px 3px rgba(0,0,0,0.4);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-
-  /* HERO */
-  .hero {
-    background: linear-gradient(135deg, #1a0e0e 0%, #2a1410 50%, #0d1117 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 40px 0 32px;
-  }
-  .hero h1 {
-    margin: 0 0 8px;
-    font-size: 2.2em;
-    line-height: 1.15;
-    color: var(--fg);
-  }
-  .hero .subtitle {
-    color: var(--fg-dim);
-    font-size: 1.05em;
-    margin-bottom: 16px;
-  }
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 0.78em;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    background: var(--bg-3);
-    border: 1px solid var(--border);
-    color: var(--fg-dim);
-  }
-  .badge.crit { background: rgba(248,81,73,0.15); color: var(--crit); border-color: rgba(248,81,73,0.4); }
-  .badge.warn { background: rgba(210,153,34,0.15); color: var(--warn); border-color: rgba(210,153,34,0.4); }
-  .badge.info { background: rgba(88,166,255,0.15); color: var(--info); border-color: rgba(88,166,255,0.4); }
-  .badge.good { background: rgba(63,185,80,0.15); color: var(--good); border-color: rgba(63,185,80,0.4); }
-  .badge.purple { background: rgba(179,146,240,0.15); color: var(--purple); border-color: rgba(179,146,240,0.4); }
-  .meta-row {
-    display: flex; flex-wrap: wrap; gap: 16px;
-    color: var(--fg-muted); font-size: 0.88em;
-    border-top: 1px solid var(--border);
-    padding-top: 14px;
-  }
-  .meta-row span strong { color: var(--fg-dim); }
-
-  /* CLOUD SELECTOR (sticky) */
-  .cloud-bar {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(13,17,23,0.92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 0;
-  }
-  .cloud-bar-inner {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    font-size: 0.9em;
-  }
-  .cloud-bar label { color: var(--fg-dim); font-weight: 600; }
-  .cloud-bar select {
-    background: var(--bg-2);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 0.95em;
-    font-family: inherit;
-    cursor: pointer;
-  }
-  .cloud-bar select:focus { outline: 2px solid var(--info); outline-offset: 1px; }
-  .cloud-bar .current-host {
-    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
-    color: var(--info);
-    font-size: 0.85em;
-    padding: 4px 8px;
-    background: var(--bg-2);
-    border-radius: 4px;
-    border: 1px solid var(--border);
-  }
-  .cloud-bar .hint { color: var(--fg-muted); font-size: 0.82em; margin-left: auto; }
-
-  /* SECTIONS */
-  section { padding: 36px 0; border-bottom: 1px solid var(--border); }
-  section:last-of-type { border-bottom: none; }
-  h2 { font-size: 1.55em; margin: 0 0 16px; color: var(--fg); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 4px; }
-  h3 { font-size: 1.15em; margin: 24px 0 10px; color: var(--fg); }
-  h4 { font-size: 1.0em; margin: 18px 0 8px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-  p { margin: 8px 0 14px; }
-
-  /* TOC */
-  .toc {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 18px 22px;
-    margin: 24px 0;
-  }
-  .toc h3 { margin: 0 0 10px; font-size: 1em; text-transform: uppercase; letter-spacing: 0.6px; color: var(--fg-dim); }
-  .toc-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 4px 16px;
-  }
-  .toc a { color: var(--info); text-decoration: none; padding: 4px 0; display: block; font-size: 0.92em; }
-  .toc a:hover { color: var(--accent-2); }
-
-  /* TABLES */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin: 14px 0;
-    font-size: 0.92em;
-  }
-  th { background: var(--bg-3); padding: 9px 12px; text-align: left; font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--border); }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--fg-dim); }
-  tr:last-child td { border-bottom: none; }
-  td code, th code { background: var(--code-bg); padding: 1px 6px; border-radius: 3px; color: var(--accent-2); font-size: 0.92em; }
-
-  /* CARDS / GRID */
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0; }
-  .card {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    padding: 14px 16px;
-  }
-  .card .num { font-size: 1.8em; font-weight: 700; color: var(--accent); }
-  .card .lbl { color: var(--fg-muted); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
-
-  /* QUERY CARDS */
-  .query {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    margin: 22px 0;
-    overflow: hidden;
-  }
-  .query-head {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--bg-3);
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .query-title { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--fg); }
-  .query-title .qid {
-    background: var(--accent);
-    color: #1a0e0e;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.78em;
-  }
-  .query-meta {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 6px 18px;
-    padding: 10px 16px;
-    font-size: 0.85em;
-    color: var(--fg-dim);
-    border-bottom: 1px solid var(--border);
-    background: rgba(0,0,0,0.18);
-  }
-  .query-meta strong { color: var(--fg); font-weight: 600; }
-  .query-body { padding: 14px 16px; }
-  .query-body p { margin: 4px 0 10px; color: var(--fg-dim); font-size: 0.93em; }
-  .query-body p strong { color: var(--fg); }
-
-  pre {
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    padding: 14px 16px;
-    overflow-x: auto;
-    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
-    font-size: 0.86em;
-    line-height: 1.55;
-    color: #c9d1d9;
-    margin: 8px 0;
-    position: relative;
-  }
-  pre code { color: inherit; background: none; padding: 0; }
-
-  /* CODE BLOCK ACTIONS */
-  .code-wrap { position: relative; display: flex; flex-direction: column; }
-  .code-actions {
-    display: flex; gap: 8px;
-    margin: 10px 0 0;
-    flex-wrap: wrap;
-    order: 2;
-  }
-  .btn {
-    background: var(--bg-3);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    padding: 5px 12px;
-    border-radius: 5px;
-    font-size: 0.78em;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-  .btn:hover { background: var(--accent); color: #1a0e0e; border-color: var(--accent); }
-  .btn.copied { background: var(--good); color: #0d1117; border-color: var(--good); }
-  .btn.open-falcon { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.4); color: var(--info); }
-  .btn.open-falcon:hover { background: var(--info); color: #0d1117; }
-  .code-actions .btn { padding: 7px 14px; font-size: 0.82em; }
-  .code-actions .btn .btn-icon { font-family: monospace; opacity: 0.9; }
-  .code-actions .btn.open-falcon { background: var(--accent); color: #1a0e0e; border-color: var(--accent); }
-  .code-actions .btn.open-falcon:hover { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
-
-  /* CALLOUTS */
-  .callout {
-    padding: 12px 16px;
-    border-radius: 6px;
-    margin: 14px 0;
-    border-left: 3px solid var(--info);
-    background: rgba(88,166,255,0.06);
-    color: var(--fg-dim);
-    font-size: 0.93em;
-  }
-  .callout-warn { border-left-color: var(--warn); background: rgba(210,153,34,0.06); }
-  .callout-crit { border-left-color: var(--crit); background: rgba(248,81,73,0.06); }
-  .callout-good { border-left-color: var(--good); background: rgba(63,185,80,0.06); }
-  .callout strong { color: var(--fg); }
-
-  /* COVERAGE CELLS */
-  .cov-good { color: var(--good); font-weight: 600; }
-  .cov-partial { color: var(--warn); font-weight: 600; }
-  .cov-gap { color: var(--crit); font-weight: 700; }
-
-  /* FOOTER */
-  footer {
-    padding: 28px 0;
-    text-align: center;
-    color: var(--fg-muted);
-    font-size: 0.85em;
-    border-top: 1px solid var(--border);
-    background: var(--bg-2);
-  }
-
-  /* PRINT */
-  @media print {
-    body { background: #fff; color: #111; }
-    .hero { background: #f4f4f4; color: #111; }
-    .hero h1, .hero .subtitle, .meta-row { color: #111 !important; }
-    .cloud-bar, .code-actions, .btn.open-falcon { display: none !important; }
-    section, .card, .query, .toc, table { page-break-inside: avoid; }
-    pre, code { background: #f6f8fa !important; color: #24292f !important; border-color: #d0d7de !important; }
-    a { color: #0969da !important; text-decoration: underline; }
-    table { background: #fff; }
-    th, td { color: #111 !important; border-color: #d0d7de !important; }
-    th { background: #f6f8fa !important; }
-    .badge { background: #f6f8fa !important; color: #24292f !important; border-color: #d0d7de !important; }
-  }
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #ff7b72;
+  --accent-dim: rgba(255, 123, 114, 0.13);
+  --red: #f85149;
+  --yellow: #d29922;
+  --green: #7ee787;
+  --purple: #d2a8ff;
+  --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 0; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+/* TOC show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+.hp-header { background: linear-gradient(140deg, #2a1410 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: rgba(255,123,114,0.07); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy:hover { background: rgba(255,123,114,0.28); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+.qc-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; margin-bottom: 10px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 240px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; }
+.tier-near { border-left: 3px solid #d29922; }
+.tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; }
+.tier-near .tier-lbl { color: #d29922; }
+.tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk h4 { font-size: 12.5px; color: var(--text); margin-bottom: 4px; }
+.tier-blk ul { padding-left: 18px; }
+.tier-blk li { font-size: 12px; margin-bottom: 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-date { color: var(--text-muted); min-width: 88px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; }
+p { margin-bottom: 7px; font-size: 13px; }
+ul, ol { padding-left: 18px; margin: 6px 0; }
+li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); }
+h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
 </style>
 </head>
 <body>
 
-<!-- HERO -->
-<header class="hero">
-  <div class="container">
-    <div class="badges">
-      <span class="badge crit">ACTIVELY EXPLOITED</span>
-      <span class="badge crit">RANSOMWARE</span>
-      <span class="badge purple">DOUBLE EXTORTION</span>
-      <span class="badge warn">EDGE APPLIANCE → AD</span>
-      <span class="badge info">TTP-DRIVEN HUNT</span>
-    </div>
-    <h1>The Gentlemen — Ransomware Hunt &amp; Hardening Pack</h1>
-    <div class="subtitle">VPN/Edge appliance compromise → AD recon → RMM persistence → encryption. Switchable Falcon cloud for shareable deep-links.</div>
-    <div class="meta-row">
-      <span><strong>Generated:</strong> 2026-05-16</span>
-      <span><strong>Skill:</strong> threat-hunter v2.1 + crowdstrike-logscale</span>
-      <span><strong>Targets exploited:</strong> FortiOS, FortiProxy, SonicWall VPN, Cisco ASA</span>
-      <span><strong>Detection mode:</strong> Detect-first; review before promoting to Prevent</span>
-    </div>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">The Gentlemen<br>Ransomware (Storm-2697)</div>
+    <div class="version">v0.3 · 2026-06-11</div>
   </div>
-</header>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review &amp; Refresh</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · CQL Queries</a>
+    <a href="#s7">7 · Custom IOA Recs</a>
+    <a href="#s8">8 · IOC Appendix</a>
+    <div class="nav-section">Response</div>
+    <a href="#s9">9 · Hardening</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s10">10 · Coverage Map</a>
+    <a href="#s11">11 · Hunt Ticket</a>
+    <a href="#s12">12 · Changelog</a>
+    <a href="#s13">13 · References</a>
+  </nav>
+</nav>
 
-<!-- CLOUD SELECTOR -->
-<div class="cloud-bar">
-  <div class="container cloud-bar-inner">
-    <label for="cloudSelect">Falcon Cloud:</label>
-    <select id="cloudSelect" onchange="updateCloud()">
-      <option value="https://falcon.crowdstrike.com">US-1 — falcon.crowdstrike.com</option>
-      <option value="https://falcon.us-2.crowdstrike.com">US-2 — falcon.us-2.crowdstrike.com</option>
-      <option value="https://falcon.eu-1.crowdstrike.com">EU-1 — falcon.eu-1.crowdstrike.com</option>
-      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1 — falcon.laggar.gcw.crowdstrike.com</option>
-      <option value="https://falcon.us-gov-2.crowdstrike.com">US-GOV-2 — falcon.us-gov-2.crowdstrike.com</option>
-    </select>
-    <span class="current-host" id="currentHost">https://falcon.crowdstrike.com</span>
-    <span class="hint">Selection persists per browser. Open-in-Falcon buttons update live.</span>
-  </div>
-</div>
+<!-- ═══ MAIN ═══ -->
+<div id="main">
 
-<div class="container">
-
-<!-- TOC -->
-<div class="toc">
-  <h3>Contents</h3>
-  <div class="toc-grid">
-    <a href="#summary">1. Executive Summary</a>
-    <a href="#brief">2. Hunt Brief</a>
-    <a href="#mitre">3. MITRE ATT&amp;CK Mapping</a>
-    <a href="#queries">4. CQL Hunt Queries</a>
-    <a href="#iocs">5. IOC Blocklist Template</a>
-    <a href="#ioa">6. Custom IOA Recommendations</a>
-    <a href="#hardening">7. Hardening Recommendations</a>
-    <a href="#coverage">8. Detection Coverage Map</a>
-    <a href="#ticket">9. Hunt Summary Ticket</a>
-    <a href="#refs">10. References</a>
+<!-- HEADER -->
+<div class="hp-header">
+  <h1>The Gentlemen — Ransomware Hunt &amp; Hardening Pack</h1>
+  <div class="subtitle">FortiOS exploit (CVE-2024-55591) → AD recon → BYOVD EDR-kill → self-propagating Go encryptor (<code>.i8p14s</code>). Defensive hunt &amp; harden pack — no exploit code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">The Gentlemen · Storm-2697 · Phantom Mantis</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE RaaS</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Ransomware · double extortion · self-propagating</div></div>
+    <div class="meta-item"><div class="mk">Primary access</div><div class="mv">CVE-2024-55591 (FortiOS)</div></div>
+    <div class="meta-item"><div class="mk">Victims</div><div class="mv">~478 to date (Ransomware.Live)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-11 (re-hunt)</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
   </div>
 </div>
 
-<!-- EXECUTIVE SUMMARY -->
-<section id="summary">
-  <h2>Executive Summary</h2>
-  <p>
-    "The Gentlemen" is a professionalized double-extortion ransomware group active in 2026. They focus on
-    <strong>mass-exploitation of perimeter network appliances</strong> (FortiOS, FortiProxy, SonicWall SSL VPN, Cisco ASA)
-    as initial access, then pivot to internal AD reconnaissance, deploy commodity Remote Monitoring &amp; Management (RMM) tools
-    for persistence (AnyDesk, ScreenConnect, Atera, Splashtop), tamper with endpoint defenses, delete shadow copies, and
-    finally encrypt with double-extortion data theft.
-  </p>
-  <div class="card-grid">
-    <div class="card"><div class="num">4</div><div class="lbl">Appliance vendors actively targeted</div></div>
-    <div class="card"><div class="num">~48h</div><div class="lbl">Typical dwell from access → RMM persistence</div></div>
-    <div class="card"><div class="num">7</div><div class="lbl">CQL hunt queries in this pack</div></div>
-    <div class="card"><div class="num">14</div><div class="lbl">Hardening controls recommended</div></div>
+<!-- ═══ SECTION 1 ═══ -->
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>"The Gentlemen" (Microsoft <strong>Storm-2697</strong>; PRODAFT <strong>Phantom Mantis</strong>) is a professionalized, Russian-speaking double-extortion RaaS operation and one of 2026's most active groups — ~478 published victims to date and roughly <strong>10% of all ransomware activity in April 2026</strong>. Access of choice is mass-exploitation of edge appliances, chiefly <strong>FortiOS/FortiProxy via CVE-2024-55591</strong> plus brute-forced FortiGate VPN credentials, with Cisco and VMware estates also in scope.</p>
+    <p>After access, operators run internal AD reconnaissance, steal credentials with commodity stealers, disable endpoint defenses (including kernel-level <strong>BYOVD EDR-kill</strong> via <code>All.exe</code> + <code>ThrottleBlood.sys</code>), clear event logs, and deploy a <strong>Go-based, Garble-obfuscated, self-propagating encryptor</strong> (extension <code>.i8p14s</code>, note <code>README-GENTLEMEN.txt</code>). Its <code>--spread</code> flag turns it into an SMB worm; <code>--wipe</code> destroys recovery artifacts. Double-extortion data theft runs through <strong>rclone to MEGA</strong>. The lead operator (<strong>LARVA-368</strong>) relies heavily on AI for tooling and post-exploitation, and the group runs a multi-channel extortion model (ransom + email + phone).</p>
+    <div class="callout callout-danger">
+      ⚠ <strong>Earliest endpoint signal:</strong> an interactive logon from a VPN-assigned IP followed within ~60 minutes by AD discovery (<code>net group "Domain Admins"</code>, <code>nltest /dclist:</code>). <strong>Q5</strong> is the highest-fidelity early detection. <strong>Q9</strong> (SMB self-propagation) and <strong>Q10</strong> (BYOVD EDR-kill) are the "impact is imminent" signals — escalate on any hit.
+    </div>
+    <div class="callout callout-info">
+      <strong>Defender priority:</strong> (1) Patch FortiOS <strong>CVE-2024-55591</strong>, force VPN MFA, rotate VPN creds. (2) Enable the Microsoft Vulnerable Driver Blocklist (HVCI) + Falcon tamper protection to break BYOVD. (3) Disable SMBv1 and deploy Q5/Q9/Q10 as high-severity detections now. Typical dwell is <strong>2–6 weeks</strong>, so historical hunts (30–90 days) are worthwhile.
+    </div>
   </div>
-  <div class="callout callout-crit">
-    <strong>Critical:</strong> The Gentlemen's earliest endpoint-visible activity is <em>after</em> the appliance is breached.
-    Your first signal in CrowdStrike will be an unusual interactive logon from a VPN-assigned IP followed within ~60 minutes
-    by AD discovery commands (<code>net group "Domain Admins"</code>, <code>nltest /dclist:</code>). <strong>Query 5</strong>
-    is the highest-fidelity single-pane detection in this pack.
+</div>
+
+<!-- ═══ SECTION 2 ═══ -->
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Intel Refresh</h2></div>
+  <div class="section-body">
+    <p>This pack was re-hunted on <strong>2026-06-11</strong> against intel published after the original 2026-05-16 build — Microsoft's 28 May encryptor deep-dive, the PRODAFT "Inside the Phantom Mantis Operation" report and Krebs attribution (both 11 Jun), plus Huntress/Group-IB/Check Point/Halcyon/NCC/ZeroFox analyses and the May "Rocket.Chat" leak. Several earlier assumptions were corrected and the coverage gap list shrank.</p>
+    <table>
+      <thead><tr><th>Area</th><th>Original (2026-05-16)</th><th>Updated (2026-06-11)</th></tr></thead>
+      <tbody>
+        <tr><td>Initial access</td><td>FortiOS / SonicWall / Cisco ASA (broad)</td><td><strong>FortiOS CVE-2024-55591</strong> + VPN brute force is primary; <strong>Cisco and VMware Aria Operations</strong> confirmed in the leak; SonicWall/Oracle EBS discussed but not corroborated as used.</td></tr>
+        <tr><td>Encryptor</td><td>Unknown; extension "TBD"</td><td><strong>Known:</strong> Go (Garble-obfuscated), 5 builds — Windows, Linux, ESXi, Windows XP+, LVM; ext <code>.i8p14s</code>; X25519 + XChaCha20; <code>--spread</code> (SMB worm) &amp; <code>--wipe</code> (anti-recovery) flags.</td></tr>
+        <tr><td>Tooling</td><td>SharpHound, AnyDesk, generic stealers</td><td>Adds <strong>NetExec, RelayKing, TaskHound, PrivHound, CertiHound</strong> (recon/cert/priv-esc), <strong>EDRStartupHinder, gfreeze, glinker</strong> (evasion), and <strong>Velociraptor</strong> as C2 (new Q16).</td></tr>
+        <tr><td>Attribution</td><td>Unattributed</td><td>Storm-2697 / Phantom Mantis; lead <strong>LARVA-368</strong> (hastalamuerte, zeta88, ArmCorp, nobody0, santamuerte); named by Krebs as Alexander A. Yapaev (Izhevsk, RU); AI-assisted ops; active since Mar 2025.</td></tr>
+        <tr><td>Dwell time</td><td>~48 hours</td><td><strong>2–6 weeks</strong> from initial access to encryption (focus on VMware-heavy estates).</td></tr>
+        <tr><td>Queries</td><td>8 (5 gaps)</td><td><strong>16</strong> — closed event-log clearing, credential access, SMB spread, BYOVD, exfil, and named-toolkit/C2 gaps.</td></tr>
+      </tbody>
+    </table>
+    <h3>Source tiers</h3>
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-purple">Primary</span></td><td>Microsoft Security Blog (28 May)</td><td>Self-propagating Go encryptor; <code>--spread</code>/<code>--wipe</code>; Garble; tracked as Storm-2697</td></tr>
+        <tr><td><span class="badge b-purple">Primary</span></td><td>PRODAFT — Inside the Phantom Mantis Operation</td><td>LARVA-368 attribution, affiliate panel, 5 ransomware builds, 90/10 split, AI-assisted</td></tr>
+        <tr><td><span class="badge b-info">Secondary</span></td><td>Huntress / Group-IB / Check Point</td><td>BYOVD (All.exe + ThrottleBlood.sys), log clearing, Defender disable, CVE set, NTLM relay</td></tr>
+        <tr><td><span class="badge b-info">Secondary</span></td><td>Halcyon / NCC Group / ZeroFox</td><td>~10% of April activity, GPO manipulation, multi-channel extortion, same-day patch after decryptor</td></tr>
+        <tr><td><span class="badge b-med">Tertiary</span></td><td>Hunt.io / SocRadar / KELA / Vectra</td><td>Proton66 open-dir toolkit (176.120.22.127), Rocket leak analysis, geography</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;font-size:11.5px;color:var(--text-muted);">Confidence: <strong>HIGH</strong> — corroborated across vendor labs, a national-CERT-grade leak analysis, and Microsoft. Network IOCs are sparse and short-lived (the crew rotates infrastructure and several details derive from a single leak), so behavioral queries (Q1, Q5, Q9, Q10) carry the durable coverage.</p>
   </div>
-</section>
+</div>
 
-<!-- HUNT BRIEF -->
-<section id="brief">
-  <h2>Hunt Brief</h2>
-  <h3>Identity</h3>
-  <table>
-    <tr><th style="width: 30%">Field</th><th>Value</th></tr>
-    <tr><td>Threat name</td><td>The Gentlemen</td></tr>
-    <tr><td>Category</td><td>Ransomware (double-extortion)</td></tr>
-    <tr><td>First observed</td><td>Early 2026</td></tr>
-    <tr><td>Attribution</td><td>Unattributed criminal RaaS-style operation; professionalized tradecraft</td></tr>
-    <tr><td>Affiliated tooling</td><td>SharpHound/BloodHound, AnyDesk, ScreenConnect, Atera, Splashtop, RustDesk, AdFind, Mimikatz (suspected), commodity loaders</td></tr>
-    <tr><td>Target verticals</td><td>Opportunistic across mid-to-large enterprises; appliance-exposed orgs preferred</td></tr>
-  </table>
-
-  <h3>Initial Access Vectors</h3>
-  <table>
-    <tr><th>Appliance</th><th>Typical CVE classes exploited</th><th>What gets stolen</th></tr>
-    <tr><td>Fortinet FortiOS / FortiProxy SSL VPN</td><td>Pre-auth heap overflow, format-string, path traversal (e.g., FG-IR-style advisories)</td><td>VPN session cookies, local user hashes</td></tr>
-    <tr><td>SonicWall SSL VPN (SMA / NetExtender)</td><td>Auth bypass, info disclosure</td><td>Credential pairs, MFA bypass via session reuse</td></tr>
-    <tr><td>Cisco ASA / ASAv WebVPN</td><td>Memory corruption, ASA WebVPN path traversal classes</td><td>Config dumps including local users / RADIUS shared secrets</td></tr>
-  </table>
-
-  <h3>Exploit-to-Encrypt Chain (typical)</h3>
-  <ol>
-    <li><strong>External:</strong> Appliance exploited from internet. Operator harvests creds/sessions from the appliance.</li>
-    <li><strong>T+0–4h:</strong> Authenticates to internal network via the VPN as a legitimate-looking user from a VPN-pool IP.</li>
-    <li><strong>T+1–24h:</strong> Runs AD reconnaissance (net.exe, nltest, dsquery, AdFind, SharpHound).</li>
-    <li><strong>T+24–48h:</strong> Deploys at least one RMM tool (AnyDesk preferred) for persistence that survives VPN session revocation.</li>
-    <li><strong>T+48h+:</strong> Lateral movement (RDP, SMB, WMI), credential theft, defense tamper, then encryption with mass shadow-copy deletion.</li>
-  </ol>
-
-  <h3>Endpoint-Observable Indicators (the hunt focus)</h3>
-  <ul>
-    <li>Interactive logons (LogonType 10) originating from VPN concentrator-assigned IPs to non-jump-host endpoints</li>
-    <li>net.exe / net1.exe enumerating "Domain Admins", "Enterprise Admins"</li>
-    <li>nltest /dclist:, /domain_trusts, /domain</li>
-    <li>SharpHound.exe / Invoke-BloodHound / collection-method strings; <code>*_computers.json</code>, <code>*_groups.json</code> file writes</li>
-    <li>AnyDesk.exe / ScreenConnect.ClientService.exe / AteraAgent.exe written to <code>C:\ProgramData\</code> or <code>%TEMP%</code></li>
-    <li>vssadmin delete shadows, wmic shadowcopy delete, bcdedit /set recoveryenabled no</li>
-    <li>Set-MpPreference -DisableRealtimeMonitoring $true, sc stop WinDefend, taskkill /IM MsMpEng.exe</li>
-  </ul>
-</section>
-
-<!-- MITRE -->
-<section id="mitre">
-  <h2>MITRE ATT&amp;CK Mapping</h2>
-  <pre>
-[Internet]
-   │
-   │  T1190 — Exploit Public-Facing Application
-   ▼
-[VPN / Firewall appliance]  ← FortiOS / FortiProxy / SonicWall / Cisco ASA
-   │
-   │  T1078 — Valid Accounts (stolen via appliance)
-   ▼
-[Internal endpoint via VPN pool IP]
-   │
-   │  T1087.002 / T1069.002 / T1018 / T1482 — AD Recon
-   │  S0521 — SharpHound / BloodHound
-   ▼
-[RMM persistence]   T1219 — Remote Access Software
-   │
-   │  T1562.001 — Disable / Modify Tools
-   │  T1003     — Credential Dumping
-   ▼
-[Lateral movement] T1021.001 (RDP) / T1570 (SMB)
-   │
-   │  T1490 — Inhibit System Recovery (vssadmin)
-   │  T1070.001 — Clear Event Logs
-   ▼
-[T1486 — Data Encrypted for Impact]
-   +
-[T1567 — Exfiltration over Web Service (double extortion)]
-  </pre>
-
-  <table>
-    <tr><th>Tactic</th><th>Technique</th><th>Sub-technique / Tool</th><th>Hunt Q</th></tr>
-    <tr><td>Initial Access</td><td>T1190</td><td>Public-facing appliance exploit</td><td>(appliance logs / network)</td></tr>
-    <tr><td>Initial Access / Persistence</td><td>T1078</td><td>Valid Accounts via VPN</td><td>Q5</td></tr>
-    <tr><td>Discovery</td><td>T1087.002</td><td>Domain Account Discovery</td><td>Q1</td></tr>
-    <tr><td>Discovery</td><td>T1069.002</td><td>Domain Group Discovery</td><td>Q1</td></tr>
-    <tr><td>Discovery</td><td>T1482</td><td>Domain Trust Discovery</td><td>Q1</td></tr>
-    <tr><td>Discovery</td><td>T1018</td><td>Remote System Discovery (nltest /dclist:)</td><td>Q1</td></tr>
-    <tr><td>Discovery</td><td>T1482 + S0521</td><td>SharpHound / BloodHound</td><td>Q2, Q3</td></tr>
-    <tr><td>Command &amp; Control</td><td>T1219</td><td>RMM software (AnyDesk, ScreenConnect, Atera, RustDesk)</td><td>Q4</td></tr>
-    <tr><td>Defense Evasion</td><td>T1562.001</td><td>Disable Defender / AV tamper</td><td>Q7</td></tr>
-    <tr><td>Impact</td><td>T1490</td><td>vssadmin / wmic / bcdedit (Inhibit Recovery)</td><td>Q6</td></tr>
-    <tr><td>Impact</td><td>T1486</td><td>Data Encrypted (mass file writes)</td><td>Q8 (low-fidelity)</td></tr>
-  </table>
-</section>
-
-<!-- QUERIES -->
-<section id="queries">
-  <h2>CQL Hunt Queries</h2>
-  <div class="callout">
-    Every query below has a <strong>Copy</strong> button and an <strong>Open in Falcon</strong> button that uses the cloud you picked above.
-    Run them <strong>over the last 7–30 days</strong> first (per <em>TIMEFRAME</em>), tune the FP notes for your environment, and validate
-    before promoting any associated IOAs to Prevent mode.
+<!-- ═══ SECTION 3 ═══ -->
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> If The Gentlemen are active, the earliest endpoint-visible chain is a VPN-pool interactive logon followed by built-in AD enumeration on the same host, escalating over days/weeks into credential theft, BYOVD EDR-kill, event-log clearing, SMB self-propagation, rclone exfil, and <code>.i8p14s</code> encryption.</p>
+    <h3>Identity</h3>
+    <table>
+      <tbody>
+        <tr><td style="width:24%">Category</td><td>Ransomware-as-a-Service (double extortion); active since March 2025 (affiliate/ArmCorp), independent RaaS from July 2025</td></tr>
+        <tr><td>Attribution</td><td>Storm-2697 (Microsoft) / Phantom Mantis (PRODAFT). Lead operator <strong>LARVA-368</strong> — aliases hastalamuerte, zeta88, ArmCorp, nobody0, santamuerte; named by Brian Krebs as Alexander A. Yapaev (Izhevsk, RU). ~9 operators; 90/10 affiliate split; AI-assisted development</td></tr>
+        <tr><td>Scale / geography</td><td>~478 victims (Ransomware.Live); ~10% of all ransomware activity in April 2026. Only ~13% US — top: Thailand, UK, Brazil, Germany, India</td></tr>
+        <tr><td>Tooling</td><td>SharpHound/BloodHound, AdFind, NetExec, RelayKing, TaskHound, PrivHound, CertiHound, Velociraptor (C2), G-BOT/SystemBC, Phemedrone v2.3.2, LummaC2, XenAllPasswordPro, DumpBrowserSecrets, EDRStartupHinder, gfreeze, glinker, All.exe + ThrottleBlood.sys (BYOVD), rclone, AnyDesk/ScreenConnect</td></tr>
+      </tbody>
+    </table>
+    <h3>Initial access vectors</h3>
+    <div class="callout callout-warn">
+      ⚠ <strong>Update (Jun 11):</strong> Confirmed edge-device focus is <strong>Fortinet FortiGate and Cisco</strong>; the Rocket.Chat leak shows the crew weaponizing flaws in Fortinet, Cisco, <strong>VMware Aria Operations</strong>, and Microsoft software (VMware-heavy estates are favored). SonicWall/Oracle EBS appear in chatter but remain uncorroborated as used. Hunt and harden Fortinet first, then Cisco and VMware.
+    </div>
+    <table>
+      <thead><tr><th>Vector</th><th>CVE / Method</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Fortinet FortiOS / FortiProxy (mgmt interface)</td><td><strong>CVE-2024-55591</strong> — auth bypass (primary)</td><td>Admin session / foothold</td></tr>
+        <tr><td>FortiGate SSL VPN</td><td>Credential brute-force / reuse (~1,000 VPNs; e.g. <code>gentlemen25</code>, <code>gentle26</code>)</td><td>Valid VPN credential pairs</td></tr>
+        <tr><td>Secondary (track patched)</td><td>CVE-2025-32433 (Erlang/OTP SSH), CVE-2025-33073 (NTLM relay/SMB)</td><td>Lateral / priv-esc enablers</td></tr>
+        <tr><td>Also weaponized (per leak)</td><td>VMware Aria Operations, Cisco, Microsoft flaws</td><td>Backup &amp; management-controller abuse, NTLM relay workflows</td></tr>
+      </tbody>
+    </table>
+    <h3>Attack chain</h3>
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>FortiOS exploit / VPN brute-force → internal access</td><td>Appliance logs; UserLogon</td><td>VPN-pool logon (Q5)</td></tr>
+        <tr><td>2</td><td>AD recon (net/nltest/dsquery/AdFind/NetExec/SharpHound)</td><td>ProcessRollup2</td><td>Q1, Q2, Q3, Q5, Q16</td></tr>
+        <tr><td>3</td><td>Credential theft (LSASS, browser stealers)</td><td>ProcessRollup2</td><td>Q12</td></tr>
+        <tr><td>4</td><td>C2 / persistence (Velociraptor, G-BOT/SystemBC, RMM)</td><td>ProcessRollup2, NetworkConnectIP4</td><td>Q4, Q16</td></tr>
+        <tr><td>5</td><td>Defense evasion: BYOVD EDR-kill, Defender off, log clear, msimg32 sideload</td><td>ProcessRollup2, PeFileWritten</td><td>Q7, Q10, Q11, Q13</td></tr>
+        <tr><td>6</td><td>Self-propagation over SMB (<code>--spread</code>)</td><td>ProcessRollup2</td><td>Q9</td></tr>
+        <tr><td>7</td><td>Exfil (rclone→MEGA), inhibit recovery (vssadmin, <code>--wipe</code>), encrypt (<code>.i8p14s</code>)</td><td>ProcessRollup2, file writes</td><td>Q14, Q6, Q8</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <!-- Q1 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q1</span> AD Discovery — Domain Admin / DC / Trust enumeration</div>
-      <div>
-        <span class="badge warn">FP RISK: MEDIUM</span>
-        <span class="badge info">CONF: MEDIUM</span>
+<!-- ═══ SECTION 4 ═══ -->
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">
+      ⚠ <strong>Infrastructure rotates aggressively.</strong> Network IOCs are sparse/short-lived and several derive from a single leak — hunt and corroborate, don't blindly block. Bulk-copy versions are in §8.
+    </div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf.</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>SHA256</td><td><code>22b38dad7da097ea03aa28d0614164cd25fafeb1383dbc15047e34c8050f6f67</code></td><td><span class="badge b-high">HIGH</span></td><td>Prevent</td><td>Locker / payload sample</td></tr>
+        <tr><td>IPv4</td><td><code>176.120.22.127</code></td><td><span class="badge b-med">MED</span></td><td>Detect</td><td>Proton66 bulletproof host; open-dir operator toolkit (Hunt.io); may be reassigned</td></tr>
+        <tr><td>File ext</td><td><code>.i8p14s</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>Encrypted-file marker (Q8)</td></tr>
+        <tr><td>Filenames</td><td><code>README-GENTLEMEN.txt</code>, <code>gentlemen.bmp</code>, <code>All.exe</code>, <code>ThrottleBlood.sys</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>Note / wallpaper / BYOVD kit (Q8, Q10)</td></tr>
+        <tr><td>DLL artifact</td><td><code>msimg32.dll</code> outside System32/SysWOW64</td><td><span class="badge b-med">MED</span></td><td>Detect</td><td>DLL sideloading (Q13)</td></tr>
+        <tr><td>Behavior</td><td>Encryptor run with <code>--spread</code> / <code>--wipe</code></td><td><span class="badge b-high">HIGH</span></td><td>Detect</td><td>SMB worm / anti-recovery (Q9, Q6)</td></tr>
+        <tr><td>YARA strings</td><td>"Silent mode" · "Encrypt only mapped...shares" · "README-GENTLEMEN.txt" · "gentlemen.bmp" · "[+] Encryption started"</td><td><span class="badge b-high">HIGH</span></td><td>Hunt</td><td>≥4 matches = confirmed locker sample</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 5 ═══ -->
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Sub-technique / Tool</th><th>Hunt Q</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1190 / T1110</td><td>FortiOS CVE-2024-55591 / VPN brute force</td><td>(appliance logs)</td></tr>
+        <tr><td>Initial Access / Persistence</td><td>T1078</td><td>Valid Accounts via VPN</td><td>Q5</td></tr>
+        <tr><td>Discovery</td><td>T1087.002 / T1069.002 / T1482 / T1018</td><td>AD account/group/trust/DC discovery; NetExec</td><td>Q1, Q5, Q16</td></tr>
+        <tr><td>Discovery</td><td>T1482 + S0521</td><td>SharpHound / BloodHound</td><td>Q2, Q3</td></tr>
+        <tr><td>Credential Access</td><td>T1003.001 / T1555.003 / T1649</td><td>LSASS minidump / browser stealers / cert abuse (CertiHound)</td><td>Q12, Q16</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1219 / T1071</td><td>Velociraptor, G-BOT/SystemBC, RMM</td><td>Q4, Q16</td></tr>
+        <tr><td>Defense Evasion</td><td>T1574.002</td><td>msimg32.dll DLL sideloading</td><td>Q13</td></tr>
+        <tr><td>Defense Evasion</td><td>T1562.001 / .004 / .010</td><td>Defender disable / SMB1 / LSA / firewall; EDRStartupHinder, gfreeze, glinker</td><td>Q7, Q10</td></tr>
+        <tr><td>Defense Evasion / Priv Esc</td><td>T1562.001 + T1068 + T1543.003</td><td>BYOVD — All.exe + ThrottleBlood.sys</td><td>Q10</td></tr>
+        <tr><td>Defense Evasion</td><td>T1070.001</td><td>Clear Security/System/Application logs</td><td>Q11</td></tr>
+        <tr><td>Lateral Movement</td><td>T1021.002 / T1570 / T1021.001</td><td>Self-propagation over SMB (<code>--spread</code>)</td><td>Q9</td></tr>
+        <tr><td>Exfiltration</td><td>T1567.002 / T1048</td><td>rclone → MEGA</td><td>Q14</td></tr>
+        <tr><td>Impact</td><td>T1490</td><td>vssadmin / wbadmin / bcdedit / <code>--wipe</code></td><td>Q6</td></tr>
+        <tr><td>Impact</td><td>T1486</td><td>Encryption — <code>.i8p14s</code> mass file writes</td><td>Q8</td></tr>
+        <tr><td>All (indicators)</td><td>—</td><td>Known hash / C2 IP sweep</td><td>Q15</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 6 ═══ -->
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. Run over 7–30 days first (dwell is 2–6 weeks, so 30–90 days for historical sweeps), tune FP notes, and validate before promoting any IOA to Prevent. <strong>Q5 and Q9 require an env edit</strong> (your VPN CIDRs / deploy allow-list).</div>
+
+    <!-- Q1 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · AD discovery — Domain Admin / DC / trust enumeration</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1087.002, T1069.002, T1482, T1018</div>
-      <div><strong>Timeframe:</strong> Last 7 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> Post-VPN-compromise, operators enumerate privileged groups, domain controllers, and trusts using built-in tools before moving laterally.</p>
-      <p><strong>FP Notes:</strong> Sysadmin scripts, AD health checks, JIT/PAW workstations. Allow-list known admin AIDs after triage.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q1" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q1">// HUNT: The Gentlemen - T1087.002 / T1069.002 / T1482 / T1018 - AD Discovery
-// HYPOTHESIS: Post-VPN-compromise operators run built-in AD enumeration tooling
-//             before they move laterally and dump credentials.
-// FP RISK: Medium - sysadmin and tier-1 helpdesk legitimately run these
-// FP NOTES:
-//   - net.exe by domain admins from PAW/JIT workstations
-//   - nltest.exe inside AD health-check scripts on member servers
-//   - dsquery from documented PowerShell modules
-// CONFIDENCE: Medium - behavioral pattern; tune by allow-listing admin AIDs
-// TIMEFRAME: Last 7 days
-
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> built-in AD enumeration (privileged groups, DCs, trusts) post-compromise. <strong>FP:</strong> sysadmin scripts, helpdesk, AD health checks from PAW/JIT — allow-list known admin AIDs.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: The Gentlemen — AD discovery (T1087.002/T1069.002/T1482/T1018)</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | TIMEFRAME: last 7d</span>
+<span class="cm">// FP NOTES: net.exe by admins from PAW/JIT; nltest in AD health scripts; documented dsquery modules</span>
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | in(field=FileName, values=["net.exe","net1.exe","nltest.exe","dsquery.exe","whoami.exe","adfind.exe"], ignoreCase=true)
 | CommandLine = /(group\s+&quot;?Domain Admins&quot;?|group\s+&quot;?Enterprise Admins&quot;?|\/domain\b|\/dclist|\/domain_trusts|\/groups|\/all|enterprise admins|domain admins)/i
-| groupBy([aid, ComputerName, UserName],
-    function=[count(), collect([ImageFileName, CommandLine], limit=20)])
+| groupBy([aid, ComputerName, UserName], function=[count(), collect([ImageFileName, CommandLine], limit=20)])
 | sort(_count, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q2 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q2</span> SharpHound / BloodHound execution</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
+    <!-- Q2 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · SharpHound / BloodHound execution</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1482, S0521</div>
-      <div><strong>Timeframe:</strong> Last 14 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> Operators run SharpHound / Invoke-BloodHound to map AD attack paths. Tool-specific strings are high-fidelity.</p>
-      <p><strong>FP Notes:</strong> Authorized red-team exercises — allow-list the operator AIDs.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q2" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q2">// HUNT: The Gentlemen - T1482 / S0521 - SharpHound / BloodHound execution
-// HYPOTHESIS: Operators run SharpHound/Invoke-BloodHound to enumerate AD paths.
-// FP RISK: Low - tool-specific, not common in legitimate enterprise tooling
-// FP NOTES:
-//   - Authorized internal red-team / pentest (allow-list operator AIDs)
-// CONFIDENCE: High - tool-specific artifact
-// TIMEFRAME: Last 14 days
-
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SharpHound/Invoke-BloodHound AD-path mapping — tool-specific strings are high-fidelity. <strong>FP:</strong> authorized red-team — allow-list operator AIDs.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: The Gentlemen — SharpHound/BloodHound (T1482, S0521)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | TIMEFRAME: last 14d</span>
+<span class="cm">// FP NOTES: authorized internal red-team / pentest (allow-list operator AIDs)</span>
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | (ImageFileName = /\\sharphound(\.exe|\.ps1)?$/i
    or CommandLine = /(Invoke-BloodHound|SharpHound\s|-CollectionMethod\s+(All|Default|DCOnly|LoggedOn|Session|ACL|Trusts)|-ZipFileName|-OutputDirectory\s+.*bloodhound)/i)
@@ -560,78 +361,38 @@
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q3 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q3</span> BloodHound output file artifacts</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
+    <!-- Q3 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · BloodHound output file artifacts</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1213, T1482</div>
-      <div><strong>Timeframe:</strong> Last 14 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+ (file write telemetry)</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> SharpHound emits canonical JSON filenames (<code>*_computers.json</code>, <code>*_groups.json</code>, etc.) when collection completes — these are diagnostic of BloodHound usage even when the binary is renamed.</p>
-      <p><strong>FP Notes:</strong> Authorized red-team only.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q3" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q3">// HUNT: The Gentlemen - T1213 / T1482 - BloodHound output file artifacts
-// HYPOTHESIS: SharpHound writes JSON/ZIP outputs with canonical names. These
-//             survive binary renaming and packing.
-// FP RISK: Very Low
-// FP NOTES: Authorized red-team only.
-// CONFIDENCE: High - canonical filenames
-// TIMEFRAME: Last 14 days
-
-#event_simpleName = /NewExecutableWritten|FileWritten|NewScriptWritten/
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> canonical SharpHound JSON/ZIP output names — diagnostic even when the binary is renamed. <strong>FP:</strong> authorized red-team only.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: The Gentlemen — BloodHound output artifacts (T1213, T1482)</span>
+<span class="cm">// CONF: high  FP: very low  COST: low | TIMEFRAME: last 14d</span>
+<span class="cm">// FP NOTES: authorized red-team only</span>
+#event_simpleName = /NewExecutableWritten|PeFileWritten|NewScriptWritten/
 | TargetFileName = /(_computers\.json|_groups\.json|_users\.json|_domains\.json|_gpos\.json|_ous\.json|_sessions\.json|_containers\.json|BloodHound\.zip|\d{14}_BloodHound\.zip)$/i
 | table([@timestamp, aid, ComputerName, UserName, TargetFileName, ContextBaseFileName])
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q4 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q4</span> Unauthorized RMM tool execution (AnyDesk / ScreenConnect / Atera / RustDesk / etc.)</div>
-      <div>
-        <span class="badge warn">FP RISK: HIGH</span>
-        <span class="badge info">CONF: MEDIUM</span>
+    <!-- Q4 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Unauthorized RMM / C2 staging</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1219</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> Operators deploy a commodity RMM agent for persistence that survives VPN session revocation. Detection requires you to <strong>edit the allow-list</strong> for your sanctioned RMM (e.g., NinjaOne, Kaseya, ConnectWise if approved).</p>
-      <p><strong>FP Notes:</strong> Legitimate IT/MSP tooling. Allow-list the AIDs of sanctioned servers and authorized vendor support sessions.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q4" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q4">// HUNT: The Gentlemen - T1219 - Unauthorized RMM software
-// HYPOTHESIS: Operators deploy commodity RMM agents to maintain access after
-//             VPN sessions are revoked.
-// FP RISK: High - legitimately used by IT/MSPs
-// FP NOTES:
-//   - Allow-list your sanctioned RMM (NinjaOne, Kaseya, ConnectWise, etc.)
-//   - Authorized vendor support sessions
-// CONFIDENCE: Medium - behavioral; tune by removing your approved RMM names
-// TIMEFRAME: Last 30 days
-
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> commodity RMM agents used as persistence redundant to G-BOT/SystemBC/Velociraptor C2. <strong>FP:</strong> legitimate IT/MSP tooling — <strong>edit the allow-list</strong> for your sanctioned RMM and vendor support AIDs.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: The Gentlemen — Unauthorized RMM (T1219)</span>
+<span class="cm">// CONF: medium  FP: high  COST: low | TIMEFRAME: last 30d</span>
+<span class="cm">// FP NOTES: allow-list sanctioned RMM (NinjaOne, Kaseya, ConnectWise) + vendor support</span>
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | in(field=FileName, values=[
     "AnyDesk.exe","ScreenConnect.ClientService.exe","ScreenConnect.WindowsClient.exe",
@@ -642,50 +403,24 @@
     "rport.exe","MeshAgent.exe","ngrok.exe","TacticalRMM.exe","RemotePCService.exe",
     "DWAgent.exe","DWRCS.exe","Quasar.exe","Optitune.exe"
   ], ignoreCase=true)
-| groupBy([aid, ComputerName, FileName, UserName],
-    function=[count(),
-              selectFromMin(field=@timestamp, include=[CommandLine, ParentBaseFileName, ImageFileName])])
+| groupBy([aid, ComputerName, FileName, UserName], function=[count(), selectFromMin(field=@timestamp, include=[CommandLine, ParentBaseFileName, ImageFileName])])
 | sort(_count, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q5 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q5</span> ⭐ VPN-pool logon → AD recon within 60 min (correlated)</div>
-      <div>
-        <span class="badge info">FP RISK: MEDIUM</span>
-        <span class="badge good">CONF: HIGH</span>
+    <!-- Q5 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · ⭐ VPN-pool logon → AD recon within 60 min (correlated)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1078 + T1087.002</div>
-      <div><strong>Timeframe:</strong> Last 7 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+ ; EDIT your VPN CIDRs</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> A Type-10 (interactive) logon from a VPN-pool IP followed within 60 minutes by AD enumeration on the same endpoint is the Gentlemen's earliest endpoint-visible chain. Correlation cuts FPs by 10–50× vs. either signal alone.</p>
-      <p><strong>FP Notes:</strong> Legitimate remote admin. Allow-list jump hosts; replace the CIDRs below with your actual VPN-assigned client subnets.</p>
-      <div class="callout callout-warn">
-        <strong>EDIT BEFORE RUNNING:</strong> Replace <code>10.200.0.0/16</code> and <code>172.16.50.0/24</code> with your actual VPN-assigned client pool subnet(s).
-      </div>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q5" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q5">// HUNT: The Gentlemen - T1078 + T1087.002 - VPN-pool logon followed by AD recon
-// HYPOTHESIS: Interactive logon (LogonType 10) from VPN-assigned client subnet
-//             followed by AD enumeration on the same aid within 60 minutes.
-// FP RISK: Medium - legitimate remote admin may match
-// FP NOTES:
-//   - REPLACE the CIDRs below with your actual VPN client pool(s)
-//   - Allow-list known jump hosts and remote-admin workstations
-// CONFIDENCE: High - correlation tightens specificity
-// TIMEFRAME: Last 7 days
-
-// === EDIT THESE CIDRs ===
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a Type-10 logon from a VPN-pool IP followed within 60 min by AD enumeration on the same <code>aid</code> — the earliest Gentlemen chain. Correlation cuts FPs 10–50× vs. either signal alone. <strong>FP:</strong> legitimate remote admin — allow-list jump hosts.</p>
+        <div class="callout callout-warn">⚠ <strong>EDIT BEFORE RUNNING:</strong> replace <code>10.200.0.0/16</code> and <code>172.16.50.0/24</code> with your actual VPN-assigned client pool subnet(s).</div>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: The Gentlemen — VPN-pool logon then AD recon (T1078 + T1087.002)</span>
+<span class="cm">// CONF: high  FP: medium  COST: medium | TIMEFRAME: last 7d</span>
+<span class="cm">// FP NOTES: legit remote admin; REPLACE the CIDRs with your VPN client pool(s); allow-list jump hosts</span>
 #event_simpleName = UserLogon
 | LogonType = 10
 | cidr(RemoteAddressIP4, subnet=["10.200.0.0/16","172.16.50.0/24"])
@@ -707,432 +442,553 @@
 | sort(logonTime, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q6 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q6</span> Inhibit System Recovery — shadow copy / backup deletion</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
+    <!-- Q6 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Inhibit recovery — shadow copy / backup deletion / --wipe</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1490</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> Immediately before encryption, operators delete VSS shadow copies, the backup catalog, and disable Windows Recovery Environment.</p>
-      <p><strong>FP Notes:</strong> Some backup software invokes vssadmin — allow-list the AIDs of your backup servers.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q6" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q6">// HUNT: The Gentlemen - T1490 - Inhibit System Recovery
-// HYPOTHESIS: Pre-encryption, operators destroy shadow copies, catalogs, and
-//             disable Windows Recovery.
-// FP RISK: Low - very rare in normal production
-// FP NOTES:
-//   - Some backup tools call vssadmin (allow-list backup-server AIDs)
-// CONFIDENCE: High
-// TIMEFRAME: Last 30 days
-
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> pre-encryption recovery destruction — VSS/backup/catalog deletion, recovery disable, and the encryptor's own <code>--wipe</code> flag. <strong>FP:</strong> some backup tools call vssadmin — allow-list backup-server AIDs.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: The Gentlemen — Inhibit System Recovery (T1490)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | TIMEFRAME: last 30d</span>
+<span class="cm">// FP NOTES: some backup tools call vssadmin (allow-list backup-server AIDs)</span>
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
 | (CommandLine = /vssadmin(\.exe)?\s+delete\s+shadows/i
    or CommandLine = /wmic\s+shadowcopy\s+delete/i
    or CommandLine = /wbadmin\s+delete\s+(catalog|systemstatebackup|backup)/i
    or CommandLine = /bcdedit.*\/set.*(recoveryenabled\s+no|bootstatuspolicy\s+ignoreallfailures)/i
-   or CommandLine = /Diskshadow.*delete\s+shadows/i)
+   or CommandLine = /Diskshadow.*delete\s+shadows/i
+   or CommandLine = /\s--wipe\b/i)
 | table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q7 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q7</span> AV / EDR tamper</div>
-      <div>
-        <span class="badge info">FP RISK: MEDIUM</span>
-        <span class="badge good">CONF: MEDIUM-HIGH</span>
+    <!-- Q7 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · AV/EDR tamper + host weakening (Defender / SMB1 / LSA / firewall)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1562.001</div>
-      <div><strong>Timeframe:</strong> Last 14 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> Operators disable Defender real-time monitoring, add broad exclusions, or stop AV/EDR services prior to encryption.</p>
-      <p><strong>FP Notes:</strong> Authorized AV change windows, SCCM/Intune compliance scripts. Allow-list the AIDs of management hosts that legitimately push these.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q7" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q7">// HUNT: The Gentlemen - T1562.001 - Disable / Modify Tools
-// HYPOTHESIS: Operators disable Defender, add exclusions, or kill AV services
-//             before encryption.
-// FP RISK: Medium
-// FP NOTES:
-//   - Authorized AV product change windows
-//   - SCCM/Intune compliance scripts may match (allow-list)
-// CONFIDENCE: Medium-High
-// TIMEFRAME: Last 14 days
-
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Defender disable / broad exclusions, AV/EDR service stop, and host weakening — SMB1 re-enable, LSA anonymous loosening, firewall off — that precedes spread/encryption. <strong>FP:</strong> authorized AV change windows, SCCM/Intune scripts — allow-list management hosts.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: The Gentlemen — Disable tools + weaken host (T1562.001/.004/.010)</span>
+<span class="cm">// CONF: medium-high  FP: medium  COST: low | TIMEFRAME: last 14d</span>
+<span class="cm">// FP NOTES: authorized AV change windows; SCCM/Intune compliance scripts (allow-list mgmt AIDs)</span>
 #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| (CommandLine = /Set-MpPreference\s+-DisableRealtimeMonitoring\s+\$?true/i
+| (CommandLine = /Set-MpPreference\s+-DisableRealtimeMonitoring\s+\$?(true|1)/i
    or CommandLine = /Add-MpPreference\s+-ExclusionPath/i
    or CommandLine = /Set-MpPreference\s+-(DisableIOAVProtection|DisableScriptScanning|DisableBehaviorMonitoring|MAPSReporting\s+0)/i
    or CommandLine = /sc(\.exe)?\s+(stop|delete|config).*(WinDefend|Sense|MsSecFlt|wuauserv|BITS|CSFalconService|SentinelAgent|elastic-agent|XAgentSvc)/i
    or CommandLine = /taskkill.*\/IM\s+(MsMpEng|CSFalconService|SentinelAgent|Cyserver|elastic-agent|XAgent)\.exe/i
    or CommandLine = /reg\s+(add|delete).*DisableAntiSpyware/i
-   or CommandLine = /netsh\s+advfirewall\s+set\s+(allprofiles|currentprofile)\s+state\s+off/i)
+   or CommandLine = /netsh\s+advfirewall\s+set\s+(allprofiles|currentprofile)\s+state\s+off/i
+   or CommandLine = /(Enable-WindowsOptionalFeature.*SMB1|sc(\.exe)?\s+config\s+(mrxsmb10|lanmanserver).*SMB1|reg\s+add.*LanmanServer\\Parameters.*SMB1.*\/d\s+1)/i
+   or CommandLine = /reg\s+add.*\\Lsa\b.*(RestrictAnonymous|everyoneincludesanonymous|LimitBlankPasswordUse)/i)
 | table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q8 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q8</span> Mass file write with ransomware-style extension (low-fidelity)</div>
-      <div>
-        <span class="badge warn">FP RISK: MEDIUM</span>
-        <span class="badge info">CONF: LOW-MED</span>
+    <!-- Q8 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Encryption — .i8p14s mass file write + ransom note</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div>
       </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1486</div>
-      <div><strong>Timeframe:</strong> Rolling 24h</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> A single process writes many files with a non-standard extension in a short window. Tune the extension regex once the campaign's specific extension is published.</p>
-      <p><strong>FP Notes:</strong> Backup tools, archive/encoder utilities. Use as a tripwire, not as a primary detection.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q8" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q8">// HUNT: The Gentlemen - T1486 - Mass file rename / encryption tripwire
-// HYPOTHESIS: Single process writes many files with a non-standard extension
-//             in a short window.
-// FP RISK: Medium - backup tools, archive/encoder utilities match
-// FP NOTES:
-//   - Veeam, Backup Exec, Acronis match (allow-list)
-//   - Replace extension regex with Gentlemen's published extension once known
-// CONFIDENCE: Low-Medium - tripwire only
-// TIMEFRAME: Rolling 24h
-
-#event_simpleName = /NewExecutableWritten|FileWritten/
-| TargetFileName = /\.(locked|gentle|enc|crypt|gentlemen|ransom|cipher|encrypted)$/i
-| groupBy([aid, ComputerName, ContextBaseFileName],
-    function=[count(),
-              selectFromMin(field=@timestamp, include=[TargetFileName])])
-| _count &gt; 5
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the encryptor's published artifacts — <code>.i8p14s</code> extension, <code>README-GENTLEMEN.txt</code>, <code>gentlemen.bmp</code>. Campaign-specific, so high confidence (no longer a tripwire). <strong>FP:</strong> mass-write thresholds may match backup/archive tools — allow-list those AIDs.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: The Gentlemen — Encryption artifacts (.i8p14s + note) (T1486)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | TIMEFRAME: rolling 24h</span>
+<span class="cm">// FP NOTES: note/wallpaper names are campaign-specific; backup tools bulk-write other extensions</span>
+#event_simpleName = /NewExecutableWritten|PeFileWritten|NewScriptWritten/
+| (TargetFileName = /\.i8p14s$/i
+   or TargetFileName = /\\README-GENTLEMEN\.txt$/i
+   or TargetFileName = /\\gentlemen\.bmp$/i)
+| groupBy([aid, ComputerName, ContextBaseFileName], function=[count(), selectFromMin(field=@timestamp, include=[TargetFileName, UserName])])
 | sort(_count, order=desc)</pre>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- IOCs -->
-<section id="iocs">
-  <h2>IOC Blocklist Template</h2>
-  <p>
-    The Gentlemen rotate infrastructure aggressively, and no widely-corroborated long-lived hash/IP/domain set exists as of
-    publication. <strong>This is a template</strong> — paste indicators from your own incident response or your threat-intel feeds.
-    Import into <code>Endpoint Security → Custom Indicators of Compromise → Bulk Import</code> in Falcon.
-  </p>
-  <h3>IOC Governance</h3>
-  <table>
-    <tr><th>Type</th><th>Default Action</th><th>Expiry</th><th>Confidence floor</th><th>Notes</th></tr>
-    <tr><td>SHA256</td><td>Prevent</td><td>1 year</td><td>High</td><td>Safe to auto-block — collateral damage rare</td></tr>
-    <tr><td>MD5</td><td>Prevent</td><td>1 year</td><td>High</td><td>Same as SHA256; prefer SHA256 when available</td></tr>
-    <tr><td>Domain</td><td>Detect → Block after review</td><td>90 days</td><td>Medium</td><td>Shared infrastructure risk</td></tr>
-    <tr><td>IPv4</td><td>Detect only</td><td>30 days</td><td>Low-Medium</td><td>CDN/shared hosting — do not block</td></tr>
-  </table>
-  <h3>CSV template for Falcon IOC Management bulk import</h3>
-  <div class="code-wrap">
-    <div class="code-actions">
-      <button class="btn" onclick="copyQuery(this)">Copy</button>
+    <!-- Q9 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 · ⭐ Self-propagation — remote SMB copy / Admin$ transfer / --spread</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the Go encryptor authenticating with harvested creds and copying itself to remote <code>ADMIN$</code>/<code>C$</code> over SMB, then executing remotely — plus the explicit <code>--spread</code> worm flag. <strong>FP:</strong> software-deployment tooling (PsExec/SCCM) copies to admin shares — allow-list deploy-server AIDs.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: The Gentlemen — Self-propagation over SMB (T1021.002 / T1570)</span>
+<span class="cm">// CONF: medium-high  FP: medium  COST: medium | TIMEFRAME: last 7d</span>
+<span class="cm">// FP NOTES: SCCM / PDQ Deploy / PsExec admin tooling (allow-list deploy AIDs)</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (CommandLine = /(copy|xcopy|robocopy|cmd\s+\/c\s+copy).*\\\\[^\\]+\\(admin\$|c\$|ipc\$)/i
+   or CommandLine = /net\s+use\s+\\\\[^\\]+\\(admin\$|c\$|ipc\$)/i
+   or CommandLine = /(psexec|paexec|psexesvc).*\\\\[^\\]+/i
+   or CommandLine = /wmic\s+\/node:.*process\s+call\s+create/i
+   or CommandLine = /\\\\[^\\]+\\(admin\$|c\$)\\.*\.exe/i
+   or CommandLine = /\s--spread\b/i)
+| groupBy([aid, ComputerName, UserName], function=[count(), collect([CommandLine, ImageFileName, ParentBaseFileName], limit=25)])
+| sort(_count, order=desc)</pre>
+      </div>
     </div>
-<pre id="ioc-csv">type,value,action,severity,expiration,description,tags
-sha256,REPLACE_WITH_SHA256,prevent,critical,2027-05-16,The Gentlemen - encryptor binary,campaign:TheGentlemen
-sha256,REPLACE_WITH_SHA256,prevent,critical,2027-05-16,The Gentlemen - loader,campaign:TheGentlemen
-domain,REPLACE_WITH_C2_DOMAIN,detect,high,2026-08-14,The Gentlemen - C2 - review before promote,campaign:TheGentlemen
-domain,REPLACE_WITH_LEAK_SITE,detect,high,2026-08-14,The Gentlemen - data-leak site,campaign:TheGentlemen
-ipv4,REPLACE_WITH_C2_IP,detect,medium,2026-06-15,The Gentlemen - C2 IP (30d expiry),campaign:TheGentlemen</pre>
+
+    <!-- Q10 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q10 · ⭐ BYOVD EDR-kill — All.exe / ThrottleBlood.sys + evasion tools</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the custom kill tool (<code>All.exe</code>) + vulnerable driver (<code>ThrottleBlood.sys</code>) and the group's named evasion utilities (EDRStartupHinder, gfreeze, glinker), plus a <code>.sys</code> service launched from a user-writable path. <strong>FP:</strong> very low — legit drivers install to System32\drivers via signed installers.</p>
+<pre class="cql" id="cql10"><span class="cm">// HUNT: The Gentlemen — BYOVD EDR-kill (T1562.001 / T1068 / T1543.003)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | TIMEFRAME: last 30d</span>
+<span class="cm">// FP NOTES: a .sys service from TEMP/ProgramData/user path is almost always malicious</span>
+<span class="cm">// Branch A — named tooling / driver as process or in command line</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (FileName = /^(All|EDRStartupHinder|gfreeze|glinker)\.exe$/i
+   or CommandLine = /(ThrottleBlood\.sys|\\All\.exe)/i
+   or CommandLine = /sc(\.exe)?\s+create.*binPath=.*\\(temp|programdata|users|appdata)\\.*\.sys/i
+   or CommandLine = /(fltMC|sc(\.exe)?\s+stop).*(CSAgent|CSFalcon|SentinelAgent|WdFilter|elastic)/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, CommandLine, ParentBaseFileName])
+| sort(@timestamp, order=desc)
+
+<span class="cm">// Branch B (run separately) — driver written outside the standard driver store</span>
+<span class="cm">// #event_simpleName = /NewExecutableWritten|PeFileWritten/</span>
+<span class="cm">// | TargetFileName = /\.sys$/i</span>
+<span class="cm">// | TargetFileName != /\\Windows\\System32\\drivers\\/i</span>
+<span class="cm">// | TargetFileName != /\\Windows\\System32\\DriverStore\\/i</span>
+<span class="cm">// | table([@timestamp, aid, ComputerName, TargetFileName, ContextBaseFileName])</span></pre>
+      </div>
+    </div>
+
+    <!-- Q11 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q11 · Event log clearing (Security / System / Application)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>wevtutil cl</code>, <code>Clear-EventLog</code>, or WMI event-log clears — confirmed Gentlemen cleanup. <strong>FP:</strong> rare in production; allow-list imaging/provisioning AIDs.</p>
+<pre class="cql" id="cql11"><span class="cm">// HUNT: The Gentlemen — Clear Windows Event Logs (T1070.001)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | TIMEFRAME: last 14d</span>
+<span class="cm">// FP NOTES: golden-image / provisioning pipelines may clear logs (allow-list)</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (CommandLine = /wevtutil\s+(cl|clear-log)\b/i
+   or CommandLine = /Clear-EventLog\b/i
+   or CommandLine = /wmic\s+nteventlog.*ClearEventlog/i
+   or CommandLine = /(Get-WinEvent|Get-EventLog).*\|\s*.*Clear/i)
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q12 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q12 · Credential access — LSASS minidump &amp; browser stealers</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>comsvcs.dll MiniDump</code> of LSASS and commodity browser stealers (Phemedrone, LummaC2, XenAllPasswordPro, DumpBrowserSecrets). <strong>FP:</strong> rare IT diagnostics dump processes — pair with Falcon native CredentialDumping detections.</p>
+<pre class="cql" id="cql12"><span class="cm">// HUNT: The Gentlemen — Cred access LSASS + browsers (T1003.001 / T1555.003)</span>
+<span class="cm">// CONF: medium-high  FP: medium  COST: low | TIMEFRAME: last 14d</span>
+<span class="cm">// FP NOTES: comsvcs MiniDump rarely legit; stealer names = high TP; pair with Falcon native</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (CommandLine = /comsvcs\.dll.*MiniDump/i
+   or CommandLine = /rundll32.*comsvcs.*\s+\d+\s+.*\.dmp/i
+   or CommandLine = /(procdump(64)?\.exe).*lsass/i
+   or CommandLine = /lsass.*\.dmp/i
+   or in(field=FileName, values=["Phemedrone.exe","XenAllPasswordPro.exe","DumpBrowserSecrets.exe","ChromeAppBound.exe","LummaC2.exe","mimikatz.exe","nanodump.exe"], ignoreCase=true))
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, CommandLine, ParentBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q13 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q13 · DLL sideloading — msimg32.dll outside System32</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql13',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql13')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a <code>msimg32.dll</code> written anywhere outside System32/SysWOW64 — search-order hijack IOC. <strong>FP:</strong> a few apps ship their own copy — verify the writing process and signer.</p>
+<pre class="cql" id="cql13"><span class="cm">// HUNT: The Gentlemen — msimg32.dll DLL sideloading (T1574.002)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | TIMEFRAME: last 30d</span>
+<span class="cm">// FP NOTES: verify writing process and DLL signature before escalating</span>
+#event_simpleName = /NewExecutableWritten|PeFileWritten/
+| TargetFileName = /\\msimg32\.dll$/i
+| TargetFileName != /\\Windows\\System32\\/i
+| TargetFileName != /\\Windows\\SysWOW64\\/i
+| TargetFileName != /\\Windows\\WinSxS\\/i
+| table([@timestamp, aid, ComputerName, UserName, TargetFileName, ContextBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q14 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q14 · Exfiltration — rclone to MEGA / cloud</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql14',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql14')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> rclone command-line flags and MEGA remotes used to stage double-extortion theft — diagnostic even if the binary is renamed. <strong>FP:</strong> some IT uses rclone for cloud sync — allow-list sanctioned backup jobs.</p>
+<pre class="cql" id="cql14"><span class="cm">// HUNT: The Gentlemen — Exfil via rclone to MEGA (T1567.002 / T1048)</span>
+<span class="cm">// CONF: medium-high  FP: medium  COST: low | TIMEFRAME: last 14d</span>
+<span class="cm">// FP NOTES: allow-list sanctioned backup jobs/AIDs; mega remote + copy/sync = high TP</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (FileName = /^rclone\.exe$/i
+   or CommandLine = /rclone\s+(copy|sync|move|lsd|config)/i
+   or CommandLine = /(mega\.nz|mega:|--config\s+.*rclone\.conf)/i
+   or CommandLine = /\b(copy|sync)\b.*\b(mega|b2|s3|gdrive|dropbox|onedrive):/i)
+| groupBy([aid, ComputerName, UserName], function=[count(), collect([CommandLine, ImageFileName, ParentBaseFileName], limit=20)])
+| sort(_count, order=desc)</pre>
+      </div>
+    </div>
+
+    <!-- Q15 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q15 · Known-indicator sweep (hash + C2 IP)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql15',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql15')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> direct match on the published encryptor hash and the Proton66 C2 IP. Indicators rotate, so absence is inconclusive — keep refreshing from §4/§8. <strong>FP:</strong> hash is definitive; the IP may be reassigned — corroborate context.</p>
+<pre class="cql" id="cql15"><span class="cm">// HUNT: The Gentlemen — indicator sweep (hash + historic C2 IP)</span>
+<span class="cm">// CONF: high  FP: very low (hash) / low (IP) | TIMEFRAME: last 30-90d</span>
+<span class="cm">// Branch A — encryptor hash</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| SHA256HashData = "22b38dad7da097ea03aa28d0614164cd25fafeb1383dbc15047e34c8050f6f67"
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData])
+
+<span class="cm">// Branch B (run separately) — Proton66 C2 IP</span>
+<span class="cm">// #event_simpleName = NetworkConnectIP4</span>
+<span class="cm">// | RemoteAddressIP4 = "176.120.22.127"</span>
+<span class="cm">// | table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])</span></pre>
+      </div>
+    </div>
+
+    <!-- Q16 -->
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q16 · Named toolkit &amp; Velociraptor C2 sweep</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql16',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql16')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the group's named utilities — recon/cert/priv-esc (NetExec, RelayKing, TaskHound, PrivHound, CertiHound), and <strong>Velociraptor abused as C2</strong>. <strong>FP:</strong> Velociraptor is a legitimate DFIR tool — allow-list sanctioned IR/forensics AIDs; NetExec/CME may appear in authorized pentests.</p>
+<pre class="cql" id="cql16"><span class="cm">// HUNT: The Gentlemen — named toolkit + Velociraptor C2 (T1219/T1018/T1649)</span>
+<span class="cm">// CONF: high  FP: low-medium  COST: low | TIMEFRAME: last 30d</span>
+<span class="cm">// FP NOTES: Velociraptor is legit DFIR (allow-list IR AIDs); NetExec/CME in authorized pentests</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| (in(field=FileName, values=["nxc.exe","netexec.exe","crackmapexec.exe","RelayKing.exe","TaskHound.exe","PrivHound.exe","CertiHound.exe","velociraptor.exe"], ignoreCase=true)
+   or CommandLine = /(netexec|crackmapexec|\bnxc\b|RelayKing|TaskHound|PrivHound|CertiHound)/i
+   or CommandLine = /velociraptor.*(\-\-config|client|gui|artifacts collect)/i)
+| groupBy([aid, ComputerName, UserName], function=[count(), collect([FileName, CommandLine, ParentBaseFileName], limit=25)])
+| sort(_count, order=desc)</pre>
+      </div>
+    </div>
+
   </div>
-</section>
-
-<!-- CUSTOM IOA -->
-<section id="ioa">
-  <h2>Custom IOA Recommendations</h2>
-  <p>
-    Build these in <code>Endpoint Security → Custom IOA Rules</code>. Start in <strong>Detect</strong> mode. Promote to
-    <strong>Prevent</strong> after 14 days at &lt; 5% FP rate on a canary sensor group.
-  </p>
-
-  <h3>IOA-1 — vssadmin delete shadows</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule Type</td><td>Process Creation</td></tr>
-    <tr><td>Action</td><td>Detect (promote to Block after FP review)</td></tr>
-    <tr><td>Severity</td><td>High</td></tr>
-    <tr><td>MITRE</td><td>T1490</td></tr>
-    <tr><td>Image Filename (PCRE)</td><td><code>.*\\vssadmin\.exe$</code></td></tr>
-    <tr><td>Command Line (PCRE)</td><td><code>.*delete\s+shadows.*</code></td></tr>
-  </table>
-
-  <h3>IOA-2 — Defender real-time monitoring disabled via PowerShell</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule Type</td><td>Process Creation</td></tr>
-    <tr><td>Action</td><td>Detect</td></tr>
-    <tr><td>Severity</td><td>High</td></tr>
-    <tr><td>MITRE</td><td>T1562.001</td></tr>
-    <tr><td>Image Filename (PCRE)</td><td><code>.*\\(powershell|pwsh)\.exe$</code></td></tr>
-    <tr><td>Command Line (PCRE)</td><td><code>.*Set-MpPreference\s+-DisableRealtimeMonitoring\s+\$?(true|1).*</code></td></tr>
-  </table>
-
-  <h3>IOA-3 — net.exe enumerating "Domain Admins"</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule Type</td><td>Process Creation</td></tr>
-    <tr><td>Action</td><td>Detect only (high TP value but legit admin use exists)</td></tr>
-    <tr><td>Severity</td><td>Medium</td></tr>
-    <tr><td>MITRE</td><td>T1069.002</td></tr>
-    <tr><td>Image Filename (PCRE)</td><td><code>.*\\(net|net1)\.exe$</code></td></tr>
-    <tr><td>Command Line (PCRE)</td><td><code>.*group\s+&quot;?(Domain Admins|Enterprise Admins)&quot;?\s+\/domain.*</code></td></tr>
-  </table>
-
-  <h3>IOA-4 — RMM agent execution from non-Program-Files path</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule Type</td><td>Process Creation</td></tr>
-    <tr><td>Action</td><td>Detect</td></tr>
-    <tr><td>Severity</td><td>High</td></tr>
-    <tr><td>MITRE</td><td>T1219</td></tr>
-    <tr><td>Image Filename (PCRE)</td><td><code>.*\\(AnyDesk|rustdesk|AteraAgent|ScreenConnect\.ClientService|MeshAgent)\.exe$</code></td></tr>
-    <tr><td>Image Filename — exclude path</td><td><code>^C:\\Program Files( \(x86\))?\\.*</code></td></tr>
-  </table>
-
-  <h3>Promotion criteria</h3>
-  <table>
-    <tr><th>IOA</th><th>Promote-to-Block when…</th></tr>
-    <tr><td>IOA-1 vssadmin delete shadows</td><td>0 FPs in 7 days (excluded backup AIDs)</td></tr>
-    <tr><td>IOA-2 Defender disabled</td><td>0 FPs in 7 days (excluded patch-management hosts)</td></tr>
-    <tr><td>IOA-3 net.exe DA enumeration</td><td><strong>Keep in Detect</strong> long-term; high admin overlap</td></tr>
-    <tr><td>IOA-4 RMM from non-Program-Files</td><td>0 FPs in 14 days on canary group</td></tr>
-  </table>
-</section>
-
-<!-- HARDENING -->
-<section id="hardening">
-  <h2>Hardening Recommendations</h2>
-
-  <h3>Immediate — Edge Appliance Hardening</h3>
-  <div class="callout callout-crit">
-    <strong>Patch first.</strong> Confirm current firmware on FortiGate / FortiProxy, SonicWall SMA/NetExtender, and Cisco ASA/FTD
-    against the latest vendor PSIRT advisories. If any device is more than one quarter behind, treat it as compromised until proven
-    otherwise — review config drift, local account creation, and IPSec/SSL VPN logs for the past 90 days.
-  </div>
-  <ul>
-    <li><strong>Force MFA on all VPN authentication</strong> — preferably hardware/FIDO2; SMS is no longer adequate against session-cookie theft from compromised appliances.</li>
-    <li><strong>Disable SSL VPN on appliances that don't strictly need it</strong> (FortiGates that are LAN routers only).</li>
-    <li><strong>Restrict appliance admin UI to a management VLAN</strong> only — never expose <code>/remote/login</code>, <code>/admin</code>, or ASDM to the internet.</li>
-    <li><strong>Rotate all local VPN-appliance credentials and IPSec PSKs</strong> after any patch.</li>
-    <li><strong>Enable detailed audit logging on the appliance</strong> and forward to your SIEM with at least 90-day retention.</li>
-  </ul>
-
-  <h3>Detect — Identity &amp; Endpoint Telemetry</h3>
-  <ul>
-    <li>Turn on <strong>Falcon Identity Protection</strong> if licensed — Gentlemen's recon-by-built-in-binaries chain lights up identity policies immediately.</li>
-    <li>Set <strong>PowerShell ScriptBlock logging</strong> (Event ID 4104) and <strong>Module logging</strong> via GPO; forward to LogScale.</li>
-    <li>Enable <strong>Sysmon</strong> or equivalent on Tier 0 / DC hosts to backstop CrowdStrike during sensor downtime.</li>
-    <li><strong>Audit policy:</strong> turn on "Audit Distribution Group Management", "Audit Security Group Management", and "Audit Sensitive Privilege Use" on DCs.</li>
-  </ul>
-
-  <h3>Strategic — Reduce Attack Surface</h3>
-  <ul>
-    <li><strong>Application allow-listing for RMM</strong> via AppLocker or WDAC: block AnyDesk, ScreenConnect, RustDesk, Atera, etc., unless your sanctioned tool is the exception.</li>
-    <li><strong>LSA Protection (RunAsPPL) + Credential Guard</strong> on all Windows endpoints to neuter LSASS dumping.</li>
-    <li><strong>LAPS</strong> for unique local admin passwords (or Windows LAPS / Intune Privilege Management).</li>
-    <li><strong>Tier 0 / Tier 1 / Tier 2 admin model</strong> — Domain Admin credentials never used on workstations.</li>
-    <li><strong>Disable LLMNR / NBT-NS / WPAD</strong> via GPO.</li>
-    <li><strong>Block outbound to common RMM C2 domains</strong> at the egress proxy unless explicitly approved (AnyDesk.net, screenconnect.com, atera.com, splashtop.com, rustdesk.com, etc.).</li>
-    <li><strong>Immutable / offline backups</strong> — 3-2-1, with at least one copy that cannot be deleted by a Domain Admin credential.</li>
-    <li><strong>Monitor for new local administrator account creation</strong> across the fleet (Event ID 4720, 4732).</li>
-    <li><strong>Limit interactive logons from VPN-pool IPs</strong> via Authentication Policy Silos / Tier-0 logon restrictions.</li>
-  </ul>
-</section>
-
-<!-- COVERAGE -->
-<section id="coverage">
-  <h2>Detection Coverage Map</h2>
-  <table>
-    <tr><th>MITRE Technique</th><th>Name</th><th>CQL</th><th>Custom IOA</th><th>IOC Block</th><th>Coverage</th></tr>
-    <tr><td>T1190</td><td>Exploit Public-Facing App</td><td>—</td><td>—</td><td>—</td><td class="cov-gap">GAP — patch + appliance logs</td></tr>
-    <tr><td>T1078</td><td>Valid Accounts (VPN)</td><td>Q5</td><td>—</td><td>—</td><td class="cov-partial">Partial — needs your VPN CIDRs</td></tr>
-    <tr><td>T1087.002</td><td>Domain Account Discovery</td><td>Q1, Q5</td><td>IOA-3</td><td>—</td><td class="cov-good">Good</td></tr>
-    <tr><td>T1069.002</td><td>Domain Group Discovery</td><td>Q1</td><td>IOA-3</td><td>—</td><td class="cov-good">Good</td></tr>
-    <tr><td>T1482</td><td>Domain Trust Discovery</td><td>Q1, Q2, Q3</td><td>—</td><td>—</td><td class="cov-good">Good</td></tr>
-    <tr><td>T1018</td><td>Remote System Discovery</td><td>Q1</td><td>—</td><td>—</td><td class="cov-partial">Partial</td></tr>
-    <tr><td>T1219</td><td>Remote Access Software (RMM)</td><td>Q4</td><td>IOA-4</td><td>—</td><td class="cov-good">Good</td></tr>
-    <tr><td>T1562.001</td><td>Disable / Modify Tools</td><td>Q7</td><td>IOA-2</td><td>—</td><td class="cov-good">Good</td></tr>
-    <tr><td>T1003</td><td>Credential Dumping (LSASS)</td><td>—</td><td>—</td><td>—</td><td class="cov-gap">GAP — relies on Falcon native + LSA PPL</td></tr>
-    <tr><td>T1490</td><td>Inhibit System Recovery</td><td>Q6</td><td>IOA-1</td><td>—</td><td class="cov-good">Good</td></tr>
-    <tr><td>T1070.001</td><td>Clear Event Logs</td><td>—</td><td>—</td><td>—</td><td class="cov-gap">GAP — recommend adding</td></tr>
-    <tr><td>T1486</td><td>Data Encrypted for Impact</td><td>Q8</td><td>—</td><td>—</td><td class="cov-partial">Partial — tripwire only</td></tr>
-    <tr><td>T1021.001</td><td>RDP Lateral Movement</td><td>—</td><td>—</td><td>—</td><td class="cov-gap">GAP — add later</td></tr>
-  </table>
-  <p><strong>Coverage Summary:</strong> 8 of 13 mapped techniques have at least partial coverage. <strong>5 gaps</strong> remain — prioritize the bold ones below.</p>
-  <ul>
-    <li><strong>T1190 Exploit Public-Facing App:</strong> primary defense is patching + WAF; CrowdStrike telemetry is post-exploit.</li>
-    <li><strong>T1003 Credential Dumping:</strong> rely on Falcon's native LSASS-access detection + LSA Protection (RunAsPPL) + Credential Guard. Add a hunt query later for <code>comsvcs.dll</code> minidump abuse.</li>
-    <li><strong>T1070.001 Clear Event Logs:</strong> add a CQL hunt on <code>wevtutil cl</code> and <code>Clear-EventLog</code> — easy quick win.</li>
-    <li><strong>T1021.001 RDP Lateral Movement:</strong> add a Type-10 logon-volume anomaly hunt; the recipe is in the MITRE Hunt Playbook (RDP section).</li>
-  </ul>
-</section>
-
-<!-- TICKET -->
-<section id="ticket">
-  <h2>Hunt Summary Ticket</h2>
-  <h3>Prioritization (do-first)</h3>
-  <table>
-    <tr><th>Item</th><th>Effort</th><th>Relevance</th><th>Tier</th></tr>
-    <tr><td>Q5 correlated VPN-pool → AD recon</td><td>Low (edit CIDRs)</td><td>High</td><td class="cov-good">DO FIRST</td></tr>
-    <tr><td>Q1 + Q2 + Q3 (AD recon + BloodHound)</td><td>Low</td><td>High</td><td class="cov-good">DO FIRST</td></tr>
-    <tr><td>Q6 vssadmin / Q7 AV tamper</td><td>Low</td><td>High</td><td class="cov-good">DO FIRST</td></tr>
-    <tr><td>Q4 RMM hunt</td><td>Medium (tune allow-list)</td><td>High</td><td class="cov-partial">PLAN &amp; SCHEDULE</td></tr>
-    <tr><td>IOA-1 / IOA-2 to Detect</td><td>Low</td><td>High</td><td class="cov-good">DO FIRST</td></tr>
-    <tr><td>IOA-4 RMM allow-list rule</td><td>Medium (depends on RMM inventory)</td><td>High</td><td class="cov-partial">PLAN &amp; SCHEDULE</td></tr>
-    <tr><td>Appliance MFA + admin UI lockdown</td><td>Medium</td><td>Critical</td><td class="cov-gap">CHANGE MGMT</td></tr>
-  </table>
-
-  <h3>Expected findings (what a real positive looks like)</h3>
-  <ul>
-    <li><strong>Q5 hit:</strong> a single endpoint, single user, logon from VPN CIDR at e.g. 02:14 UTC, then <code>net.exe group "Domain Admins" /domain</code> at 02:21 UTC from the same <code>aid</code>. Escalate immediately — this is the textbook Gentlemen first hour.</li>
-    <li><strong>Q4 hit on a non-IT endpoint:</strong> AnyDesk.exe written to <code>C:\ProgramData\</code> by a non-installer parent (e.g., <code>powershell.exe</code> or <code>cmd.exe</code>) — investigate same-day.</li>
-    <li><strong>Q6 hit anywhere:</strong> vssadmin delete shadows on a workstation. Treat as in-progress encryption until proven otherwise — contain the host.</li>
-  </ul>
-
-  <h3>Risk classification</h3>
-  <table>
-    <tr><th>Action</th><th>Risk</th><th>Approval needed</th></tr>
-    <tr><td>Running all CQL queries (read-only)</td><td><span class="badge good">LOW</span></td><td>None</td></tr>
-    <tr><td>Adding hash IOCs to Prevent</td><td><span class="badge good">LOW</span></td><td>None</td></tr>
-    <tr><td>Deploying IOAs 1, 2, 4 in Detect mode</td><td><span class="badge good">LOW</span></td><td>None</td></tr>
-    <tr><td>Promoting IOAs to Prevent</td><td><span class="badge warn">MEDIUM</span></td><td>Peer review + 14d FP measurement</td></tr>
-    <tr><td>AppLocker/WDAC block on RMM tools</td><td><span class="badge warn">MEDIUM-HIGH</span></td><td>Pilot group + change ticket</td></tr>
-    <tr><td>Disabling SSL VPN on edge appliances</td><td><span class="badge crit">HIGH</span></td><td>Change management board</td></tr>
-  </table>
-
-  <h3>Follow-up</h3>
-  <ul>
-    <li><strong>Re-run all queries weekly</strong> until 30 days of clean results.</li>
-    <li><strong>IOC expiry review:</strong> IPs at 30 days, domains at 90 days, hashes at 1 year.</li>
-    <li><strong>Re-hunt triggers:</strong> new CISA KEV add for Fortinet/SonicWall/Cisco ASA; new Gentlemen leak-site victim disclosed; any internal alert on Q5.</li>
-    <li><strong>Detection-to-Prevent review:</strong> at the 14-day mark, measure FP rate on each IOA. Promote IOA-1 and IOA-2 if &lt; 5%.</li>
-  </ul>
-</section>
-
-<!-- REFS -->
-<section id="refs">
-  <h2>References</h2>
-  <ul>
-    <li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities (KEV) Catalog</a></li>
-    <li><a href="https://netlas.io/blog/top_10_critical_threat_actors/" target="_blank" rel="noopener">Top 10 Critical Threat Actors to Watch in 2026 (Netlas) — "The Gentlemen" profile</a></li>
-    <li><a href="https://www.cyfirma.com/news/weekly-intelligence-report-08-may-2026/" target="_blank" rel="noopener">CYFIRMA Weekly Intelligence Report — 8 May 2026</a></li>
-    <li><a href="https://www.cyfirma.com/news/weekly-intelligence-report-01-may-2026/" target="_blank" rel="noopener">CYFIRMA Weekly Intelligence Report — 1 May 2026</a></li>
-    <li><a href="https://attack.mitre.org/" target="_blank" rel="noopener">MITRE ATT&amp;CK</a> — technique reference</li>
-    <li><a href="https://www.crowdstrike.com/en-us/cybersecurity-101/threat-intelligence/advanced-persistent-threat-apt/" target="_blank" rel="noopener">CrowdStrike — APT / Ransomware reference</a></li>
-    <li><a href="https://github.com/SpecterOps/BloodHound" target="_blank" rel="noopener">SpecterOps BloodHound</a> — Output file naming convention reference</li>
-    <li><a href="https://attack.mitre.org/software/S0521/" target="_blank" rel="noopener">MITRE S0521 — BloodHound</a></li>
-  </ul>
-</section>
-
 </div>
 
-<footer>
-  <div class="container">
-    Generated 2026-05-16 · threat-hunter skill v2.1 + crowdstrike-logscale ·
-    Self-contained, share this file freely · Falcon-cloud selection is saved to your browser localStorage.
+<!-- ═══ SECTION 7 ═══ -->
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <p>Build in <strong>Endpoint Security → Custom IOA Rules</strong>. Start in <strong>Detect</strong>; promote to <strong>Prevent</strong> after 14 days at &lt;5% FP on a canary group. Custom IOA fields use PCRE.</p>
+    <table>
+      <thead><tr><th>IOA</th><th>Field Patterns (PCRE)</th><th>MITRE</th><th>Action / Severity</th></tr></thead>
+      <tbody>
+        <tr><td>IOA-1 · vssadmin delete shadows</td><td>Image <code>.*\\vssadmin\.exe$</code>; CmdLine <code>.*delete\s+shadows.*</code></td><td>T1490</td><td>Detect → Block · High</td></tr>
+        <tr><td>IOA-2 · Defender disabled via PowerShell</td><td>Image <code>.*\\(powershell|pwsh)\.exe$</code>; CmdLine <code>.*Set-MpPreference\s+-DisableRealtimeMonitoring\s+\$?(true|1).*</code></td><td>T1562.001</td><td>Detect · High</td></tr>
+        <tr><td>IOA-3 · net.exe enumerating Domain Admins</td><td>Image <code>.*\\(net|net1)\.exe$</code>; CmdLine <code>.*group\s+&quot;?(Domain Admins|Enterprise Admins)&quot;?\s+/domain.*</code></td><td>T1069.002</td><td>Detect only · Med</td></tr>
+        <tr><td>IOA-4 · RMM from non-Program-Files</td><td>Image <code>.*\\(AnyDesk|rustdesk|AteraAgent|ScreenConnect\.ClientService|MeshAgent)\.exe$</code>; exclude <code>^C:\\Program Files.*</code></td><td>T1219</td><td>Detect · High</td></tr>
+        <tr><td>IOA-5 · BYOVD driver service (non-standard path)</td><td>Image <code>.*\\sc\.exe$</code>; CmdLine <code>.*create.*binPath=.*\\(Temp|ProgramData|Users|AppData)\\.*\.sys.*</code></td><td>T1068 / T1543.003</td><td>Detect → Block · Critical</td></tr>
+        <tr><td>IOA-6 · Event log cleared via wevtutil</td><td>Image <code>.*\\wevtutil\.exe$</code>; CmdLine <code>.*\s(cl|clear-log)\s+(Security|System|Application).*</code></td><td>T1070.001</td><td>Detect · High</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">IOA-1, IOA-5, IOA-6 are strong Block candidates after a clean 7-day Detect window (rarely legitimate). Keep IOA-3 in Detect long-term (high admin overlap). Never auto-promote to Prevent without a measured FP rate.</div>
   </div>
-</footer>
+</div>
+
+<!-- ═══ SECTION 8 ═══ -->
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for Falcon IOC Management, scheduled searches, or egress rules. Network IOCs are short-lived — hunt and corroborate.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,22b38dad7da097ea03aa28d0614164cd25fafeb1383dbc15047e34c8050f6f67,prevent,critical,2027-06-11,The Gentlemen - locker/payload,campaign:TheGentlemen
+ipv4,176.120.22.127,detect,medium,2026-07-11,The Gentlemen - Proton66 C2 (30d; may be reassigned),campaign:TheGentlemen
+sha256,REPLACE_WITH_SHA256,prevent,critical,2027-06-11,The Gentlemen - encryptor variant,campaign:TheGentlemen
+domain,REPLACE_WITH_LEAK_SITE,detect,high,2026-09-09,The Gentlemen - data-leak site,campaign:TheGentlemen</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">Encryptor run with --spread (SMB worm) or --wipe (anti-recovery)
+copy/robocopy/psexec to \\host\ADMIN$ or \\host\C$ (self-propagation)
+All.exe + ThrottleBlood.sys / sc create binPath=...\Temp\...\.sys (BYOVD)
+wevtutil cl Security|System|Application (log clearing)
+comsvcs.dll MiniDump / browser stealer exec (cred access)
+msimg32.dll written outside System32 (DLL sideload)
+rclone copy/sync to mega: (exfil)
+.i8p14s file writes + README-GENTLEMEN.txt + gentlemen.bmp (encryption)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling</span><span class="igc">process names</span></div>
+        <button class="btn-copy" data-label="Copy tools" onclick="copyBlock('grab-tools',this)" style="margin:0 0 6px;">Copy tools</button>
+<pre class="code" id="grab-tools">All.exe              # BYOVD EDR killer
+ThrottleBlood.sys    # vulnerable driver
+EDRStartupHinder.exe # EDR evasion
+gfreeze.exe          # evasion
+glinker.exe          # evasion
+NetExec / nxc        # AD discovery / share enum
+RelayKing.exe        # NTLM relay
+TaskHound.exe        # scheduled-task abuse
+PrivHound.exe        # priv-esc path mapping
+CertiHound.exe       # AD CS / cert abuse
+velociraptor.exe     # abused as C2
+DumpBrowserSecrets.exe; Phemedrone; LummaC2; XenAllPasswordPro</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Patch Audit — CVEs &amp; egress</span><span class="igc">edge + network</span></div>
+        <button class="btn-copy" data-label="Copy CVEs" onclick="copyBlock('grab-cve',this)" style="margin:0 0 6px;">Copy CVEs</button>
+<pre class="code" id="grab-cve">CVE-2024-55591   # FortiOS/FortiProxy auth bypass (PRIMARY)
+CVE-2025-32433   # Erlang/OTP SSH
+CVE-2025-33073   # NTLM relay / SMB
+# Also weaponized per leak: VMware Aria Operations, Cisco, Microsoft
+# Egress: block MEGA (mega.nz) + unsanctioned cloud storage
+# Disable SMBv1 fleet-wide; alert on re-enable</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 9 ═══ -->
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Hardening Recommendations</h2></div>
+  <div class="section-body">
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Edge appliance (Fortinet first)</div>
+      <h4>Patch CVE-2024-55591 now</h4>
+      <ul>
+        <li>Confirm FortiOS/FortiProxy firmware vs. Fortinet PSIRT; verify CVE-2025-32433 and CVE-2025-33073 remediated; review Cisco and VMware Aria Operations exposure.</li>
+        <li><strong>Force MFA on all VPN auth</strong> (FIDO2 preferred); SMS is inadequate against cookie theft and brute force.</li>
+        <li><strong>Rotate all FortiGate VPN + local appliance credentials</strong>; block reuse-password patterns (e.g. <code>gentlemen25</code>, <code>gentle26</code>).</li>
+        <li><strong>Restrict appliance mgmt/admin UI to a management VLAN</strong> — never expose <code>/remote/login</code> or the mgmt interface (the CVE-2024-55591 surface).</li>
+        <li>Rate-limit / geo-fence SSL VPN logins; alert on VPN brute-force; forward appliance logs to SIEM (≥90-day retention).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Blunt evasion &amp; spread</div>
+      <ul>
+        <li><strong>Enable Microsoft Vulnerable Driver Blocklist (HVCI)</strong> + Falcon vulnerable-driver protection to break BYOVD (<code>ThrottleBlood.sys</code> et al.).</li>
+        <li><strong>Disable SMBv1</strong> fleet-wide and alert on re-enable — the encryptor self-propagates over SMB.</li>
+        <li><strong>Enable Falcon Tamper Protection</strong>; confirm the sensor can't be stopped via <code>sc</code>/<code>taskkill</code> without the maintenance token.</li>
+        <li><strong>Restrict ADMIN$/C$ access</strong> from non-management hosts; monitor remote service creation (Q9). Block MEGA + unsanctioned cloud egress to disrupt rclone.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Detect — Identity &amp; endpoint telemetry</div>
+      <ul>
+        <li>Turn on <strong>Falcon Identity Protection</strong> — the built-in-binary recon chain lights up identity policies immediately.</li>
+        <li>Enable PowerShell ScriptBlock (4104) + Module logging via GPO → LogScale; Sysmon on Tier-0/DCs.</li>
+        <li>Audit policy: Distribution/Security Group Management + Sensitive Privilege Use on DCs; alert on event-log clears (1102/104); watch GPO changes (Gentlemen manipulate GPOs).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce attack surface</div>
+      <ul>
+        <li><strong>App allow-listing</strong> (AppLocker/WDAC) blocking AnyDesk/ScreenConnect/RustDesk/Atera unless sanctioned; restrict Velociraptor to IR hosts.</li>
+        <li><strong>LSA Protection (RunAsPPL) + Credential Guard</strong> to neuter LSASS dumping/browser-cred theft; don't allow RestrictAnonymous to be loosened.</li>
+        <li><strong>LAPS</strong>, <strong>Tier 0/1/2 admin model</strong>, disable LLMNR/NBT-NS/WPAD.</li>
+        <li><strong>Immutable / offline backups</strong> (3-2-1) not deletable by a Domain Admin credential; monitor new local-admin creation (4720/4732); limit VPN-pool interactive logons via Auth Policy Silos.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 10 ═══ -->
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Name</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1190 / T1110</td><td>Exploit FortiOS / VPN brute force</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> patch + appliance logs</td></tr>
+        <tr><td>T1078</td><td>Valid Accounts (VPN)</td><td>Q5</td><td>—</td><td><span class="badge b-med">Partial</span> needs VPN CIDRs</td></tr>
+        <tr><td>T1087.002 / T1069.002 / T1482 / T1018</td><td>AD discovery</td><td>Q1, Q5, Q16</td><td>IOA-3</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1482 + S0521</td><td>SharpHound / BloodHound</td><td>Q2, Q3</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1003.001 / T1555.003 / T1649</td><td>Cred access / cert abuse</td><td>Q12, Q16</td><td>—</td><td><span class="badge b-low">Good</span> (+ native)</td></tr>
+        <tr><td>T1219 / T1071</td><td>RMM / Velociraptor C2</td><td>Q4, Q16</td><td>IOA-4</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1574.002</td><td>DLL sideloading (msimg32)</td><td>Q13</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1562.001 / .004 / .010</td><td>Disable/modify tools</td><td>Q7</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1068 / T1543.003</td><td>BYOVD vulnerable driver</td><td>Q10</td><td>IOA-5</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1070.001</td><td>Clear event logs</td><td>Q11</td><td>IOA-6</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1021.002 / T1570</td><td>Self-propagation over SMB</td><td>Q9</td><td>—</td><td><span class="badge b-med">Partial</span> tune deploy allow-list</td></tr>
+        <tr><td>T1490</td><td>Inhibit recovery / --wipe</td><td>Q6</td><td>IOA-1</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1567.002 / T1048</td><td>Exfil rclone→MEGA</td><td>Q14</td><td>—</td><td><span class="badge b-low">Good</span> (+ egress block)</td></tr>
+        <tr><td>T1486</td><td>Data encrypted (.i8p14s)</td><td>Q8</td><td>—</td><td><span class="badge b-low">Good</span> extension known</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;">Coverage: 13 of 14 technique groups have at least partial coverage (up from 8/13). The remaining gap — the FortiOS exploit / VPN brute-force phase (T1190/T1110) — is inherently pre-endpoint; defend with patching, MFA, and appliance log review.</p>
+  </div>
+</div>
+
+<!-- ═══ SECTION 11 ═══ -->
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — The Gentlemen Ransomware (Storm-2697 / Phantom Mantis)
+SEVERITY:     Critical (active RaaS, ~10% of April 2026 ransomware activity)
+SCOPE:        FortiGate/Cisco/VMware-exposed orgs; Windows/Linux/ESXi estates
+HYPOTHESIS:   FortiOS CVE-2024-55591 / VPN brute-force access -> AD recon -> cred theft ->
+              BYOVD EDR-kill -> log clear -> SMB self-propagation -> rclone exfil -> .i8p14s encrypt.
+DWELL:        2-6 weeks initial access -> encryption (hunt 30-90d historical)
+QUERIES RUN:  Q1 AD disc | Q2/Q3 BloodHound | Q4 RMM | Q5 VPN->recon* | Q6 recovery/--wipe |
+              Q7 tamper | Q8 .i8p14s | Q9 SMB spread* | Q10 BYOVD | Q11 log clear |
+              Q12 cred access | Q13 msimg32 | Q14 rclone | Q15 IOC sweep | Q16 toolkit/Velociraptor
+              (* = requires env edit)
+DO FIRST:     Q5, Q9, Q10, Q6, Q8, Q11 — escalate any hit immediately
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         T1190/T1110 pre-endpoint (patch + appliance logs); network IOCs short-lived
+ACTIONS:      Patch CVE-2024-55591 + VPN MFA + cred rotation; HVCI vuln-driver blocklist;
+              disable SMBv1; deploy Q5/Q9/Q10 IOAs in Detect
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-11 (re-hunt)</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 12 ═══ -->
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-11</span><span>Reformatted to the review-v2 fixed left-sidebar layout (scrollspy nav, collapsible TOC, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, IOC quick-copy grid). Folded in 11 Jun PRODAFT/Krebs/THN intel: <code>--spread</code>/<code>--wipe</code> flags, Garble, 5 builds, named toolkit + Velociraptor C2 (new Q16), Cisco/VMware Aria targets, dwell corrected to 2–6 weeks, ~478 victims, AI-assisted ops, LARVA-368 attribution.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-11</span><span>Re-hunt: refreshed encryptor (Go, <code>.i8p14s</code>, self-propagation), corrected initial access to FortiOS CVE-2024-55591, added BYOVD/event-log/cred-access/SMB/exfil queries (8→15), real seed IOCs, Storm-2697 attribution.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-16</span><span>Initial HuntPack: 8 CQL queries, 4 IOA candidates, hardening, coverage map. Broad appliance framing (FortiOS/SonicWall/Cisco ASA), encryptor extension unknown.</span></div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 13 ═══ -->
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.microsoft.com/en-us/security/blog/2026/05/28/the-gentlemen-ransomware-dissecting-a-self-propagating-go-encryptor/" target="_blank">Microsoft — Self-propagating Go encryptor (Storm-2697)</a></td><td>Encryptor internals, --spread/--wipe, Garble</td></tr>
+        <tr><td>1</td><td><a href="https://catalyst.prodaft.com/public/report/inside-the-phantom-mantis-operation/overview" target="_blank">PRODAFT — Inside the Phantom Mantis Operation</a></td><td>LARVA-368 attribution, affiliate panel, 5 builds, AI-assisted</td></tr>
+        <tr><td>1</td><td><a href="https://thehackernews.com/2026/06/the-gentlemen-ransomware-claims-478.html" target="_blank">The Hacker News (11 Jun 2026) — 478 victims, worm-like spread</a></td><td>Consolidated TTP roundup, toolkit, geography</td></tr>
+        <tr><td>1</td><td><a href="https://krebsonsecurity.com/2026/06/who-runs-the-ransomware-group-the-gentlemen/" target="_blank">KrebsOnSecurity — Who Runs The Gentlemen</a></td><td>Operator attribution (A. Yapaev)</td></tr>
+        <tr><td>2</td><td><a href="https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps" target="_blank">Huntress — Defense Evasion TTPs</a></td><td>BYOVD (All.exe/ThrottleBlood.sys), log clearing, Defender disable</td></tr>
+        <tr><td>2</td><td><a href="https://www.group-ib.com/blog/hastalamuerte-gentlemen-raas-ttps/" target="_blank">Group-IB — How Hastalamuerte Operates</a></td><td>Attack methods, tooling</td></tr>
+        <tr><td>2</td><td><a href="https://research.checkpoint.com/2026/thus-spoke-the-gentlemen/" target="_blank">Check Point — Thus Spoke…The Gentlemen</a></td><td>CVE set, NTLM relay, exploitation pipeline</td></tr>
+        <tr><td>2</td><td><a href="https://www.halcyon.ai/ransomware-research-reports/threat-assessment-the-gentlemen-ransomware-group" target="_blank">Halcyon</a> · <a href="https://www.nccgroup.com/newsroom/ncc-group-monthly-threat-pulse-review-of-april-2026/" target="_blank">NCC Group</a> · <a href="https://www.zerofox.com/reports/the-gentlemen-a-zerofox-intelligence-threat-actor-profile/" target="_blank">ZeroFox</a></td><td>Scale, GPO manipulation, multi-channel extortion, same-day patch</td></tr>
+        <tr><td>3</td><td><a href="https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server" target="_blank">Hunt.io — Proton66 toolkit</a> · <a href="https://socradar.io/blog/gentlemen-ransomware-leak/" target="_blank">SocRadar — Rocket leak</a></td><td>176.120.22.127, geography, leak analysis</td></tr>
+        <tr><td>3</td><td><a href="https://github.com/Bedrock-Safeguard/gentlemen-decryptor" target="_blank">Bedrock-Safeguard — gentlemen-decryptor</a> · <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank">CISA KEV</a> · <a href="https://attack.mitre.org/" target="_blank">MITRE ATT&amp;CK</a></td><td>April decryptor, CVE-2024-55591, technique reference</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · The Gentlemen / Storm-2697 · Generated 2026-06-11 · Defensive use only — no exploit code or offensive tradecraft. Validate field names and tune exclusions in your tenant before promoting any query to alerting. Network IOCs rotate quickly — re-hunt weekly while this campaign remains active.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
 
 <script>
-  // === Cloud switching ===
-  const STORAGE_KEY = "gentlemen_hunt_falcon_cloud";
-  const select = document.getElementById("cloudSelect");
-  const currentHost = document.getElementById("currentHost");
-
-  function updateCloud() {
-    const host = select.value;
-    currentHost.textContent = host;
-    try { localStorage.setItem(STORAGE_KEY, host); } catch (e) {}
-    rebuildFalconLinks(host);
+// Show / hide the table of contents (sidebar)
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
   }
+}
 
-  function rebuildFalconLinks(host) {
-    document.querySelectorAll("a.open-falcon").forEach(a => {
-      const qid = a.getAttribute("data-query-id");
-      const queryEl = document.getElementById(qid);
-      if (!queryEl) return;
-      // Decode HTML entities to recover the actual query text
-      const raw = queryEl.innerText || queryEl.textContent || "";
-      const encoded = encodeURIComponent(raw);
-      // Path is best-effort; Falcon NG-SIEM advanced event search supports a ?query= parameter.
-      // If your tenant's UI uses a different path, edit the path below once.
-      a.href = host + "/investigate/search?query=" + encoded;
-    });
+// Copy CQL to clipboard
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Copy a grouped IOC plaintext block (restores its own label)
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = label; btn.classList.remove('copied'); }, 2000);
   }
+  navigator.clipboard.writeText(text).then(done).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
 
-  // Restore saved selection
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      for (let i = 0; i < select.options.length; i++) {
-        if (select.options[i].value === saved) { select.selectedIndex = i; break; }
-      }
+// Open in Falcon (strips full comment lines, preserves https:// inside queries)
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function(line) {
+    return line.trim().indexOf('//') !== 0;
+  }).join('\n').trim();
+  var query = encodeURIComponent(cleaned);
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + query;
+  window.open(url, '_blank');
+}
+
+// Active sidebar highlight on scroll
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function() {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function(sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function(a) { a.classList.remove('active'); });
+      var id = sec.getAttribute('id');
+      var link = document.querySelector('#sidebar nav a[href="#' + id + '"]');
+      if (link) link.classList.add('active');
     }
-  } catch (e) {}
-  updateCloud();
-
-  // === Copy buttons ===
-  function copyQuery(btn) {
-    const wrap = btn.closest(".code-wrap");
-    if (!wrap) return;
-    const pre = wrap.querySelector("pre");
-    if (!pre) return;
-    const text = pre.innerText || pre.textContent || "";
-    const fallback = () => {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); } catch (e) {}
-      document.body.removeChild(ta);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch(fallback);
-    } else {
-      fallback();
-    }
-    const original = btn.innerHTML;
-    btn.innerHTML = "<span class=\"btn-icon\">✓</span> Copied!";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.innerHTML = original; btn.classList.remove("copied"); }, 1500);
-  }
+  });
+}, { passive: true });
 </script>
 </body>
 </html>

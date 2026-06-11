@@ -200,11 +200,11 @@ Hunt pack for Red Canary's Tampered Chef tracking and adjacent TamperedChef-styl
 
 ---
 
-### The Gentlemen — Ransomware Hunt
-**The Gentlemen ransomware operation**
-Hunt pack for The Gentlemen's intrusion set — initial access, lateral movement, defense evasion, and pre-encryption staging behaviors.
+### The Gentlemen — Ransomware Hunt & Hardening Pack
+**FortiOS exploit (CVE-2024-55591) → AD recon → BYOVD EDR-kill → self-propagating Go encryptor ( .i8p14s ). Defensive hunt & harden pack — no exploit code.**
+**Threat:** The Gentlemen · Storm-2697 · Phantom Mantis · **Type:** Ransomware · double extortion · self-propagating · **Severity:** ACTIVE RaaS
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html)
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html)
 
 ---
 
