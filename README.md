@@ -8,6 +8,14 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### CVE-2026-41091 — Microsoft Defender Link-Following Elevation of Privilege
+**Actively exploited June 2026 Patch Tuesday zero-day. The Malware Protection Engine follows symlinks/junctions before a privileged file op, letting a local attacker reach SYSTEM. Seen in the wild in the "Nightmare Eclipse" Defender exploit wave (BlueHammer / RedSun / UnDefend), chained from compromised FortiGate SSL VPN access. Defensive hunt & harden pack — no exploit code.**
+**Type:** LPE → SYSTEM · EDR tampering · **Severity:** CVSS 7.8
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41091-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41091-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41091-Hunt.html)
+
+---
+
 ### INC Ransom — Rapid Extortion Against Professional-Services Firms
 **RaaS double-extortion operation clustering attacks on legal & professional-services firms in 2026. Defensive hunt & harden pack — no exploit code.**
 **Threat:** INC Ransom (G1032) · **Aliases:** GOLD IONIC · Tarnished Scorpion · **Type:** Ransomware · Double extortion · **Initial access:** Edge / VPN / RMM (3 KEV CVEs) · **Severity:** HIGH URGENCY
