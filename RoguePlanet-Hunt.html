@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoguePlanet — Microsoft Defender SYSTEM Escalation Zero-Day — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-dim: rgba(88,166,255,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #10243a 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">RoguePlanet<br>Defender SYSTEM Zero-Day</div>
+    <div class="version">v0.1 · 2026-06-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>RoguePlanet — Microsoft Defender SYSTEM Escalation Zero-Day</h1>
+  <div class="subtitle">TOCTOU race in Defender's file-processing path → NTFS junction redirect → <code>MsMpEng.exe</code> (SYSTEM) writes/executes attacker content on fully-patched Windows 10/11. Defensive hunt &amp; harden pack — no exploit code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">RoguePlanet · Nightmare Eclipse</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">PoC PUBLIC · NO PATCH</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">LPE / AV-abuse zero-day (RCE variant via SMB)</div></div>
+    <div class="meta-item"><div class="mk">CVE</div><div class="mv">None official · CVE-2026-47281 (unconfirmed)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv"><span class="badge b-low">HIGH</span></div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>RoguePlanet weaponizes a time-of-check / time-of-use (TOCTOU) race in Microsoft Defender's antimalware engine (<code>MsMpEng.exe</code> / <code>mpengine.dll</code>). The engine validates a file path and then operates on it as two non-atomic steps; an unprivileged user flips a directory to an NTFS junction/symlink (a reparse point) in the gap, so Defender's SYSTEM-level write or remediation lands on an attacker-chosen target — yielding code execution as SYSTEM. The public PoC was released 2026-06-10 by the "Nightmare Eclipse" group and works on fully patched Windows 10 and Windows 11 (including Canary), bypassing Microsoft's mid-May hardening of the <code>mpengine!SysIO*</code> APIs.</p>
+    <p>Two operating modes are documented. The original <strong>RCE</strong> variant coerces a victim into opening a crafted <code>.vhd(x)</code> from a remote SMB share, causing Defender to overwrite its own files. After Microsoft's May hardening, the author pivoted to a <strong>local privilege escalation</strong> variant using local symlink redirection — the higher-probability, in-scope risk for most enterprises, since any commodity malware foothold or low-priv user can attempt it. Predecessor exploits from the same group (BlueHammer / CVE-2026-33825, RedSun) used the identical junction-redirection primitive and have already appeared in live intrusions.</p>
+    <p>Because the exploit subverts the security product itself, the cleanest detection is behavioral, not signature-based: <strong>no legitimate workflow has the Defender engine spawn an interactive shell, or write an executable into <code>System32</code></strong>. Those two facts anchor the highest-fidelity hunts in this pack.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Deploy application allowlisting (WDAC/AppLocker, enforced) — independently confirmed to block the payload — and stand up the <code>MsMpEng.exe → shell</code> lineage detection (Q1) as a Custom IOA today. There is no patch; treat this as an exposure to mitigate, not remediate.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Picus Security — "Anatomy of the Nightmare Eclipse Defender Zero-Day"</td><td>TOCTOU mechanism, junction/symlink redirection, <code>mpengine!SysIO*</code> bypass, Sigma/KQL lineage detection, infra IOCs</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · News of record</td><td>BleepingComputer</td><td>RCE→LPE pivot after May hardening; affected fully patched Win10/11 incl. KB5094126; Microsoft "investigating"; reliability varies by host</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Corroborating</td><td>The Hacker News / SecurityWeek / Cybersecurity News</td><td>SYSTEM shell on patched Windows; PoC GitHub→self-hosted; Patch-Tuesday timing</td><td><span class="badge b-med">partial</span></td></tr>
+        <tr><td>2 · Control efficacy</td><td>ThreatLocker</td><td>Allowlisting blocks execution; exploit viability confirmed independently</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>3 · Aggregator</td><td>Threat-Modeling.com</td><td>References CVE-2026-47281 (VS Code vector claim) — unconfirmed vs MS</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <h4>Decisions</h4>
+    <table>
+      <thead><tr><th>Decision</th><th>Rationale</th><th>Pack Change</th></tr></thead>
+      <tbody>
+        <tr><td>Treat LPE variant as primary risk</td><td>Local symlink variant needs only a low-priv foothold; broadest applicability post-May hardening</td><td>Hunts center on local lineage + protected-dir writes; SMB/VHD secondary</td></tr>
+        <tr><td>Do not rely on the CVE</td><td>No official Microsoft advisory or patch; CVE-2026-47281 attribution is single-source</td><td>CVE listed unconfirmed; pack keyed on behavior, not patch state</td></tr>
+        <tr><td>Lead with WDAC/AppLocker</td><td>Only control independently confirmed to stop payload execution</td><td>Hardening §12 Immediate tier; playbook §13</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A standard-user process stages a reparse point (junction/symlink) in a user-writable directory and races Defender's file operation so that <code>MsMpEng.exe</code> (SYSTEM) writes/executes into an attacker-chosen path, after which a SYSTEM-integrity shell or payload runs. Evidence: anomalous Defender-engine child processes, SYSTEM writes into protected directories, and (RCE variant) disk-image mounts from remote/SMB locations.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Foothold</td><td>Low-priv code execution (commodity malware / local user)</td><td><code>ProcessRollup2</code></td><td>Baseline; not RoguePlanet-specific</td></tr>
+        <tr><td>2 · Stage reparse</td><td>Create dir in %TEMP%/%LOCALAPPDATA%/ProgramData, flip to junction/symlink</td><td>FileCreate / reparse (Sysmon EID 11)</td><td>Native N3; proxy via protected-dir write</td></tr>
+        <tr><td>3 · Trigger op</td><td>Induce Defender to scan/remediate crafted content during the race</td><td>—</td><td>Race invisible; detect the outcome</td></tr>
+        <tr><td>4 · SYSTEM write</td><td><code>MsMpEng.exe</code> follows the link, writes into System32/Program Files</td><td><code>PeFileWritten</code></td><td><strong>Q3</strong> — engine writes to protected dir</td></tr>
+        <tr><td>5 · SYSTEM exec</td><td>Shell / payload runs at SYSTEM, parented by Defender engine</td><td><code>ProcessRollup2</code></td><td><strong>Q1 / Q2 / Q6</strong></td></tr>
+        <tr><td>RCE-A · Remote image</td><td>Victim mounts/opens crafted <code>.vhd(x)</code> from external SMB</td><td><code>NetworkConnectIP4</code>; VHDMP log</td><td><strong>Q4</strong> + native N1</td></tr>
+        <tr><td>Post · Persist/spread</td><td>New local admin, service, or task with new SYSTEM rights</td><td><code>ServiceInstalled</code>, <code>ScheduledTaskRegistered</code></td><td>Containment §14</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info"><strong>Earliest high-fidelity signal:</strong> Q1 (Defender engine → interactive shell). Q3 (SYSTEM write into System32) is the "redirect succeeded" signal — escalate on any hit from either.</div>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">IOCs are infrastructure/behavior tied to the disclosure group, not a broad campaign. Behavioral hunts (Q1–Q3) are the durable signal; the domains below are perishable — use for enrichment/pivot.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Domain</td><td class="mono">projectnightcrawler.dev</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Nightmare Eclipse self-hosted exploit repo</td></tr>
+        <tr><td>Domain</td><td class="mono">deadeclipse666.blogspot.com</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Group blog / disclosure channel</td></tr>
+        <tr><td>Account</td><td class="mono">GitHub: MSNightmare</td><td><span class="badge b-low">low</span></td><td>enrich</td><td>Historical repo host; likely removed</td></tr>
+        <tr><td>Behavior</td><td class="mono">MsMpEng.exe → cmd/powershell/conhost/cscript/wscript (SYSTEM)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Primary signal — no benign equivalent</td></tr>
+        <tr><td>Behavior</td><td class="mono">MsMpEng.exe writing PE into \System32\ or \Program Files\</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Redirected SYSTEM write outcome</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows 10/11 workstations (fully patched)</td><td>Process lineage + command line (<code>ProcessRollup2</code>)</td><td><span class="badge b-high">Critical</span></td><td>Low — standard sensor coverage</td></tr>
+        <tr><td>Defender-engine file operations</td><td>PE/exe write w/ writing-process context (<code>PeFileWritten</code>)</td><td><span class="badge b-high">High</span></td><td>Medium — non-PE writes (junctions) not captured</td></tr>
+        <tr><td>Reparse-point / junction creation</td><td>FileCreate w/ reparse attribute</td><td><span class="badge b-med">Medium</span></td><td>High — limited in EDR; needs Sysmon EID 11</td></tr>
+        <tr><td>Remote SMB / VHD mount (RCE variant)</td><td><code>NetworkConnectIP4</code> (445) + VHDMP operational log</td><td><span class="badge b-med">Medium</span></td><td>Medium — VHD mount telemetry weak; route to native log</td></tr>
+        <tr><td>Windows Server</td><td>Process lineage</td><td><span class="badge b-low">Low</span></td><td>PoC needs ISO mount (std users can't on Server) — lower exposure</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Privilege Escalation</td><td>T1068 — Exploitation for Privilege Escalation</td><td>TOCTOU race in Defender engine yields SYSTEM</td><td>Q1, Q2, Q3, Q6</td></tr>
+        <tr><td>PrivEsc / Defense Evasion</td><td>T1574 — Hijack Execution Flow</td><td>Junction/symlink redirects a privileged file op</td><td>Q3, Q6; N3</td></tr>
+        <tr><td>Privilege Escalation</td><td>T1548 — Abuse Elevation Control Mechanism</td><td>Standard user obtains SYSTEM integrity</td><td>Q1, Q6</td></tr>
+        <tr><td>Execution</td><td>T1059.001 / .003 — PowerShell / Windows Command Shell</td><td>SYSTEM shell spawned by Defender engine</td><td>Q1</td></tr>
+        <tr><td>Lateral Movement</td><td>T1080 — Taint Shared Content</td><td>Crafted <code>.vhd(x)</code> / symlink on SMB share (RCE)</td><td>Q4; N1</td></tr>
+        <tr><td>Execution</td><td>T1204.002 — User Execution: Malicious File</td><td>Victim opens remote disk image</td><td>Q4; N1</td></tr>
+        <tr><td>Defense Evasion</td><td>T1211 — Exploitation for Defense Evasion</td><td>Subverts the AV product to gain trust/execution</td><td>WDAC/AppLocker §12</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Remote VHD/ISO mount</td><td><code>Microsoft-Windows-VHDMP/Operational</code></td><td>Disk-image attach where the backing file is a UNC/remote path or user-writable temp</td><td>Correlate with Q1/Q3 on same host; investigate mount source</td></tr>
+        <tr><td>N2 · Out-of-band Defender update</td><td>Defender platform/engine version (<code>Get-MpComputerStatus</code>)</td><td>Engine/platform version changes outside normal channel cadence</td><td>Confirm update provenance; baseline expected versions</td></tr>
+        <tr><td>N3 · Reparse point in temp</td><td>Sysmon EID 11 (FileCreate)</td><td>Junction/symlink creation in %TEMP%/%LOCALAPPDATA%/ProgramData preceding a Defender write</td><td>High-fidelity if Sysmon deployed; pairs with Q3</td></tr>
+        <tr><td>N4 · WDAC/AppLocker block</td><td><code>Microsoft-Windows-AppLocker/*</code>, CodeIntegrity/Operational</td><td>Blocked execution of an unsigned SYSTEM binary from a user path</td><td>Confirms control working; investigate blocked payload</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. Validate the Defender helper-exclusion list (Q2) against your platform version before promoting any IOA to Prevent. Do <strong>not</strong> run the live PoC in production — validate detections in a lab.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Defender engine spawning an interactive shell / script host</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>MsMpEng.exe</code> as the parent of a shell or scripting host. <strong>Accomplishes:</strong> catches the moment of SYSTEM code execution — the flagship signal, no benign equivalent.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Microsoft Defender engine spawning an interactive shell or script host</span>
+<span class="cm">// MITRE: T1068, T1059.001, T1059.003, T1548 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: Defender legitimately launches MpCmdRun.exe / MsMpEngCP.exe, never interactive shells</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^MsMpEng\.exe$/i
+| FileName=/^(cmd|powershell|powershell_ise|pwsh|conhost|cscript|wscript|mshta|rundll32|regsvr32)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, AuthenticationId, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Anomalous child process of the Defender engine (broad net)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any child of <code>MsMpEng.exe</code> that is not a known Defender helper. <strong>Accomplishes:</strong> catches the payload binary itself when it isn't a standard shell name. <strong>FP:</strong> Defender helpers (<code>MpCmdRun.exe</code>, <code>NisSrv.exe</code>) — excluded; validate per platform version.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Anomalous child process of the Microsoft Defender engine</span>
+<span class="cm">// MITRE: T1068, T1574 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// TUNING: exclude the known Defender helper set below; alert on anything else parented by MsMpEng.exe</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^MsMpEng\.exe$/i
+| FileName!=/^(MpCmdRun|MsMpEngCP|NisSrv|MpDlpService|MsSense|SenseIR|SenseCncProxy|MpDefenderCoreService)\.exe$/i
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Defender engine writing a PE into a protected system directory</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST LOW-MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>MsMpEng.exe</code> as the writing process for a PE in System32/SysWOW64/Program Files. <strong>Accomplishes:</strong> catches the redirected SYSTEM write — the outcome of the junction race — even if execution is delayed.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Microsoft Defender engine writing a PE into a protected system directory</span>
+<span class="cm">// MITRE: T1574, T1068 | CONF: medium  FP: low  COST: low-med</span>
+<span class="cm">// FP NOTES: Defender writes signatures/platform binaries into its OWN dirs, excluded below</span>
+#event_simpleName=/PeFileWritten|NewExecutableWritten/
+| ContextBaseFileName=/^MsMpEng\.exe$/i
+| TargetFileName=/\\(System32|SysWOW64|Program Files( \(x86\))?)\\/i
+| TargetFileName!=/\\(Windows Defender|Microsoft\\Windows Defender|Microsoft\\Windows Security)\\/i
+| table([@timestamp, ComputerName, ContextBaseFileName, TargetFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Outbound SMB to an external host (RCE-variant fetch)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> endpoints making SMB (TCP 445) connections to public IPs. <strong>Accomplishes:</strong> surfaces the remote disk-image fetch path; also a strong generic-egress hunt. <strong>FP:</strong> Azure Files / cloud SMB — exclude known cloud-SMB CIDRs.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Outbound SMB from an endpoint to an external (non-RFC1918) host</span>
+<span class="cm">// MITRE: T1021.002, T1080 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// TUNING: exclude RFC1918 + sanctioned cloud-SMB CIDRs; scope to workstation host groups</span>
+#event_simpleName=NetworkConnectIP4
+| RemotePort=445
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|127\.)/
+| table([@timestamp, ComputerName, ContextBaseFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · DNS resolution of Nightmare Eclipse infrastructure</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> resolution of the group's known exploit-hosting / disclosure domains. <strong>Accomplishes:</strong> flags hosts that pulled the exploit; investigate-only, perishable infrastructure.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: DNS resolution of known Nightmare Eclipse / RoguePlanet infrastructure</span>
+<span class="cm">// MITRE: T1071 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: security researchers / sandboxes intentionally resolving the domains</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)projectnightcrawler\.dev$|(^|\.)deadeclipse666\.blogspot\.com$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, DomainName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · SYSTEM-integrity process executing from a user-writable path</span>
+        <div class="qc-badges"><span class="badge b-med">CONF LOW-MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST LOW-MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a process running as SYSTEM (AuthenticationId 999) whose image sits in a user temp / ProgramData path. <strong>Accomplishes:</strong> catches the escalated payload after the race, when not directly parented by Defender. <strong>FP:</strong> SYSTEM-context installers/updaters from %TEMP% — pair with Q1/Q3 on same host.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: SYSTEM-integrity process launched from a user-writable directory</span>
+<span class="cm">// MITRE: T1068, T1574, T1059 | CONF: low-med  FP: medium  COST: low-med</span>
+<span class="cm">// TUNING: correlate to Q1/Q3 hits on same aid; exclude known signed installer/update paths</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| AuthenticationId=999
+| ImageFileName=/\\(Users\\[^\\]+\\AppData\\Local\\Temp|ProgramData)\\.+\.(exe|dll|scr)$/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>RoguePlanet — Defender engine spawns shell</td><td>Parent Image <code>*\MsMpEng.exe</code>; Child Image <code>cmd/powershell/conhost/cscript/wscript/mshta.exe</code></td><td>None expected — promote high severity, Detect+Block</td><td>Endpoint Security → Custom IOA → Process Creation</td></tr>
+        <tr><td>RoguePlanet — Defender writes PE to System32</td><td>Writing Image <code>*\MsMpEng.exe</code>; Target <code>*\System32\*</code> / <code>*\Program Files\*</code> excl. Defender dirs</td><td>Defender's own directories (excluded)</td><td>Custom IOA → File Write (or scheduled-search detect)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1 is the recommended first promotion — high confidence, no benign baseline to tune. Q4/Q6 remain hunt/investigate-only due to FP risk.</div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+<pre class="code" id="ioc-json">{
+  "threat": "RoguePlanet (Nightmare Eclipse Defender zero-day)",
+  "generated": "2026-06-12", "version": "0.1",
+  "indicators": [
+    { "type": "domain", "value": "projectnightcrawler.dev", "confidence": "medium", "action": "hunt", "expiry": "2026-09-12" },
+    { "type": "domain", "value": "deadeclipse666.blogspot.com", "confidence": "medium", "action": "hunt", "expiry": "2026-09-12" },
+    { "type": "account", "value": "github:MSNightmare", "confidence": "low", "action": "enrich", "expiry": "2026-07-12" },
+    { "type": "behavior", "value": "MsMpEng.exe -> cmd/powershell/conhost/cscript/wscript at SYSTEM", "confidence": "high", "action": "detect", "expiry": "2026-12-12" },
+    { "type": "behavior", "value": "MsMpEng.exe writes PE into System32 or Program Files", "confidence": "high", "action": "detect", "expiry": "2026-12-12" }
+  ]
+}</pre>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Telemetry ready</td><td><code>ProcessRollup2</code> w/ command line + <code>PeFileWritten</code> context across workstation fleet</td><td>Spot-check Q1/Q3 return rows for benign Defender helper activity</td></tr>
+        <tr><td>Benign baseline</td><td>Confirm Q1 returns zero hits in 30-day lookback; characterize Q2/Q4/Q6 noise</td><td>Document expected Defender children + cloud-SMB peers</td></tr>
+        <tr><td>Positive tests</td><td>In an isolated lab, validate lineage detection fires (benign parent-spoof harness) — do NOT run the live PoC in production</td><td>Q1 detection event captured</td></tr>
+        <tr><td>Promotion</td><td>Promote Q1 to Custom IOA Detect+Block; keep Q4/Q6 as scheduled hunts</td><td>IOA enabled; FP rate &lt; 1/week</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+  <div class="section-body">
+    <p>No patch exists. The objective is to make the exploit fail-closed: stop the SYSTEM payload from running, and remove the redirection primitives. Primary surface is the Windows endpoint.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate · this week · low risk</div>
+      <ul>
+        <li><strong>Application allowlisting (WDAC / AppLocker), enforce mode</strong> — <em>M1038</em>. Independently confirmed (ThreatLocker) to block the RoguePlanet payload. Highest-leverage single control.</li>
+        <li><strong>Disable remote symlink evaluation</strong> — <em>M1042</em> ⚠ best-practice, no formal benchmark. <code>fsutil behavior set SymlinkEvaluation R2L:0 R2R:0</code> removes the remote-redirect primitive.</li>
+        <li><strong>Block outbound SMB (TCP 445/139) from workstations</strong> — <em>M1037</em> (CIS / host firewall). Kills the remote <code>.vhd(x)</code> fetch path.</li>
+        <li><strong>Confirm Defender platform/engine on current channel + Tamper Protection on</strong> — <em>M1054</em>. Watch for out-of-band engine version changes (N2).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term · 1–4 weeks · pilot first</div>
+      <ul>
+        <li><strong>Block standard-user disk-image mounting</strong> — <em>M1042</em>. GPO/registry to disable ISO/VHD auto-mount; restrict the Virtual Disk service to admins. (MS Security Baseline.)</li>
+        <li><strong>Attack Surface Reduction (ASR) rules</strong> — <em>M1042</em>. Enable prevalence/age/trusted-list execution block + script-host constraints. (Microsoft ASR guidance.)</li>
+        <li><strong>Remove standing local admin; deploy LAPS</strong> — <em>M1026</em> (CIS). Limits the value of a SYSTEM foothold.</li>
+        <li><strong>PowerShell Constrained Language Mode + script-block logging</strong> — <em>M1038 / M1040</em>. Raises cost of the SYSTEM shell; improves Q1 evidence.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic · 1–3 months · architectural</div>
+      <ul>
+        <li><strong>Enterprise WDAC signed-only code-integrity policy</strong> — <em>M1045 / M1038</em>. Make allowlisting the default posture.</li>
+        <li><strong>HVCI + Credential Guard</strong> — <em>M1043</em>. Contain blast radius if SYSTEM is reached.</li>
+        <li><strong>Continuous AV-tamper / config-drift monitoring</strong> — <em>M1054</em>. Alert on Defender engine self-modification fleet-wide.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h4>P1 · Disable remote symlink evaluation + verify</h4>
+<pre class="code">:: Run as administrator (or push via GPO startup script / Intune)
+fsutil behavior set SymlinkEvaluation R2L:0 R2R:0
+:: Verify (expect: R2L disabled, R2R disabled)
+fsutil behavior query SymlinkEvaluation</pre>
+    <h4>P2 · Block outbound SMB from workstations (Windows Firewall)</h4>
+<pre class="code"># PowerShell — deploy via GPO/Intune to workstation OU
+New-NetFirewallRule -DisplayName "Block Outbound SMB 445 (RoguePlanet)" `
+  -Direction Outbound -Action Block -Protocol TCP -RemotePort 445 -Profile Any -Group "Hardening-RoguePlanet"
+New-NetFirewallRule -DisplayName "Block Outbound NetBIOS 139 (RoguePlanet)" `
+  -Direction Outbound -Action Block -Protocol TCP -RemotePort 139 -Profile Any -Group "Hardening-RoguePlanet"
+Get-NetFirewallRule -Group "Hardening-RoguePlanet" | Format-Table DisplayName, Enabled, Direction, Action</pre>
+    <h4>P3 · Restrict standard-user disk-image mounting</h4>
+<pre class="code"># PowerShell — neutralize Explorer default-mount verb for disk images (pilot first)
+$assoc = @(".iso",".vhd",".vhdx")
+foreach ($e in $assoc) { cmd /c "assoc $e=Windows.IsoFile" 2&gt;$null }
+# Restrict the Virtual Disk service surface to admins (pilot on a ring)
+sc.exe sdset vds "D:(A;;CCLCSWRPWPDTLOCRRC;;;BA)(A;;CCLCSWLOCRRC;;;SY)"</pre>
+    <h4>P4 · AppLocker baseline (audit → enforce)</h4>
+<pre class="code"># PowerShell — deploy in Audit, then flip to Enforce. Do NOT carve a blanket
+# allow for %TEMP%/%ProgramData% (RoguePlanet payload paths).
+Set-AppLockerPolicy -XmlPolicy .\RoguePlanet-AppLocker.xml
+Get-AppLockerPolicy -Effective | Select-Object -ExpandProperty RuleCollections</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host in Falcon; do not power off (preserve volatile SYSTEM-shell state)</td><td>SOC L2</td><td>Containment timestamp; Q1 event</td></tr>
+        <tr><td>Triage</td><td>Pull the <code>MsMpEng.exe</code> child-process tree; capture the SYSTEM shell command line and any written PE in System32/Program Files</td><td>SOC L2</td><td>Process explorer tree; Q1/Q3 rows</td></tr>
+        <tr><td>Eradicate</td><td>Kill SYSTEM payload; remove planted binaries; delete staged junctions; check for new local admin, service, or task created post-escalation</td><td>IR</td><td>Service/task/group review</td></tr>
+        <tr><td>Recover</td><td>Rotate credentials for every account used on the host; verify Defender config/Tamper Protection intact; re-image if SYSTEM execution confirmed</td><td>IR + IT</td><td>Cred-rotation log; rebuild ticket</td></tr>
+        <tr><td>Harden</td><td>Push §12 Immediate controls fleet-wide; promote Q1 IOA</td><td>Detection Eng</td><td>WDAC/AppLocker status; IOA enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Behavior</th><th>Primary</th><th>Fallback</th><th>Known Gap</th></tr></thead>
+      <tbody>
+        <tr><td>SYSTEM shell from Defender engine</td><td>Q1 (IOA candidate)</td><td>Q2</td><td>None — high coverage</td></tr>
+        <tr><td>Redirected SYSTEM write</td><td>Q3</td><td>Q6</td><td>Non-PE writes (junction itself) not captured by PE-write events</td></tr>
+        <tr><td>Reparse/junction staging</td><td>Native N3 (Sysmon EID 11)</td><td>—</td><td><span class="badge b-high">Gap</span> EDR doesn't surface reparse creation; needs Sysmon/fs-auditing</td></tr>
+        <tr><td>Remote VHD/SMB fetch (RCE)</td><td>Q4 + native N1</td><td>Q5</td><td>VHD mount telemetry weak in EDR; relies on VHDMP log</td></tr>
+        <tr><td>Defender engine version tampering</td><td>Native N2</td><td>—</td><td><span class="badge b-high">Gap</span> no CQL; manual <code>Get-MpComputerStatus</code> baseline</td></tr>
+        <tr><td>Post-exploit persistence</td><td>Containment pivots</td><td>—</td><td>Generic — covered by existing persistence detections</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+<pre class="code">TITLE:        RoguePlanet — Microsoft Defender SYSTEM Escalation Zero-Day (Hunt v0.1)
+SCOPE:        Windows 10/11 endpoints (fully patched); Server lower-priority
+HYPOTHESIS:   A standard-user process redirects a Defender (SYSTEM) file op via NTFS
+              junction/symlink, gaining SYSTEM code execution. Evidence = Defender-
+              engine-parented shells + SYSTEM writes into protected dirs.
+QUERIES RUN:  Q1 Defender-&gt;shell lineage (IOA candidate)   Q2 Defender anomalous child
+              Q3 Defender PE write to System32             Q4 Outbound SMB to external
+              Q5 Nightmare Eclipse infra DNS               Q6 SYSTEM exec from user path
+              + Native N1-N4 (VHDMP, Defender version, reparse, AppLocker block)
+DATA SOURCES: ProcessRollup2, PeFileWritten/NewExecutableWritten, NetworkConnectIP4,
+              DnsRequest; Sysmon EID 11; Microsoft-Windows-VHDMP/AppLocker logs
+FINDINGS:     &lt;pending hunt execution&gt;
+GAPS:         Reparse-point + VHD mount telemetry weak in EDR; no CVE/patch
+ACTIONS:      Deploy WDAC/AppLocker enforce; disable remote symlink eval; block
+              outbound SMB; promote Q1 to Custom IOA Detect+Block
+OWNER:        HuntPack</pre>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-12</span><span>Initial pack: 6 CQL + 4 native hunts, 2 IOA candidates, tiered hardening + 4 playbooks, containment runbook. Behavior-keyed (no confirmed CVE/patch). Rendered in the review-v2 standard layout (fixed left-sidebar TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon).</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.picussecurity.com/resource/blog/rogueplanet-anatomy-of-the-nightmare-eclipse-microsoft-defender-zero-day">Picus Security — RoguePlanet anatomy</a></td><td>Mechanism, IOCs, detection logic, mitigations</td><td>2026-06-12</td></tr>
+        <tr><td>1</td><td><a href="https://www.bleepingcomputer.com/news/microsoft/microsoft-defender-rogueplanet-zero-day-grants-system-privileges/">BleepingComputer — RoguePlanet grants SYSTEM</a></td><td>RCE→LPE pivot, affected builds, MS response</td><td>2026-06-12</td></tr>
+        <tr><td>2</td><td><a href="https://thehackernews.com/2026/06/microsoft-defender-rogueplanet-zero-day.html">The Hacker News — Defender RoguePlanet zero-day</a></td><td>Corroboration, release timing</td><td>2026-06-12</td></tr>
+        <tr><td>2</td><td><a href="https://www.securityweek.com/new-windows-zero-day-exploit-rogueplanet-released/">SecurityWeek — RoguePlanet released</a></td><td>Corroboration</td><td>2026-06-12</td></tr>
+        <tr><td>2</td><td><a href="https://www.threatlocker.com/blog/microsoft-defender-zero-day-rogueplanet-grants-system-privileges">ThreatLocker — allowlisting efficacy</a></td><td>Control validation</td><td>2026-06-12</td></tr>
+        <tr><td>3</td><td><a href="https://threat-modeling.com/windows-defender-rogueplanet-zero-day-cve-2026-47281/">Threat-Modeling.com</a></td><td>Unconfirmed CVE-2026-47281 reference</td><td>2026-06-12</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · RoguePlanet · Generated 2026-06-12 · Defensive use only — no exploit code. Validate field names and tune exclusions in your tenant before promoting any query to alerting. No official Microsoft patch at time of writing.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>

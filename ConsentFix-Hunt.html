@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConsentFix — Entra ID OAuth Phishing / Token Theft — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #1a1628;
+  --surface2: #221c35;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #d2a8ff;
+  --accent-dim: rgba(210,168,255,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #5a5170; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #1d1430 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(210,168,255,0.22); color: #d2a8ff; border: 1px solid #d2a8ff; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(210,168,255,0.09); border: 1px solid rgba(210,168,255,0.3); color: #d2a8ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">ConsentFix<br>Entra OAuth Token Theft</div>
+    <div class="version">v0.1 · 2026-06-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Detection Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>ConsentFix — Entra ID OAuth Phishing &amp; Token Theft</h1>
+  <div class="subtitle">Lure → legit first-party-app sign-in → victim pastes the <code>localhost</code> auth-code URL → attacker redeems it for access + refresh tokens and operates from their own infra. MFA &amp; most Conditional Access bypassed. Identity-log hunt — detection lives in Entra, not the endpoint.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">ConsentFix (OAuth consent/auth-code phishing)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE · MFA BYPASS</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Identity / OAuth token theft → ATO</div></div>
+    <div class="meta-item"><div class="mk">CVE</div><div class="mv">N/A — technique, not a CVE</div></div>
+    <div class="meta-item"><div class="mk">Surface</div><div class="mv">Entra ID · M365 · Azure · SaaS</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>ConsentFix weaponizes OAuth itself rather than malware. The victim is lured (fake CAPTCHA / "fix your Azure/PowerShell login" pages reached via SEO poisoning or malicious ads) into a real Entra ID sign-in for a <strong>pre-trusted first-party Microsoft app</strong> — Azure CLI (<code>04b07795-8ddb-461a-bbee-02f9e1bf7b46</code>), VS Code, or the Authentication Broker. Those apps have implicit tenant-wide consent for <code>openid / profile / offline_access</code>, show no consent prompt, and use a <code>localhost</code> redirect for native flows. After the legitimate (MFA-satisfied) sign-in, the browser lands on <code>http://localhost:&lt;port&gt;/?code=&lt;authcode&gt;</code>; the phishing page instructs the victim to copy that full URL into a form, handing the authorization code to the attacker.</p>
+    <p>The attacker redeems the ~10-minute code at <code>login.microsoftonline.com/&lt;tenant&gt;/oauth2/v2.0/token</code> for access and refresh tokens carrying the victim's delegated permissions, then operates from their own infrastructure. <strong>MFA and most Conditional Access are bypassed</strong> because the interactive sign-in was genuine and token redemption happens server-side in the attacker's environment. The refresh token grants durable access; in observed escalations the attacker registers a device (DRS) and obtains a PRT for deeper persistence.</p>
+    <p>There is almost no endpoint signal — this is an identity-log hunt. The high-value detections correlate Entra sign-in logs (first-party app + non-interactive + refresh-token redemption from a new IP/ASN, <code>unbound</code> token-protection status) with audit-log device-registration sequences and Graph activity.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Turn on Token Protection (token binding) + Continuous Access Evaluation in Conditional Access, scope first-party apps (Azure CLI/PowerShell) to compliant devices, and stand up the non-interactive first-party-app sign-in hunt (Q1) against ingested Entra logs. Detection requires Entra sign-in + audit log ingestion — confirm that pipeline first.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Mitiga — "ConsentFix OAuth Phishing Explained"</td><td>Full chain: lure → first-party app → localhost code capture → token redemption → MFA bypass → refresh-token persistence</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>Elastic Security Labs — "Entra ID OAuth Phishing Detection"</td><td>Sign-in/audit field detections: app IDs, incoming_token_type, token-protection unbound, DRS device-registration sequence, session reuse across IPs</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Obsidian Security — OAuth vulnerabilities</td><td>OAuth token theft driving 2026 SaaS breaches; broader context</td><td><span class="badge b-med">partial</span></td></tr>
+        <tr><td>2 · Microsoft</td><td>Entra ID CA / Token Protection docs</td><td>Token binding, CAE, first-party app filtering as mitigations</td><td><span class="badge b-low">yes</span></td></tr>
+      </tbody>
+    </table>
+    <h4>Decisions</h4>
+    <table>
+      <thead><tr><th>Decision</th><th>Rationale</th><th>Pack Change</th></tr></thead>
+      <tbody>
+        <tr><td>Identity-log-first, not endpoint</td><td>Token redemption occurs in the attacker's environment; victim endpoint shows almost nothing</td><td>Native Entra hunts are the primary surface; CQL targets ingested Entra logs</td></tr>
+        <tr><td>Flag CQL as schema-dependent</td><td>Entra-log field names vary by NG-SIEM/LogScale parser and connector</td><td>Every CQL card carries a ⚠ validate-schema note</td></tr>
+        <tr><td>Lead with Token Protection</td><td>Token binding is the one control that defeats the replay, not just detects it</td><td>Hardening §12 Immediate; playbook P1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A user completes a legitimate interactive sign-in to a first-party native client, after which the same identity shows a <em>non-interactive</em> token redemption (refresh token, <code>.default</code>/<code>offline_access</code> scopes) from a new IP/ASN with an <code>unbound</code> session — i.e., the auth code was redeemed elsewhere. Follow-on: session reuse across IPs, DRS device registration, PRT issuance, and Graph/mailbox activity from the new origin.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Lure</td><td>SEO-poisoned result / malvertising / fake CAPTCHA → "fix login" page</td><td>Proxy / web logs; minimal endpoint</td><td>Native N5</td></tr>
+        <tr><td>2 · Legit sign-in</td><td>Victim authenticates to first-party app (Azure CLI), MFA satisfied</td><td>Entra interactive sign-in</td><td>Baseline; pairs with step 4</td></tr>
+        <tr><td>3 · Code capture</td><td>Victim copies <code>http://localhost:&lt;port&gt;/?code=…</code> into attacker form</td><td>None (off-platform)</td><td><span class="badge b-high">Gap</span> invisible; detect the redemption</td></tr>
+        <tr><td>4 · Token redemption</td><td>Attacker POSTs code to token endpoint from own infra → access+refresh tokens</td><td>Entra non-interactive sign-in</td><td><strong>Q1 / Q3 / Q6</strong></td></tr>
+        <tr><td>5 · Session reuse</td><td>Same session/token used from attacker IP/ASN</td><td>Entra sign-in (session_id)</td><td><strong>Q2</strong></td></tr>
+        <tr><td>6 · Persistence</td><td>DRS device registration → PRT issuance</td><td>Entra audit (Add device/owner)</td><td><strong>Q4 / Q5</strong>; N3</td></tr>
+        <tr><td>7 · Objectives</td><td>Mailbox access, Graph enumeration/exfil, SaaS pivot, priv-esc per roles</td><td>Graph activity; UnifiedAuditLog</td><td>N4; pivots</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info"><strong>Earliest detectable signal:</strong> step 4 — a non-interactive first-party-app token redemption from a new IP/ASN minutes after an interactive sign-in (Q1 × the preceding interactive sign-in). Step 3 (the localhost paste) is off-platform and undetectable.</div>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">Indicators here are configuration/behavioral identity signals, not host artifacts. The abused app IDs are <em>legitimate Microsoft first-party apps</em> — treat them as hunt context, never as a block list.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>App ID (context)</td><td class="mono">04b07795-8ddb-461a-bbee-02f9e1bf7b46</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Azure CLI — abused first-party native client</td></tr>
+        <tr><td>App ID (context)</td><td class="mono">aebc6443-996d-45c2-90f0-388ff96faa56</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Visual Studio Code first-party client</td></tr>
+        <tr><td>App ID (context)</td><td class="mono">29d9ed98-a469-4536-ade2-f981bc1d605e</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Microsoft Authentication Broker (ADRS/PRT)</td></tr>
+        <tr><td>Behavior</td><td class="mono">non-interactive refresh-token sign-in from new IP/ASN post interactive logon</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Token redemption from attacker environment</td></tr>
+        <tr><td>Behavior</td><td class="mono">token-protection signInSessionStatus = "unbound"</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Token replay indicator</td></tr>
+        <tr><td>Behavior</td><td class="mono">DRS "Add device" → "Add registered owner" within ~1 min, same correlationId</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Automated device registration (ROADtools-style)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Entra ID sign-ins (interactive + non-interactive)</td><td>Entra sign-in logs ingested into NG-SIEM</td><td><span class="badge b-high">Critical</span></td><td>High if not ingested — the entire pack depends on this</td></tr>
+        <tr><td>Entra ID audit (device registration, consent)</td><td>Entra audit logs</td><td><span class="badge b-high">High</span></td><td>Medium — ensure DRS events captured</td></tr>
+        <tr><td>Microsoft Graph / M365 activity</td><td>UnifiedAuditLog / Graph activity logs</td><td><span class="badge b-high">High</span></td><td>Medium — mailbox/SaaS objective stage</td></tr>
+        <tr><td>Token Protection status</td><td>Sign-in <code>tokenProtectionStatusDetails</code></td><td><span class="badge b-high">High</span></td><td>Requires Token Protection enabled to populate</td></tr>
+        <tr><td>Victim endpoint</td><td>Browser/process telemetry</td><td><span class="badge b-low">Low</span></td><td><span class="badge b-high">Gap</span> code capture is off-platform; near-zero endpoint signal</td></tr>
+        <tr><td>Web egress (lure)</td><td>Proxy / secure web gateway logs</td><td><span class="badge b-med">Medium</span></td><td>Medium — SEO/malvertising landing pages</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1566.002 — Spearphishing Link</td><td>SEO-poisoned / malvertised "fix login" lure</td><td>N5; user training §12</td></tr>
+        <tr><td>Credential Access</td><td>T1528 — Steal Application Access Token</td><td>OAuth authorization code captured via localhost paste</td><td>Q1, Q3</td></tr>
+        <tr><td>Defense Evasion / Lateral</td><td>T1550.001 — Use Alternate Auth Material: App Token</td><td>Stolen tokens used from attacker infra; MFA/CA bypassed</td><td>Q1, Q2, Q6</td></tr>
+        <tr><td>Persistence / Cred Access</td><td>T1606.002 — Forge Web Credentials: OAuth</td><td>Refresh token reused for durable access</td><td>Q3, Q6</td></tr>
+        <tr><td>Persistence</td><td>T1098.005 — Account Manipulation: Device Registration</td><td>DRS device add + PRT issuance</td><td>Q4, Q5; N3</td></tr>
+        <tr><td>Defense Evasion</td><td>T1078.004 — Valid Accounts: Cloud Accounts</td><td>Legitimate identity, anomalous origin</td><td>Q1, Q2</td></tr>
+        <tr><td>Collection</td><td>T1114 — Email Collection</td><td>Mailbox access via Graph with stolen token</td><td>N4; pivots</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (Entra ID / Graph — primary surface)</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Redemption after interactive sign-in</td><td>Entra sign-in logs</td><td>Interactive sign-in to a first-party app, then a non-interactive refresh-token sign-in for the same user from a different IP/ASN within minutes</td><td>Revoke sessions; confirm with user</td></tr>
+        <tr><td>N2 · Unbound token sessions</td><td>Entra sign-in logs</td><td><code>tokenProtectionStatusDetails.signInSessionStatus = "unbound"</code> on first-party app sign-ins</td><td>Investigate origin; enforce token binding</td></tr>
+        <tr><td>N3 · DRS device-registration sequence</td><td>Entra audit logs</td><td>"Add device" (DRS, OS <code>10.0.19041.928</code>) → "Add registered users/owner to device" within ~1 min, same correlationId</td><td>Remove rogue device; revoke PRT</td></tr>
+        <tr><td>N4 · Post-takeover Graph/mailbox activity</td><td>UnifiedAuditLog / Graph</td><td>New inbox rules, mass mail read, Graph enumeration, or SaaS access from the new origin/session</td><td>Scope blast radius; preserve mailbox</td></tr>
+        <tr><td>N5 · Lure landing pages</td><td>Proxy / SWG</td><td>Users reaching fake-CAPTCHA / "azure login fix" pages from search/ad referrers shortly before a first-party sign-in</td><td>Block domains; warn users</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Equivalent Entra Advanced Hunting (KQL) is straightforward — e.g. <code>SigninLogs | where AppId == "04b07795-..." and IsInteractive == false and ...</code>. The CQL below is the NG-SIEM equivalent for environments ingesting Entra logs into CrowdStrike.</div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-warn">⚠ <strong>These queries run against Entra ID logs ingested into NG-SIEM / LogScale, not endpoint telemetry.</strong> Field names depend on your Entra→NG-SIEM connector/parser (Azure Monitor, native Entra connector, etc.). Validate field paths against your schema before deploying — the structure and logic carry over; the exact field tokens may differ.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Non-interactive first-party-app token redemption from a new IP</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST LOW-MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> non-interactive sign-ins to Azure CLI / VS Code / Auth Broker using a refresh token. <strong>Accomplishes:</strong> surfaces the token-redemption stage — the core ConsentFix signal. <strong>FP:</strong> legit Azure CLI/PowerShell automation — exclude sanctioned principals + known egress IPs.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Non-interactive first-party-app token redemption (ConsentFix)</span>
+<span class="cm">// MITRE: T1528, T1550.001, T1078.004 | CONF: med-high  FP: med  COST: low-med</span>
+<span class="cm">// REQUIRES: Entra ID sign-in logs ingested into NG-SIEM/LogScale</span>
+<span class="cm">// NOTE: field tokens (appId/isInteractive/incomingTokenType/ipAddress) depend on your Entra parser — validate</span>
+appId=/^(04b07795-8ddb-461a-bbee-02f9e1bf7b46|aebc6443-996d-45c2-90f0-388ff96faa56|29d9ed98-a469-4536-ade2-f981bc1d605e)$/i
+| isInteractive=false
+| incomingTokenType=/refreshToken/i
+| groupBy([userPrincipalName, appDisplayName, ipAddress, autonomousSystemNumber], function=count())
+| table([userPrincipalName, appDisplayName, ipAddress, autonomousSystemNumber, _count])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Single session ID used from multiple IPs (token/session reuse)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> one session ID observed from two or more distinct IPs in a short window. <strong>Accomplishes:</strong> high-fidelity evidence of a hijacked/replayed token — victim and attacker sharing a session.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: One session ID seen from multiple IPs (session/token reuse)</span>
+<span class="cm">// MITRE: T1550.001, T1078.004 | CONF: high  FP: low-med  COST: med</span>
+<span class="cm">// TUNING: require >=2 distinct ASNs or geo-distant IPs; window to ~30 min</span>
+| groupBy([sessionId], function=[count(field=ipAddress, distinct=true, as=ipCount), collect([ipAddress, userPrincipalName, autonomousSystemNumber])])
+| ipCount&gt;=2
+| table([sessionId, userPrincipalName, ipCount, ipAddress, autonomousSystemNumber])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Non-interactive sign-in requesting broad/offline scopes</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST LOW-MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> non-interactive sign-ins carrying <code>.default</code>, <code>offline_access</code>, or <code>adrs</code> scopes via a first-party client. <strong>Accomplishes:</strong> flags token redemption granting durable/broad delegated access. <strong>FP:</strong> apps request these routinely — combine with a new IP/ASN (Q1) or unbound status (Q6).</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Non-interactive sign-in with broad/offline OAuth scopes</span>
+<span class="cm">// MITRE: T1528, T1606.002 | CONF: medium  FP: medium  COST: low-med</span>
+<span class="cm">// TUNING: AND with Q1 (new IP) or Q6 (unbound); scope to first-party native clients</span>
+| isInteractive=false
+| scopeDetail=/(\.default|offline_access|adrs_access)/i
+| appId=/^(04b07795|aebc6443|29d9ed98)/i
+| table([userPrincipalName, appDisplayName, scopeDetail, ipAddress, resourceDisplayName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Burst device-registration sequence by DRS</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> "Add device" + "Add registered owner/users to device" by DRS sharing one correlation ID in a ~1-minute window. <strong>Accomplishes:</strong> catches automated device registration used for PRT-based persistence. <strong>FP:</strong> legit bulk Autopilot/Intune enrollment — usually a distinct correlation pattern.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Burst DRS device-registration sequence (persistence)</span>
+<span class="cm">// MITRE: T1098.005 | CONF: high  FP: low  COST: med</span>
+<span class="cm">// TUNING: scope to DRS-initiated events; flag OS build 10.0.19041.928 and >=2 ops/correlationId/minute</span>
+operationName=/Add device|Add registered (owner|users) to device/i
+| groupBy([correlationId], function=[count(as=ops), collect([operationName, userPrincipalName, targetDeviceId])])
+| ops&gt;=2
+| table([correlationId, ops, operationName, userPrincipalName, targetDeviceId])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · PRT issuance to a newly observed device in unbound state</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Auth Broker / ADRS token requests producing a PRT for a device ID first seen in this window with an unbound session. <strong>Accomplishes:</strong> catches the persistence escalation after device registration. <strong>FP:</strong> genuine first-enrollment of a new managed device — correlate with Q4.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: PRT issuance to a newly observed device (unbound)</span>
+<span class="cm">// MITRE: T1098.005, T1550.001 | CONF: med-high  FP: low-med  COST: med</span>
+<span class="cm">// TUNING: correlate with Q4 on userPrincipalName/time; require unbound session + first-seen deviceId</span>
+appId=/^29d9ed98-a469-4536-ade2-f981bc1d605e$/i
+| incomingTokenType=/refreshToken|primaryRefreshToken/i
+| signInSessionStatus=/unbound/i
+| table([userPrincipalName, deviceId, ipAddress, signInSessionStatus, @timestamp])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Unbound token-protection sign-ins on first-party apps</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> sign-ins where the token-protection session status is <code>unbound</code>. <strong>Accomplishes:</strong> directly flags tokens not bound to their original device — the hallmark of replay. Requires Token Protection enabled so the field populates. <strong>FP:</strong> clients not yet supporting token binding — baseline these first.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Unbound token-protection sessions on first-party apps</span>
+<span class="cm">// MITRE: T1550.001, T1606.002 | CONF: med-high  FP: low-med  COST: low</span>
+<span class="cm">// REQUIRES: Token Protection enabled in CA; TUNING: baseline expected unbound clients first</span>
+| signInSessionStatus=/unbound/i
+| appId=/^(04b07795|aebc6443|29d9ed98)/i
+| table([userPrincipalName, appDisplayName, ipAddress, signInSessionStatus, @timestamp])</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Detection Recommendations (NG-SIEM / Entra ID Protection)</h2></div>
+  <div class="section-body">
+    <div class="callout callout-info">Endpoint Custom IOAs do not apply to this identity technique — there is no host process behavior to key on. Promote the equivalents as <strong>NG-SIEM scheduled-search detections / correlation rules</strong> (or Entra ID Protection risk policies) instead.</div>
+    <table>
+      <thead><tr><th>Detection (scheduled search)</th><th>Logic</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>ConsentFix — interactive → non-interactive redemption from new IP</td><td>Correlate Q1 with a preceding interactive sign-in for the same user within N minutes from a different ASN</td><td>Sanctioned automation accounts; corporate VPN egress</td><td>NG-SIEM correlation rule / scheduled search → detection</td></tr>
+        <tr><td>ConsentFix — DRS burst + PRT issuance</td><td>Q4 followed by Q5 for the same user within minutes</td><td>Bulk managed-device enrollment windows</td><td>NG-SIEM correlation rule; Entra ID Protection risk policy</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+<pre class="code" id="ioc-json">{
+  "threat": "ConsentFix Entra ID OAuth phishing / token theft",
+  "generated": "2026-06-12", "version": "0.1",
+  "note": "Abused app IDs are legitimate Microsoft first-party apps — hunt context, never block.",
+  "indicators": [
+    { "type": "app_id_context", "value": "04b07795-8ddb-461a-bbee-02f9e1bf7b46", "confidence": "medium", "action": "hunt", "note": "Azure CLI", "expiry": "2026-09-12" },
+    { "type": "app_id_context", "value": "aebc6443-996d-45c2-90f0-388ff96faa56", "confidence": "medium", "action": "hunt", "note": "VS Code", "expiry": "2026-09-12" },
+    { "type": "app_id_context", "value": "29d9ed98-a469-4536-ade2-f981bc1d605e", "confidence": "medium", "action": "hunt", "note": "Auth Broker", "expiry": "2026-09-12" },
+    { "type": "behavior", "value": "non-interactive refresh-token sign-in from new IP/ASN after interactive logon", "confidence": "high", "action": "detect", "expiry": "2026-12-12" },
+    { "type": "behavior", "value": "tokenProtectionStatus signInSessionStatus = unbound", "confidence": "high", "action": "detect", "expiry": "2026-12-12" },
+    { "type": "behavior", "value": "DRS Add device + Add registered owner within ~1 min same correlationId", "confidence": "high", "action": "detect", "expiry": "2026-12-12" }
+  ]
+}</pre>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Telemetry ready</td><td>Entra sign-in + audit logs ingested into NG-SIEM; field mapping validated for appId/isInteractive/sessionId/tokenProtectionStatus</td><td>Sample rows returned for each field used in Q1–Q6</td></tr>
+        <tr><td>Benign baseline</td><td>Enumerate legitimate Azure CLI/PowerShell users and expected unbound clients; baseline normal ASNs per user</td><td>Allowlist of automation principals + egress ASNs</td></tr>
+        <tr><td>Positive tests</td><td>In a test tenant, perform a first-party auth-code flow and redeem from a second network to fire Q1/Q2; do NOT phish real users</td><td>Detection events captured</td></tr>
+        <tr><td>Promotion</td><td>Promote the Q1×interactive correlation and Q4→Q5 chain to NG-SIEM detections; enable Entra ID Protection risk policies</td><td>Correlation rules live; FP rate characterized</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+  <div class="section-body">
+    <p>OAuth abuse rides legitimate identity — prevention is identity configuration, not endpoint controls. Token binding is the one control that makes a stolen code/token useless to the attacker.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate · this week · low risk</div>
+      <ul>
+        <li><strong>Enable Token Protection (token binding) in Conditional Access</strong> — <em>M1032 / M1018</em>. Binds access tokens to the originating device/session so a redeemed code can't be replayed elsewhere. The decisive control.</li>
+        <li><strong>Enable Continuous Access Evaluation (CAE)</strong> — <em>M1041 / M1018</em>. Near-real-time token revocation on risk/condition change, shrinking the refresh-token window.</li>
+        <li><strong>Scope first-party apps (Azure CLI / Az PowerShell) to compliant devices / specific users</strong> — <em>M1018</em>. CA app filter so these high-trust clients can't be used from arbitrary devices.</li>
+        <li><strong>User awareness: never paste localhost "fix-login" URLs</strong> — <em>M1017</em>. The lure depends entirely on the victim copying the redirect URL.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term · 1–4 weeks · pilot first</div>
+      <ul>
+        <li><strong>CA: require compliant/hybrid-joined device for sensitive resources</strong> — <em>M1032 / M1018</em>. Blocks token use from unmanaged attacker hosts.</li>
+        <li><strong>Entra ID Protection sign-in &amp; user-risk policies</strong> — <em>M1047 / M1018</em>. Challenge or block anomalous token redemption (new ASN, unfamiliar properties).</li>
+        <li><strong>Restrict user consent + admin-consent workflow</strong> — <em>M1018</em>. Closes the adjacent illicit-consent-grant path.</li>
+        <li><strong>Reduce refresh-token lifetime / enforce sign-in frequency</strong> — <em>M1018 / M1026</em>. Limits durability of a stolen refresh token.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic · 1–3 months · architectural</div>
+      <ul>
+        <li><strong>Phishing-resistant MFA (FIDO2 / passkeys / certificate-based)</strong> — <em>M1032</em>. Combined with token binding, removes the replay value of intercepted material.</li>
+        <li><strong>Identity Threat Detection &amp; Response (ITDR)</strong> — <em>M1047</em>. Correlate sign-in + Graph + SaaS activity by session ID continuously — the cross-surface visibility ConsentFix exploits the absence of.</li>
+        <li><strong>Zero-trust device posture / Global Secure Access with token binding everywhere</strong> — <em>M1018 / M1032</em>. Make device-bound, continuously-evaluated sessions the default.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h4>P1 · Conditional Access — Token Protection (sign-in session binding)</h4>
+<pre class="code"># Microsoft Graph PowerShell — create a CA policy enforcing token protection
+# (pilot on a ring group first; report-only -> on)
+Connect-MgGraph -Scopes "Policy.ReadWrite.ConditionalAccess"
+$params = @{
+  displayName = "CA - Require Token Protection (ConsentFix)"
+  state       = "enabledForReportingButNotEnforced"   # flip to "enabled" after pilot
+  conditions  = @{
+    users        = @{ includeUsers = @("&lt;pilot-group-id&gt;") }
+    applications = @{ includeApplications = @("Office365","04b07795-8ddb-461a-bbee-02f9e1bf7b46") }
+    clientAppTypes = @("all")
+  }
+  sessionControls = @{ secureSignInSession = @{ isEnabled = $true } }   # token binding
+}
+New-MgIdentityConditionalAccessPolicy -BodyParameter $params</pre>
+    <h4>P2 · Restrict first-party apps to compliant devices (CA app filter)</h4>
+<pre class="code"># CA policy targeting Azure CLI / Az PowerShell app IDs, granting access ONLY
+# from compliant or hybrid-joined devices.
+Connect-MgGraph -Scopes "Policy.ReadWrite.ConditionalAccess"
+$params = @{
+  displayName = "CA - First-party CLI apps require compliant device"
+  state       = "enabledForReportingButNotEnforced"
+  conditions  = @{
+    users        = @{ includeUsers = @("All") }
+    applications = @{ includeApplications = @(
+      "04b07795-8ddb-461a-bbee-02f9e1bf7b46",   # Azure CLI
+      "1950a258-227b-4e31-a9cf-717495945fc2"    # Azure PowerShell
+    )}
+    clientAppTypes = @("all")
+  }
+  grantControls = @{ operator = "OR"; builtInControls = @("compliantDevice","domainJoinedDevice") }
+}
+New-MgIdentityConditionalAccessPolicy -BodyParameter $params</pre>
+    <h4>P3 · Revoke sessions + refresh tokens for a compromised user</h4>
+<pre class="code"># Microsoft Graph PowerShell — invalidate all refresh tokens / sign-in sessions
+Connect-MgGraph -Scopes "User.RevokeSessions.All","Directory.ReadWrite.All"
+# 1) Revoke all active sessions (invalidates refresh tokens + cookies)
+Revoke-MgUserSignInSession -UserId "&lt;upn-or-objectId&gt;"
+# 2) (Optional) Disable the account during IR
+Update-MgUser -UserId "&lt;upn-or-objectId&gt;" -AccountEnabled:$false
+# 3) Review + remove rogue device registrations
+Get-MgUserRegisteredDevice -UserId "&lt;upn-or-objectId&gt;" |
+  Select-Object Id, DisplayName, ApproximateLastSignInDateTime
+# Remove-MgDevice -DeviceId "&lt;rogue-device-id&gt;"   # after confirming it's attacker-registered</pre>
+    <h4>P4 · Tighten consent + enable admin-consent workflow</h4>
+<pre class="code"># Restrict user consent to verified publishers / low-risk permissions, and route
+# everything else through an admin-consent request workflow (Entra portal):
+#   Entra ID > Enterprise applications > Consent and permissions
+#     - User consent: "Allow for apps from verified publishers, for selected permissions"
+#     - Admin consent requests: Enabled; designate reviewers
+# Graph equivalent for the consent policy (illustrative):
+Connect-MgGraph -Scopes "Policy.ReadWrite.Authorization"
+Update-MgPolicyAuthorizationPolicy -DefaultUserRolePermissions @{
+  permissionGrantPoliciesAssigned = @("ManagePermissionGrantsForSelf.microsoft-user-default-low")
+}</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Revoke all sessions/refresh tokens for the user (P3); optionally disable the account; enforce sign-in frequency</td><td>SOC L2 / IAM</td><td>Revocation timestamp; Q1/Q2 hits</td></tr>
+        <tr><td>Triage</td><td>Pull the user's sign-in logs: attacker IP/ASN, session IDs, first-party app, unbound sessions; map redemption time vs. the interactive sign-in</td><td>SOC L2</td><td>Sign-in timeline; session_id correlation</td></tr>
+        <tr><td>Eradicate</td><td>Remove rogue DRS device registrations and PRTs; delete attacker-created inbox rules; revoke any illicit app consents/credentials</td><td>IR / IAM</td><td>Device list; inbox-rule audit; consent grants</td></tr>
+        <tr><td>Recover</td><td>Reset credentials + re-register MFA on a trusted device; confirm token binding now enforced; review Graph/SaaS activity for exfil (N4)</td><td>IR + IT</td><td>Cred reset; CAE/token-binding status</td></tr>
+        <tr><td>Harden</td><td>Roll out §12 Immediate controls tenant-wide; enable the Q1×interactive and Q4→Q5 NG-SIEM detections</td><td>Detection Eng / IAM</td><td>CA policies enabled; detections live</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Behavior</th><th>Primary</th><th>Fallback</th><th>Known Gap</th></tr></thead>
+      <tbody>
+        <tr><td>Lure / code capture</td><td>Native N5 (proxy)</td><td>—</td><td><span class="badge b-high">Gap</span> localhost paste is off-platform; near-undetectable</td></tr>
+        <tr><td>Token redemption</td><td>Q1 + N1</td><td>Q3</td><td>FP from legit automation; needs IP/ASN baselining</td></tr>
+        <tr><td>Session/token replay</td><td>Q2 / Q6 (+ N2)</td><td>—</td><td>Q6 requires Token Protection enabled to populate</td></tr>
+        <tr><td>Device-registration persistence</td><td>Q4 + N3</td><td>Q5</td><td>Bulk legit enrollment can resemble the burst pattern</td></tr>
+        <tr><td>PRT persistence</td><td>Q5</td><td>Q4</td><td>Distinguishing first-enrollment vs. rogue needs correlation</td></tr>
+        <tr><td>Objectives (mailbox/SaaS)</td><td>Native N4 (UnifiedAuditLog/Graph)</td><td>—</td><td>SaaS pivot depends on third-party log ingestion</td></tr>
+        <tr><td>Whole technique vs. endpoint EDR</td><td>—</td><td>—</td><td><span class="badge b-high">Gap</span> no meaningful endpoint signal; identity-log ingestion is mandatory</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+<pre class="code">TITLE:        ConsentFix - Entra ID OAuth Phishing / Token Theft (Hunt v0.1)
+SCOPE:        Entra ID tenant; M365 / Azure / connected SaaS; all member users
+HYPOTHESIS:   Victim completes a legit first-party-app sign-in, pastes the localhost
+              auth-code URL to an attacker who redeems it for access+refresh tokens
+              and operates from their own infra (MFA/CA bypassed). Persistence via
+              DRS device registration + PRT.
+QUERIES RUN:  Q1 non-interactive first-party token redemption (new IP)
+              Q2 single session ID across multiple IPs
+              Q3 non-interactive broad/offline scopes
+              Q4 burst DRS device-registration sequence
+              Q5 PRT issuance to new device (unbound)
+              Q6 unbound token-protection sessions
+              + Native N1-N5 (Entra sign-in/audit, Graph/UnifiedAuditLog, proxy)
+DATA SOURCES: Entra ID sign-in logs, Entra audit logs, Microsoft Graph /
+              UnifiedAuditLog, proxy/SWG  (ingested into NG-SIEM)
+FINDINGS:     &lt;pending hunt execution&gt;
+GAPS:         Code capture off-platform; CQL field tokens schema-dependent; no
+              endpoint EDR signal; Q6 needs Token Protection enabled
+ACTIONS:      Enable Token Protection + CAE; scope first-party apps to compliant
+              devices; promote Q1xinteractive + Q4-&gt;Q5 NG-SIEM detections
+OWNER:        HuntPack</pre>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-12</span><span>Initial pack: 6 CQL (Entra-log, schema-dependent) + 5 native identity hunts, NG-SIEM detection recommendations, tiered identity hardening + 4 Graph/CA playbooks, containment runbook. Identity-log-first; endpoint coverage is a documented gap. Rendered in the review-v2 standard layout (fixed left-sidebar TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon).</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.mitiga.io/blog/consentfix-oauth-phishing-explained-how-token-based-attacks-bypass-mfa-in-microsoft-entra-id">Mitiga — ConsentFix OAuth Phishing Explained</a></td><td>Full attack chain, MFA-bypass mechanics, mitigations</td><td>2026-06-12</td></tr>
+        <tr><td>1</td><td><a href="https://www.elastic.co/security-labs/entra-id-oauth-phishing-detection">Elastic Security Labs — Entra ID OAuth Phishing Detection</a></td><td>Sign-in/audit field detections, app IDs, DRS sequence, session reuse</td><td>2026-06-12</td></tr>
+        <tr><td>2</td><td><a href="https://www.obsidiansecurity.com/blog/oauth-vulnerabilities-security-teams">Obsidian Security — OAuth Vulnerabilities</a></td><td>2026 OAuth/SaaS breach context</td><td>2026-06-12</td></tr>
+        <tr><td>2</td><td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-token-protection">Microsoft — Conditional Access Token Protection</a></td><td>Token binding / CAE mitigation guidance</td><td>2026-06-12</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · ConsentFix · Generated 2026-06-12 · Defensive use only. Identity technique — detections require Entra ID sign-in + audit log ingestion into NG-SIEM, and CQL field tokens are schema-dependent; validate against your connector before deploying. Token Protection is the decisive preventive control.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>

@@ -8,6 +8,30 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 
 ## Hunts
 
+### ConsentFix — Entra ID OAuth Phishing & Token Theft
+**Lure → legit first-party-app sign-in → victim pastes the localhost auth-code URL → attacker redeems it for access + refresh tokens and operates from their own infra. MFA & most Conditional Access bypassed. Identity-log hunt — detection lives in Entra, not the endpoint.**
+**Threat:** ConsentFix (OAuth consent/auth-code phishing) · **Type:** Identity / OAuth token theft → ATO · **Severity:** ACTIVE · MFA BYPASS
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ConsentFix-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ConsentFix-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/ConsentFix-Hunt.html)
+
+---
+
+### RoguePlanet — Microsoft Defender SYSTEM Escalation Zero-Day
+**TOCTOU race in Defender's file-processing path → NTFS junction redirect → MsMpEng.exe (SYSTEM) writes/executes attacker content on fully-patched Windows 10/11. Defensive hunt & harden pack — no exploit code.**
+**Threat:** RoguePlanet · Nightmare Eclipse · **Type:** LPE / AV-abuse zero-day (RCE variant via SMB) · **Severity:** PoC PUBLIC · NO PATCH
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/RoguePlanet-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/RoguePlanet-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/RoguePlanet-Hunt.html)
+
+---
+
+### WinRAR CVE-2025-8088 — Russia-Aligned Stealer Campaigns
+**Path-traversal via NTFS ADS (patched WinRAR 7.13, Jul 2025, still exploited) → Startup-folder LNK → cmd → PowerShell → GIFTEDCROOK , plus Gamaredon's HTA→VBScript GammaLoad/GammaSteel. Defensive hunt & harden pack — no exploit code.**
+**Threat:** UAC-0226 / SHADOW-EARTH-066 · Earth Dahu / Gamaredon · **Type:** Espionage + infostealer via spearphishing · **Severity:** NATION-STATE · ITW
+
+[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/WinRAR-CVE-2025-8088-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/WinRAR-CVE-2025-8088-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/WinRAR-CVE-2025-8088-Hunt.html)
+
+---
+
 ### The Gentlemen — Ransomware Hunt & Hardening Pack
 **FortiOS exploit (CVE-2024-55591) → AD recon → BYOVD EDR-kill → self-propagating Go encryptor ( .i8p14s ). Defensive hunt & harden pack — no exploit code.**
 **Threat:** The Gentlemen · Storm-2697 · Phantom Mantis · **Type:** Ransomware · double extortion · self-propagating · **Severity:** ACTIVE RaaS
