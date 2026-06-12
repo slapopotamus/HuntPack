@@ -2,17 +2,52 @@
 
 > A growing collection of CrowdStrike CQL threat-hunting packs — each one a self-contained HTML report with the hunt hypothesis, MITRE mapping, copy-paste CQL queries, triage checklist, and hardening guidance.
 
-Every file in this repo is a standalone HTML report. Use the **Preview** link to render it in your browser via [htmlpreview.github.io](https://htmlpreview.github.io), or the **Source** link to view the raw file on GitHub.
+Reports live in [`hunts/`](hunts/) as standalone HTML files. **Browse the whole library at [slapopotamus.github.io/HuntPack](https://slapopotamus.github.io/HuntPack)** — or use the **Preview** link on any hunt below to open its rendered report (the **Source** link shows the raw file on GitHub).
 
 ---
 
 ## Hunts
 
+<!-- HUNTS_TABLE:START -->
+
+| Hunt | Type | Severity |
+| --- | --- | --- |
+| [ConsentFix — Entra ID OAuth Phishing & Token Theft](https://slapopotamus.github.io/HuntPack/hunts/ConsentFix-Hunt.html) | Identity / OAuth token theft → ATO | ACTIVE · MFA BYPASS |
+| [RoguePlanet — Microsoft Defender SYSTEM Escalation Zero-Day](https://slapopotamus.github.io/HuntPack/hunts/RoguePlanet-Hunt.html) | LPE / AV-abuse zero-day (RCE variant via SMB) | PoC PUBLIC · NO PATCH |
+| [WinRAR CVE-2025-8088 — Russia-Aligned Stealer Campaigns](https://slapopotamus.github.io/HuntPack/hunts/WinRAR-CVE-2025-8088-Hunt.html) | Espionage + infostealer via spearphishing | NATION-STATE · ITW |
+| [The Gentlemen — Ransomware Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/TheGentlemen-RansomwareHunt.html) | Ransomware · double extortion · self-propagating | ACTIVE RaaS |
+| [CVE-2026-41091 — Microsoft Defender Link-Following Elevation of Privilege](https://slapopotamus.github.io/HuntPack/hunts/CVE-2026-41091-Hunt.html) | LPE → SYSTEM · EDR tampering | CVSS 7.8 |
+| [INC Ransom — Rapid Extortion Against Professional-Services Firms](https://slapopotamus.github.io/HuntPack/hunts/INC-Ransom-Hunt.html) | Ransomware · Double extortion | HIGH URGENCY |
+| [Salt Typhoon / UAT-9244 — TernDoor · PeerTime · BruteEntry](https://slapopotamus.github.io/HuntPack/hunts/Salt-Typhoon-UAT-9244-Hunt.html) | Nation-state espionage · telecom | HIGH |
+| [CVE-2026-41089 — Windows Netlogon RCE (Domain Controller Takeover)](https://slapopotamus.github.io/HuntPack/hunts/CVE-2026-41089-Netlogon-Hunt.html) | Pre-auth RCE · Identity / AD | CVSS 9.8 |
+| [ShaiHulud — Hades Wave: PyPI Bioinformatics & Science Package Trojanization](https://slapopotamus.github.io/HuntPack/hunts/ShaiHulud-Hades-PyPI-Hunt.html) | Supply Chain Worm · Credential Stealer |  |
+| [IronWorm — npm Supply-Chain Worm HuntPack](https://slapopotamus.github.io/HuntPack/hunts/IronWorm-Hunt.html) |  |  |
+| [UNC3753 — "Silent Ransom Group" Vishing & Data-Theft Extortion HuntPack](https://slapopotamus.github.io/HuntPack/hunts/UNC3753-Hunt.html) |  |  |
+| [MuddyWater](https://slapopotamus.github.io/HuntPack/hunts/MuddyWater-Hunt.html) |  |  |
+| [SocGholish](https://slapopotamus.github.io/HuntPack/hunts/SocGholish-Hunt.html) |  |  |
+| [Qilin Ransomware - Defender Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/Qilin-Hunt.html) |  |  |
+| [LummaC2 Hunt](https://slapopotamus.github.io/HuntPack/hunts/LummaC2-Hunt.html) |  |  |
+| [Mini Shai-Hulud — Defender Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/Mini-Shai-Hulud-Hunt.html) |  |  |
+| [Amber Albatross — Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/AmberAlbatross-Hunt.html) |  |  |
+| [Drift Token — SaaS Supply-Chain OAuth Theft Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/DriftToken-SalesforceOAuthHunt.html) |  |  |
+| [APT28 PRISMEX / Operation Neusploit — Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/APT28-PRISMEX-Hunt.html) |  |  |
+| [Medusa BYOVD — Hunt Package](https://slapopotamus.github.io/HuntPack/hunts/Medusa-BYOVD-Hunt.html) |  |  |
+| [MIMICRAT / ClickFix — Hunt Package](https://slapopotamus.github.io/HuntPack/hunts/MimiCRAT-Hunt.html) |  |  |
+| [NetSupport Manager - Defender Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/NetSupportManager-Hunt.html) |  |  |
+| [Scarlet Goldfinch](https://slapopotamus.github.io/HuntPack/hunts/ScarletGoldfinch-Hunt.html) |  |  |
+| [Phantom in the Vault — Hunt Package](https://slapopotamus.github.io/HuntPack/hunts/PhantomVault-Hunt.html) |  |  |
+| [PayoutsKing](https://slapopotamus.github.io/HuntPack/hunts/PayoutsKing-Hunt.html) |  |  |
+| [QEMU Hidden-VM Abuse — Hunt Package](https://slapopotamus.github.io/HuntPack/hunts/QEMU-Hunt.html) |  |  |
+| [Operation SilentCanvas — Hunt Package](https://slapopotamus.github.io/HuntPack/hunts/SilentCanvas-Hunt.html) |  |  |
+| [Tampered Chef - Defender Hunt & Hardening Pack](https://slapopotamus.github.io/HuntPack/hunts/TamperedChef-Hunt.html) |  |  |
+
+<!-- HUNTS_TABLE:END -->
+
 ### ConsentFix — Entra ID OAuth Phishing & Token Theft
 **Lure → legit first-party-app sign-in → victim pastes the localhost auth-code URL → attacker redeems it for access + refresh tokens and operates from their own infra. MFA & most Conditional Access bypassed. Identity-log hunt — detection lives in Entra, not the endpoint.**
 **Threat:** ConsentFix (OAuth consent/auth-code phishing) · **Type:** Identity / OAuth token theft → ATO · **Severity:** ACTIVE · MFA BYPASS
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ConsentFix-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ConsentFix-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/ConsentFix-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/ConsentFix-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/ConsentFix-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/ConsentFix-Hunt.html)
 
 ---
 
@@ -20,7 +55,7 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 **TOCTOU race in Defender's file-processing path → NTFS junction redirect → MsMpEng.exe (SYSTEM) writes/executes attacker content on fully-patched Windows 10/11. Defensive hunt & harden pack — no exploit code.**
 **Threat:** RoguePlanet · Nightmare Eclipse · **Type:** LPE / AV-abuse zero-day (RCE variant via SMB) · **Severity:** PoC PUBLIC · NO PATCH
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/RoguePlanet-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/RoguePlanet-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/RoguePlanet-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/RoguePlanet-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/RoguePlanet-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/RoguePlanet-Hunt.html)
 
 ---
 
@@ -28,7 +63,7 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 **Path-traversal via NTFS ADS (patched WinRAR 7.13, Jul 2025, still exploited) → Startup-folder LNK → cmd → PowerShell → GIFTEDCROOK , plus Gamaredon's HTA→VBScript GammaLoad/GammaSteel. Defensive hunt & harden pack — no exploit code.**
 **Threat:** UAC-0226 / SHADOW-EARTH-066 · Earth Dahu / Gamaredon · **Type:** Espionage + infostealer via spearphishing · **Severity:** NATION-STATE · ITW
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/WinRAR-CVE-2025-8088-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/WinRAR-CVE-2025-8088-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/WinRAR-CVE-2025-8088-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/WinRAR-CVE-2025-8088-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/WinRAR-CVE-2025-8088-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/WinRAR-CVE-2025-8088-Hunt.html)
 
 ---
 
@@ -36,7 +71,7 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 **FortiOS exploit (CVE-2024-55591) → AD recon → BYOVD EDR-kill → self-propagating Go encryptor ( .i8p14s ). Defensive hunt & harden pack — no exploit code.**
 **Threat:** The Gentlemen · Storm-2697 · Phantom Mantis · **Type:** Ransomware · double extortion · self-propagating · **Severity:** ACTIVE RaaS
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TheGentlemen-RansomwareHunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/TheGentlemen-RansomwareHunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/TheGentlemen-RansomwareHunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/TheGentlemen-RansomwareHunt.html)
 
 ---
 
@@ -44,7 +79,7 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 **Actively exploited June 2026 Patch Tuesday zero-day. The Malware Protection Engine follows symlinks/junctions before a privileged file op, letting a local attacker reach SYSTEM. Seen in the wild in the "Nightmare Eclipse" Defender exploit wave (BlueHammer / RedSun / UnDefend), chained from compromised FortiGate SSL VPN access. Defensive hunt & harden pack — no exploit code.**
 **Type:** LPE → SYSTEM · EDR tampering · **Severity:** CVSS 7.8
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41091-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41091-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41091-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/CVE-2026-41091-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/CVE-2026-41091-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/CVE-2026-41091-Hunt.html)
 
 ---
 
@@ -52,7 +87,7 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 **RaaS double-extortion operation clustering attacks on legal & professional-services firms in 2026. Defensive hunt & harden pack — no exploit code.**
 **Threat:** INC Ransom (G1032) · **Aliases:** GOLD IONIC · Tarnished Scorpion · **Type:** Ransomware · Double extortion · **Initial access:** Edge / VPN / RMM (3 KEV CVEs) · **Severity:** HIGH URGENCY
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/INC-Ransom-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/INC-Ransom-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/INC-Ransom-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/INC-Ransom-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/INC-Ransom-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/INC-Ransom-Hunt.html)
 
 ---
 
@@ -60,175 +95,149 @@ Every file in this repo is a standalone HTML report. Use the **Preview** link to
 **China-nexus telecom espionage toolkit. Windows backdoor (TernDoor), cross-arch ELF P2P backdoor (PeerTime), and a GoLang edge-device brute-force ORB (BruteEntry). Defensive hunt & harden pack — no offensive tradecraft.**
 **Type:** Nation-state espionage · telecom · **Severity:** HIGH
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Salt-Typhoon-UAT-9244-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Salt-Typhoon-UAT-9244-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Salt-Typhoon-UAT-9244-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/Salt-Typhoon-UAT-9244-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/Salt-Typhoon-UAT-9244-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/Salt-Typhoon-UAT-9244-Hunt.html)
 
 ---
 
 ### CVE-2026-41089 — Windows Netlogon RCE (Domain Controller Takeover)
-**Pre-auth 0-click stack overflow in `netlogon.dll` → SYSTEM on any Domain Controller**
-HuntPack v0.2 for CVE-2026-41089 (CVSS 9.8, CWE-121) — a stack-based buffer overflow in the Windows Netlogon RPC service (`netlogon.dll`, `BuildSamLogonResponse`). Because every Domain Controller runs Netlogon, any reachable DC is structurally exposed; exploitation is 0-click, unauthenticated, and low-complexity. Patched 2026-05-12 (Patch Tuesday), in-the-wild ~2026-05-29. Covers 8 Falcon LogScale CQL hunts, 5 native audit-log hunts, 4 Custom IOA candidates, consolidated + machine-readable IOC appendices with a grouped IOC quick-copy grid, detection validation gates, tiered DC hardening, 3 deployable playbooks, and a containment runbook. Built from MSRC + CVE.org + NVD + CCB Belgium intel.
+**Unauthenticated 0-click stack overflow in netlogon.dll → SYSTEM on any Domain Controller. Defensive hunt & harden pack — no exploit code.**
+**Type:** Pre-auth RCE · Identity / AD · **Severity:** CVSS 9.8
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41089-Netlogon-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41089-Netlogon-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/CVE-2026-41089-Netlogon-Hunt.html)
-
----
-
-### Shai-Hulud "Descends to Hades" — PyPI Wave Hunt & Hardening Pack
-**Cross-ecosystem supply-chain worm / malicious PyPI packages / Python `.pth` → Bun payload**
-HuntPack v0.2 for the Shai-Hulud "Hades" PyPI wave — covers the Python `.pth` startup hook that bootstraps a Bun runtime from a pinned GitHub release, the `.bun_ran` execution sentinel, CI/CD and EDR sandbox-evasion checks, credential-file sweeps (`.aws/credentials`, `.npmrc`, SSH keys), C2 exfil domains, GitHub dead-drop markers, 13 Falcon LogScale CQL hunts with one-click "Open in Falcon" deep-links, Custom IOA candidates, detection validation gates, a grouped IOC quick-copy panel (hashes, network, file paths, 25 malicious PyPI packages / 43 version pins, hunt strings, crypto keys), and deployable hardening playbooks.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ShaiHulud-Hades-PyPI-Hunt.html) · [IOC Quick-Copy ↗](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ShaiHulud-Hades-PyPI-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/ShaiHulud-Hades-PyPI-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/CVE-2026-41089-Netlogon-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/CVE-2026-41089-Netlogon-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/CVE-2026-41089-Netlogon-Hunt.html)
 
 ---
 
-### IronWorm — npm Supply-Chain Worm Hunt
-**Rust credential-stealer & self-replicating npm worm / preinstall ELF / eBPF rootkit**
-Behavior-first HuntPack for IronWorm — a custom Rust implant distributed through 37 trojanized npm package versions published from a single compromised maintainer account. It executes via a malicious `preinstall` script (`tools/setup`, with a `.github/scripts/precheck` variant) the moment `npm install` runs — a UPX-stubbed, string-encrypted ELF that fires before dependency resolution. Once running it sweeps 86 environment variables and 20+ credential file paths (AWS/GCP/Azure, npm, GitHub, SSH, Docker, Vault, Kubernetes, and the 2026 AI-provider keys — Anthropic, OpenAI, Gemini, Cohere, Mistral, Groq, Perplexity, xAI), injects a JavaScript hook into the Exodus desktop wallet to steal the password and seed phrase, loads an eBPF kernel rootkit to hide processes/sockets and resist `ptrace`, bootstraps Tor and beacons to `/api/agent` for tasking, and self-replicates — abusing npm Trusted Publishing (OIDC token exchange) in CI to re-publish trojanized packages. Covers Falcon LogScale CQL hunts, native npm/GitHub/CI audit-log checks, Custom IOA guidance, machine-readable IOC appendices, validation gates, and hardening.
+### ShaiHulud — Hades Wave: PyPI Bioinformatics & Science Package Trojanization
+**Supply chain worm targeting 19 scientific PyPI packages — credential theft, CI/CD pivot, & SLSA provenance forgery**
+**Threat:** Shai-Hulud / Hades (TeamPCP) · **Type:** Supply Chain Worm · Credential Stealer
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/IronWorm-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/IronWorm-Hunt.html)
-
----
-
-### UNC3753 — "Silent Ransom Group" Hunt
-**Vishing / data-theft extortion (Luna Moth / Chatty Spider) — RMM abuse & rapid exfil**
-Behavior-first HuntPack for UNC3753 (aka Luna Moth, Chatty Spider, Silent Ransom Group) — a financially motivated cluster that phones employees posing as internal IT, talks them onto a screen-share, plants a commercial RMM agent, then enumerates document stores and exfiltrates sensitive files, often within a single business day (with in-person USB theft as a fallback). Hunt focus: unauthorized RMM / remote-support tooling, curl→msiexec install chains, Rclone/WinSCP egress, outbound SSH, USB mass-storage, and known C2 IPs — with Falcon LogScale CQL hunts, triage checklist, and hardening.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/UNC3753-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/UNC3753-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/ShaiHulud-Hades-PyPI-Hunt.html) · [IOC Quick-Copy ↗](https://slapopotamus.github.io/HuntPack/hunts/ShaiHulud-Hades-PyPI-Hunt.html#s10) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/ShaiHulud-Hades-PyPI-Hunt.html)
 
 ---
 
-### MuddyWater — Defender Hunt & Hardening Pack
-**Iranian MOIS nation-state APT / PowerShell + RMM abuse / espionage & persistence**
-Behavior-first HuntPack for MuddyWater (Iran MOIS, active since 2017) targeting government, telecom, oil & gas, defense, and finance across the Middle East, Asia, Europe, and North America. Covers heavy PowerShell at every kill-chain stage, systematic RMM-tool abuse (Atera, SimpleHelp, ScreenConnect, N-able, Action1, PDQ, Level) delivered from free file-sharing services, compromised-mailbox spearphishing, GoogleUpdate.exe DLL sideloading, and recent backdoors (BugSleep, Phoenix v4, UDPGangster, MuddyViper via the "Fooder" reflective loader, VAX One) — with Falcon LogScale CQL hunts, Custom IOA guidance, validation gates, and hardening.
+### IronWorm — npm Supply-Chain Worm HuntPack
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/MuddyWater-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/MuddyWater-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/IronWorm-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/IronWorm-Hunt.html)
 
 ---
 
-### SocGholish — Defender Hunt & Hardening Pack
-**JavaScript loader / fake browser-update drive-by (Mustard Tempest / GOLD PRELUDE → Evil Corp)**
-Behavior-first HuntPack for SocGholish (FakeUpdates) — a JavaScript-based loader delivered via compromised websites posing as browser updates. Operated by Mustard Tempest (GOLD PRELUDE), with access sold to Indrik Spider (Evil Corp) for ransomware deployment; ranked #8 in the 2026 Red Canary Threat Detection Report. Covers drive-by compromise and fake-update lures, JavaScript/WScript execution, recon and second-stage delivery, AD-targeted follow-on, RansomHub-via-MintsLoader handoff, Falcon LogScale CQL hunts, Custom IOA guidance, validation gates, and hardening.
+### UNC3753 — "Silent Ransom Group" Vishing & Data-Theft Extortion HuntPack
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/SocGholish-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/SocGholish-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/UNC3753-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/UNC3753-Hunt.html)
 
 ---
 
-### Qilin Ransomware Hunt
-**Ransomware-as-a-Service / Veeam exploitation / RMM and ESXi impact**
-Hunt pack for Red Canary's Qilin ransomware coverage and related Cybernews, Sophos, Trend Micro, Microsoft, HHS, CIS/MS-ISAC, Halcyon, and CrowdStrike enrichment - covers Veeam CVE-2023-27532/CVE-2024-40711 precursors, Admon admin creation, GPO-based Chrome credential theft, ScreenConnect/MSP pivoting, recovery inhibition, ESXi/Linux behavior, IOC action guidance, Falcon LogScale CQL hunts, Custom IOA candidates, validation gates, hardening, and containment.
+### MuddyWater
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Qilin-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Qilin-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/MuddyWater-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/MuddyWater-Hunt.html)
+
+---
+
+### SocGholish
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/SocGholish-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/SocGholish-Hunt.html)
+
+---
+
+### Qilin Ransomware - Defender Hunt & Hardening Pack
+**Hunt package for Qilin ransomware activity with Red Canary's 2026 ransomware trend page as the primary source. It separates Red Canary-observed facts from enrichment and adjacent campaign pivots, then turns them into Falcon LogScale CQL, Falcon Custom IOA candidates, IOC action guidance, validation gates, hardening, and containment playbooks.**
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/Qilin-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/Qilin-Hunt.html)
 
 ---
 
 ### LummaC2 Hunt
-**Windows infostealer / fake CAPTCHA delivery / browser credential theft**
-Defender hunt package for Red Canary's LummaC2 tracking and related Microsoft, FBI/CISA, CIS, MITRE, and Bitdefender enrichment - covers mshta-to-PowerShell delivery, fodhelper and OpenWith UAC bypass pivots, Chrome remote-debugging abuse, browser credential theft, staging artifacts, C2 infrastructure, Falcon LogScale CQL hunts, Custom IOA guidance, IOC action handling, validation gates, hardening, and containment.
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/LummaC2-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/LummaC2-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/LummaC2-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/LummaC2-Hunt.html)
 
 ---
 
 ### Mini Shai-Hulud — Defender Hunt & Hardening Pack
-**Active npm/PyPI supply-chain worm (TeamPCP / CVE-2026-45321)**
-Refreshed defender hunt package for the May 2026 Mini Shai-Hulud campaign — covers CrowdStrike LogScale CQL hunts, native GitHub/npm/PyPI/cloud audit-log checks, confirmed artifacts, C2/payload infrastructure, package-manager lifecycle execution, developer-secret access, GitHub Actions workflow tampering, dead-drop repository creation, CI runner exposure, IMDS credential-harvest behavior, Custom IOA guidance, machine-readable IOC appendices, detection validation gates, and deployable hardening playbooks.
+**Refreshed hunt package for the May 2026 Mini Shai-Hulud npm/PyPI worm (TeamPCP, CVE-2026-45321). v5.1 refreshes the hunt pack with native audit-log hunts, machine-readable IOC appendices, validation gates, telemetry gaps, the May 19 Socket-reported @antv wave, the t.m-kosche.com exfil endpoint, updated IOC and package pivots, and reviewed Falcon LogScale CQL plus Custom IOA guidance for confirmed artifacts, C2/payload infrastructure, package-manager lifecycle execution, developer-secret access, GitHub Actions workflow tampering, dead-drop repository creation, CI runner exposure, and IMDS credential-harvest behavior.**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Mini-Shai-Hulud-Hunt.html)
-
----
-
-### Amber Albatross Hunt
-**Pyarmor-obfuscated PyInstaller stealer (Red Canary 2026 TDR #1)**
-PUP-and-fake-PDF-utility delivery → Base64-encoded PowerShell → Pyarmor PyInstaller binary that runs only with `--safetorun --channel=<hex>`. Covers the 11 abused EV code-signing thumbprints, 12 published C2 domains, Chrome `CloudManagementEnrollmentToken` recon, browser-profile theft, and a honey-token canary recipe.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/AmberAlbatross-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/AmberAlbatross-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/Mini-Shai-Hulud-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/Mini-Shai-Hulud-Hunt.html)
 
 ---
 
-### Drift Token — Salesforce OAuth Hunt
-**SaaS supply-chain OAuth theft (UNC6395 / Salesloft Drift)**
-Hunt for abuse of stolen Drift OAuth tokens against Salesforce orgs — covers token replay, suspicious Bulk API exports, and downstream credential pivots.
+### Amber Albatross — Hunt & Hardening Pack
+**Red Canary–tracked Windows activity cluster. PUP installer / fake-PDF-utility lure → InnoSetup → Base64-encoded PowerShell → Pyarmor-obfuscated PyInstaller stealer requiring --safetorun --channel=<hex> to run. 11 abused EV code-signing certificates. Switchable Falcon cloud for shareable deep-links.**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/DriftToken-SalesforceOAuthHunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/DriftToken-SalesforceOAuthHunt.html)
-
----
-
-### APT28 — PRISMEX Hunt
-**Russian GRU webmail / cloud mailbox compromise activity**
-Detections for APT28 / Fancy Bear PRISMEX-aligned tradecraft — credential harvesting, OAuth abuse, and lateral movement against M365 and Exchange.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/APT28-PRISMEX-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/APT28-PRISMEX-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/AmberAlbatross-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/AmberAlbatross-Hunt.html)
 
 ---
 
-### Medusa — BYOVD Hunt
-**Medusa ransomware bring-your-own-vulnerable-driver activity**
-Detections for Medusa's signature BYOVD pattern — vulnerable driver drops, kernel-level EDR tamper, and the kill-chain that follows.
+### Drift Token — SaaS Supply-Chain OAuth Theft Hunt & Hardening Pack
+**UNC6395 / Salesloft Drift / Salesforce data-theft campaign (Aug 8–18, 2025) & the secondary breach wave it kicked off (AWS keys, Snowflake tokens, Slack tokens harvested from support cases). Switchable Falcon cloud for shareable deep-links.**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/Medusa-BYOVD-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/Medusa-BYOVD-Hunt.html)
-
----
-
-### MimiCRAT Hunt
-**Mimikatz-style credential theft + RAT activity**
-Hunt for MimiCRAT tradecraft — LSASS access, credential dumping, and the persistent remote-access tooling that ships with it.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/MimiCRAT-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/MimiCRAT-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/DriftToken-SalesforceOAuthHunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/DriftToken-SalesforceOAuthHunt.html)
 
 ---
 
-### NetSupport Manager Hunt
-**Abused legitimate RMM / remote access tool**
-Hunt pack for Red Canary's NetSupport Manager tracking and related Scarlet Goldfinch, SocGholish, ClickFix, and RMM-abuse delivery chains — covers suspicious `client32.exe` execution, renamed NetSupport binaries, non-standard install paths, attacker-controlled configuration files, persistence, gateway/C2 traffic, Custom IOA guidance, validation gates, and RMM hardening playbooks.
+### APT28 PRISMEX / Operation Neusploit — Hunt & Hardening Pack
+**CVE-2026-21509 (Office RTF RCE) → PrismexLoader / PixyNetLoader → CovenantGrunt over filen.io. NotDoor Outlook backdoor for long-haul persistence. Switchable Falcon cloud for shareable deep-links.**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/NetSupportManager-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/NetSupportManager-Hunt.html)
-
----
-
-### Scarlet Goldfinch Hunt
-**ClickFix / SmartApeSG / NetSupport Manager delivery**
-Hunt pack for Red Canary's Scarlet Goldfinch tracking and related Blumira, SANS ISC, ThreatDown, Proofpoint, and Team Cymru enrichment - covers fake CAPTCHA and ClickFix lures, cmd delayed-expansion and caret obfuscation, curl/mshta/msiexec/finger/forfiles LOLBAS execution, WMI process creation, persistence, NetSupport Manager and Remcos handoff, IOC handling, Custom IOA guidance, validation gates, hardening, and containment.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/ScarletGoldfinch-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/ScarletGoldfinch-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/APT28-PRISMEX-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/APT28-PRISMEX-Hunt.html)
 
 ---
 
-### PhantomVault Hunt
-**Credential-vault / secrets-manager abuse**
-Detections for PhantomVault-class attacks against Windows Credential Manager, DPAPI, and browser credential stores.
+### Medusa BYOVD — Hunt Package
+**Medusa ransomware (operator: Spearwing) using ABYSSWORKER · POORTRY · KillAV driver family to terminate EDR/AV processes prior to gaze.exe encryption**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/PhantomVault-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/PhantomVault-Hunt.html)
-
----
-
-### PayoutsKing Hunt
-**Ransomware / QEMU evasion / remote access and exfiltration**
-Behavior-first HuntPack for PayoutsKing ransomware and associated GOLD ENCOUNTER/STAC4713 intrusion tradecraft — covers QEMU-based covert access, suspicious scheduled tasks, Quick Assist and ScreenConnect abuse, AD credential staging, Rclone/SFTP exfiltration, recovery inhibition, Falcon LogScale CQL hunts, Custom IOA candidates, IOC action handling, validation gates, hardening, and containment.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/PayoutsKing-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/Medusa-BYOVD-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/Medusa-BYOVD-Hunt.html)
 
 ---
 
-### QEMU Hunt
-**Living-off-the-land virtualization abuse**
-Hunts for QEMU being weaponized for evasion — adversary-controlled VMs used to bypass EDR, hide C2, and stage payloads outside the host's visibility.
+### MIMICRAT / ClickFix — Hunt Package
+**ClickFix clipboard PowerShell → ETW/AMSI bypass → Lua 5.4.7 loader → Meterpreter shellcode → MIMICRAT native-C++ beacon (mimics multiple C2 frameworks) · Generated 2026-05-12 · Source: Elastic Security Labs**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/QEMU-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/QEMU-Hunt.html)
-
----
-
-### SilentCanvas Hunt
-**Stealthy browser / Canvas-based fingerprinting & exfil**
-Detections for SilentCanvas-style covert-channel activity inside browsers — fingerprinting, sandbox escapes, and data smuggling via rendering APIs.
-
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/SilentCanvas-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/SilentCanvas-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/MimiCRAT-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/MimiCRAT-Hunt.html)
 
 ---
 
-### Tampered Chef Hunt
-**Signed fake productivity apps with steganographic / homoglyph command delivery**
-Hunt pack for Red Canary's Tampered Chef tracking and adjacent TamperedChef-style malvertising clusters — covers RecipeLister, Calendaromatic, AppSuite-style PDF tools, code-signing pivots, Chrome/search hijacking, suspicious Electron/NeutralinoJS execution, browser credential-store access, persistence, Custom IOA guidance, and hardening playbooks.
+### NetSupport Manager - Defender Hunt & Hardening Pack
+**Hunt package for Red Canary's NetSupport Manager threat page and related Scarlet Goldfinch, SocGholish, ClickFix, phishing, and RMM-abuse reporting. Focuses on suspicious NetSupport Client deployments, renamed client32 binaries, non-standard installation paths, attacker-controlled configuration files, persistence, remote-control traffic, and delivery chains using JavaScript, PowerShell, curl, msiexec, mshta, finger, forfiles, WMI, archives, and scheduled tasks.**
 
-[Preview](https://htmlpreview.github.io/?https://github.com/slapopotamus/HuntPack/blob/main/TamperedChef-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/TamperedChef-Hunt.html)
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/NetSupportManager-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/NetSupportManager-Hunt.html)
+
+---
+
+### Scarlet Goldfinch
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/ScarletGoldfinch-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/ScarletGoldfinch-Hunt.html)
+
+---
+
+### Phantom in the Vault — Hunt Package
+**REF6598 · Obsidian Shell-Commands plugin abuse → PhantomPull loader → PhantomPulse RAT (Windows + macOS) · Blockchain-based C2 dead-drop · Generated 2026-05-12 · Source: Elastic Security Labs**
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/PhantomVault-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/PhantomVault-Hunt.html)
+
+---
+
+### PayoutsKing
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/PayoutsKing-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/PayoutsKing-Hunt.html)
+
+---
+
+### QEMU Hidden-VM Abuse — Hunt Package
+**Payouts King / STAC4713 & STAC3725 · qemu-system-x86_64.exe used as stealth backdoor · Generated 2026-05-13 · Source: Sophos**
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/QEMU-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/QEMU-Hunt.html)
+
+---
+
+### Operation SilentCanvas — Hunt Package
+**JPEG-extension PowerShell loader → trojanized ConnectWise ScreenConnect · Generated 2026-05-12 · Source: Cyfirma**
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/SilentCanvas-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/SilentCanvas-Hunt.html)
+
+---
+
+### Tampered Chef - Defender Hunt & Hardening Pack
+**CrowdStrike Falcon LogScale hunt package for Red Canary's Tampered Chef tracking: signed fake productivity applications such as RecipeLister and Calendaromatic that hide JavaScript command content inside legitimate-looking API responses, manipulate Chrome/search behavior, and overlap with broader TamperedChef-style malvertising clusters distributing PDF tools, NeutralinoJS/Electron apps, RATs, stealers, and browser hijackers.**
+
+[Preview](https://slapopotamus.github.io/HuntPack/hunts/TamperedChef-Hunt.html) · [Source](https://github.com/slapopotamus/HuntPack/blob/main/hunts/TamperedChef-Hunt.html)
 
 ---
 
