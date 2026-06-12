@@ -1,6 +1,6 @@
 # HuntPack
 
-> A growing collection of CrowdStrike CQL threat-hunting packs — each one a self-contained HTML report with the hunt hypothesis, MITRE mapping, copy-paste CQL queries, triage checklist, and hardening guidance.
+> A growing library of CrowdStrike CQL threat-hunting packs. Each one is a self-contained, copy-paste playbook for a single threat, providing a hunt hypothesis, MITRE ATT&CK mapping, ready-to-run queries, triage steps, and hardening guidance to take you from initial detection to closing the gap.
 
 Reports live in [`hunts/`](hunts/) as standalone HTML files. **Browse the whole library at [slapopotamus.github.io/HuntPack](https://slapopotamus.github.io/HuntPack)** — or use the **Preview** link on any hunt below to open its rendered report (the **Source** link shows the raw file on GitHub).
 
