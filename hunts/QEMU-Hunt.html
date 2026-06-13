@@ -2,930 +2,600 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>QEMU Hidden-VM Abuse — Hunt Package</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QEMU Hidden-VM Evasion (STAC4713 / STAC3725) — HuntPack v0.3</title>
 <style>
-  :root {
-    --bg: #0f1419;
-    --panel: #1a1f29;
-    --panel-2: #232936;
-    --border: #2d3543;
-    --text: #d4d7dd;
-    --muted: #8b95a5;
-    --accent: #f43f5e;
-    --accent-2: #5eb3ff;
-    --good: #6dd178;
-    --warn: #ffc857;
-    --bad: #ff5d6c;
-    --code-bg: #0a0d12;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    margin: 0;
-    padding: 0;
-    line-height: 1.55;
-  }
-  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
-  header {
-    border-bottom: 2px solid var(--accent);
-    padding-bottom: 16px;
-    margin-bottom: 32px;
-  }
-  h1 { margin: 0 0 4px; font-size: 28px; color: var(--accent); }
-  .subtitle { color: var(--muted); font-size: 14px; }
-  h2 {
-    color: var(--accent-2);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 6px;
-    margin-top: 40px;
-    font-size: 22px;
-  }
-  h3 { color: var(--accent); margin-top: 28px; font-size: 16px; }
-  h4 { color: var(--text); margin: 16px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .brief {
-    background: var(--panel);
-    border-left: 4px solid var(--accent);
-    padding: 16px 20px;
-    border-radius: 4px;
-    margin-bottom: 24px;
-  }
-  .brief ul { margin: 8px 0; padding-left: 20px; }
-  .brief li { margin: 4px 0; }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  .badge-critical { background: var(--bad); color: #fff; }
-  .badge-high { background: var(--warn); color: #000; }
-  .badge-medium { background: var(--accent-2); color: #000; }
-  .badge-low { background: var(--muted); color: #000; }
-  .badge-good { background: var(--good); color: #000; }
-  .query-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
-  .query-header {
-    background: var(--panel-2);
-    padding: 10px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-    font-size: 14px;
-  }
-  .query-meta {
-    padding: 8px 14px;
-    background: rgba(94, 179, 255, 0.06);
-    font-size: 12px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  .query-meta strong { color: var(--text); }
-  pre {
-    margin: 0;
-    padding: 14px;
-    background: var(--code-bg);
-    color: #d4d7dd;
-    font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
-    font-size: 12.5px;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre;
-    tab-size: 2;
-  }
-  .copy-btn {
-    background: var(--accent);
-    color: #000;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: background 0.15s;
-  }
-  .copy-btn:hover { background: #ff6e85; }
-  .copy-btn.copied { background: var(--good); }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 12px 0;
-    font-size: 13px;
-  }
-  th, td {
-    text-align: left;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-  th {
-    background: var(--panel-2);
-    color: var(--accent-2);
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  tr:hover td { background: rgba(94, 179, 255, 0.04); }
-  code {
-    background: var(--code-bg);
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-family: "JetBrains Mono", Consolas, monospace;
-    font-size: 12px;
-    color: var(--accent);
-  }
-  .ioc-section { margin: 16px 0; }
-  .toc {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px 20px;
-    margin-bottom: 32px;
-  }
-  .toc h4 { margin-top: 0; }
-  .toc ul { margin: 0; padding-left: 20px; column-count: 2; column-gap: 24px; }
-  .toc a { color: var(--accent-2); text-decoration: none; font-size: 13px; }
-  .toc a:hover { text-decoration: underline; }
-  .callout {
-    background: rgba(244, 63, 94, 0.08);
-    border-left: 3px solid var(--accent);
-    padding: 12px 16px;
-    margin: 16px 0;
-    border-radius: 4px;
-    font-size: 13px;
-  }
-  .callout-warn {
-    background: rgba(255, 200, 87, 0.08);
-    border-left-color: var(--warn);
-  }
-  ul.harden { margin: 6px 0 16px; padding-left: 22px; }
-  ul.harden li { margin: 6px 0; font-size: 14px; }
-  .ioa-block {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px 18px;
-    margin: 14px 0;
-  }
-  .ioa-block h4 { margin-top: 0; color: var(--accent); text-transform: none; letter-spacing: 0; font-size: 15px; }
-  .meta-grid {
-    display: grid;
-    grid-template-columns: 130px 1fr;
-    gap: 4px 12px;
-    font-size: 13px;
-    margin: 8px 0;
-  }
-  .meta-grid dt { color: var(--muted); }
-  .meta-grid dd { margin: 0; }
-  footer {
-    margin-top: 60px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 12px;
-    text-align: center;
-  }
-  .gap { color: var(--bad); font-weight: 600; }
-  .partial { color: var(--warn); }
-  .good-text { color: var(--good); font-weight: 600; }
+:root {
+  --bg: #0d1117; --surface: #0a1a0f; --surface2: #102818; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9ca3af; --accent: #7ee787; --accent-dim: rgba(126,231,135,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #3a5a40; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #07210f 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
 </style>
 </head>
 <body>
-<div class="container">
 
-<header>
-  <h1>QEMU Hidden-VM Abuse &mdash; Hunt Package</h1>
-  <div class="subtitle">Payouts King / STAC4713 &amp; STAC3725 &middot; qemu-system-x86_64.exe used as stealth backdoor &middot; Generated 2026-05-13 &middot; Source: <a href="https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery" style="color:var(--accent-2)">Sophos</a></div>
-</header>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
 
-<div class="toc">
-  <h4>Contents</h4>
-  <ul>
-    <li><a href="#writeup">Threat Writeup Summary</a></li>
-    <li><a href="#brief">Hunt Brief</a></li>
-    <li><a href="#queries">CQL Hunt Queries (14)</a></li>
-    <li><a href="#iocs">IOC Blocklists</a></li>
-    <li><a href="#ioas">Custom IOA Rules</a></li>
-    <li><a href="#hardening">Hardening Recommendations</a></li>
-    <li><a href="#coverage">Detection Coverage Map</a></li>
-    <li><a href="#priority">Prioritization &amp; Risk</a></li>
-    <li><a href="#summary">Hunt Summary Ticket</a></li>
-  </ul>
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">QEMU Hidden-VM<br>STAC4713 / STAC3725</div>
+    <div class="version">v0.3 · 2026-06-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>QEMU Hidden-VM Evasion — STAC4713 / STAC3725</h1>
+  <div class="subtitle">Threat actors (Sophos clusters <strong>STAC4713</strong> and <strong>STAC3725</strong>) deploy a portable <strong>QEMU</strong> hypervisor on a compromised Windows host and run a <strong>hidden virtual machine</strong> — a lightweight Linux/backdoor guest that proxies C2 and runs tooling <em>outside</em> the host EDR's visibility. The same VM-as-evasion playbook cross-links the <a href="PayoutsKing-Hunt.html">PayoutsKing</a> activity. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">QEMU hidden-VM evasion · STAC4713 / STAC3725</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH · EDR-BLINDSPOT TECHNIQUE</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Defense evasion · rogue hypervisor · C2 proxy</div></div>
+    <div class="meta-item"><div class="mk">Tooling</div><div class="mv">Portable QEMU (qemu-system-*.exe) + guest image</div></div>
+    <div class="meta-item"><div class="mk">Cross-link</div><div class="mv"><a href="PayoutsKing-Hunt.html">PayoutsKing</a> (same hidden-VM playbook)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
 </div>
 
-<section id="writeup">
-<h2>Threat Writeup Summary</h2>
-<div class="brief">
-  <p style="margin-top:0"><strong>Source:</strong> Sophos X-Ops &mdash; <em>QEMU abused to evade detection and enable ransomware delivery</em></p>
-  <p><strong>URL:</strong> <a href="https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery" style="color:var(--accent-2);word-break:break-all">https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery</a></p>
-
-  <h4>Campaign Overview</h4>
-  <p style="font-size:14px">Sophos X-Ops has tracked two related intrusion sets &mdash; <strong>STAC4713</strong> (Payouts King ransomware, attributed to GOLD ENCOUNTER, active since Nov&nbsp;2025) and <strong>STAC3725</strong> (CitrixBleed2-led intrusions, active since Feb&nbsp;2026) &mdash; that both abuse the open-source <strong>QEMU</strong> hardware emulator to launch hidden Linux virtual machines on compromised Windows hosts. The VM acts as a covert toolchain platform: AdaptixC2, Havoc, Impacket, BloodHound, Kerbrute, NetExec, Chisel, Rclone, and other offensive tooling all execute inside Alpine Linux guests &mdash; <strong>outside the visibility of any host-based EDR agent</strong>. The host sees only one signed-binary process: <code>qemu-system-x86_64.exe</code>.</p>
-
-  <h4>The Attack Chain (Step-by-Step)</h4>
-  <ol style="font-size:14px;padding-left:22px">
-    <li><strong>Initial Access:</strong> Either (a) exposed SonicWall SSL-VPN without MFA, (b) <strong>CVE-2025-26399</strong> SolarWinds Web Help Desk RCE, or (c) <strong>CVE-2025-5777</strong> (CitrixBleed2) NetScaler memory disclosure leaking session tokens.</li>
-    <li><strong>Foothold:</strong> Stage a ZIP (<code>an.zip</code>) containing a dropper (<code>an.exe</code>) plus a ScreenConnect MSI installer. <code>an.exe</code> creates the service <code>AppMgmt</code> and a rogue local admin (<code>CtxAppVCOMService</code>).</li>
-    <li><strong>RMM Persistence:</strong> Install ConnectWise ScreenConnect via MSI &mdash; relay points to attacker-controlled <code>vtps.us</code>. ScreenConnect = signed, well-known RMM &mdash; blends with legitimate IT traffic.</li>
-    <li><strong>QEMU Stage:</strong> Download <code>qemu_custom.zip</code> containing <code>qemu-system-x86_64.exe</code> and a pre-built Alpine Linux disk image. STAC4713 disguises the disk image as <code>vault.db</code> or <code>bisrv.dll</code> to defeat extension-based scanning; STAC3725 uses <code>custom.qcow2</code>.</li>
-    <li><strong>Stealth Boot:</strong> A scheduled task named <strong>"TPMProfiler"</strong> launches QEMU under SYSTEM with <code>-display none</code> / <code>-nographic</code> &mdash; no GUI, no console, no taskbar entry. QEMU forwards a host port (<code>32567</code> or <code>22022</code>) to guest port <code>22</code>.</li>
-    <li><strong>Reverse SSH Tunnel:</strong> Inside the VM, BusyBox SSH (or Chisel) initiates an outbound reverse tunnel to attacker SSH listeners at <code>74.242.216.76</code>, <code>194.110.172.152</code>, <code>98.81.138.214</code>, or <code>158.158.0.165</code>. WireGuard with <code>wg-obfuscator</code> wraps the traffic to defeat protocol fingerprinting.</li>
-    <li><strong>Post-Exploitation (inside VM, invisible to EDR):</strong> AdaptixC2 (STAC4713) or Havoc (STAC3725 &mdash; sideloaded via <code>ADNotificationManager.exe</code> + <code>vcruntime140_1.dll</code>). Operators run Impacket, NetExec, BloodHound, Kerbrute, Coercer, KrbRelayx against the internal network.</li>
-    <li><strong>Credential Theft:</strong> WDigest registry tweak to force plaintext storage. Volume Shadow Copy abuse to dump <code>NTDS.dit</code>, <code>SAM</code>, <code>SYSTEM</code> hives. Browser cookie/credential extraction via <code>cookie_exporter.exe</code>.</li>
-    <li><strong>BYOVD &amp; AV Evasion:</strong> Vulnerable K7 Security kernel driver <code>K7RKScan_1516.sys</code> loaded for AV/EDR tampering. FTK Imager and Defender exclusion edits prep the host for ransomware staging.</li>
-    <li><strong>Ransomware Deployment (STAC4713):</strong> Payouts King ransomware pushed laterally over SMB; exfiltration via Rclone over the WireGuard tunnel before encryption.</li>
-  </ol>
-
-  <h4>Why It Matters</h4>
-  <ul style="font-size:14px">
-    <li><strong>The VM is an EDR blind spot.</strong> Falcon (and every other host-based agent) cannot inspect processes, network sockets, or file I/O <em>inside</em> a QEMU guest. The whole toolkit is invisible.</li>
-    <li><strong>One signed binary hides the entire campaign.</strong> Defenders see <code>qemu-system-x86_64.exe</code> &mdash; an open-source, legitimately signed emulator &mdash; running as SYSTEM. Block-listing QEMU is the only real control.</li>
-    <li><strong>Disk images masquerade as ordinary files.</strong> A 2&nbsp;GB <code>vault.db</code> or <code>bisrv.dll</code> on disk doesn&rsquo;t flag content scanners; only file-magic / size heuristics catch it.</li>
-    <li><strong>Reverse SSH + WireGuard + obfuscator defeats DPI.</strong> Egress controls that allow outbound TCP/443 or TCP/22 to arbitrary destinations will pass this traffic.</li>
-    <li><strong>The TTP is generalizing.</strong> Beyond Payouts King, the same pattern has been reused with Havoc C2 (STAC3725) and earlier Kaspersky-documented data-exfiltration cases &mdash; expect more actors to copy it.</li>
-  </ul>
-</div>
-</section>
-
-<section id="brief">
-<h2>Hunt Brief</h2>
-<div class="brief">
-  <ul>
-    <li><strong>Threat:</strong> QEMU Hidden-VM Abuse (STAC4713 / Payouts King &amp; STAC3725) <span class="badge badge-critical">Critical Severity</span></li>
-    <li><strong>Summary:</strong> Adversaries deploy <code>qemu-system-x86_64.exe</code> as a SYSTEM-level scheduled task to boot a hidden Alpine Linux VM containing the full offensive toolkit. The VM establishes a reverse-SSH/WireGuard tunnel and runs C2 agents (AdaptixC2, Havoc) entirely outside EDR visibility. Used as a delivery platform for Payouts King ransomware and broad credential-theft operations.</li>
-    <li><strong>Affected:</strong> Internet-facing Windows servers running SonicWall SSL-VPN (no MFA), SolarWinds Web Help Desk (CVE-2025-26399), Citrix NetScaler (CVE-2025-5777). Lateral movement targets any Windows endpoint reachable over SMB.</li>
-    <li><strong>Actor(s):</strong> GOLD ENCOUNTER (Payouts King &mdash; STAC4713); attribution pending for STAC3725.</li>
-    <li><strong>CISA KEV:</strong> Yes &mdash; CVE-2025-5777 (CitrixBleed2) and CVE-2025-26399 are both listed.</li>
-  </ul>
-  <h4>Key IOCs at a Glance</h4>
-  <ul>
-    <li>Binary: <code>qemu-system-x86_64.exe</code> &mdash; SHA256 <code>a65f0144101d93656c5f9ad445b3393336e1f295a838351aeca6332c0949b463</code></li>
-    <li>VM disk images: <code>vault.db</code>, <code>bisrv.dll</code>, <code>custom.qcow2</code></li>
-    <li>Scheduled task: <code>TPMProfiler</code></li>
-    <li>Service / rogue account: <code>AppMgmt</code> service &middot; <code>CtxAppVCOMService</code> local admin</li>
-    <li>SSH C2 IPs: <code>144.208.127.190</code>, <code>74.242.216.76</code>, <code>194.110.172.152</code>, <code>98.81.138.214</code>, <code>158.158.0.165</code></li>
-    <li>Host port-forwards: TCP <code>32567</code> / <code>22022</code> &rarr; guest <code>22</code></li>
-    <li>ScreenConnect relay domain: <code>vtps.us</code></li>
-    <li>BYOVD driver: <code>K7RKScan_1516.sys</code></li>
-    <li>DLL sideload pair: <code>ADNotificationManager.exe</code> + <code>vcruntime140_1.dll</code></li>
-  </ul>
-</div>
-</section>
-
-<section id="queries">
-<h2>CrowdStrike Hunt Queries</h2>
-<div class="callout">Every behavioral query includes false-positive notes. Run high-confidence IOC sweeps (Hunts 1, 2, 3) first &mdash; any hit on these is high-confidence TP. Behavioral queries should be reviewed for tuning before relying on them.</div>
-
-<!-- HUNT 1 -->
-<div class="query-card">
-  <div class="query-header">Hunt 1 &mdash; IOC Sweep: Known SHA256 / MD5 Hashes <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> N/A (IOC) &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: QEMU Hidden-VM Abuse - Known SHA256 hashes from Sophos report
-// HYPOTHESIS: If STAC4713/STAC3725 has touched our fleet, the documented sample hashes will appear in process or PE-write events
-// FP RISK: Low - exact hash match
-// FP NOTES: None expected; any hit is high-confidence TP
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|ImageHash/
-| in(field=SHA256HashData, values=[
-    "a65f0144101d93656c5f9ad445b3393336e1f295a838351aeca6332c0949b463",
-    "7ae413b76424508055154ee262c7567705dc1ac00607f5ac2e43d032221b34b3",
-    "f3194018d60645e43afabac33ceb4e852f95241b410cd726b1c40e3021589937",
-    "c6b848c6a61685724fa9e2b3f6e3a118323ee0c165d1aa8c8a574205a4c4be59",
-    "61c14c01460810f6f5f760daf8edbda82eea908b1a95052f8e0f9c4162c2900c",
-    "3a33b5bceb1eba4cc749534b03dd245f965d8f200aa02392baad78f5021a20ff"
-  ])
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData, TargetFileName])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Sophos tracks intrusion clusters (<strong>STAC4713</strong>, <strong>STAC3725</strong>) in which attackers smuggle a <strong>portable QEMU</strong> emulator onto a compromised Windows host and boot a small <strong>hidden virtual machine</strong> (commonly a minimal Linux guest). The host EDR sees only a legitimate, signed-ish <code>qemu-system-x86_64.exe</code> process and some network activity — it cannot see <em>inside</em> the guest, where the actual C2 client, tunneling tools, and post-exploitation tooling run. The VM is bridged/NAT'd to the host network so it can <strong>proxy C2</strong> and reach internal systems while staying in the endpoint's blind spot.</p>
+    <p>This is a <strong>defense-evasion technique, not a single malware family</strong>: the durable indicators are the <strong>presence and execution of a portable hypervisor</strong> in a place no business process would put one, the <strong>large guest disk images</strong> (<code>.qcow2</code>/<code>.img</code>/<code>.vmdk</code>), the <strong>creation of virtual/TAP network adapters</strong>, and <strong>persistence that boots the VM</strong>. The same "run the implant inside a VM the EDR can't inspect" playbook links this activity to <a href="PayoutsKing-Hunt.html">PayoutsKing</a>.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Most enterprises have <em>no</em> legitimate reason for QEMU on user/server endpoints. Hunt <strong>Q1</strong> (qemu-system / qemu-img execution), <strong>Q2</strong> (portable QEMU binaries written to a user/temp path), and <strong>Q4</strong> (guest disk-image files). Treat any QEMU on a non-developer host as a hidden-VM evasion incident — the EDR is blind to the guest, so respond at the host/network level.</p>
+  </div>
 </div>
 
-<!-- HUNT 2 -->
-<div class="query-card">
-  <div class="query-header">Hunt 2 &mdash; C2 IP Sweep (SSH Tunnel Destinations) <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1572, T1071.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: Outbound connections to known SSH reverse-tunnel destinations
-// HYPOTHESIS: QEMU guest initiates reverse SSH to attacker IPs; even though origin is inside the VM, the host NIC sees the outbound flow
-// FP RISK: Low - dedicated adversary infrastructure
-// FP NOTES: None expected
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = NetworkConnectIP4
-| in(field=RemoteAddressIP4, values=[
-    "144.208.127.190",
-    "74.242.216.76",
-    "194.110.172.152",
-    "98.81.138.214",
-    "158.158.0.165"
-  ])
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], mode=left, include=[ImageFileName, CommandLine, ParentBaseFileName])
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, RemoteAddressIP4, RemotePort])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Sophos X-Ops — STAC4713 / STAC3725 hidden-VM</td><td>Portable QEMU + hidden guest as an EDR blind spot; C2 proxied from inside the VM</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Prior QEMU-tunneling reporting (Kaspersky et al.)</td><td>QEMU used to build covert network tunnels into internal segments</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Cross-link</td><td>HuntPack — <a href="PayoutsKing-Hunt.html">PayoutsKing</a></td><td>Same hidden-VM-for-evasion playbook; shared hunt logic</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> technique-anchored (not a malware hash) — detect the hypervisor itself + its artifacts; assume the guest is opaque to EDR, so hunt the host-visible edges (process, disk images, virtual NICs, persistence) and pivot to network/IR; baseline legitimate virtualization users (developers/IT) to keep FPs low; cross-reference PayoutsKing for shared infra/TTP.</p>
+  </div>
 </div>
 
-<!-- HUNT 3 -->
-<div class="query-card">
-  <div class="query-header">Hunt 3 &mdash; Malicious ScreenConnect Relay (vtps.us) <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1219, T1071.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: DNS resolution / network connection to STAC3725 ScreenConnect relay
-// HYPOTHESIS: Trojanized ScreenConnect client beacons to vtps.us
-// FP RISK: Low - dedicated adversary domain
-// FP NOTES: None expected
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = DnsRequest
-| (DomainName = "vtps.us" or DomainName = /\.vtps\.us$/i)
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], mode=left, include=[ImageFileName, CommandLine, ParentBaseFileName])
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, DomainName])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> After gaining access, the actor drops a portable QEMU package + a guest image, registers persistence, boots a hidden VM bridged to the host network, and runs C2/tooling inside the guest — invisible to the host EDR.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Access</td><td>Exploited service / valid accounts / phishing</td><td>auth; edge</td><td>N1</td></tr>
+        <tr><td>2 · Stage QEMU</td><td>Portable QEMU + guest image written to a user/temp path</td><td>file; <code>ProcessRollup2</code></td><td><strong>Q2 / Q4</strong></td></tr>
+        <tr><td>3 · Boot VM</td><td><code>qemu-system-*.exe</code> launches the guest</td><td><code>ProcessRollup2</code></td><td><strong>Q1</strong>; N2</td></tr>
+        <tr><td>4 · Virtual NIC</td><td>TAP/bridged adapter created for guest networking</td><td>driver/adapter; net</td><td><strong>Q3</strong>; N3</td></tr>
+        <tr><td>5 · Persistence</td><td>Service / Run key / task boots the VM on start</td><td>registry; service; task</td><td><strong>Q5</strong></td></tr>
+        <tr><td>6 · C2 proxy</td><td>Guest proxies C2 / reaches internal hosts</td><td><code>NetworkConnectIP4</code>; netflow</td><td><strong>Q6</strong>; N4</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows endpoints/servers</td><td>Process + file-write events</td><td><span class="badge b-high">Critical</span></td><td>Low — host-visible edges</td></tr>
+        <tr><td>Virtual networking</td><td>Adapter/driver install + netflow</td><td><span class="badge b-high">High</span></td><td>Medium — TAP/bridge visibility</td></tr>
+        <tr><td>VM interior</td><td>(opaque to host EDR)</td><td><span class="badge b-high">N/A</span></td><td>High — blind spot by design</td></tr>
+        <tr><td>Persistence</td><td>Service / Run / task</td><td><span class="badge b-med">Medium</span></td><td>Low</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 4 -->
-<div class="query-card">
-  <div class="query-header">Hunt 4 &mdash; QEMU Emulator Execution on Any Endpoint <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1564.006, T1218 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Very Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: Execution of qemu-system-* binaries on Windows endpoints (T1564.006 Run Virtual Instance)
-// HYPOTHESIS: QEMU is not standard enterprise software on Windows; any execution on a non-developer endpoint is suspicious
-// FP RISK: Very Low - QEMU is rare in production Windows fleets
-// FP NOTES: Developers / VM-research / VFX teams may legitimately run QEMU. Build an allow-list of those hosts before tuning.
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /\\qemu-(system-(x86_64|i386|aarch64|arm)|img|nbd|ga|edid)\.exe$/i
-| timestamp := @timestamp
-| groupBy([aid, ComputerName, UserName, ImageFileName, ParentBaseFileName], function=collect([timestamp, CommandLine, SHA256HashData]))
-| sort(_count, order=desc)</pre>
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">This is a technique — the guest is opaque, so anchor on the host-visible hypervisor artifacts. QEMU binary names, disk images, and virtual NICs are durable; specific hashes/images rotate. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior</td><td class="mono">qemu-system-*.exe / qemu-img.exe execution on a non-dev host</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Rogue hypervisor — flagship</td></tr>
+        <tr><td>File</td><td class="mono">Portable QEMU binaries in a user/temp path</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>Staging</td></tr>
+        <tr><td>File</td><td class="mono">Guest disk images: .qcow2 / .img / .vmdk / .raw</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Hidden guest</td></tr>
+        <tr><td>Behavior</td><td class="mono">TAP/bridged virtual NIC created for guest networking</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>VM connectivity</td></tr>
+        <tr><td>Behavior</td><td class="mono">Service/Run/task booting QEMU at startup</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Persistence</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 5 -->
-<div class="query-card">
-  <div class="query-header">Hunt 5 &mdash; QEMU Headless / Hidden VM Command-Line Flags <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1564.006, T1027 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: QEMU launched with display-hiding and port-forward flags (covert VM signature)
-// HYPOTHESIS: STAC4713/3725 launch QEMU with -display none / -nographic / -daemonize and hostfwd port redirection to forward to guest SSH (port 22)
-// FP RISK: Low - this exact combination is the attack signature; legit interactive QEMU use shows a window
-// FP NOTES: CI/CD or testing pipelines may use -nographic; correlate with parent process and user context
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| CommandLine = /qemu-system/i
-| CommandLine = /(-display\s+none|-nographic|-daemonize|hostfwd|-monitor\s+none)/i
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ParentBaseFileName, ParentCommandLine, ImageFileName, CommandLine])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Defense Evasion</td><td>T1564.006 — Run virtual instance</td><td>Hidden QEMU guest evades host EDR</td><td>Q1, Q4</td></tr>
+        <tr><td>Execution</td><td>T1059 / T1106 — Hypervisor execution</td><td>qemu-system launches the guest</td><td>Q1; N2</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1572 / T1090 — Tunneling / proxy</td><td>Guest bridges/proxies C2 to internal hosts</td><td>Q3, Q6; N4</td></tr>
+        <tr><td>Persistence</td><td>T1543.003 / T1547.001 / T1053.005 — Service / Run / task</td><td>VM boots at startup</td><td>Q5</td></tr>
+        <tr><td>Ingress Tool Transfer</td><td>T1105 — Transfer QEMU + guest image</td><td>Portable hypervisor staged to disk</td><td>Q2</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 6 -->
-<div class="query-card">
-  <div class="query-header">Hunt 6 &mdash; "TPMProfiler" Scheduled Task Creation <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1053.005, T1036.005 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Very Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: Scheduled task named "TPMProfiler" (STAC4713 persistence)
-// HYPOTHESIS: Adversary creates a SYSTEM-context scheduled task masquerading as a TPM utility to launch QEMU at boot
-// FP RISK: Very Low - "TPMProfiler" is not a legitimate Microsoft or vendor task name
-// FP NOTES: None expected; any hit warrants immediate isolation
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-(#event_simpleName = /ScheduledTaskRegistered|ScheduledTaskModified/ AND TaskName = /TPMProfiler/i)
-or
-(#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND ImageFileName = /\\(schtasks|tasksche)\.exe$/i AND CommandLine = /TPMProfiler/i)
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, TaskName, TaskExecCommand, TaskExecArguments])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Initial access</td><td>Edge/VPN + auth</td><td>Exploited service / anomalous logins preceding the QEMU staging</td><td>Reset creds; patch edge</td></tr>
+        <tr><td>N2 · Hypervisor execution</td><td>Process creation (Sysmon 1 / Security 4688)</td><td>qemu-system / qemu-img / qemu-ga on hosts with no virtualization role</td><td>Isolate; IR</td></tr>
+        <tr><td>N3 · Virtual NIC install</td><td>Driver/adapter (Sysmon 6 / System log)</td><td>TAP/bridge adapter creation outside sanctioned hypervisor/VPN software</td><td>Inspect; pivot to netflow</td></tr>
+        <tr><td>N4 · VM-proxied egress</td><td>Netflow / proxy</td><td>Egress + internal lateral traffic sourced from the host's VM adapter/IP</td><td>Block; identify guest C2</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 7 -->
-<div class="query-card">
-  <div class="query-header">Hunt 7 &mdash; QEMU Disk-Image Files Masqueraded as DB / DLL <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1036.005, T1027.009 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> Med-High &middot; <strong>Timeframe:</strong> 60d</div>
-<pre>// HUNT: QEMU loading disk images disguised as vault.db / bisrv.dll, OR .qcow2/.img files anywhere
-// HYPOTHESIS: STAC4713 hides the Alpine VM disk by naming it vault.db or bisrv.dll; STAC3725 uses custom.qcow2
-// FP RISK: Low - QEMU loading a .db or .dll as a -drive image is not a legitimate pattern
-// FP NOTES: Developer images (.qcow2, .img, .vhdx) under legit VM tooling paths may match; tune by host OU
-// CONFIDENCE: Medium-High
-// TIMEFRAME: Last 60 days
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. The guest is opaque to the sensor — these hunts target the host-visible hypervisor artifacts. Maintain an allow-list of sanctioned virtualization hosts (developers, IT lab) to suppress FPs.</div>
 
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /\\qemu-(system|img|nbd)/i
-| CommandLine = /(vault\.db|bisrv\.dll|custom\.qcow2|\.qcow2|\.img\b|file=.*\.(db|dll))/i
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
-| sort(timestamp, order=desc)</pre>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · QEMU hypervisor execution</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any <code>qemu-system-*</code> / <code>qemu-img</code> / <code>qemu-ga</code> process. <strong>Accomplishes:</strong> the rogue hypervisor. <strong>FP:</strong> low on most fleets — allow-list known dev/IT virtualization hosts.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: QEMU hypervisor execution (hidden-VM evasion)</span>
+<span class="cm">// MITRE: T1564.006, T1059 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: most endpoints have no QEMU; allow-list sanctioned dev/IT virtualization hosts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^qemu(-system-[a-z0-9_]+|-img|-ga|-edge)?\.exe$/i
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Portable QEMU staged to a user/temp path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> QEMU binaries written to a user/temp/download path (the portable drop). <strong>Accomplishes:</strong> staging before boot. <strong>FP:</strong> low — legit QEMU installs to Program Files.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: portable QEMU binaries staged to a user/temp path</span>
+<span class="cm">// MITRE: T1105, T1564.006 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: sanctioned QEMU lives in Program Files; flag user/temp/download dirs</span>
+#event_simpleName=/PeFileWritten|NewExecutableWritten/
+| TargetFileName=/\\qemu(-system-[a-z0-9_]+|-img|-ga)?\.exe$/i
+| TargetFileName=/\\(Temp|AppData|Downloads|Users\\Public|ProgramData)\\/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · QEMU guest-networking command line</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> QEMU launched with networking flags (<code>-netdev</code>, <code>-nic</code>, <code>tap</code>, <code>hostfwd</code>) — the bridge/proxy setup. <strong>Accomplishes:</strong> confirms a networked hidden guest. <strong>FP:</strong> low outside dev hosts.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: QEMU guest networking (bridge/tap/hostfwd) command line</span>
+<span class="cm">// MITRE: T1572, T1090 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// TUNING: -netdev/-nic tap/hostfwd indicates a networked guest; allow-list dev hosts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^qemu-system-[a-z0-9_]+\.exe$/i
+| CommandLine=/(-netdev|-nic|tap,|hostfwd|bridge,|-device.+(net|e1000|virtio-net))/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Guest disk-image files</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> QEMU/VM disk images written to disk (<code>.qcow2</code>/<code>.img</code>/<code>.raw</code>/<code>.vmdk</code>), especially in user/temp paths. <strong>FP:</strong> medium — sanctioned VMs use these; flag non-dev hosts + user paths.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: hidden-guest disk-image files</span>
+<span class="cm">// MITRE: T1564.006 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: .qcow2 is QEMU-specific; flag non-dev hosts + user/temp paths</span>
+#event_simpleName=/FileCreateInfo|NewFileWritten|PeFileWritten/
+| TargetFileName=/\.(qcow2|img|raw|vmdk)$/i
+| TargetFileName=/\\(Temp|AppData|Downloads|Users\\Public|ProgramData)\\/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Persistence booting QEMU at startup</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a service / Run key / scheduled task whose command references qemu. <strong>Accomplishes:</strong> the VM auto-boot. <strong>FP:</strong> low-med — correlate to Q1/Q2.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: persistence that boots QEMU at startup</span>
+<span class="cm">// MITRE: T1543.003, T1547.001, T1053.005 | CONF: med-high  FP: low-med  COST: low</span>
+<span class="cm">// TUNING: correlate to Q1/Q2; flag user/temp-path qemu references</span>
+#event_simpleName=/AsepValueUpdate|ScheduledTaskRegistered|ServiceImagePath|RegSystemConfigValueUpdate/
+| RegStringValue=/qemu(-system|-img)?/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue, ServiceName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · QEMU process egress / proxying</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> outbound/internal connections attributed to a qemu-system process (the guest proxying C2/lateral). <strong>FP:</strong> medium — pair with netflow (N4); the guest interior stays opaque.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: egress/lateral attributed to a QEMU process</span>
+<span class="cm">// MITRE: T1572, T1090 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// TUNING: pair with netflow (N4); guest interior is opaque to the sensor</span>
+#event_simpleName=NetworkConnectIP4
+| ImageFileName=/\\qemu-system-[a-z0-9_]+\.exe$/i
+| groupBy([ComputerName, RemoteAddressIP4, RemotePort], function=count())
+| table([ComputerName, RemoteAddressIP4, RemotePort, _count])</pre>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 8 -->
-<div class="query-card">
-  <div class="query-header">Hunt 8 &mdash; Rogue Service "AppMgmt" / "CtxAppVCOMService" <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1543.003, T1136.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: STAC3725 creates the service "AppMgmt" and the local admin "CtxAppVCOMService"
-// HYPOTHESIS: an.exe dropper installs persistence via sc.exe / net user; service binary path is non-canonical
-// FP RISK: Low - Microsoft's real service is "Application Management" with internal name "AppMgmt" BUT its ImagePath is svchost.exe -k netsvcs
-// FP NOTES: Filter out the genuine svchost-hosted AppMgmt service; alert when the binary path is NOT svchost
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-(
-  (#event_simpleName = /ServiceStarted|WindowsServiceInstalled/ AND (
-    (ServiceDisplayName = /AppMgmt/i AND ImagePath != /\\svchost\.exe/i)
-    or ServiceDisplayName = /CtxAppVCOMService/i
-  ))
-  or
-  (#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND (
-    CommandLine = /sc(\.exe)?\s+(create|config).*(AppMgmt|CtxAppVCOMService)/i
-    or CommandLine = /net(\.exe)?\s+user\s+CtxAppVCOMService.*\/add/i
-  ))
-)
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ServiceDisplayName, ImagePath])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>QEMU — hypervisor execution</td><td>Process <code>qemu-system-*.exe</code> / <code>qemu-img.exe</code></td><td>Sanctioned dev/IT virtualization hosts (host-group exclusion)</td><td>Endpoint Security → Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>QEMU — networked guest launch</td><td><code>qemu-system-*</code> + <code>-netdev/-nic tap/hostfwd</code></td><td>Sanctioned dev hosts</td><td>Custom IOA → Process Creation, Detect+Block</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1 is a near-deterministic promotion on any fleet without sanctioned QEMU. Scope the IOAs to exclude a small, well-defined virtualization host group rather than allowing QEMU everywhere.</div>
+  </div>
 </div>
 
-<!-- HUNT 9 -->
-<div class="query-card">
-  <div class="query-header">Hunt 9 &mdash; ScreenConnect From Non-Canonical Path <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1219 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: T1219 - ScreenConnect binary running outside the canonical install path
-// HYPOTHESIS: STAC3725 deploys ScreenConnect MSI under a non-standard path and points it at vtps.us
-// FP RISK: Medium - MSPs sometimes install ScreenConnect to ProgramData legitimately
-// FP NOTES: Confirm with IT/MSP team. Legit path is typically C:\Program Files (x86)\ScreenConnect Client (XXX)\
-// CONFIDENCE: Medium
-// TIMEFRAME: Last 90 days
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for detection. The guest is opaque — anchor on the host-visible hypervisor artifacts. Add per-incident atoms (image hashes, guest C2, virtual MAC/IP) during triage.</p>
+    <div class="ioc-grab-grid">
 
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /\\ScreenConnect\.(ClientService|WindowsClient|Client)\.exe$/i
-| ImageFileName != /\\Program Files( \(x86\))?\\ScreenConnect Client/i
-| timestamp := @timestamp
-| groupBy([aid, ComputerName, ImageFileName, FileVersion], function=collect([timestamp, CommandLine, UserName, SHA256HashData]))
-| sort(_count, order=desc)</pre>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">qemu-system-*.exe / qemu-img.exe / qemu-ga.exe executing on a non-virtualization host
+Portable QEMU binaries written to %Temp%/%AppData%/Downloads/ProgramData
+qemu-system launched with -netdev / -nic tap / hostfwd / bridge (networked guest)
+Guest disk image written: .qcow2 / .img / .raw / .vmdk (esp. in user/temp paths)
+TAP/bridged virtual NIC created outside sanctioned hypervisor/VPN software
+Service / Run key / scheduled task whose command references qemu (VM auto-boot)
+Egress + internal lateral traffic sourced from the host's VM adapter/IP</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Tooling / Attribution</span><span class="igc">STAC4713 / STAC3725</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">Technique: hidden virtual machine via portable QEMU (EDR blind spot)
+Clusters: STAC4713, STAC3725 (Sophos X-Ops)
+Binaries: qemu-system-x86_64.exe, qemu-system-i386.exe, qemu-img.exe, qemu-ga.exe
+Guest images: *.qcow2 (QEMU-native), *.img, *.raw, *.vmdk
+# NOT a single malware family -- this is a defense-evasion playbook.
+# Cross-links HuntPack: PayoutsKing (same hidden-VM-for-evasion approach)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Why It Evades EDR</span><span class="igc">analyst note</span></div>
+        <button class="btn-copy" data-label="Copy note" onclick="copyBlock('grab-note',this)" style="margin:0 0 6px;">Copy note</button>
+<pre class="code" id="grab-note">The host EDR sees only the qemu-system process + its network sockets.
+The real C2 client, tunneling tools, and post-ex tooling run INSIDE the guest OS,
+which the host sensor cannot inspect. So:
+  - Detect the hypervisor + its artifacts at the host edge (Q1-Q5).
+  - Pivot to NETWORK telemetry (netflow/proxy) for what the guest is doing (Q6/N4).
+  - Treat any unsanctioned QEMU as an active evasion incident; respond host+network.</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Block</span><span class="igc">defense-in-depth</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl">App control (WDAC/AppLocker): block qemu-system/qemu-img except on a defined VM host group
+Promote Q1 (QEMU execution) + Q3 (networked guest) to Detect+Block (scoped exclusions)
+Block portable-app execution from Downloads/Temp; default-deny user-path EXEs
+Alert on TAP/bridge adapter creation outside sanctioned software
+Netflow/NDR: watch for new internal pivots from endpoint VM adapters
+Patch/harden initial-access vectors; phishing-resistant MFA on remote access</pre>
+      </div>
+
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 10 -->
-<div class="query-card">
-  <div class="query-header">Hunt 10 &mdash; BYOVD: K7RKScan_1516.sys Driver Load <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1068, T1014 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Very Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: Vulnerable K7 Security driver loaded as EDR-tampering BYOVD
-// HYPOTHESIS: Operators load K7RKScan_1516.sys to disable / blind AV/EDR before ransomware staging
-// FP RISK: Very Low - K7 is not a typical enterprise AV; the specific build "1516" is the vulnerable one
-// FP NOTES: None expected in environments not deploying K7 AV
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-(
-  (#event_simpleName = /PeFileWritten|NewExecutableWritten/ AND TargetFileName = /K7RKScan_?1516\.sys$/i)
-  or
-  (#event_simpleName = /DriverLoad|KernelModuleLoad/ AND ImageFileName = /K7RKScan_?1516\.sys$/i)
-  or
-  (#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND CommandLine = /K7RKScan_?1516\.sys/i)
-)
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, TargetFileName, CommandLine, SHA256HashData])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Block the hypervisor where it has no business running, then watch the network the guest hides behind.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Block the rogue hypervisor</div>
+      <ul>
+        <li><strong>App control: block qemu-system/qemu-img except on a defined VM-host group</strong> — <em>M1038</em>. Removes the technique from the rest of the fleet.</li>
+        <li><strong>Promote Q1 (QEMU execution) + Q3 (networked guest) to Detect+Block</strong> — <em>M1040</em> (scoped exclusions).</li>
+        <li><strong>Block portable-app execution from Downloads/Temp</strong> — <em>M1038</em>. Stops the staging (Q2).</li>
+        <li><strong>Alert on TAP/bridge adapter creation outside sanctioned software</strong> — <em>M1031</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Watch the network (pilot first)</div>
+      <ul>
+        <li><strong>Netflow/NDR: detect new internal pivots from endpoint VM adapters</strong> — <em>M1030</em>. Covers the opaque guest (N4/Q6).</li>
+        <li><strong>Inventory + remove unsanctioned virtualization software</strong> — <em>M1033</em>. Feeds N2.</li>
+        <li><strong>Patch/harden initial access; phishing-resistant MFA on remote access</strong> — <em>M1032 / M1051</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce evasion surface</div>
+      <ul>
+        <li><strong>Application allowlisting fleet-wide; default-deny user-path execution</strong> — <em>M1038</em>.</li>
+        <li><strong>Network segmentation to limit what any pivot can reach</strong> — <em>M1030</em>.</li>
+        <li><strong>NDR coverage so endpoint blind spots are caught on the wire</strong> — <em>M1047</em>.</li>
+      </ul>
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 11 -->
-<div class="query-card">
-  <div class="query-header">Hunt 11 &mdash; WDigest UseLogonCredential Set to 1 <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1003.001, T1112 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: WDigest plaintext password storage re-enabled
-// HYPOTHESIS: Operators flip HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest\UseLogonCredential = 1 to harvest cleartext creds on next logon
-// FP RISK: Low - this key has no legitimate reason to be set to 1 on modern Windows
-// FP NOTES: Some legacy compatibility scripts may set it; require justification
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = /AsepValueUpdate|RegGenericValueUpdate|RegistryOperationDetectInfo/
-| RegObjectName = /\\Control\\SecurityProviders\\WDigest$/i
-| RegValueName = /UseLogonCredential/i
-// UseLogonCredential is a DWORD - the live value lands in RegNumericValue; some shells write it as a string, so check both
-| (RegNumericValue != 0 or RegStringValue = /^[^0]/)
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, RegObjectName, RegValueName, RegNumericValue, RegStringValue])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host (the guest is opaque — rely on network controls); preserve the QEMU package + guest image for offline analysis</td><td>SOC L2</td><td>Containment timestamp; Q1 event; image</td></tr>
+        <tr><td>Triage</td><td>Map staging → boot → networking → persistence; pull netflow for the VM adapter; mount the guest image offline to recover C2/tooling</td><td>IR</td><td>Process/file timeline; netflow; guest forensics</td></tr>
+        <tr><td>Eradicate</td><td>Remove QEMU + guest image + virtual NIC + persistence; block the guest's C2; reset creds touched on the host</td><td>IR</td><td>Removal log; cred reset</td></tr>
+        <tr><td>Recover</td><td>Reimage the host (treat as fully compromised — EDR was blind); restore from clean backup</td><td>IR + IT</td><td>Rebuild ticket</td></tr>
+        <tr><td>Harden</td><td>App control on QEMU; promote Q1/Q3; alert on TAP/bridge adapters; NDR for endpoint pivots</td><td>Detection Eng</td><td>IOA enabled; NDR rule</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 12 -->
-<div class="query-card">
-  <div class="query-header">Hunt 12 &mdash; Volume Shadow Copy Abuse for NTDS / SAM Dumping <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1003.003, T1003.002, T1006 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Med-High &middot; <strong>Timeframe:</strong> 60d</div>
-<pre>// HUNT: vssadmin / wmic shadowcopy create followed by NTDS.dit / SAM / SYSTEM access
-// HYPOTHESIS: Operators dump DC credential stores via shadow-copy to bypass file locks
-// FP RISK: Medium - backup software (Veeam, Acronis, Windows Server Backup) uses VSS routinely
-// FP NOTES: Tune to exclude known backup service accounts; alert when paired with NTDS/SAM path access
-// CONFIDENCE: Medium-High
-// TIMEFRAME: Last 60 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| (
-    (CommandLine = /(vssadmin|wmic)/i AND CommandLine = /shadowcopy.*create/i)
-    or CommandLine = /(ntdsutil|esentutl).*ntds/i
-    or CommandLine = /copy.*\\\\.+\\HarddiskVolumeShadowCopy.*\\(NTDS\\NTDS\.dit|System32\\config\\(SAM|SYSTEM|SECURITY))/i
-    or CommandLine = /reg(\.exe)?\s+save\s+HKLM\\(SAM|SYSTEM|SECURITY)/i
-  )
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1564.006</td><td>QEMU hypervisor execution</td><td>Q1</td><td>IOA-1</td><td><span class="badge b-low">Good</span> + app control</td></tr>
+        <tr><td>T1105</td><td>Portable QEMU staging</td><td>Q2</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1572 / T1090</td><td>Networked guest (bridge/tap)</td><td>Q3, Q6</td><td>IOA-2</td><td><span class="badge b-med">Partial</span> + netflow (N4)</td></tr>
+        <tr><td>T1564.006</td><td>Guest disk image</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> non-dev hosts</td></tr>
+        <tr><td>T1543.003 / T1547.001</td><td>VM-boot persistence</td><td>Q5</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>—</td><td>Guest interior (C2/tooling)</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> opaque to EDR — use NDR (N4)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm process + file-write + netflow telemetry; (2) enumerate sanctioned virtualization host groups (developers/IT) and exclude them; (3) lab-test a benign QEMU launch on an allow-listed host (must NOT alert) and on a normal host (MUST alert Q1); (4) enable app control + promote Q1/Q3; stand up NDR for the guest blind spot. Reminder: the EDR cannot see inside the guest — respond at host + network.</p>
+  </div>
 </div>
 
-<!-- HUNT 13 -->
-<div class="query-card">
-  <div class="query-header">Hunt 13 &mdash; ADNotificationManager DLL Sideloading (Havoc) <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1574.002, T1055 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: ADNotificationManager.exe loading vcruntime140_1.dll from non-system path (Havoc loader pattern)
-// HYPOTHESIS: STAC3725 sideloads Havoc through a renamed/genuine ADNotificationManager.exe + adjacent trojanized vcruntime140_1.dll
-// FP RISK: Low - genuine ADNotificationManager only ships inside Azure AD Connect, in C:\Program Files\Microsoft Azure AD Sync\
-// FP NOTES: Verify path is the Azure AD Sync install dir; anything else is sideloading
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-(
-  (#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND ImageFileName = /\\ADNotificationManager\.exe$/i AND ImageFileName != /\\Program Files\\Microsoft Azure AD Sync\\/i)
-  or
-  (#event_simpleName = /ImageHash|ClassifiedModuleLoad/ AND FileName = /^vcruntime140_1\.dll$/i AND ContextImageFileName = /\\ADNotificationManager\.exe$/i AND ContextImageFileName != /\\Program Files\\Microsoft Azure AD Sync\\/i)
-)
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, ContextImageFileName, FileName, CommandLine, SHA256HashData])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — QEMU Hidden-VM Evasion (STAC4713 / STAC3725)
+SEVERITY:     High (host EDR blind spot; C2 proxied from inside a hidden VM)
+SCOPE:        Windows endpoints/servers without a virtualization role; network/NDR
+HYPOTHESIS:   Actor stages portable QEMU + a guest image -> boots a hidden VM bridged to the
+              host network -> runs C2/tooling inside the guest, invisible to the host sensor.
+QUERIES RUN:  Q1 QEMU execution (IOA) | Q2 portable QEMU staging | Q3 networked guest (IOA) |
+              Q4 guest disk image | Q5 VM-boot persistence | Q6 QEMU egress/proxy
+              + Native N1-N4 (access, hypervisor exec, virtual NIC, VM-proxied egress)
+DO FIRST:     App control on QEMU; Q1 -- escalate any unsanctioned QEMU as an evasion incident
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Guest interior is opaque to EDR -- cover with NDR/netflow; cross-ref PayoutsKing
+ACTIONS:      Block qemu except on a defined VM-host group; promote Q1/Q3; alert on TAP/bridge
+              adapters; NDR for endpoint pivots; reimage affected hosts
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-12</pre>
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 14 -->
-<div class="query-card">
-  <div class="query-header">Hunt 14 &mdash; cookie_exporter.exe Browser Credential Harvest <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1539, T1555.003 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> Med-High &middot; <strong>Timeframe:</strong> 60d</div>
-<pre>// HUNT: cookie_exporter.exe execution (browser cookie & token theft tool)
-// HYPOTHESIS: STAC3725 runs cookie_exporter.exe to harvest authenticated browser sessions for cloud/Entra ID pivot
-// FP RISK: Low - "cookie_exporter" is not a standard browser or vendor utility
-// FP NOTES: None expected; investigate any hit
-// CONFIDENCE: Medium-High
-// TIMEFRAME: Last 60 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| (ImageFileName = /\\cookie[_-]?exporter\.exe$/i or CommandLine = /cookie[_-]?exporter\.exe/i)
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ | rename(ImageFileName, as=ParentImage)}, field=[ParentProcessId_decimal], key=[TargetProcessId_decimal], mode=left, include=[ParentImage])
-| timestamp := @timestamp
-| table([timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, ParentImage, SHA256HashData])
-| sort(timestamp, order=desc)</pre>
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Sophos X-Ops STAC4713/STAC3725: portable-QEMU hidden-VM as an EDR blind spot, networked guest (bridge/tap/hostfwd), guest disk images, VM-boot persistence, network-pivot detection. Cross-linked to the PayoutsKing pack. 6 CQL + 4 native hunts, 2 IOA candidates; technique-anchored.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-10</span><span>Initial pack: QEMU hidden-VM overview + hunts. Pre-gold top-bar layout.</span></div>
+  </div>
 </div>
 
-</section>
-
-<section id="iocs">
-<h2>IOC Blocklists</h2>
-
-<h3>Recommended Actions Table</h3>
-<table>
-<thead><tr><th>Type</th><th>Value</th><th>Action</th><th>Severity</th><th>Confidence</th><th>Expiry</th><th>Notes</th></tr></thead>
-<tbody>
-<tr><td>sha256</td><td><code>a65f0144101d93656c5f9ad445b3393336e1f295a838351aeca6332c0949b463</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>qemu-system-x86_64.exe (campaign build)</td></tr>
-<tr><td>sha256</td><td><code>7ae413b76424508055154ee262c7567705dc1ac00607f5ac2e43d032221b34b3</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>AdaptixC2 agent (STAC4713)</td></tr>
-<tr><td>sha256</td><td><code>f3194018d60645e43afabac33ceb4e852f95241b410cd726b1c40e3021589937</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>AdaptixC2 agent (STAC4713)</td></tr>
-<tr><td>sha256</td><td><code>c6b848c6a61685724fa9e2b3f6e3a118323ee0c165d1aa8c8a574205a4c4be59</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>vault.db (disguised VM disk)</td></tr>
-<tr><td>sha256</td><td><code>61c14c01460810f6f5f760daf8edbda82eea908b1a95052f8e0f9c4162c2900c</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>bisrv.dll (disguised VM disk, Jan-2026 variant)</td></tr>
-<tr><td>sha256</td><td><code>3a33b5bceb1eba4cc749534b03dd245f965d8f200aa02392baad78f5021a20ff</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>wg-obfuscator (WireGuard wrapper)</td></tr>
-<tr><td>md5</td><td><code>b186baf2653c6c874e7b946647b048cc</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>qemu-system-x86_64.exe MD5</td></tr>
-<tr><td>md5</td><td><code>f7a11aeaa4f0c748961bbebb2f9e12b6</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>AdaptixC2 agent MD5</td></tr>
-<tr><td>md5</td><td><code>b752ebfc1004f2c717609145e28243f3</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-13</td><td>AdaptixC2 agent MD5</td></tr>
-<tr><td>domain</td><td><code>vtps.us</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-11</td><td>STAC3725 ScreenConnect relay &mdash; promote to block after MSP confirms</td></tr>
-<tr><td>ipv4</td><td><code>144.208.127.190</code></td><td><span class="badge badge-medium">Detect</span></td><td>High</td><td>High</td><td>2026-06-12</td><td>SSH host inside bisrv.dll disk image</td></tr>
-<tr><td>ipv4</td><td><code>74.242.216.76</code></td><td><span class="badge badge-medium">Detect</span></td><td>High</td><td>Medium</td><td>2026-06-12</td><td>SSH reverse-tunnel destination</td></tr>
-<tr><td>ipv4</td><td><code>194.110.172.152</code></td><td><span class="badge badge-medium">Detect</span></td><td>High</td><td>Medium</td><td>2026-06-12</td><td>SSH reverse-tunnel destination</td></tr>
-<tr><td>ipv4</td><td><code>98.81.138.214</code></td><td><span class="badge badge-medium">Detect</span></td><td>High</td><td>Medium</td><td>2026-06-12</td><td>SSH reverse-tunnel destination</td></tr>
-<tr><td>ipv4</td><td><code>158.158.0.165</code></td><td><span class="badge badge-medium">Detect</span></td><td>High</td><td>Medium</td><td>2026-06-12</td><td>SSH reverse-tunnel destination</td></tr>
-</tbody>
-</table>
-
-<h3>Bulk CSV Import (Falcon IOC Management)</h3>
-<div class="query-card">
-  <div class="query-header">qemu-hidden-vm-iocs.csv <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-<pre>type,value,action,severity,expiration,description,tags
-sha256,a65f0144101d93656c5f9ad445b3393336e1f295a838351aeca6332c0949b463,prevent,critical,2027-05-13,qemu-system-x86_64.exe campaign build,campaign:QEMU-HiddenVM;source:Sophos;actor:GOLD_ENCOUNTER
-sha256,7ae413b76424508055154ee262c7567705dc1ac00607f5ac2e43d032221b34b3,prevent,critical,2027-05-13,AdaptixC2 agent STAC4713,campaign:QEMU-HiddenVM;source:Sophos
-sha256,f3194018d60645e43afabac33ceb4e852f95241b410cd726b1c40e3021589937,prevent,critical,2027-05-13,AdaptixC2 agent STAC4713,campaign:QEMU-HiddenVM;source:Sophos
-sha256,c6b848c6a61685724fa9e2b3f6e3a118323ee0c165d1aa8c8a574205a4c4be59,prevent,critical,2027-05-13,vault.db disguised QEMU disk,campaign:QEMU-HiddenVM;source:Sophos
-sha256,61c14c01460810f6f5f760daf8edbda82eea908b1a95052f8e0f9c4162c2900c,prevent,critical,2027-05-13,bisrv.dll disguised QEMU disk,campaign:QEMU-HiddenVM;source:Sophos
-sha256,3a33b5bceb1eba4cc749534b03dd245f965d8f200aa02392baad78f5021a20ff,prevent,critical,2027-05-13,wg-obfuscator WireGuard wrapper,campaign:QEMU-HiddenVM;source:Sophos
-md5,b186baf2653c6c874e7b946647b048cc,prevent,critical,2027-05-13,qemu-system-x86_64.exe MD5,campaign:QEMU-HiddenVM;source:Sophos
-md5,f7a11aeaa4f0c748961bbebb2f9e12b6,prevent,critical,2027-05-13,AdaptixC2 agent MD5,campaign:QEMU-HiddenVM;source:Sophos
-md5,b752ebfc1004f2c717609145e28243f3,prevent,critical,2027-05-13,AdaptixC2 agent MD5,campaign:QEMU-HiddenVM;source:Sophos
-domain,vtps.us,detect,high,2026-08-11,STAC3725 ScreenConnect relay,campaign:QEMU-HiddenVM;source:Sophos
-ipv4,144.208.127.190,detect,high,2026-06-12,SSH host within bisrv.dll image,campaign:QEMU-HiddenVM;source:Sophos
-ipv4,74.242.216.76,detect,high,2026-06-12,SSH reverse-tunnel destination,campaign:QEMU-HiddenVM;source:Sophos
-ipv4,194.110.172.152,detect,high,2026-06-12,SSH reverse-tunnel destination,campaign:QEMU-HiddenVM;source:Sophos
-ipv4,98.81.138.214,detect,high,2026-06-12,SSH reverse-tunnel destination,campaign:QEMU-HiddenVM;source:Sophos
-ipv4,158.158.0.165,detect,high,2026-06-12,SSH reverse-tunnel destination,campaign:QEMU-HiddenVM;source:Sophos</pre>
-</div>
-</section>
-
-<section id="ioas">
-<h2>Custom IOA Rule Recommendations</h2>
-<div class="callout callout-warn">All IOAs should start in <strong>Detect</strong> mode. Promote to <strong>Block</strong> only after 7&ndash;14 days with confirmed FP rate &lt; 5%. See Prevention Promotion notes below. Pay special attention to IOA-1 &mdash; outright blocking <code>qemu-system-*</code> may break legitimate developer workflows; carve out dev OUs first.</div>
-
-<div class="ioa-block">
-  <h4>IOA-1: QEMU System Emulator Execution</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>Virtualization Abuse Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; Block on non-developer OUs after 14d clean</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1564.006 - Run Virtual Instance</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\qemu-(system-(x86_64|i386|aarch64|arm)|img|nbd)\.exe$</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Software engineering, embedded development, security research, and VFX teams may run QEMU. Build an exclusion list keyed on host group / OU before enabling. On a typical knowledge-worker fleet, expect zero legitimate hits.</p>
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://news.sophos.com/en-us/2026/" target="_blank">Sophos X-Ops — STAC4713 / STAC3725 hidden-VM evasion</a></td><td>Portable QEMU hidden-VM technique, C2 proxying, clusters</td></tr>
+        <tr><td>2</td><td><a href="https://attack.mitre.org/techniques/T1564/006/" target="_blank">MITRE ATT&amp;CK T1564.006 — Run Virtual Instance</a></td><td>Hidden-VM defense-evasion mapping</td></tr>
+        <tr><td>1</td><td><a href="PayoutsKing-Hunt.html" target="_blank">HuntPack — PayoutsKing</a></td><td>Cross-linked hidden-VM-for-evasion playbook</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · QEMU Hidden-VM Evasion (STAC4713 / STAC3725) · Generated 2026-06-12 · Defensive use only — no offensive code. This is a defense-evasion technique: the host EDR cannot see inside the guest, so anchor on the host-visible hypervisor artifacts (Q1-Q5) and pivot to NDR/netflow (Q6/N4). Maintain a sanctioned-virtualization allow-list and validate field names before promoting any query.</p>
+  </div>
 </div>
 
-<div class="ioa-block">
-  <h4>IOA-2: QEMU With Display-Suppression and Port Forwarding</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>Virtualization Abuse Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect (safer to promote than IOA-1 since this is the attack signature)</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1564.006, T1572</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\qemu-system.*\.exe$</code></dd>
-    <dt>Command Line:</dt><dd><code>(?i).*(-display\s+none|-nographic|-daemonize|hostfwd|-monitor\s+none).*</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> CI/CD pipelines sometimes use <code>-nographic</code>. Filter on parent process and known build-agent hostnames.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-3: "TPMProfiler" Scheduled Task Creation</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>Persistence Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; promote to Block in 7 days</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1053.005, T1036.005</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\schtasks\.exe$</code></dd>
-    <dt>Command Line:</dt><dd><code>(?i).*\b(/create|/change)\b.*TPMProfiler.*</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> "TPMProfiler" is an adversary-chosen masquerade string; no legitimate vendor task uses this name.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-4: K7RKScan_1516.sys Driver Load (BYOVD)</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>EDR Tamper Defense</dd>
-    <dt>Rule Type:</dt><dd>File Creation / Service Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; promote to Block after confirming K7 AV is not deployed</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1068, T1014</dd>
-    <dt>File Name:</dt><dd><code>(?i).*\\K7RKScan_?1516\.sys$</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Only relevant if K7 Security Suite is deployed enterprise-wide. Even then, the vulnerable build 1516 should be replaced regardless.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-5: ADNotificationManager Outside Azure AD Sync Path</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>DLL Sideload Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; promote to Block after 14d</dd>
-    <dt>Severity:</dt><dd>High</dd>
-    <dt>MITRE:</dt><dd>T1574.002</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\ADNotificationManager\.exe$</code></dd>
-    <dt>Image Filename NOT:</dt><dd><code>(?i).*\\Program Files\\Microsoft Azure AD Sync\\.*</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Genuine binary lives only inside the Azure AD Connect install dir. Any other location is a sideload candidate.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-6: WDigest UseLogonCredential Re-Enabled</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>Credential Theft Defense</dd>
-    <dt>Rule Type:</dt><dd>Registry Operation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; promote to Block after 14d clean</dd>
-    <dt>Severity:</dt><dd>High</dd>
-    <dt>MITRE:</dt><dd>T1003.001, T1112</dd>
-    <dt>Registry Key:</dt><dd><code>(?i).*\\Control\\SecurityProviders\\WDigest$</code></dd>
-    <dt>Registry Value Name:</dt><dd><code>(?i)^UseLogonCredential$</code></dd>
-    <dt>Registry Value:</dt><dd><code>^[^0].*$</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Some legacy compatibility scripts may set this; require formal justification.</p>
-</div>
-
-</section>
-
-<section id="hardening">
-<h2>Hardening Recommendations</h2>
-
-<h3>Immediate &mdash; Target QEMU Hidden-VM TTPs</h3>
-
-<h4>1. Block unsanctioned hypervisors via WDAC / AppLocker</h4>
-<ul class="harden">
-  <li><strong>WDAC publisher rule:</strong> deny any unsigned binary named <code>qemu-system-*.exe</code>, <code>qemu-img.exe</code>, <code>qemu-nbd.exe</code>, <code>qemu-ga.exe</code> from running outside an explicit <em>VirtLab</em> OU.</li>
-  <li><strong>AppLocker fallback (XML):</strong> add a Publisher condition deny for <em>"QEMU Project"</em> signed binaries on knowledge-worker endpoints; allow only via group exemption.</li>
-  <li><strong>Block via path:</strong> deny execution from <code>C:\ProgramData\</code>, <code>C:\Users\*\AppData\</code>, and <code>C:\Windows\Temp\</code> for any binary whose internal product name contains "QEMU".</li>
-  <li>If KVM/Hyper-V/VMware Workstation are also unauthorized, broaden the rule to a virtualization-tool category block.</li>
-</ul>
-
-<h4>2. Block .qcow2 / large opaque blob writes in user-writable paths</h4>
-<ul class="harden">
-  <li>File Server Resource Manager (FSRM) on Windows file servers: file-screen rule blocking <code>*.qcow2</code>, <code>*.vhdx</code>, <code>*.vmdk</code>, <code>*.img</code> writes outside designated virtualization shares.</li>
-  <li>EDR custom rule: alert on any single-file write &gt; 500 MB into <code>C:\ProgramData</code>, <code>C:\Windows\Temp</code>, or <code>%APPDATA%</code> whose extension is <code>.db</code> or <code>.dll</code> (the masquerade pattern).</li>
-  <li>Periodically scan endpoints for files matching qcow2 magic bytes (<code>51 46 49 FB</code>) regardless of file extension.</li>
-</ul>
-
-<h4>3. Lock down outbound SSH from servers</h4>
-<ul class="harden">
-  <li>Windows Defender Firewall (GPO): <em>Computer Configuration &rarr; Windows Settings &rarr; Security Settings &rarr; Windows Defender Firewall with Advanced Security &rarr; Outbound Rules</em> &rarr; deny TCP/22 to any non-RFC1918 destination from server endpoints.</li>
-  <li>Block the specific reverse-tunnel ports observed in the campaign (<code>TCP/32567</code>, <code>TCP/22022</code>) at the perimeter.</li>
-  <li>Where outbound SSH is required for legitimate admin, force it through a jump-host whose IP is the only allowed destination.</li>
-</ul>
-
-<h4>4. Tighten scheduled-task creation visibility</h4>
-<ul class="harden">
-  <li>GPO: enable Audit Policy &rarr; Object Access &rarr; <strong>Audit Other Object Access Events</strong> (success+failure) for scheduled-task changes &mdash; generates Event ID 4698/4702.</li>
-  <li>Forward 4698 to your SIEM and alert on any task created under SYSTEM context that runs an executable located outside <code>%SystemRoot%</code> or a signed-vendor install path.</li>
-  <li>Set a baseline of expected SYSTEM scheduled tasks per host; alert on net-new entries.</li>
-</ul>
-
-<h4>5. Lock the WDigest registry path</h4>
-<ul class="harden">
-  <li>Enforce <code>HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest\UseLogonCredential = 0</code> via GPO (re-applied each refresh).</li>
-  <li>Apply a DACL deny ACE on the WDigest subkey for non-SYSTEM principals using Group Policy Preferences &rarr; Windows Settings &rarr; Registry.</li>
-  <li>Pair with <strong>LSA Protection (RunAsPPL=1)</strong> and <strong>Credential Guard</strong>.</li>
-</ul>
-
-<h4>6. Block the C2 / relay infrastructure</h4>
-<ul class="harden">
-  <li>Perimeter firewall / DNS sinkhole: block <code>vtps.us</code>, <code>144.208.127.190</code>, <code>74.242.216.76</code>, <code>194.110.172.152</code>, <code>98.81.138.214</code>, <code>158.158.0.165</code>.</li>
-  <li>Submit hashes to Falcon IOC Management as Prevent (see CSV above).</li>
-</ul>
-
-<h4>7. Patch the initial-access CVEs</h4>
-<ul class="harden">
-  <li><strong>CVE-2025-5777 (CitrixBleed2):</strong> upgrade NetScaler ADC / Gateway to the build listed in the Citrix advisory and rotate all session tokens / cookies issued from vulnerable builds.</li>
-  <li><strong>CVE-2025-26399 (SolarWinds Web Help Desk):</strong> apply the SolarWinds hotfix; pull the Help Desk web tier behind an IP allow-list during the patch window.</li>
-  <li><strong>SonicWall SSL-VPN:</strong> enforce MFA on every SSL-VPN account; rotate any creds whose accounts pre-date the MFA enforcement date.</li>
-</ul>
-
-<h3>Strategic &mdash; Reduce Attack Surface Generally</h3>
-<ul class="harden">
-  <li><strong>Application allow-listing maturity:</strong> WDAC in enforce mode for all servers. The QEMU TTP fails completely if unsigned/non-vendor binaries cannot execute.</li>
-  <li><strong>RMM governance:</strong> inventory every authorized ScreenConnect / AnyDesk / TeamViewer / Atera install. Network-block all RMM relay traffic except sanctioned relays. Require certificate pinning to your tenant.</li>
-  <li><strong>Service-creation alerting:</strong> Windows Event 7045 forwarded to SIEM; alert on services with <code>ImagePath</code> under <code>ProgramData\</code>, <code>AppData\</code>, or <code>Temp\</code>, or whose display name shadows a Microsoft service but whose binary is not <code>svchost.exe</code>.</li>
-  <li><strong>Driver allow-listing:</strong> enable <strong>Microsoft Vulnerable Driver Blocklist</strong> (Memory Integrity / Core Isolation) on every endpoint &mdash; blocks K7RKScan and the broader BYOVD class.</li>
-  <li><strong>Egress filtering:</strong> deny direct internet egress from servers to arbitrary IPs/ports. Force everything through a logged, identity-aware proxy. The reverse-SSH tunnel breaks if outbound 22 / arbitrary high-ports are denied.</li>
-  <li><strong>Asset inventory of disk images:</strong> baseline what <code>.qcow2 / .vhdx / .img / .vmdk</code> files should exist on each host; alert on any unbaselined image.</li>
-  <li><strong>LSA Protection + Credential Guard</strong> across the fleet &mdash; blunts WDigest, LSASS-dumping, and DPAPI attacks.</li>
-  <li><strong>Domain controller hardening:</strong> protect <code>NTDS.dit</code> with VSS-aware monitoring; alert on <code>vssadmin/wmic shadowcopy create</code> followed by file reads from <code>HarddiskVolumeShadowCopy*</code>.</li>
-</ul>
-
-</section>
-
-<section id="coverage">
-<h2>Detection Coverage Map</h2>
-<table>
-<thead><tr><th>MITRE</th><th>Technique</th><th>CQL Hunt</th><th>Custom IOA</th><th>IOC Block</th><th>Coverage</th></tr></thead>
-<tbody>
-<tr><td>T1190</td><td>Exploit Public-Facing App (CitrixBleed2, WHD RCE)</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (patch-only)</td></tr>
-<tr><td>T1133</td><td>External Remote Services (SonicWall VPN)</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (MFA-only)</td></tr>
-<tr><td>T1564.006</td><td>Run Virtual Instance (QEMU)</td><td>Hunts 4, 5</td><td>IOA-1, IOA-2</td><td>Hash</td><td class="good-text">Strong</td></tr>
-<tr><td>T1572</td><td>Protocol Tunneling (Reverse SSH / WireGuard)</td><td>Hunt 2</td><td>IOA-2</td><td>IPs</td><td class="good-text">Good</td></tr>
-<tr><td>T1053.005</td><td>Scheduled Task (TPMProfiler)</td><td>Hunt 6</td><td>IOA-3</td><td>&mdash;</td><td class="good-text">Strong</td></tr>
-<tr><td>T1036.005</td><td>Match Legitimate Name (vault.db, bisrv.dll, AppMgmt)</td><td>Hunts 7, 8</td><td>IOA-3</td><td>Hash</td><td class="good-text">Good</td></tr>
-<tr><td>T1027.009</td><td>Embedded Payloads (VM in .db/.dll)</td><td>Hunt 7</td><td>&mdash;</td><td>Hash</td><td class="partial">Partial</td></tr>
-<tr><td>T1543.003</td><td>Windows Service Persistence (AppMgmt)</td><td>Hunt 8</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1136.001</td><td>Create Local Account (CtxAppVCOMService)</td><td>Hunt 8</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1219</td><td>Remote Access Software (ScreenConnect)</td><td>Hunt 9</td><td>&mdash;</td><td>Domain</td><td class="partial">Partial</td></tr>
-<tr><td>T1068 / T1014</td><td>BYOVD &amp; Rootkit (K7RKScan_1516)</td><td>Hunt 10</td><td>IOA-4</td><td>&mdash;</td><td class="good-text">Good</td></tr>
-<tr><td>T1003.001</td><td>LSASS / WDigest Credential Dumping</td><td>Hunt 11</td><td>IOA-6</td><td>&mdash;</td><td class="good-text">Good</td></tr>
-<tr><td>T1003.003</td><td>NTDS.dit Dump via VSS</td><td>Hunt 12</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1003.002</td><td>SAM / SYSTEM Hive Save</td><td>Hunt 12</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1574.002</td><td>DLL Sideloading (ADNotificationManager + vcruntime140_1.dll)</td><td>Hunt 13</td><td>IOA-5</td><td>&mdash;</td><td class="good-text">Good</td></tr>
-<tr><td>T1539</td><td>Steal Web Session Cookie (cookie_exporter)</td><td>Hunt 14</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1071.001</td><td>Web Protocols C2 (vtps.us)</td><td>Hunt 3</td><td>&mdash;</td><td>Domain</td><td class="good-text">Good</td></tr>
-<tr><td>T1041</td><td>Exfiltration Over C2 (Rclone in VM)</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (occurs inside VM)</td></tr>
-<tr><td>T1486</td><td>Data Encrypted for Impact (Payouts King)</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (downstream stage)</td></tr>
-</tbody>
-</table>
-
-<div class="callout callout-warn"><strong>Priority gaps:</strong> Initial access (T1190, T1133) must be closed by patching CVE-2025-5777 / CVE-2025-26399 and enforcing MFA on SonicWall VPN &mdash; endpoint detection is downstream. <strong>The core blind spot is everything inside the VM:</strong> Falcon cannot inspect Rclone exfil, Impacket, NetExec, or BloodHound traffic once they run inside the Alpine guest. The mitigation is to <em>prevent the VM from booting at all</em> &mdash; IOA-1 and the QEMU WDAC block are therefore the highest-leverage controls in this package.</div>
-</section>
-
-<section id="priority">
-<h2>Prioritization &amp; Risk Classification</h2>
-
-<h3>Do First &mdash; Low Effort, High Relevance</h3>
-<ol>
-  <li>Run <strong>Hunts 1, 2, 3, 4, 6, 10</strong> today &mdash; any hit on these is a high-confidence active intrusion.</li>
-  <li>Import SHA256 / MD5 IOC block list to Falcon IOC Management (safe to auto-Prevent).</li>
-  <li>Add domain (<code>vtps.us</code>) and 5x IP detect entries.</li>
-  <li>Verify CVE-2025-5777 (NetScaler) and CVE-2025-26399 (SolarWinds WHD) patches are applied; rotate any session tokens that pre-date the patch.</li>
-  <li>Confirm SonicWall SSL-VPN has MFA enforced on every account.</li>
-</ol>
-
-<h3>Schedule &mdash; Medium Risk (Peer Review)</h3>
-<ol start="6">
-  <li>Deploy Custom IOA-2 (QEMU with hidden-VM flags), IOA-3 (TPMProfiler task), IOA-4 (K7RKScan), IOA-5 (ADNotificationManager sideload), IOA-6 (WDigest) in <strong>Detect</strong> mode. Review after 14 days; promote to Block if FP &lt; 5%.</li>
-  <li>Roll Hunts 5, 7, 8, 9, 11, 12, 13, 14 every 7&ndash;14 days until campaign goes cold.</li>
-  <li>Enable Microsoft Vulnerable Driver Blocklist (Memory Integrity) on all servers and admin workstations.</li>
-</ol>
-
-<h3>Change Management &mdash; High Risk (CAB)</h3>
-<ol start="9">
-  <li><strong>WDAC publisher-deny for QEMU Project</strong> across knowledge-worker fleet; carve out a <em>VirtLab</em> OU for dev users who need QEMU legitimately.</li>
-  <li>Outbound TCP/22 / TCP/32567 / TCP/22022 deny on server endpoints via GPO firewall.</li>
-  <li>FSRM file-screen for <code>.qcow2 / .vhdx / .vmdk / .img</code> on file servers outside designated VM shares.</li>
-  <li>WDigest registry DACL lockdown via GPP.</li>
-  <li>LSA Protection (RunAsPPL=1) + Credential Guard enterprise rollout.</li>
-</ol>
-
-<h3>Prevention Promotion Notes</h3>
-<ul class="harden">
-  <li><strong>SHA256 / MD5 IOCs:</strong> safe to promote to Prevent immediately. Adversary infrastructure; collateral risk is near-zero.</li>
-  <li><strong>Domain <code>vtps.us</code>:</strong> safe to promote to Prevent after MSP team confirms it is not a sanctioned ScreenConnect relay (likely 24h).</li>
-  <li><strong>IP IOCs:</strong> keep at Detect &mdash; IPs rotate fast (30-day expiry). Shared-hosting collateral risk if promoted.</li>
-  <li><strong>IOA-1 (QEMU emulator):</strong> <span class="badge badge-high">High risk</span> if auto-blocked &mdash; will break developer workflows. Keep in Detect on non-dev OUs for at least 14 days; promote to Block only after carving out dev exclusions.</li>
-  <li><strong>IOA-2 (QEMU hidden-VM flags):</strong> safer Prevent candidate than IOA-1 since the flag combination is the attack signature. Eligible for Prevent after 7 days clean.</li>
-  <li><strong>IOA-3 (TPMProfiler task):</strong> eligible for Prevent after 7-day clean window. No legitimate match.</li>
-  <li><strong>IOA-4 (K7RKScan_1516):</strong> eligible for Prevent immediately if K7 AV not deployed; otherwise replace vulnerable driver build first.</li>
-  <li><strong>IOA-5 (ADNotificationManager sideload):</strong> eligible for Prevent after 14d clean; verify Azure AD Connect paths first.</li>
-  <li><strong>IOA-6 (WDigest re-enable):</strong> eligible for Prevent after 14d clean. Modern Windows should never set this to 1.</li>
-</ul>
-</section>
-
-<section id="summary">
-<h2>Hunt Summary Ticket</h2>
-<div class="query-card">
-  <div class="query-header">qemu-hidden-vm-ticket.txt <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-<pre>## Hunt Summary: QEMU Hidden-VM Abuse (STAC4713 / STAC3725)
-Date: 2026-05-13
-Intel Source: Sophos X-Ops - "QEMU abused to evade detection and enable ransomware delivery"
-
-### Expected Findings
-- ANY hit on Hunts 1, 2, 3, 4, 6, 10 -> treat as active intrusion; isolate host immediately; engage IR.
-- Hunt 5 (QEMU with -display none / hostfwd) -> if found on a non-developer endpoint, treat as TP.
-- Hunts 7, 8, 9, 11, 12, 13, 14 -> review individual hits for context; correlate parent process, user, and timeline.
-- Coordinate with internal MSP / IT team before classifying any ScreenConnect-related hit (Hunts 3, 9).
-- All findings should be cross-referenced with patch status for CVE-2025-5777 (NetScaler) and CVE-2025-26399 (SolarWinds WHD).
-
-### Actions Taken (Low-Risk - no approval needed)
-- Hunt queries (read-only) ready for execution in LogScale.
-- SHA256 / MD5 IOCs queued for Prevent in Falcon IOC Management.
-- Domain (vtps.us) and 5x IP IOCs queued for Detect.
-
-### Actions Pending Approval
-- Custom IOAs 1-6 -> deploy in Detect mode (peer review).
-- WDAC publisher-deny for QEMU Project binaries -> CAB.
-- GPO firewall rule denying outbound TCP/22, 32567, 22022 from servers -> CAB.
-- FSRM file-screen for .qcow2/.vhdx/.vmdk/.img writes outside designated shares -> CAB.
-- WDigest registry DACL lockdown -> CAB.
-- Microsoft Vulnerable Driver Blocklist (Memory Integrity) enterprise rollout -> CAB.
-
-### Queries to Run
-Hunts 1-14 above (paste into LogScale; recommend 90-day window for IOC sweeps, 60 days for behavioral).
-
-### Follow-Up Schedule
-- Re-run Hunts 1, 2, 3 (IOC-based) weekly for 60 days, then monthly.
-- Re-run Hunts 4, 5, 6, 10 (high-confidence behavioral) every 7 days.
-- Re-run Hunts 7-9, 11-14 every 14 days.
-- IOC expiry: IPs 2026-06-12, Domain 2026-08-11, Hashes/MD5 2027-05-13.
-- Promotion review: IOA-2, IOA-3, IOA-4 in 7 days; IOA-5, IOA-6 in 14 days; IOA-1 (QEMU global) at 30+ days after dev OU carve-out.
-- Patch verification: confirm CVE-2025-5777 and CVE-2025-26399 fully remediated within 7 days.
-- Intel monitoring: Sophos X-Ops blog, Secureworks Counter Threat Unit (PayoutsKing tracking), CISA KEV updates, ConnectWise security advisories.
-- Re-hunt triggers: new STAC4713 / Payouts King IOCs published; observation of qemu-system-* on any production endpoint; new ScreenConnect or Citrix CVE; any AdaptixC2 / Havoc detection from Falcon.</pre>
-</div>
-</section>
-
-<footer>
-  Generated by Threat Hunter Skill &middot; Single-file HTML package &middot; All queries CrowdStrike CQL (Falcon LogScale / NG-SIEM)
-</footer>
-
-</div>
+</div><!-- /main -->
 
 <script>
-function copyQuery(btn) {
-  const pre = btn.closest('.query-card').querySelector('pre');
-  const text = pre.innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.innerText;
-    btn.innerText = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => {
-      btn.innerText = orig;
-      btn.classList.remove('copied');
-    }, 1500);
-  }).catch(() => {
-    btn.innerText = 'Copy failed';
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
   });
 }
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
 </script>
 </body>
 </html>
