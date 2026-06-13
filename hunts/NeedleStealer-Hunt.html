@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Needle Stealer — Golang Modular Infostealer — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --text: #e6edf3; --text-muted: #8b949e; --accent: #d2a8ff; --accent-dim: rgba(210,168,255,0.15);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1a3a 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(210,168,255,0.1); color: #d2a8ff; border-color: rgba(210,168,255,0.5); }
+.btn-falcon:hover { background: rgba(210,168,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #d2a8ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #d2a8ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(210,168,255,0.09); border: 1px solid rgba(210,168,255,0.3); color: #d2a8ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Needle Stealer<br>Golang Modular Infostealer</div>
+    <div class="version">v0.1 · 2026-06-13</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Needle Stealer — Golang Modular Infostealer (Crypto / Browser Credential Theft)</h1>
+  <div class="subtitle">A modular Golang infostealer / MaaS that lands via a fake AI-trading site (<span class="mono">tradingclaw[.]pro</span>) and via Amadey / GCleaner / CountLoader. Its chain sideloads <span class="mono">iviewers.dll</span> and process-hollows into <span class="mono">RegAsm.exe</span>, installs a malicious browser extension under <span class="mono">%LOCALAPPDATA%\Packages\Extensions</span> that intercepts MetaMask / Phantom seed phrases, and exfiltrates browser creds, wallets, Telegram/FTP data and clipboard over HTTP C2. Documented April 2026, active build observed 2026-06-03. Defensive hunt &amp; harden pack — no malware code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">Needle Stealer (Golang modular infostealer)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE · CRED &amp; CRYPTO THEFT</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Infostealer / MaaS · browser + wallet theft</div></div>
+    <div class="meta-item"><div class="mk">Delivery</div><div class="mv">Fake AI-trading site + Amadey/GCleaner/CountLoader</div></div>
+    <div class="meta-item"><div class="mk">Signature TTP</div><div class="mv">iviewers.dll sideload → RegAsm.exe hollowing</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-13</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><strong>Needle Stealer</strong> is a modular information stealer written in <strong>Golang</strong>, sold as a service and built in feature-toggle modules so operators enable only the collectors they want. It harvests browser credentials, cookies and history; cryptocurrency wallets (Ledger, Trezor, Exodus desktop; MetaMask / Coinbase extensions); Telegram and FTP client data; text files; clipboard contents; and wallet <strong>seed phrases</strong> — the browser module swaps or intercepts legitimate wallet extensions so the victim enters their seed into a fake MetaMask / Phantom and it is exfiltrated on entry.</p>
+    <p><strong>Delivery</strong> is twofold: a fraudulent AI-trading-assistant website (<span class="mono">tradingclaw[.]pro</span>) that selectively redirects crawlers away, and follow-on deployment by the loaders <strong>Amadey, GCleaner and CountLoader/DeepLoad</strong> (so a host can be infected without ever visiting the site), plus phishing and pirated software. The infection chain ships a ZIP whose loader performs <strong>DLL search-order hijacking via <span class="mono">iviewers.dll</span></strong> and then <strong>process-hollows the stealer into <span class="mono">RegAsm.exe</span></strong>; it installs a malicious browser extension in a randomly named folder under <span class="mono">%LOCALAPPDATA%\Packages\Extensions</span> (with a remote self-destruct) and beacons to C2 over multiple HTTP API endpoints. Documented April 2026; an active build was observed 2026-06-03.</p>
+    <div class="callout callout-danger">⚠ <strong>This one is endpoint-rich</strong> — unlike appliance CVEs, the whole chain is Falcon-sensored. Highest-fidelity signals: <strong>Q1</strong> (<code>RegAsm.exe</code> abused as a hollowing target — it should never make external network connections or be spawned by a random loader) and <strong>Q2</strong> (<code>iviewers.dll</code> sideloaded from a user-writable path). Then <strong>Q3</strong> (rogue browser extension) and <strong>Q4</strong> (C2 from the hollowed host). Block the delivery infra (Q6) and treat any hit as confirmed credential/crypto theft → rotate everything touched.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Malwarebytes — malicious trading site drops browser-hijacking malware</td><td>Fake AI-trading site delivery; browser takeover; selective redirect to evade crawlers</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>beelzebub.ai — "Needle: modular crypto-stealing C2"</td><td>Wallet-extension interception (MetaMask/Phantom), seed-phrase theft, multi-endpoint HTTP C2</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor research</td><td>SOCPrime — Needle Stealer spread via fake AI trading site</td><td>DLL hijack + process hollowing into RegAsm.exe; Golang modular stealer</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Malware analysis</td><td>pcrisk — Needle Stealer</td><td>iviewers.dll sideload; RegAsm.exe hollowing; extension under %LOCALAPPDATA%\Packages\Extensions with self-destruct; targets &amp; loaders</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Aggregator</td><td>Security Boulevard</td><td>Confirms fake-trading delivery; browser-takeover impact</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> key the durable detections on the distinctive chain (iviewers.dll sideload → RegAsm.exe hollowing → rogue extension → HTTP C2) rather than the loader-of-the-day, since Amadey/GCleaner/CountLoader can swap in any delivery. <span class="mono">tradingclaw[.]pro</span> and <span class="mono">iviewers.dll</span> are concrete and citable but perishable — block + alert. Wallet/seed interception means any confirmed infection is a credential emergency: rotate and re-secure all wallets and accounts used on the host.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A user runs a fake AI-trading installer (or a commodity loader drops the payload); a bundled loader sideloads <code>iviewers.dll</code>, hollows the stealer into <code>RegAsm.exe</code>, installs a rogue browser extension that intercepts wallet seed phrases, harvests browser/wallet/clipboard data, and exfiltrates to HTTP C2.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Delivery</td><td>Fake AI-trading installer (tradingclaw[.]pro) or loader drop (Amadey/GCleaner/CountLoader)</td><td><code>ProcessRollup2</code>, <code>DnsRequest</code></td><td><strong>Q5, Q6</strong></td></tr>
+        <tr><td>2 · DLL sideload</td><td>Loader sideloads <code>iviewers.dll</code> from a user-writable path</td><td>Module load / <code>PeFileWritten</code></td><td><strong>Q2</strong></td></tr>
+        <tr><td>3 · Process hollowing</td><td>Stealer injected into <code>RegAsm.exe</code></td><td><code>ProcessRollup2</code></td><td><strong>Q1</strong></td></tr>
+        <tr><td>4 · Browser extension</td><td>Rogue extension under <code>%LOCALAPPDATA%\Packages\Extensions</code> (randomly named); intercepts MetaMask/Phantom seed</td><td><code>FileCreateInfo</code>, <code>PeFileWritten</code></td><td><strong>Q3</strong></td></tr>
+        <tr><td>5 · Collection</td><td>Browser creds/cookies, wallets, Telegram/FTP, clipboard, seed phrases</td><td><code>ProcessRollup2</code> / file access</td><td>Q4 context; N3</td></tr>
+        <tr><td>6 · C2 / exfil</td><td>HTTP API beacons to attacker C2 from the hollowed host</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td><strong>Q4, Q6</strong></td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows endpoints (browser + wallet users)</td><td>Process lineage + module loads (<code>ProcessRollup2</code>)</td><td><span class="badge b-high">Critical</span></td><td>Low — standard Falcon sensor</td></tr>
+        <tr><td>RegAsm.exe hollowing</td><td>Process + network context for <code>RegAsm.exe</code></td><td><span class="badge b-high">High</span></td><td>Low — standard sensor</td></tr>
+        <tr><td>Rogue browser extension</td><td>File writes under <code>%LOCALAPPDATA%\Packages\Extensions</code></td><td><span class="badge b-high">High</span></td><td>Medium — extension-dir writes are noisy; scope by writer</td></tr>
+        <tr><td>C2 / delivery infra</td><td>DNS + network (<code>DnsRequest</code>, <code>NetworkConnectIP4</code>)</td><td><span class="badge b-med">Medium</span></td><td>High — infra is perishable</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">Behavior is the durable detection (the iviewers.dll → RegAsm.exe chain). Domains are perishable — block + alert, expect rotation. Any confirmed hit = credential/crypto theft: rotate browser creds, wallet keys and seed phrases for the host. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior</td><td class="mono">RegAsm.exe making external network connections / spawned by a non-VS parent</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Process-hollowing target (Needle core)</td></tr>
+        <tr><td>File</td><td class="mono">iviewers.dll loaded/written from a user-writable path</td><td><span class="badge b-high">high</span></td><td>detect</td><td>DLL search-order hijack in the loader</td></tr>
+        <tr><td>Behavior</td><td class="mono">Rogue extension folder under %LOCALAPPDATA%\Packages\Extensions written by a non-browser process</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Wallet-extension interception + persistence</td></tr>
+        <tr><td>Domain</td><td class="mono">tradingclaw[.]pro</td><td><span class="badge b-med">medium</span></td><td>block</td><td>Fake AI-trading delivery site (perishable)</td></tr>
+        <tr><td>Domain</td><td class="mono">studypages[.]com</td><td><span class="badge b-low">low</span></td><td>hunt</td><td>Observed redirect target (lower confidence)</td></tr>
+        <tr><td>Loader</td><td class="mono">Amadey / GCleaner / CountLoader-DeepLoad</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Upstream delivery — pivot to these families</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access / Execution</td><td>T1204 — User Execution</td><td>Fake AI-trading installer run by the user</td><td>Q5, Q6; S10</td></tr>
+        <tr><td>Defense Evasion</td><td>T1574.001 — DLL Search-Order Hijacking</td><td>Loader sideloads <code>iviewers.dll</code></td><td>Q2</td></tr>
+        <tr><td>Defense Evasion / PrivEsc</td><td>T1055.012 — Process Hollowing</td><td>Stealer injected into <code>RegAsm.exe</code></td><td>Q1</td></tr>
+        <tr><td>Persistence</td><td>T1176 — Browser Extensions</td><td>Rogue extension under %LOCALAPPDATA%\Packages\Extensions</td><td>Q3</td></tr>
+        <tr><td>Credential Access</td><td>T1555.003 / T1539 — Browser Creds / Session Cookies</td><td>Harvests stored creds, cookies, wallet seed phrases</td><td>Q3, Q4; N3</td></tr>
+        <tr><td>Collection / C2 / Exfil</td><td>T1115 / T1071.001 / T1041</td><td>Clipboard capture; HTTP-API beacons; exfil over C2</td><td>Q4, Q6</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Browser extension inventory</td><td>Browser policy / EDR file events</td><td>Unmanaged extensions installed outside the enterprise allow-list, especially under %LOCALAPPDATA%\Packages\Extensions with random names</td><td>Remove; force-install allow-list via browser policy</td></tr>
+        <tr><td>N2 · Sysmon DLL-load review</td><td>Sysmon EID 7 (ImageLoad)</td><td>Load of <code>iviewers.dll</code> from a user-writable path / unsigned</td><td>High-fidelity if Sysmon present; pairs with Q2</td></tr>
+        <tr><td>N3 · Wallet/seed exposure review</td><td>Host / DLP review</td><td>Hosts where wallet apps (MetaMask/Exodus/Ledger) and browser cred stores were active during infection</td><td>Treat as compromised — force seed/credential rotation</td></tr>
+        <tr><td>N4 · Loader-family review</td><td>EDR / threat intel</td><td>Prior Amadey / GCleaner / CountLoader activity on the host (upstream delivery)</td><td>Pivot to the loader pack; scope blast radius</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">All six run on Falcon-sensor endpoint telemetry — field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. The strongest, lowest-FP signals are Q1 (RegAsm hollowing) and Q2 (iviewers.dll sideload).</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · RegAsm.exe abused as a process-hollowing target</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>RegAsm.exe</code> launched by a non-developer parent or from a user-writable path — the hollowing host. <strong>Accomplishes:</strong> catches Needle's injection target. RegAsm is a .NET SDK tool; outside dev/build it is almost always abuse.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: RegAsm.exe abused as a process-hollowing target (Needle Stealer)</span>
+<span class="cm">// MITRE: T1055.012 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FALSE POSITIVES: legitimate .NET build/dev workflows (Visual Studio / MSBuild parents)</span>
+<span class="cm">// TUNING: allow-list developer hosts; alert on RegAsm with loader/archive parents or temp paths</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^RegAsm\.exe$/i
+| ParentBaseFileName!=/^(devenv|msbuild|cmd|powershell|explorer)\.exe$/i
+| ImageFileName=/\\(Users\\[^\\]+\\(AppData|Downloads|Desktop)|ProgramData|Temp)\\/i OR CommandLine=""
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, ParentBaseFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · iviewers.dll sideloaded from a user-writable path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the writing or loading of <code>iviewers.dll</code> from a user directory — the DLL search-order hijack. <strong>Accomplishes:</strong> a near-unique signature of this chain. (PE-write variant; pair with Sysmon EID 7 for the load itself.)</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: iviewers.dll written/staged in a user-writable path (DLL search-order hijack)</span>
+<span class="cm">// MITRE: T1574.001 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: PeFileWritten / FileCreateInfo (load-time visibility via Sysmon EID 7 — see N2)</span>
+<span class="cm">// FALSE POSITIVES: a legitimately signed iviewers.dll in its real install dir (excluded by path)</span>
+#event_simpleName=/PeFileWritten|FileCreateInfo|NewExecutableWritten/
+| TargetFileName=/\\iviewers\.dll$/i
+| TargetFileName=/\\(Users\\[^\\]+\\(AppData|Downloads|Desktop)|ProgramData|Temp)\\/i
+| table([@timestamp, ComputerName, ContextBaseFileName, TargetFileName, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Rogue browser extension written by a non-browser process</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> extension/manifest files dropped under the browser extensions directory by something other than the browser itself. <strong>FP:</strong> legitimate extension installers / browser updaters — allow-list those writers.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Browser extension files written by a non-browser process (Needle rogue extension)</span>
+<span class="cm">// MITRE: T1176, T1555.003 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: FileCreateInfo with writing-process context</span>
+<span class="cm">// FALSE POSITIVES: browser self-updates, sanctioned extension installers</span>
+<span class="cm">// TUNING: allow-list chrome/msedge/firefox + your extension-management tooling as writers</span>
+#event_simpleName=/FileCreateInfo|PeFileWritten/
+| TargetFileName=/\\(Packages\\Extensions|User Data\\[^\\]+\\Extensions)\\/i
+| TargetFileName=/\\(manifest\.json|background\.js|content\.js|service_worker\.js)$/i
+| ContextBaseFileName!=/^(chrome|msedge|firefox|brave|opera|chrome_installer|MicrosoftEdgeUpdate)\.exe$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, TargetFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · C2 / exfil from the hollowed host (RegAsm / non-browser HTTP)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> external network connections made by <code>RegAsm.exe</code> (or another .NET utility) — these should never beacon out. <strong>Accomplishes:</strong> catches the exfil channel of the hollowed stealer.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Outbound C2 from RegAsm.exe / .NET utility (Needle exfil over HTTP)</span>
+<span class="cm">// MITRE: T1071.001, T1041 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 with process context</span>
+<span class="cm">// FALSE POSITIVES: rare; some EDR/telemetry agents proxy through .NET hosts — allow-list those</span>
+#event_simpleName=/NetworkConnectIP4/
+| ContextBaseFileName=/^(RegAsm|RegSvcs|InstallUtil|MSBuild)\.exe$/i
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|127\.)/
+| table([@timestamp, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Suspicious execution from a fake-app / archive in a user path</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> executables run straight from Downloads/Temp/archive paths with trading-/AI-app lures, or rundll32 launching a sideloaded DLL. <strong>FP:</strong> legitimate fresh downloads — correlate with Q1/Q2 on the same host.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Execution from a fake AI-trading app / archive in a user-writable path (Needle delivery)</span>
+<span class="cm">// MITRE: T1204 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// FALSE POSITIVES: benign fresh downloads / portable apps — correlate with Q1/Q2</span>
+<span class="cm">// TUNING: tighten the lure regex to your telemetry; prioritize hosts also hitting Q1/Q2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\(Users\\[^\\]+\\(Downloads|AppData\\Local\\Temp)|ProgramData)\\/i
+| (FileName=/(trading|tradingclaw|ai[-_]?trade|crypto[-_]?bot|invest)/i
+   OR (FileName=/^rundll32\.exe$/i AND CommandLine=/\\(Users|ProgramData|Temp)\\.+\.dll/i))
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · DNS resolution of Needle delivery / C2 infrastructure</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> resolution of the known delivery / redirect domains. Investigate-only, perishable — refresh from current intel and pair with the behavioral hunts.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: DNS resolution of known Needle Stealer delivery / redirect infrastructure</span>
+<span class="cm">// MITRE: T1071.001 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FALSE POSITIVES: researchers / sandboxes intentionally resolving the domains</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)tradingclaw\.pro$|(^|\.)studypages\.com$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, DomainName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>Needle — RegAsm hollowing target</td><td>Image <code>*\RegAsm.exe</code> with loader/archive/temp parent or empty command line</td><td>Developer hosts (Visual Studio / MSBuild parents) excluded</td><td>Endpoint Security → Custom IOA → Process Creation (Detect+Block)</td></tr>
+        <tr><td>Needle — RegAsm external C2</td><td>Network connect; Image <code>*\RegAsm.exe</code>; remote = public IP</td><td>Sanctioned .NET telemetry proxies (excluded)</td><td>Custom IOA → Network Connection / scheduled-search detect</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1 and Q4 are the strongest promotions (RegAsm.exe should never be hollowed or beacon out). Q2 (iviewers.dll) is also a strong block once you confirm no signed legitimate use in your estate. Q3 stays Detect (allow-list extension writers first); Q5/Q6 stay hunt/investigate.</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for Falcon IOC Management, behavioral detection and post-infection rotation. Behavior is the durable detection; domains are perishable — block + refresh from current intel.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,tradingclaw.pro,detect,high,2026-09-13,Needle Stealer fake AI-trading delivery site,campaign:NeedleStealer
+domain,studypages.com,detect,medium,2026-09-13,Needle Stealer redirect target (lower conf),campaign:NeedleStealer
+filename,iviewers.dll,detect,high,2027-06-13,Needle Stealer DLL search-order hijack module,campaign:NeedleStealer
+sha256,REPLACE_WITH_LOADER_SHA256,prevent,critical,2027-06-13,Needle loader/stealer sample,campaign:NeedleStealer</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">RegAsm.exe spawned by a loader/archive/temp parent or with an empty command line (hollowing)
+RegAsm.exe / RegSvcs / InstallUtil making outbound connections to a public IP (C2/exfil)
+iviewers.dll written or loaded from a user-writable path (DLL search-order hijack)
+Browser extension files written under %LOCALAPPDATA%\Packages\Extensions by a non-browser process
+Execution from Downloads/Temp with a trading / AI-trade / crypto-bot lure name
+DNS to tradingclaw[.]pro / studypages[.]com</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Post-Infection Rotation</span><span class="igc">credential emergency</span></div>
+        <button class="btn-copy" data-label="Copy rotation" onclick="copyBlock('grab-rot',this)" style="margin:0 0 6px;">Copy rotation</button>
+<pre class="code" id="grab-rot"># Any confirmed Needle infection = browser + wallet credential theft. On the host:
+# 1) Move crypto funds to NEW wallets with NEW seed phrases (assume seeds stolen)
+# 2) Reset passwords for ALL accounts whose creds were stored in the browser
+# 3) Invalidate active web sessions (stolen cookies bypass MFA) — force re-auth everywhere
+# 4) Rotate Telegram / FTP / saved app credentials present on the host
+# 5) Remove the rogue extension; reset the browser profile; re-image the endpoint</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Upstream Loaders / References</span><span class="igc">delivery chain</span></div>
+        <button class="btn-copy" data-label="Copy refs" onclick="copyBlock('grab-ref',this)" style="margin:0 0 6px;">Copy refs</button>
+<pre class="code" id="grab-ref">Needle Stealer   # Golang modular infostealer / MaaS (this pack)
+Amadey           # upstream loader delivering Needle
+GCleaner         # pay-per-install loader delivering Needle
+CountLoader / DeepLoad   # upstream loader delivering Needle
+# Signature chain: iviewers.dll sideload -> RegAsm.exe hollowing -> rogue extension -> HTTP C2
+# Refresh tradingclaw[.]pro / C2 endpoints from current intel before relying on Q6</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>No single patch — Needle is delivered malware. Hardening removes the delivery vectors, kills the LOLBin abuse, and locks down browser extensions and wallets.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Cut delivery &amp; the signature chain</div>
+      <ul>
+        <li><strong>Block the delivery infra</strong> (<span class="mono">tradingclaw[.]pro</span>, redirect domains) at proxy/DNS — <em>M1021 / M1037</em>. Refresh from current intel.</li>
+        <li><strong>Browser extension allow-listing via policy</strong> (Chrome/Edge <code>ExtensionInstallAllowlist</code> + block-all default) — <em>M1042</em>. Defeats the rogue wallet extension (Q3).</li>
+        <li><strong>Application control to block RegAsm.exe / RegSvcs.exe outside dev hosts</strong> — <em>M1038 / M1042</em>. Removes the hollowing target on user endpoints.</li>
+        <li><strong>Mark of the Web + block execution from Downloads/Temp</strong> — <em>M1038</em>. Stops the fake-installer run (Q5).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain the toolkit (pilot first)</div>
+      <ul>
+        <li><strong>WDAC / AppLocker default-deny in user-writable paths</strong> — <em>M1038</em>. Stops sideloaded <code>iviewers.dll</code> and unsigned payloads.</li>
+        <li><strong>Phishing-resistant MFA + short web-session lifetimes</strong> — <em>M1032</em>. Devalues stolen cookies / credentials.</li>
+        <li><strong>Separate crypto / wallet activity onto hardened or dedicated devices</strong> — <em>M1030</em>. Removes seed phrases from general-use endpoints.</li>
+        <li><strong>Block known loader delivery (Amadey/GCleaner/CountLoader) patterns</strong> — <em>M1040 / M1038</em>. Cuts the upstream path.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Default-deny &amp; reduce the stealer payoff</div>
+      <ul>
+        <li><strong>Enterprise default-deny application control (signed-only)</strong> — <em>M1045 / M1038</em>. Closes the LOLBin-hollowing class.</li>
+        <li><strong>Move secrets out of browsers into a managed password manager / SSO</strong> — <em>M1027</em>. Less to steal from browser cred stores.</li>
+        <li><strong>Continuous egress monitoring for LOLBin network beacons</strong> — <em>M1031 / M1037</em>. Alert when .NET utilities talk to the internet (Q4).</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host in Falcon; block the C2 / delivery domains org-wide</td><td>SOC L2</td><td>Q4/Q6 rows; containment timestamp</td></tr>
+        <tr><td>Triage</td><td>Pull the RegAsm hollowing tree (Q1), the iviewers.dll sideload (Q2), the rogue extension (Q3) and the C2 destinations (Q4); enumerate wallets / browser profiles present</td><td>SOC L2</td><td>Process/file tree; Q1–Q4 rows</td></tr>
+        <tr><td>Eradicate</td><td>Remove the rogue extension and loader artifacts; reset the affected browser profile; remove persistence</td><td>IR</td><td>Extension/artifact removal log</td></tr>
+        <tr><td>Recover</td><td>Treat as a credential emergency: move crypto to new wallets/seeds, reset all browser-stored passwords, invalidate web sessions, rotate Telegram/FTP creds; re-image the host</td><td>IR + user</td><td>Rotation checklist (§9); re-image record</td></tr>
+        <tr><td>Harden</td><td>Browser extension allow-listing; block RegAsm on user hosts; default-deny app control; promote Q1/Q4 IOAs</td><td>Detection Eng</td><td>Policy state; IOA enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1055.012</td><td>RegAsm.exe process hollowing</td><td>Q1</td><td>IOA-1</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1574.001</td><td>iviewers.dll sideload</td><td>Q2</td><td>—</td><td><span class="badge b-low">Good</span> + N2 (Sysmon EID 7)</td></tr>
+        <tr><td>T1176 / T1555.003</td><td>Rogue browser extension</td><td>Q3</td><td>—</td><td><span class="badge b-med">Partial</span> allow-list writers first</td></tr>
+        <tr><td>T1071.001 / T1041</td><td>C2 / exfil from RegAsm</td><td>Q4</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1204</td><td>Fake-app delivery execution</td><td>Q5</td><td>—</td><td><span class="badge b-med">Partial</span> correlate w/ Q1/Q2</td></tr>
+        <tr><td>T1071.001</td><td>Delivery/C2 infra DNS</td><td>Q6</td><td>—</td><td><span class="badge b-med">Partial</span> perishable infra</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm <code>ProcessRollup2</code>, <code>PeFileWritten</code>, <code>NetworkConnectIP4</code> and <code>DnsRequest</code> context fleet-wide; (2) Q1/Q2/Q4 return zero hits in a 30-day benign lookback (allow-list any dev hosts first); (3) allow-list legitimate extension writers before enabling Q3 alerting; (4) refresh the Q6 domain list from current intel; (5) lab-validate the RegAsm-hollowing detection with a benign injection harness — never live malware; (6) promote Q1/Q4 to Custom IOA Detect+Block (target FP &lt; 1/week).</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — Needle Stealer (Golang modular infostealer; crypto/browser theft)
+SEVERITY:     High (active; wallet seed-phrase + browser credential theft, cookie/session theft)
+SCOPE:        Windows endpoints with browsers / crypto wallets
+HYPOTHESIS:   Fake AI-trading installer or commodity loader drops a payload that sideloads
+              iviewers.dll, hollows the stealer into RegAsm.exe, installs a rogue wallet-
+              intercepting extension, and exfiltrates creds/wallets/seed over HTTP C2.
+QUERIES RUN:  Q1 RegAsm hollowing (IOA) | Q2 iviewers.dll sideload | Q3 rogue extension |
+              Q4 RegAsm C2/exfil (IOA) | Q5 fake-app/archive execution | Q6 delivery/C2 DNS
+              + Native N1-N4 (extension inventory, Sysmon DLL load, wallet exposure, loaders)
+DO FIRST:     Q1, Q2 -&gt; escalate any hit; block tradingclaw[.]pro; treat hits as cred theft
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         DLL-load visibility best with Sysmon EID 7 (N2); C2 infra perishable (Q6)
+ACTIONS:      Block delivery infra; browser-extension allow-listing; block RegAsm on user hosts;
+              full credential + wallet-seed rotation; promote Q1/Q4 to Custom IOA Detect+Block
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-06-13</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-13</span><span>Initial pack — built to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, Falcon cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation gates, .ticket). Covers Needle Stealer (Golang modular infostealer): 6 endpoint CQL hunts, 4 native hunts, 2 IOA candidates. Keyed on the signature chain (iviewers.dll sideload → RegAsm.exe hollowing → rogue %LOCALAPPDATA%\Packages\Extensions extension → HTTP C2) plus delivery (fake AI-trading site + Amadey/GCleaner/CountLoader). Concrete IOCs: tradingclaw[.]pro, iviewers.dll; domains perishable.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.malwarebytes.com/blog/threat-intel/2026/04/malicious-trading-website-drop-malware-that-hands-over-your-browser-to-attackers" target="_blank">Malwarebytes — malicious trading site drops browser-hijacking malware</a></td><td>Delivery via fake AI-trading site; browser takeover; selective redirect</td></tr>
+        <tr><td>1</td><td><a href="https://beelzebub.ai/blog/needle-c2-crypto-stealer-analysis" target="_blank">beelzebub.ai — Needle: modular crypto-stealing C2</a></td><td>Wallet-extension interception, seed-phrase theft, multi-endpoint HTTP C2</td></tr>
+        <tr><td>2</td><td><a href="https://socprime.com/active-threats/trading-website-drops-malware/" target="_blank">SOCPrime — Needle Stealer via fake AI trading site</a></td><td>DLL hijack + RegAsm.exe process hollowing; Golang modular stealer</td></tr>
+        <tr><td>2</td><td><a href="https://www.pcrisk.com/removal-guides/35260-needle-stealer" target="_blank">pcrisk — Needle Stealer</a></td><td>iviewers.dll sideload; extension under %LOCALAPPDATA%\Packages\Extensions; targets &amp; loaders</td></tr>
+        <tr><td>2</td><td><a href="https://securityboulevard.com/2026/04/malicious-trading-website-drops-malware-that-hands-your-browser-to-attackers/" target="_blank">Security Boulevard — malicious trading site</a></td><td>Corroboration of delivery + browser-takeover impact</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · Needle Stealer (Golang modular infostealer) · Generated 2026-06-13 · Defensive use only — no malware code. There is no single patch; detection keys on the signature chain (iviewers.dll → RegAsm.exe hollowing → rogue extension → HTTP C2) and any hit is a credential/crypto-theft emergency. Validate field names in your tenant and refresh perishable domains before promoting any query to alerting.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
