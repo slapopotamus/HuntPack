@@ -1,902 +1,610 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IronWorm — HuntPack</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IronWorm — Rust npm Supply-Chain Worm — HuntPack v0.3</title>
 <style>
 :root {
-  --bg: #0d1117;
-  --panel: #0d1a18;
-  --panel-2: #0f2420;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #9ca3af;
-  --accent: #02c39a;
-  --good: #7ee787;
-  --warn: #d29922;
-  --crit: #f85149;
-  --code: #080c12;
+  --bg: #0d1117; --surface: #1a1018; --surface2: #261522; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9b8c95; --accent: #f778ba; --accent-dim: rgba(247,120,186,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
 }
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.55;
-}
-a { color: var(--accent); }
-code, pre, .mono { font-family: Consolas, Menlo, Monaco, "Courier New", monospace; }
-.container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
-.hero { background: linear-gradient(160deg, var(--panel-2), var(--bg)); border-bottom: 1px solid var(--border); padding: 34px 0 26px; }
-.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); }
-.badge.critical { background: rgba(248,81,73,.15); color: var(--crit); border-color: var(--crit); }
-.badge.warning { background: rgba(210,153,34,.15); color: var(--warn); border-color: var(--warn); }
-.badge.good { background: rgba(2,195,154,.15); color: var(--accent); border-color: var(--accent); }
-.hero h1 { margin: 6px 0 8px; font-size: 34px; letter-spacing: .5px; }
-.subtitle { color: var(--text); max-width: 90ch; margin: 0 0 18px; }
-.stats { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
-.stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; min-width: 140px; }
-.stat-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
-.stat-value { display: block; font-size: 15px; font-weight: 600; margin-top: 3px; }
-.meta-row { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: var(--muted); }
-.meta-row strong { color: var(--text); }
-.toc { position: sticky; top: 0; z-index: 20; background: rgba(13,17,23,.95); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
-.toc .container { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 9px 0; font-size: 12.5px; }
-.toc a { color: var(--muted); text-decoration: none; white-space: nowrap; }
-.toc a:hover { color: var(--accent); }
-.utility-bar { position: sticky; top: var(--toc-height, 42px); z-index: 19; background: var(--panel-2); border-bottom: 1px solid var(--border); }
-.utility-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 0; font-size: 13px; }
-.utility-bar select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
-.utility-bar .host { color: var(--accent); font-family: Consolas, monospace; font-size: 12.5px; }
-.utility-bar span:last-child { color: var(--muted); }
-section { padding: 30px 0; border-bottom: 1px solid var(--border); }
-section h2 { font-size: 23px; margin: 0 0 6px; color: var(--text); }
-section h2 .num { color: var(--accent); margin-right: 8px; }
-section h3 { color: var(--text); margin: 22px 0 8px; font-size: 17px; }
-.lead { color: var(--muted); margin: 0 0 16px; max-width: 92ch; }
-p { max-width: 95ch; }
-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
-th, td { text-align: left; padding: 8px 10px; border: 1px solid var(--border); vertical-align: top; }
-th { background: var(--panel-2); color: var(--text); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
-td.mono, .mono { font-family: Consolas, Menlo, monospace; font-size: 12.5px; word-break: break-word; }
-tr:nth-child(even) td { background: rgba(255,255,255,.015); }
-.pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; display: inline-block; }
-.pill.high, .pill.detect, .pill.crit { background: rgba(248,81,73,.16); color: var(--crit); }
-.pill.med, .pill.hunt { background: rgba(210,153,34,.16); color: var(--warn); }
-.pill.low, .pill.enrich, .pill.pivot { background: rgba(2,195,154,.16); color: var(--accent); }
-.pill.good { background: rgba(126,231,135,.16); color: var(--good); }
-.note { background: var(--panel-2); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0; font-size: 14px; }
-.note.warn { border-left-color: var(--warn); }
-.note.crit { border-left-color: var(--crit); }
-pre { background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 14px; overflow-x: auto; font-size: 13px; line-height: 1.5; color: #d6e2ee; white-space: pre; }
-.query-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin: 18px 0; }
-.query-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
-.query-title { margin: 0 0 4px; font-size: 16.5px; }
-.query-meta { font-family: Consolas, monospace; font-size: 12px; color: var(--muted); }
-.button-row { display: flex; gap: 8px; flex-shrink: 0; }
-.button { cursor: pointer; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); border-radius: 7px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; }
-.button.primary { background: var(--accent); color: #04201a; border-color: var(--accent); }
-.button:hover { filter: brightness(1.12); }
-.query-summary { font-size: 13.5px; color: var(--muted); margin: 12px 0; }
-.query-summary strong { color: var(--text); }
-ul { max-width: 92ch; }
-li { margin: 5px 0; }
-footer { padding: 26px 0 60px; color: var(--muted); font-size: 13px; }
-.tier-h { color: var(--accent); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b5560; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1020 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(247,120,186,0.22); color: #f778ba; border: 1px solid #f778ba; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(247,120,186,0.09); border: 1px solid rgba(247,120,186,0.3); color: #f778ba; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="container">
-    <div class="badge-row">
-      <span class="badge critical">High urgency</span>
-      <span class="badge warning">Supply-chain worm / infostealer</span>
-      <span class="badge">Linux dev &amp; CI/CD · npm · GitHub</span>
-      <span class="badge good">Draft v0.1</span>
-    </div>
-    <h1>IronWorm — npm Supply-Chain Worm HuntPack</h1>
-    <p class="subtitle">IronWorm is a self-propagating, Rust-built infostealer delivered through trojanized npm packages. A native ELF binary runs from an <span class="mono">install</span> lifecycle hook, sweeps 86 environment variables and 20+ on-disk credential files (cloud, AI provider, npm, GitHub, SSH, Vault, Kubernetes, crypto wallets), hides behind an eBPF kernel rootkit, and beacons to its operator over Tor. It self-replicates by abusing stolen credentials and npm Trusted Publishing to republish trojanized packages — turning every compromised developer or CI runner into the next distribution node. Hunt priority is the install-hook→native-binary execution chain on developer and build hosts, anomalous loopback exfil, and Tor bootstrap on machines that have no business running it.</p>
-    <div class="stats">
-      <div class="stat"><span class="stat-label">Objective</span><span class="stat-value">Credential theft + self-propagation</span></div>
-      <div class="stat"><span class="stat-label">Initial access</span><span class="stat-value">Malicious npm package (install hook)</span></div>
-      <div class="stat"><span class="stat-label">Platforms</span><span class="stat-value">Linux dev / CI/CD, npm, GitHub</span></div>
-      <div class="stat"><span class="stat-label">CQL queries</span><span class="stat-value">8</span></div>
-      <div class="stat"><span class="stat-label">Indicators</span><span class="stat-value">37 packages + 12 behavioral</span></div>
-    </div>
-    <div class="meta-row">
-      <span><strong>Generated:</strong> 2026-06-05</span>
-      <span><strong>Updated:</strong> 2026-06-05</span>
-      <span><strong>CVE/advisory:</strong> N/A (no CVE)</span>
-      <span><strong>Threat:</strong> IronWorm (Shai-Hulud-adjacent)</span>
-      <span><strong>Author:</strong> cap10</span>
-    </div>
-  </div>
-</header>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
 
-<nav class="toc">
-  <div class="container">
-    <a href="#summary">1. Executive Summary</a>
-    <a href="#source-review">2. Source Review</a>
-    <a href="#brief">3. Hunt Brief</a>
-    <a href="#iocs">4. IOCs</a>
-    <a href="#affected">5. Telemetry</a>
-    <a href="#mitre">6. ATT&CK</a>
-    <a href="#audit">7. Native Hunts</a>
-    <a href="#queries">8. CQL</a>
-    <a href="#ioa">9. IOA</a>
-    <a href="#iocappendix">10. IOC JSON</a>
-    <a href="#validation">11. Validation</a>
-    <a href="#hardening">12. Hardening</a>
-    <a href="#playbooks">13. Playbooks</a>
-    <a href="#containment">14. Containment</a>
-    <a href="#coverage">15. Coverage</a>
-    <a href="#ticket">16. Ticket</a>
-    <a href="#changelog">17. Changelog</a>
-    <a href="#refs">18. References</a>
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">IronWorm<br>Rust npm Supply-Chain Worm</div>
+    <div class="version">v0.3 · 2026-06-12</div>
   </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Detection Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
 </nav>
 
-<div class="utility-bar">
-  <div class="container utility-inner">
-    <strong>Falcon cloud:</strong>
-    <select id="falcon-cloud" aria-label="Falcon cloud">
-      <option value="https://falcon.crowdstrike.com">US-1</option>
-      <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
-      <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
-      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
-      <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
-    </select>
-    <span class="host" id="falcon-host">https://falcon.crowdstrike.com</span>
-    <span>Copy and Open in Falcon controls use the selected cloud.</span>
+<div id="main">
+
+<div class="hp-header">
+  <h1>IronWorm — Rust-Built npm Supply-Chain Worm</h1>
+  <div class="subtitle">An evolved Shai-Hulud-family worm (JFrog, 3 Jun 2026). A malicious npm install hook drops a ~976 KB <strong>Rust ELF</strong> that harvests ~86 env vars + 20+ credential files, steals Exodus wallet seeds, ships an <strong>eBPF kernel rootkit</strong> (process/socket hiding), beacons over <strong>Tor</strong>, and self-propagates using stolen npm Trusted-Publishing creds. Targets Web3/crypto developers. Defensive hunt &amp; harden pack.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">IronWorm (Shai-Hulud-family Rust npm worm)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">WORM · eBPF ROOTKIT · TOR C2</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">OSS supply chain · infostealer · self-propagating</div></div>
+    <div class="meta-item"><div class="mk">Scope</div><div class="mv">~37–43 npm packages (asteroiddao) · Web3/crypto devs</div></div>
+    <div class="meta-item"><div class="mk">Discovered</div><div class="mv">JFrog · 3 Jun 2026 · No CVE</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
   </div>
 </div>
 
-<main class="container">
-
-<!-- 1 -->
-<section id="summary">
-  <h2><span class="num">1.</span>Executive Summary</h2>
-  <p class="lead">IronWorm is a custom Rust implant distributed via a wave of 37 trojanized npm package versions published from a single compromised maintainer account. It is a credential-theft engine first and a worm second: it harvests everything from a developer's keychain, then weaponizes those credentials to push itself into source repositories and re-publish trojanized packages, infecting the next victim.</p>
-
-  <p>The infection executes the moment a developer or CI runner types <span class="mono">npm install</span>. The malicious <span class="mono">package.json</span> declares a <span class="mono">preinstall</span> script pointing at a native ELF binary hidden under a <span class="mono">tools/</span> directory (<span class="mono">tools/setup</span>; a <span class="mono">.github/scripts/precheck</span> variant also exists). The binary runs before dependency resolution — no build step, no user interaction. It is a 976&nbsp;KB Rust release build wrapped in a UPX stub with its magic bytes overwritten to defeat signature unpackers, with per-call-site string encryption to resist reversing.</p>
-
-  <p>Once running it (a) sweeps 86 environment variables and 20+ credential file paths — AWS/GCP/Azure, npm, GitHub, SSH, Docker, Vault, Kubernetes, and the full 2026 generation of AI provider keys (Anthropic, OpenAI, Gemini, Cohere, Mistral, Groq, Perplexity, xAI); (b) injects a JavaScript hook into the Exodus desktop wallet to steal the password and seed phrase, weakening Electron security flags and exfiltrating to a loopback listener on <span class="mono">127.0.0.1:8738</span>; (c) loads an eBPF kernel rootkit to hide its processes, sockets, and resist <span class="mono">ptrace</span>; (d) bootstraps Tor and beacons to <span class="mono">/api/agent</span> for tasking (upload secrets, drop files, remote shell); and (e) self-replicates — in CI it abuses npm Trusted Publishing (OIDC token exchange) to obtain a package-scoped token with no stored credential, then republishes trojanized releases. A second, not-yet-observed-in-the-wild path replaces a GitHub Actions workflow to serialize <span class="mono">${{ toJSON(secrets) }}</span> into an artifact for credential-free exfiltration.</p>
-
-  <div class="note crit"><strong>Defender priority:</strong> The highest-fidelity, lowest-effort detection is the <em>install-hook → native ELF execution</em> chain on Linux developer and CI hosts (Q1). Pair it with loopback wallet-exfil (Q4) and Tor-bootstrap (Q3) detections. Because the worm's true blast radius is your secrets, treat any confirmed hit as a full credential-rotation event for the affected identity — cloud, AI, npm, GitHub, SSH, and Vault/K8s — not just an endpoint cleanup. The eBPF rootkit's strongest stealth fails under kernel lockdown, which is also your fastest hardening win.</div>
-</section>
-
-<!-- 2 -->
-<section id="source-review">
-  <h2><span class="num">2.</span>Source Review &amp; Web Hunter Notes</h2>
-  <p class="lead">Three primary/corroborating sources plus several secondary trackers. Intel confidence is high: the lead source is the discovering vendor's full technical teardown with a published IoC list.</p>
-  <table>
-    <thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead>
-    <tbody>
-      <tr><td>1 — Vendor (discoverer)</td><td>JFrog Security Research — "IronWorm: Shai-Hulud's rustier cousin"</td><td>Full teardown: preinstall→ELF, UPX/Rust/string-crypto, eBPF rootkit, Tor C2 <span class="mono">/api/agent</span>, npm Trusted Publishing self-replication, GitHub Actions secret-exfil path, 37 packages, commit/author IOCs, wallet skip-list &amp; hardcoded seed.</td><td><span class="pill high">yes</span></td></tr>
-      <tr><td>1 — Vendor</td><td>OX Security — "IronWorm Supply Chain Malware Hits npm"</td><td>Complete affected-package + version table (36 unique packages, 32,177 monthly / 148,724 lifetime downloads); postinstall/preinstall native-binary delivery; remediation guidance.</td><td><span class="pill high">yes</span></td></tr>
-      <tr><td>2 — Trade press</td><td>BleepingComputer (Toulas)</td><td>Independent summary; confirms Tor, eBPF, Rust, credential targeting, parallel <span class="mono">binding.gyp</span> JS worm; ties to Shai-Hulud commit naming.</td><td><span class="pill med">partial</span></td></tr>
-      <tr><td>2 — Vendor/press</td><td>Phoenix Security, The Hacker News, Dark Reading, CryptoTimes</td><td>Corroborate 976&nbsp;KB binary, 86 env vars, 9 affected orgs, 57 backdated commits, web3/crypto-dev targeting.</td><td><span class="pill med">partial</span></td></tr>
-    </tbody>
-  </table>
-  <table>
-    <thead><tr><th>Decision</th><th>Rationale</th><th>Pack change</th></tr></thead>
-    <tbody>
-      <tr><td>Treat as Linux-first hunt</td><td>ELF payload, eBPF rootkit, Tor expert bundle for Linux; npm/CI runners are predominantly Linux.</td><td>All CQL targets Linux/macOS process &amp; network telemetry.</td></tr>
-      <tr><td>Keep package list as primary IOC</td><td>Versions are precise and pinned; SCA/curation can block immediately.</td><td>Full 37-package list in IOC table + JSON appendix.</td></tr>
-      <tr><td>Flag eBPF + cred-file-read as telemetry gaps</td><td>Falcon Linux has limited file-read and eBPF-load visibility; rootkit actively hides.</td><td>Q5/Q7 flagged; auditd/native hunts added.</td></tr>
-      <tr><td>Per standing prefs, no victim names in narrative</td><td>Affected orgs are a web3/decentralized-DB ecosystem; rephrased around the TTP.</td><td>Compromised publishing handles retained as attacker IOCs only.</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 3 -->
-<section id="brief">
-  <h2><span class="num">3.</span>Hunt Brief &amp; Attack Chain</h2>
-  <p class="lead"><strong>Working hypothesis:</strong> If a Linux developer or CI host installed any affected package version, then a native binary executed from a node_modules install hook, swept local credential stores, and attempted Tor egress and/or npm re-publication — all of which leave process, network, and source-control artifacts we can hunt.</p>
-  <table>
-    <thead><tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt angle</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Trojanized package installed; <span class="mono">preinstall</span> hook fires</td><td>ProcessRollup2 (npm/node parent)</td><td>npm/yarn/pnpm → native binary under node_modules (Q1)</td></tr>
-      <tr><td>2</td><td>976&nbsp;KB Rust ELF runs from <span class="mono">tools/setup</span> / <span class="mono">scripts/precheck</span></td><td>ProcessRollup2 (ImageFileName path)</td><td>ELF execution from node_modules path (Q2)</td></tr>
-      <tr><td>3</td><td>eBPF rootkit loaded to hide PIDs/sockets, block ptrace</td><td>BPF load / auditd (limited in Falcon)</td><td>BPF tooling on non-observability host (Q7) — <strong>gap</strong></td></tr>
-      <tr><td>4</td><td>Sweep 86 env vars + 20+ credential files</td><td>File-read (limited on Linux)</td><td>Access to credential file cluster (Q5) — partial</td></tr>
-      <tr><td>5</td><td>Exodus wallet hook → loopback exfil</td><td>NetworkListen/Connect 127.0.0.1:8738</td><td>Loopback listener / connection on 8738 (Q4)</td></tr>
-      <tr><td>6</td><td>Tor bootstrap (expert bundle, torrc) → C2 <span class="mono">/api/agent</span></td><td>ProcessRollup2 / DnsRequest</td><td>Tor process &amp; download on dev/CI host (Q3)</td></tr>
-      <tr><td>7</td><td>Self-replicate via npm Trusted Publishing OIDC exchange</td><td>ProcessRollup2 (npm publish)</td><td>Anomalous npm publish / OIDC exchange (Q6)</td></tr>
-      <tr><td>8</td><td>Fallback exfil to public file host</td><td>DnsRequest</td><td>Outbound to temp.sh over Tor (Q8)</td></tr>
-      <tr><td>9</td><td>Source poisoning: backdated commits as <span class="mono">claude</span>/bot identities; workflow swap</td><td>GitHub / VCS audit logs</td><td>Native audit-log hunts (§7)</td></tr>
-    </tbody>
-  </table>
-  <table>
-    <thead><tr><th>Objective</th><th>Logic</th><th>Impact</th></tr></thead>
-    <tbody>
-      <tr><td>Steal every reachable secret</td><td>Env + file sweep across cloud/AI/VCS/registry/Vault/K8s/wallets</td><td>Full credential compromise of the developer identity and any CI it touches</td></tr>
-      <tr><td>Persist &amp; spread without C2 dependency</td><td>npm Trusted Publishing + GitHub Actions artifact exfil need no stored creds or external C2</td><td>Worming across the dependency graph; hard to contain by blocking one C2</td></tr>
-      <tr><td>Evade defenders</td><td>UPX-mod packer, Rust, string crypto, eBPF rootkit, Tor, backdated commits</td><td>Low detection on stock hosts; stealth degrades under kernel lockdown</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 4 -->
-<section id="iocs">
-  <h2><span class="num">4.</span>Consolidated IOC Table</h2>
-  <p class="lead">Package indicators are exact name@version pairs (block/deprecate immediately). Behavioral and host IOCs are for hunting and enrichment. Cleanup removed much of the source-side activity quickly — IOCs are perishable.</p>
-  <table>
-    <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
-    <tbody>
-      <tr><td>npm account (attacker-controlled)</td><td class="mono">asteroiddao</td><td><span class="pill high">high</span></td><td><span class="pill detect">detect</span></td><td>Publisher of all trojanized versions</td></tr>
-      <tr><td>VCS identity / operator</td><td class="mono">ocrybit</td><td><span class="pill high">high</span></td><td><span class="pill pivot">pivot</span></td><td>Real author behind forged commits; member of compromised org</td></tr>
-      <tr><td>Commit author email</td><td class="mono">claude@users.noreply.github.com</td><td><span class="pill high">high</span></td><td><span class="pill hunt">hunt</span></td><td>Spoofed AI-assistant identity on malicious dropper commits</td></tr>
-      <tr><td>Spoofed commit bot identities</td><td class="mono">dependabot / renovate / github-actions</td><td><span class="pill med">medium</span></td><td><span class="pill hunt">hunt</span></td><td>Used to disguise workflow-swap commits</td></tr>
-      <tr><td>Install hook</td><td class="mono">"preinstall": "./tools/setup"</td><td><span class="pill high">high</span></td><td><span class="pill detect">detect</span></td><td>Native-binary trigger in package.json</td></tr>
-      <tr><td>Payload path</td><td class="mono">tools/setup · .github/scripts/precheck</td><td><span class="pill high">high</span></td><td><span class="pill detect">detect</span></td><td>976&nbsp;KB Rust ELF dropper location</td></tr>
-      <tr><td>Payload binary</td><td class="mono">976 KB Linux ELF, UPX (magic overwritten), Rust</td><td><span class="pill high">high</span></td><td><span class="pill hunt">hunt</span></td><td>Restore <span class="mono">UPX!</span> marker to unpack with <span class="mono">upx -d</span></td></tr>
-      <tr><td>Loopback exfil endpoint</td><td class="mono">http://127.0.0.1:8738</td><td><span class="pill high">high</span></td><td><span class="pill detect">detect</span></td><td>Exodus wallet password/seed exfil listener</td></tr>
-      <tr><td>BPF artifact</td><td class="mono">q2.bpf.c (clang 22.1.5 BPF object)</td><td><span class="pill med">medium</span></td><td><span class="pill hunt">hunt</span></td><td>Kernel rootkit; .BTF.ext debug metadata left in</td></tr>
-      <tr><td>C2 channel</td><td class="mono">Tor hidden service, beacon path /api/agent</td><td><span class="pill high">high</span></td><td><span class="pill hunt">hunt</span></td><td>Tor expert bundle downloaded; custom torrc written</td></tr>
-      <tr><td>Fallback exfil host</td><td class="mono">temp.sh</td><td><span class="pill med">medium</span></td><td><span class="pill hunt">hunt</span></td><td>Public file host, tunneled over Tor (unconfirmed in wild)</td></tr>
-      <tr><td>npm self-pub endpoint</td><td class="mono">/-/npm/v1/oidc/token/exchange/package/&lt;pkg&gt;</td><td><span class="pill high">high</span></td><td><span class="pill hunt">hunt</span></td><td>Trusted Publishing OIDC token exchange abuse</td></tr>
-      <tr><td>Operator wallet (attribution)</td><td class="mono">0x7e28D9889f414B06c19a22A9Bd316f0AC279a4d6</td><td><span class="pill med">medium</span></td><td><span class="pill enrich">enrich</span></td><td>Derived from hardcoded BIP-39 skip-list seed; near-empty test wallet</td></tr>
-    </tbody>
-  </table>
-  <h3>Affected npm packages (name @ version)</h3>
-  <p class="lead">36–37 trojanized versions, all from <span class="mono">asteroiddao</span>. Block, deprecate, and treat any environment that installed these as compromised.</p>
-  <table>
-    <thead><tr><th>Package@version</th><th>Package@version</th><th>Package@version</th></tr></thead>
-    <tbody>
-      <tr><td class="mono">ai3@0.3.5</td><td class="mono">aonote@0.11.1</td><td class="mono">arjson@0.1.4</td></tr>
-      <tr><td class="mono">arnext@0.1.5</td><td class="mono">arnext-arkb@0.0.2</td><td class="mono">atomic-notes@0.5.3</td></tr>
-      <tr><td class="mono">create-arnext-app@0.0.10</td><td class="mono">cwao@0.5.6</td><td class="mono">cwao-tools@0.3.1</td></tr>
-      <tr><td class="mono">cwao-units@0.8.3</td><td class="mono">fpjson-lang@0.1.7</td><td class="mono">hbsig@0.3.2</td></tr>
-      <tr><td class="mono">monade@0.0.7</td><td class="mono">roidjs@0.1.7</td><td class="mono">test-ajs@0.1.19</td></tr>
-      <tr><td class="mono">test-weavedb-sdk@1.1.1</td><td class="mono">testnpmnmp@1.0.21</td><td class="mono">wao@0.41.2</td></tr>
-      <tr><td class="mono">warp-contracts-plugin-deploy-test@3.0.1</td><td class="mono">wdb-cli@0.1.1</td><td class="mono">wdb-core@0.1.2</td></tr>
-      <tr><td class="mono">wdb-sdk@0.1.2</td><td class="mono">weavedb-base@0.45.3</td><td class="mono">weavedb-client@0.45.3</td></tr>
-      <tr><td class="mono">weavedb-console@0.2.1</td><td class="mono">weavedb-contracts@0.45.2</td><td class="mono">weavedb-exm-sdk@0.7.4</td></tr>
-      <tr><td class="mono">weavedb-exm-sdk-web@0.7.4</td><td class="mono">weavedb-node-client@0.45.3</td><td class="mono">weavedb-offchain@0.45.4</td></tr>
-      <tr><td class="mono">weavedb-sdk@0.45.3</td><td class="mono">weavedb-sdk-base@0.21.1</td><td class="mono">weavedb-sdk-node@0.45.3</td></tr>
-      <tr><td class="mono">weavedb-tools@0.45.3</td><td class="mono">weavedb-warp-contracts-plugin-deploy@1.0.11</td><td class="mono">zkjson@0.8.5</td></tr>
-      <tr><td class="mono">weavedb-lite@0.1.1</td><td></td><td></td></tr>
-    </tbody>
-  </table>
-  <h3>Targeted credential files (high-value reads)</h3>
-  <p class="mono" style="font-size:12.5px;color:var(--muted)">~/.aws/credentials · ~/.kube/config · ~/.docker/config.json · ~/.npmrc · ~/.claude/.credentials.json · ~/.codex/auth.json · ~/Cursor/auth.json · ~/.gemini/settings.json · ~/.ssh/id_* · plus 12+ more (cloud, Vault, registry tokens)</p>
-</section>
-
-<!-- 5 -->
-<section id="affected">
-  <h2><span class="num">5.</span>Affected Surface &amp; Telemetry Matrix</h2>
-  <table>
-    <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead>
-    <tbody>
-      <tr><td>Linux developer workstations</td><td>ProcessRollup2 w/ command line, network connect/listen, DNS</td><td><span class="pill high">high</span></td><td><span class="pill low">low</span></td></tr>
-      <tr><td>Linux CI/CD runners (self-hosted)</td><td>Process + network; build-agent coverage often thin</td><td><span class="pill high">high</span></td><td><span class="pill med">medium</span> — ephemeral runners may not be sensored</td></tr>
-      <tr><td>macOS developer hosts</td><td>ProcessRollup2 / network (no ELF, but install-hook pattern applies)</td><td><span class="pill med">medium</span></td><td><span class="pill med">medium</span></td></tr>
-      <tr><td>Credential file stores</td><td>Linux file-read events</td><td><span class="pill high">high</span></td><td><span class="pill high">high</span> — Falcon Linux file-read visibility limited</td></tr>
-      <tr><td>Kernel (eBPF/rootkit)</td><td>BPF load events / auditd</td><td><span class="pill med">medium</span></td><td><span class="pill high">high</span> — limited; rootkit actively hides</td></tr>
-      <tr><td>npm registry &amp; GitHub</td><td>Registry publish logs, GitHub audit log, Actions logs</td><td><span class="pill high">high</span></td><td><span class="pill med">medium</span> — not endpoint telemetry; needs log onboarding</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 6 -->
-<section id="mitre">
-  <h2><span class="num">6.</span>ATT&amp;CK Mapping</h2>
-  <table>
-    <thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query / control</th></tr></thead>
-    <tbody>
-      <tr><td>Initial Access</td><td>T1195.002 — Supply Chain Compromise: Software Dependencies</td><td>Trojanized npm packages with malicious install hook</td><td>Q1, Q2 / SCA, curation</td></tr>
-      <tr><td>Execution</td><td>T1059 — Command &amp; Scripting Interpreter</td><td>npm <span class="mono">preinstall</span> executes native ELF</td><td>Q1 / disable install scripts</td></tr>
-      <tr><td>Execution</td><td>T1059.007 — JavaScript</td><td>Injected JS hook into Exodus (Electron)</td><td>Q4 / app integrity</td></tr>
-      <tr><td>Defense Evasion</td><td>T1014 — Rootkit</td><td>eBPF kernel rootkit hides PIDs/sockets</td><td>Q7 / kernel lockdown</td></tr>
-      <tr><td>Defense Evasion</td><td>T1027.002 — Software Packing</td><td>UPX stub with overwritten magic; Rust + string crypto</td><td>Q2 / behavioral</td></tr>
-      <tr><td>Defense Evasion</td><td>T1562.001 — Impair Defenses</td><td>Anti-ptrace SIGKILL; netlink/proc filtering</td><td>Q7 / lockdown, BPF restrictions</td></tr>
-      <tr><td>Defense Evasion</td><td>T1070.006 — Timestomp</td><td>Backdated commits (up to 13 yrs)</td><td>§7 native hunts</td></tr>
-      <tr><td>Credential Access</td><td>T1552.001 — Credentials in Files</td><td>Reads ~20 credential files</td><td>Q5 / secret managers</td></tr>
-      <tr><td>Credential Access</td><td>T1552.005 / T1552.007</td><td>Env-var sweep; K8s service-account &amp; Vault token theft</td><td>Q5 / scoped tokens</td></tr>
-      <tr><td>Credential Access</td><td>T1555 — Credentials from Password Stores</td><td>Exodus wallet password + seed capture</td><td>Q4</td></tr>
-      <tr><td>Command &amp; Control</td><td>T1090.003 — Multi-hop Proxy (Tor)</td><td>Tor bootstrap, beacon to /api/agent</td><td>Q3 / egress filtering</td></tr>
-      <tr><td>Command &amp; Control</td><td>T1071.001 — Web Protocols</td><td>Plain HTTP wrapped in Tor tunnel</td><td>Q3</td></tr>
-      <tr><td>Exfiltration</td><td>T1567.001 — Exfil to Code Repository / artifact</td><td>GitHub Actions artifact <span class="mono">toJSON(secrets)</span> exfil</td><td>§7 / least-priv GITHUB_TOKEN</td></tr>
-      <tr><td>Exfiltration</td><td>T1567.002 — Exfil to Cloud/Web Service</td><td>Fallback upload to temp.sh</td><td>Q8</td></tr>
-      <tr><td>Persistence / Lateral</td><td>T1546 / T1195 — Trusted Publishing abuse</td><td>OIDC token exchange → republish trojanized packages</td><td>Q6 / provenance, 2FA</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 7 -->
-<section id="audit">
-  <h2><span class="num">7.</span>Native Audit-Log Hunts (non-CQL)</h2>
-  <p class="lead">The source-control half of this worm lives in GitHub/npm logs, not endpoint telemetry. Run these against your VCS and registry audit logs.</p>
-  <table>
-    <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
-    <tbody>
-      <tr><td>Backdated / timestomped commits</td><td>GitHub commit history + Actions logs</td><td>Commit author date far older than push date / Actions run date; compare committer vs. Actions actor</td><td>Revert; audit repo for build-hook &amp; workflow changes</td></tr>
-      <tr><td>Spoofed automation-identity commits</td><td>GitHub audit log</td><td>Commits as <span class="mono">claude</span>, <span class="mono">dependabot</span>, <span class="mono">renovate</span>, <span class="mono">github-actions</span> outside their normal app/integration context</td><td>Verify against installed app IDs; flag manual pushes under bot names</td></tr>
-      <tr><td>New native build hooks in manifests</td><td>Repo diff / PR history</td><td>Added <span class="mono">preinstall/postinstall</span> (npm), <span class="mono">setup.py</span> subprocess (PyPI), build-script (Cargo) pointing at a committed binary under <span class="mono">tools/</span> or <span class="mono">.github/scripts/</span></td><td>Block merge; remove binary; rotate</td></tr>
-      <tr><td>Workflow file replacement / secret artifact</td><td>GitHub Actions logs &amp; workflow diffs</td><td>Existing workflow swapped to write <span class="mono">${{ toJSON(secrets) }}</span> to a "lint/format" file and <span class="mono">upload-artifact</span></td><td>Delete artifact; rotate ALL repo/org secrets; restrict GITHUB_TOKEN</td></tr>
-      <tr><td>Anomalous npm publish / Trusted Publishing</td><td>npm registry / org audit logs</td><td>Package republished from CI via OIDC token exchange without a corresponding release PR/tag; burst of republishes in a narrow window</td><td>Revoke tokens; disable affected Trusted Publishing trust; deprecate versions</td></tr>
-      <tr><td>auditd BPF / ptrace anomalies</td><td>Linux auditd (if deployed)</td><td><span class="mono">bpf()</span> syscall load by non-observability processes; <span class="mono">ptrace</span> targets answered with SIGKILL</td><td>Investigate host for rootkit; enable kernel lockdown to unmask</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 8 -->
-<section id="queries">
-  <h2><span class="num">8.</span>CrowdStrike LogScale CQL Hunt Queries</h2>
-  <p class="lead">8 queries ordered by fidelity. Targets are Linux/macOS process, network, and DNS telemetry. CONF/FP/COST ratings from the quality pass. Tune exclusions to your known native-build toolchain before promoting any to alerting.</p>
-
-  <article class="query-card" id="query-card-q1">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q1. npm/yarn install hook spawning a native binary from node_modules</h3>
-        <div class="query-meta">CONF: high | FP: medium | COST: low | Requires: Linux/macOS process command line</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q1">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q1">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> a package-manager process spawning a native binary located under <span class="mono">node_modules</span>, especially at <span class="mono">tools/setup</span> or <span class="mono">scripts/precheck</span>. <strong>Accomplishes:</strong> catches the IronWorm initial-execution chain (attack-chain steps 1–2) — the single highest-fidelity signal.</p>
-    <div class="note warn"><strong>Common FP:</strong> legitimate native modules run binaries during install — <span class="mono">node-gyp</span>, <span class="mono">esbuild</span>, <span class="mono">@swc/core</span>, <span class="mono">sharp</span>, <span class="mono">prebuild-install</span>, <span class="mono">cypress</span>. The <span class="mono">tools/setup</span>/<span class="mono">precheck</span> path filter keeps this tight; widen with care and exclude your known toolchain by ImageFileName.</div>
-    <pre id="query-q1">// HUNT: npm/yarn install hook spawning a native binary from node_modules
-// MITRE: T1195.002, T1059
-// CONF: high
-// FP: medium
-// COST: low
-// REQUIRES: Linux/macOS process telemetry with command line
-// FALSE POSITIVES: node-gyp, esbuild, @swc/core, sharp, prebuild-install, cypress run native binaries at install
-// TUNING: exclude ImageFileName for vetted native toolchain (e.g. /node-gyp$/, /esbuild$/, /prebuild-install$/)
-#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
-| event_platform=/^(Lin|Mac)$/
-| ParentBaseFileName=/^(npm|npm-cli\.js|npx|yarn|pnpm|node|sh|bash|dash)$/i
-| ImageFileName=/\/node_modules\/.*\/(tools\/setup|scripts\/precheck|setup|precheck)$/i
-| ImageFileName!=/\/(node-gyp|esbuild|prebuild-install)$/i
-| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData], limit=200)</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q2">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q2. ELF execution from inside node_modules</h3>
-        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: Linux process telemetry</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q2">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q2">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> any process whose image lives under a <span class="mono">node_modules</span> tree — a native binary shipped inside a package. <strong>Accomplishes:</strong> broader net than Q1 for variants that use different hook names or paths; pairs well with first-seen / low-prevalence enrichment.</p>
-    <div class="note warn"><strong>Common FP:</strong> prebuilt binaries bundled by legit packages (e.g. <span class="mono">.bin</span> shims, <span class="mono">@esbuild/*</span>, <span class="mono">@next/swc</span>). Triage by hash prevalence (<span class="mono">SHA256HashData</span>) and whether the binary was newly written.</div>
-    <pre id="query-q2">// HUNT: native binary executing from within a node_modules tree
-// MITRE: T1195.002, T1027.002
-// CONF: medium
-// FP: medium
-// COST: low
-// REQUIRES: Linux process telemetry
-// FALSE POSITIVES: @esbuild/*, @next/swc, .bin shims, other prebuilt native modules
-// TUNING: join to first-seen/low-prevalence hash; exclude vetted publisher hashes
-#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
-| event_platform="Lin"
-| ImageFileName=/\/node_modules\//i
-| ImageFileName!=/\/node_modules\/(\.bin|@esbuild|@next\/swc|esbuild|@swc)\//i
-| groupBy([SHA256HashData, ImageFileName, ComputerName, UserName], function=count(), limit=500)
-| sort(_count, order=asc)</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q3">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q3. Tor bootstrap on a developer / CI / server host</h3>
-        <div class="query-meta">CONF: medium-high | FP: low-medium | COST: low | Requires: process + DNS telemetry</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q3">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q3">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> a Tor binary executing, a <span class="mono">torrc</span> being referenced, or a download of the Tor expert bundle. <strong>Accomplishes:</strong> catches the C2 bootstrap (step 6). Tor on a build server or corporate dev host is almost always anomalous.</p>
-    <div class="note warn"><strong>Common FP:</strong> developers legitimately running Tor Browser on personal-use workstations. Scope to servers/CI fleet or correlate with Q1/Q2 hits to remove noise.</div>
-    <pre id="query-q3">// HUNT: Tor bootstrap (process / expert bundle / torrc) on dev or CI hosts
-// MITRE: T1090.003, T1071.001
-// CONF: medium-high
-// FP: low-medium
-// COST: low
-// REQUIRES: Linux/macOS process telemetry + DNS
-// FALSE POSITIVES: sanctioned Tor Browser use on personal workstations
-// TUNING: restrict to CI/server host groups; correlate with Q1/Q2 within 1h
-#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
-| event_platform=/^(Lin|Mac)$/
-| (ImageFileName=/\/tor$/i OR CommandLine=/(tor-expert-bundle|\btorrc\b|\btor\b.*--SocksPort|\/tor\/tor\b)/i)
-| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine], limit=200)
-// PIVOT (DNS): #event_simpleName=DnsRequest | DomainName=/(^|\.)torproject\.org$/i</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q4">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q4. Loopback credential-exfil listener / connection on port 8738</h3>
-        <div class="query-meta">CONF: high | FP: low | COST: low | Requires: network listen/connect telemetry</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q4">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q4">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> a listener or connection on <span class="mono">127.0.0.1:8738</span>, the local channel the Exodus wallet hook uses to ship the password and seed phrase. <strong>Accomplishes:</strong> high-fidelity catch of the wallet-theft module (step 5); port 8738 on loopback has no common benign use.</p>
-    <pre id="query-q4">// HUNT: loopback listener/connection on 127.0.0.1:8738 (Exodus wallet exfil)
-// MITRE: T1555, T1059.007
-// CONF: high
-// FP: low
-// COST: low
-// REQUIRES: NetworkListenIP4 / NetworkConnectIP4 telemetry
-// FALSE POSITIVES: rare; verify no internal dev tool legitimately binds 8738
-#event_simpleName=/^(NetworkListenIP4|NetworkConnectIP4)$/
-| event_platform=/^(Lin|Mac)$/
-| (LocalPort=8738 OR RemotePort=8738)
-| (LocalAddressIP4=/^127\./ OR RemoteAddressIP4=/^127\./)
-| table([ComputerName, UserName, #event_simpleName, LocalAddressIP4, LocalPort, RemoteAddressIP4, RemotePort, ImageFileName], limit=200)</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q5">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q5. Access to a cluster of developer credential files <span style="color:var(--warn)">&#9888;</span></h3>
-        <div class="query-meta">CONF: low-medium | FP: medium | COST: medium | Requires: Linux file-read telemetry (limited)</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q5">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q5">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> a single process touching multiple high-value credential paths in quick succession. <strong>Accomplishes:</strong> approximates the credential sweep (step 4). <strong>&#9888; Field/telemetry note:</strong> Falcon Linux file-read visibility is limited and event/field names for read operations vary by sensor version — validate <span class="mono">TargetFileName</span>/<span class="mono">FileSystemOperationType</span> availability in your tenant; supplement with auditd. Treated as a partial detection / known gap.</p>
-    <div class="note warn"><strong>Common FP:</strong> cloud CLIs, kubectl, docker, and credential-helper tools legitimately read these files. Require &ge;3 distinct credential paths by one process within a short window to reduce noise.</div>
-    <pre id="query-q5">// HUNT: one process reading a cluster of credential files (cred sweep)
-// MITRE: T1552.001, T1552.005
-// CONF: low-medium
-// FP: medium
-// COST: medium
-// REQUIRES: Linux file access telemetry (sensor/version dependent) -- VALIDATE FIELDS IN TENANT
-// FALSE POSITIVES: aws/gcloud/az CLI, kubectl, docker, git credential helpers
-// TUNING: require >=3 distinct credential paths per aid+pid; exclude known CLI ImageFileNames
-#event_simpleName=/FileOpen|FileRead|GenericFileOpen|FileSystemOperationDetectInfo/i
-| event_platform="Lin"
-| TargetFileName=/(\/\.aws\/credentials|\/\.kube\/config|\/\.docker\/config\.json|\/\.npmrc|\/\.claude\/\.credentials\.json|\/\.codex\/auth\.json|\/Cursor\/auth\.json|\/\.gemini\/settings\.json|\/\.ssh\/id_)/i
-| groupBy([aid, ComputerName, ImageFileName], function=[count(TargetFileName, distinct=true, as=distinct_paths), collect([TargetFileName])])
-| distinct_paths >= 3</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q6">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q6. Anomalous npm publish / Trusted Publishing token exchange</h3>
-        <div class="query-meta">CONF: medium | FP: medium | COST: low | Requires: process command line</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q6">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q6">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> <span class="mono">npm publish</span> activity or references to the OIDC token-exchange endpoint from a process tree not anchored to a sanctioned release pipeline. <strong>Accomplishes:</strong> catches the self-replication step (step 7) on endpoints/runners where it's observable.</p>
-    <div class="note warn"><strong>Common FP:</strong> legitimate release automation publishes packages. Scope out known release-pipeline parents (e.g. your CI publish job) and alert on publishes from interactive shells or unexpected parents.</div>
-    <pre id="query-q6">// HUNT: anomalous npm publish or Trusted Publishing OIDC exchange
-// MITRE: T1195, T1546
-// CONF: medium
-// FP: medium
-// COST: low
-// REQUIRES: Linux/macOS process command line
-// FALSE POSITIVES: sanctioned release pipelines run `npm publish`
-// TUNING: exclude approved CI publish job ParentBaseFileName/CommandLine signatures
-#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
-| event_platform=/^(Lin|Mac)$/
-| CommandLine=/(npm\s+publish|\/-\/npm\/v1\/oidc\/token\/exchange|oidc\/token\/exchange\/package)/i
-| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine], limit=200)</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q7">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q7. eBPF object load / BPF tooling on a non-observability host <span style="color:var(--warn)">&#9888;</span></h3>
-        <div class="query-meta">CONF: low-medium | FP: medium | COST: low | Requires: process telemetry (BPF load visibility limited)</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q7">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q7">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> processes referencing BPF objects/tooling (<span class="mono">bpftool</span>, <span class="mono">.bpf.o</span>, clang BPF target). <strong>Accomplishes:</strong> a weak proxy for the rootkit load (step 3). <strong>&#9888; Telemetry gap:</strong> Falcon does not reliably surface raw <span class="mono">bpf()</span> syscall loads, and the rootkit hides itself — pair with auditd BPF auditing and kernel lockdown. Hunt/triage only.</p>
-    <div class="note warn"><strong>Common FP:</strong> legitimate observability/security tooling (Cilium, Falco, bpftrace, Pixie) loads eBPF. Restrict to host groups where none of these are expected.</div>
-    <pre id="query-q7">// HUNT: eBPF tooling/object references on hosts with no eBPF observability stack
-// MITRE: T1014, T1562.001
-// CONF: low-medium
-// FP: medium
-// COST: low
-// REQUIRES: Linux process telemetry -- raw bpf() load NOT reliably visible (GAP)
-// FALSE POSITIVES: Cilium, Falco, bpftrace, Pixie, libbpf-based agents
-// TUNING: scope to host groups without sanctioned eBPF agents; corroborate with auditd
-#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
-| event_platform="Lin"
-| CommandLine=/(bpftool|\.bpf\.o\b|-target\s+bpf|clang.*-target\s+bpf|libbpf)/i
-| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine], limit=200)</pre>
-  </article>
-
-  <article class="query-card" id="query-card-q8">
-    <div class="query-head">
-      <div>
-        <h3 class="query-title">Q8. Outbound DNS to fallback exfil host (temp.sh)</h3>
-        <div class="query-meta">CONF: medium | FP: low | COST: low | Requires: DNS telemetry</div>
-      </div>
-      <div class="button-row">
-        <button class="button copy" type="button" data-copy-target="query-q8">Copy CQL</button>
-        <button class="button primary open-falcon" type="button" data-query-target="query-q8">Open in Falcon</button>
-      </div>
-    </div>
-    <p class="query-summary"><strong>Looks for:</strong> DNS resolution of <span class="mono">temp.sh</span>, the public file host used as a fallback exfil channel. <strong>Accomplishes:</strong> catches step 8; low base rate makes this a clean enrichment/hunt signal even though it was not confirmed in the wild.</p>
-    <pre id="query-q8">// HUNT: DNS lookup of fallback public file-host exfil channel
-// MITRE: T1567.002
-// CONF: medium
-// FP: low
-// COST: low
-// REQUIRES: DnsRequest telemetry
-// FALSE POSITIVES: rare; investigate any dev/CI host resolving temp.sh
-#event_simpleName=DnsRequest
-| event_platform=/^(Lin|Mac)$/
-| DomainName=/(^|\.)temp\.sh$/i
-| table([ComputerName, UserName, DomainName, ContextBaseFileName], limit=200)</pre>
-  </article>
-</section>
-
-<!-- 9 -->
-<section id="ioa">
-  <h2><span class="num">9.</span>CrowdStrike Custom IOA Recommendations</h2>
-  <p class="lead">Promotion candidates: Q1 and Q4 are high-fidelity and low-FP enough for Custom IOAs. Q3 is a strong server/CI-scoped candidate. The rest remain Investigate-only hunts.</p>
-  <table>
-    <thead><tr><th>IOA name</th><th>Field patterns</th><th>Expected benign exclusions</th><th>Deployment path</th></tr></thead>
-    <tbody>
-      <tr><td>IronWorm — install-hook native binary</td><td>Parent <span class="mono">npm/yarn/pnpm/node</span> → child ImageFileName matches <span class="mono">/node_modules/.*/(tools/setup|scripts/precheck)</span></td><td>node-gyp, esbuild, prebuild-install, sharp toolchains (by image/hash)</td><td>Endpoint Security → Custom IOA → Linux → Process Create</td></tr>
-      <tr><td>IronWorm — wallet loopback exfil</td><td>NetworkConnect/Listen, loopback, port <span class="mono">8738</span></td><td>None expected; verify no internal tool binds 8738</td><td>Custom IOA → Linux → Network</td></tr>
-      <tr><td>IronWorm — Tor on CI/server (scoped)</td><td>ImageFileName <span class="mono">/tor$</span> or CommandLine tor-expert-bundle/torrc</td><td>Sanctioned Tor use (exclude workstation host group)</td><td>Custom IOA → Linux → Process Create (server host groups)</td></tr>
-    </tbody>
-  </table>
-  <p class="note">All Custom IOAs should start in <strong>Monitor</strong> (detect-only) mode for a baseline window, then move to <strong>Detect</strong>, and only to <strong>Prevent</strong> after the benign baseline is clean.</p>
-</section>
-
-<!-- 10 -->
-<section id="iocappendix">
-  <h2><span class="num">10.</span>Machine-Readable IOC Appendix</h2>
-  <pre id="ioc-json">{
-  "threat": "IronWorm",
-  "generated": "2026-06-05",
-  "author": "cap10",
-  "version": "v0.1",
-  "indicators": [
-    {"type": "npm_account", "value": "asteroiddao", "confidence": "high", "action": "detect", "source": "JFrog", "expiry": "2026-12-05"},
-    {"type": "git_identity", "value": "ocrybit", "confidence": "high", "action": "pivot", "source": "JFrog", "expiry": "2026-07-05"},
-    {"type": "commit_email", "value": "claude@users.noreply.github.com", "confidence": "high", "action": "hunt", "source": "JFrog", "expiry": "2026-09-05"},
-    {"type": "install_hook", "value": "preinstall:./tools/setup", "confidence": "high", "action": "detect", "source": "JFrog", "expiry": "2026-12-05"},
-    {"type": "payload_path", "value": "tools/setup", "confidence": "high", "action": "detect", "source": "JFrog", "expiry": "2026-12-05"},
-    {"type": "payload_path", "value": ".github/scripts/precheck", "confidence": "high", "action": "detect", "source": "JFrog", "expiry": "2026-12-05"},
-    {"type": "net_endpoint", "value": "127.0.0.1:8738", "confidence": "high", "action": "detect", "source": "JFrog", "expiry": "2026-12-05"},
-    {"type": "c2_path", "value": "/api/agent (Tor hidden service)", "confidence": "high", "action": "hunt", "source": "JFrog", "expiry": "2026-09-05"},
-    {"type": "exfil_host", "value": "temp.sh", "confidence": "medium", "action": "hunt", "source": "JFrog", "expiry": "2026-07-05"},
-    {"type": "npm_oidc_endpoint", "value": "/-/npm/v1/oidc/token/exchange/package/", "confidence": "high", "action": "hunt", "source": "JFrog", "expiry": "2026-09-05"},
-    {"type": "bpf_artifact", "value": "q2.bpf.c", "confidence": "medium", "action": "hunt", "source": "JFrog", "expiry": "2026-07-05"},
-    {"type": "eth_wallet_attribution", "value": "0x7e28D9889f414B06c19a22A9Bd316f0AC279a4d6", "confidence": "medium", "action": "enrich", "source": "JFrog", "expiry": "2026-07-05"},
-    {"type": "npm_package", "value": "ai3@0.3.5", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "aonote@0.11.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "arjson@0.1.4", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "arnext@0.1.5", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "arnext-arkb@0.0.2", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "atomic-notes@0.5.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "create-arnext-app@0.0.10", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "cwao@0.5.6", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "cwao-tools@0.3.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "cwao-units@0.8.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "fpjson-lang@0.1.7", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "hbsig@0.3.2", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "monade@0.0.7", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "roidjs@0.1.7", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "test-ajs@0.1.19", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "test-weavedb-sdk@1.1.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "testnpmnmp@1.0.21", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "wao@0.41.2", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "warp-contracts-plugin-deploy-test@3.0.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "wdb-cli@0.1.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "wdb-core@0.1.2", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "wdb-sdk@0.1.2", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-base@0.45.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-client@0.45.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-console@0.2.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-contracts@0.45.2", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-exm-sdk@0.7.4", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-exm-sdk-web@0.7.4", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-node-client@0.45.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-offchain@0.45.4", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-sdk@0.45.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-sdk-base@0.21.1", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-sdk-node@0.45.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-tools@0.45.3", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-warp-contracts-plugin-deploy@1.0.11", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "zkjson@0.8.5", "confidence": "high", "action": "detect", "source": "OX/JFrog", "expiry": "2026-12-05"},
-    {"type": "npm_package", "value": "weavedb-lite@0.1.1", "confidence": "high", "action": "detect", "source": "JFrog", "expiry": "2026-12-05"}
-  ]
-}</pre>
-</section>
-
-<!-- 11 -->
-<section id="validation">
-  <h2><span class="num">11.</span>Detection Validation Gates</h2>
-  <table>
-    <thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead>
-    <tbody>
-      <tr><td>1. Telemetry ready</td><td>Linux process + network + DNS telemetry confirmed flowing from dev &amp; CI host groups; verify file-read fields for Q5 in tenant</td><td>Event search returns recent ProcessRollup2 / NetworkConnectIP4 / DnsRequest from target hosts</td></tr>
-      <tr><td>2. Benign baseline</td><td>Run Q1–Q8 in hunt mode for 7–14 days; record native-toolchain FPs and add exclusions</td><td>Tuning list of excluded ImageFileNames/hashes; FP rate documented per query</td></tr>
-      <tr><td>3. Positive tests</td><td>In an isolated lab, install a benign package with a preinstall that runs a binary from <span class="mono">tools/setup</span>; bind a loopback listener on 8738; launch tor</td><td>Q1, Q3, Q4 fire on the synthetic test artifacts</td></tr>
-      <tr><td>4. Promotion</td><td>Q1/Q4 (and scoped Q3) promoted to Custom IOA in Monitor → Detect after clean baseline</td><td>IOA in place; alerting routed; runbook linked</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 12 -->
-<section id="hardening">
-  <h2><span class="num">12.</span>Hardening — Tiered &amp; Deployable</h2>
-  <p class="lead">Every control is framework-cited: MITRE mitigation (why), the concrete setting (what), and where it lives. Prioritize the few high-leverage controls below over a long marginal list.</p>
-
-  <h3 class="tier-h">Immediate (this week — low risk)</h3>
-  <ul>
-    <li><strong>Disable npm lifecycle scripts in CI</strong> — <span class="mono">npm config set ignore-scripts true</span> (or <span class="mono">npm ci --ignore-scripts</span>); pnpm: <span class="mono">enable-pre-post-scripts=false</span>. Kills the <span class="mono">preinstall</span> execution path outright. <em>MITRE M1042 (Disable or Remove Feature); CIS Software Supply Chain 4.x.</em></li>
-    <li><strong>Block Tor egress + the fallback host</strong> — deny outbound to Tor directory authorities/known guard nodes and DNS for <span class="mono">torproject.org</span> and <span class="mono">temp.sh</span> at the proxy/firewall on server &amp; CI ranges. <em>MITRE M1037 (Filter Network Traffic), M1031 (Network Intrusion Prevention).</em></li>
-    <li><strong>Least-privilege GITHUB_TOKEN</strong> — set <span class="mono">permissions: read-all</span> (or per-job minimal) as the org/repo default; require explicit elevation. Neutralizes the workflow-swap secret-exfil path. <em>MITRE M1018 (User Account Management); GitHub hardening baseline.</em></li>
-    <li><strong>Enforce 2FA + scrutinize Trusted Publishing</strong> on all npm publishing accounts; require provenance/attestations. <em>MITRE M1032 (Multi-factor Authentication).</em></li>
-  </ul>
-
-  <h3 class="tier-h">Near term (1–4 weeks — pilot first)</h3>
-  <ul>
-    <li><strong>Enable Linux kernel lockdown</strong> (<span class="mono">lockdown=confidentiality</span>) and <strong>disable unprivileged BPF</strong> (<span class="mono">kernel.unprivileged_bpf_disabled=1</span>) on build/server fleet. Directly breaks the rootkit's process/socket hiding. <em>MITRE M1038 (Execution Prevention), M1028 (OS Configuration).</em></li>
-    <li><strong>Run CI builds as non-root, least-capability</strong> — drop <span class="mono">CAP_BPF</span>/<span class="mono">CAP_SYS_ADMIN</span>; default seccomp profile. Removes the privilege the rootkit and many sweeps assume. <em>MITRE M1026 (Privileged Account Management), M1028.</em></li>
-    <li><strong>Dependency cooldown / minimum release age</strong> — block install of package versions newer than N days (e.g. 3–7) so freshly trojanized bursts can't reach builders. <em>MITRE M1016 (Vulnerability Scanning) / supply-chain policy; CIS SSC.</em></li>
-    <li><strong>Move secrets out of files into a broker</strong> — short-lived, scoped tokens from a secret manager / OIDC instead of long-lived <span class="mono">~/.aws/credentials</span>, <span class="mono">.npmrc</span>, AI keys on disk. <em>MITRE M1041 (Encrypt Sensitive Information), M1027 (Password Policies).</em></li>
-  </ul>
-
-  <h3 class="tier-h">Strategic (1–3 months — architectural)</h3>
-  <ul>
-    <li><strong>Private registry / curation gateway</strong> (e.g. JFrog Curation, internal proxy) that blocks known-malicious versions and enforces an allowlist; isolate builders from the public internet except through it. <em>MITRE M1016, M1037.</em></li>
-    <li><strong>Ephemeral, network-segmented build runners</strong> with egress allowlists and no standing credentials; destroy after each job. Limits worm propagation and credential blast radius. <em>MITRE M1030 (Network Segmentation), M1028.</em></li>
-    <li><strong>Pin GitHub Actions by commit SHA + require environment protection/approvals on secret-bearing jobs</strong>; restrict artifact download scope. <em>MITRE M1018, M1047 (Audit).</em></li>
-    <li><strong>Application allowlisting / integrity monitoring for wallet &amp; Electron apps</strong> — detect tampering of <span class="mono">webSecurity/sandbox/contextIsolation/nodeIntegration</span> and CSP. <em>MITRE M1038, M1045 (Code Signing).</em></li>
-  </ul>
-</section>
-
-<!-- 13 -->
-<section id="playbooks">
-  <h2><span class="num">13.</span>Deployable Playbooks</h2>
-
-  <article class="query-card">
-    <div class="query-head"><div><h3 class="query-title">PB-1. Disable npm install scripts &amp; verify (CI + workstation)</h3></div>
-      <div class="button-row"><button class="button copy" type="button" data-copy-target="pb1">Copy</button></div></div>
-    <pre id="pb1"># 1. Org/repo-wide for CI: bake into the base image or pipeline preamble
-npm config set ignore-scripts true
-# prefer reproducible installs that also skip scripts:
-#   npm ci --ignore-scripts
-# pnpm:
-pnpm config set enable-pre-post-scripts false
-# yarn (berry): set in .yarnrc.yml -> enableScripts: false
-
-# 2. Verify the setting is active
-npm config get ignore-scripts        # expect: true
-
-# 3. Detect packages that ship native binaries via install hooks (audit)
-node -e "const fs=require('fs');const p=require('./package.json');\
-['preinstall','install','postinstall'].forEach(h=>{if(p.scripts&&p.scripts[h])\
-console.log('HOOK',h,'=>',p.scripts[h])})"</pre>
-  </article>
-
-  <article class="query-card">
-    <div class="query-head"><div><h3 class="query-title">PB-2. Harden Linux kernel against the eBPF rootkit</h3></div>
-      <div class="button-row"><button class="button copy" type="button" data-copy-target="pb2">Copy</button></div></div>
-    <pre id="pb2"># Disable unprivileged BPF (persist via sysctl)
-echo 'kernel.unprivileged_bpf_disabled=1' | sudo tee /etc/sysctl.d/90-bpf.conf
-sudo sysctl --system
-sysctl kernel.unprivileged_bpf_disabled      # expect: = 1
-
-# Enable kernel lockdown (confidentiality) via kernel cmdline (GRUB)
-#   add to GRUB_CMDLINE_LINUX:  lockdown=confidentiality
-sudo sed -i 's/\(GRUB_CMDLINE_LINUX="[^"]*\)"/\1 lockdown=confidentiality"/' /etc/default/grub
-sudo update-grub    # (Debian/Ubuntu)  |  grub2-mkconfig -o /boot/grub2/grub.cfg (RHEL)
-# Verify after reboot:
-cat /sys/kernel/security/lockdown    # expect: [confidentiality] highlighted
-
-# Spot-check for hidden processes/sockets once lockdown unmasks them
-ps -ef --sort=start_time | tail -40
-ss -tanp | grep -E '127\.0\.0\.1:8738' || echo "no 8738 listener"</pre>
-  </article>
-
-  <article class="query-card">
-    <div class="query-head"><div><h3 class="query-title">PB-3. Triage a suspected host (collect before reimage)</h3></div>
-      <div class="button-row"><button class="button copy" type="button" data-copy-target="pb3">Copy</button></div></div>
-    <pre id="pb3"># Loopback wallet-exfil listener
-sudo ss -tlnp | grep ':8738' && echo "[!] IronWorm wallet listener present"
-
-# Tor bootstrap artifacts
-pgrep -a tor; find / -name torrc -newermt '-14 days' 2>/dev/null
-find / -iname 'tor-expert-bundle*' 2>/dev/null
-
-# Native binaries shipped inside node_modules install hooks
-find / -path '*/node_modules/*' -type f \( -name setup -o -name precheck \) \
-  -exec file {} \; 2>/dev/null | grep -i ELF
-
-# Recently written ELF under tools/ or .github/scripts/
-find / -type f \( -path '*/tools/setup' -o -path '*/.github/scripts/precheck' \) \
-  -newermt '-14 days' 2>/dev/null
-
-# Snapshot suspicious binary for analysis (do NOT execute)
-#   cp <path> /tmp/ioc_sample && sha256sum /tmp/ioc_sample</pre>
-  </article>
-
-  <article class="query-card">
-    <div class="query-head"><div><h3 class="query-title">PB-4. Block malicious package versions (registry policy)</h3></div>
-      <div class="button-row"><button class="button copy" type="button" data-copy-target="pb4">Copy</button></div></div>
-    <pre id="pb4"># Generate npm overrides / deny entries from the IOC list (example for a few)
-# Add to a private-registry block policy or .npmrc resolution guard.
-DENY=(
-  "ai3@0.3.5" "weavedb-sdk@0.45.3" "weavedb-sdk-node@0.45.3" "wao@0.41.2"
-  "zkjson@0.8.5" "aonote@0.11.1" "arnext@0.1.5" "roidjs@0.1.7"
-  # ...full 37-version list in the IOC JSON appendix
-)
-for pkg in "${DENY[@]}"; do echo "block: $pkg"; done
-
-# Audit an existing tree for any pinned malicious version
-npm ls --all 2>/dev/null | grep -E 'weavedb|arnext|cwao|zkjson|wdb-|fpjson-lang' \
-  && echo "[!] review matched dependencies against IOC list"</pre>
-  </article>
-</section>
-
-<!-- 14 -->
-<section id="containment">
-  <h2><span class="num">14.</span>Containment Runbook</h2>
-  <table>
-    <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
-    <tbody>
-      <tr><td>1. Isolate</td><td>Network-contain affected host(s) in Falcon; freeze the affected CI runner; suspend the compromised npm/GitHub identities</td><td>SOC / IR</td><td>Containment action ID; runner stopped</td></tr>
-      <tr><td>2. Scope</td><td>Run Q1–Q8 fleet-wide; enumerate hosts that installed any IOC package version; identify which secrets were reachable on each</td><td>Threat Hunt</td><td>Host list; per-host secret inventory</td></tr>
-      <tr><td>3. Eradicate</td><td>Reimage confirmed hosts (rootkit-grade — do not trust in-place cleanup); enable kernel lockdown first to unmask hidden artifacts for evidence; remove malicious binaries &amp; commits</td><td>IR / Platform</td><td>Reimage tickets; collected samples/hashes</td></tr>
-      <tr><td>4. Rotate (critical)</td><td>Rotate ALL secrets reachable by the identity: cloud (AWS/GCP/Azure), AI provider keys (Anthropic/OpenAI/Gemini/etc.), npm tokens, GitHub PATs/SSH keys, Docker, Vault, K8s service-account tokens; revoke npm Trusted Publishing trust for affected packages</td><td>IAM / Dev leads</td><td>Rotation log per secret type</td></tr>
-      <tr><td>5. Source cleanup</td><td>Audit every repo the identity could write to for backdated commits, new build hooks, and swapped workflows; delete leaked Actions artifacts; deprecate/unpublish malicious versions; publish clean versions + advisory</td><td>Dev leads</td><td>Repo audit results; advisory link</td></tr>
-      <tr><td>6. Recover &amp; monitor</td><td>Restore from clean images; deploy hardening (§12); keep Q1/Q4/Q3 IOAs in Detect for 30 days; watch for re-publication bursts</td><td>SOC</td><td>IOA status; 30-day watch closed</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 15 -->
-<section id="coverage">
-  <h2><span class="num">15.</span>Detection Coverage Map</h2>
-  <table>
-    <thead><tr><th>Behavior</th><th>Primary detection</th><th>Fallback</th><th>Known gap</th></tr></thead>
-    <tbody>
-      <tr><td>Install hook → native binary</td><td>Q1 (IOA candidate)</td><td>Q2</td><td>—</td></tr>
-      <tr><td>ELF from node_modules</td><td>Q2</td><td>Q1</td><td>Prevalence enrichment needed to cut FP</td></tr>
-      <tr><td>eBPF rootkit load</td><td>Q7 (weak)</td><td>auditd BPF audit; lockdown unmask</td><td><span class="pill high">Gap</span> — Falcon BPF-load visibility limited; rootkit hides</td></tr>
-      <tr><td>Credential file sweep</td><td>Q5 (partial)</td><td>auditd file watches</td><td><span class="pill high">Gap</span> — Linux file-read telemetry limited; validate fields</td></tr>
-      <tr><td>Wallet loopback exfil</td><td>Q4 (IOA candidate)</td><td>Host triage PB-3</td><td>—</td></tr>
-      <tr><td>Tor C2 bootstrap</td><td>Q3</td><td>DNS pivot; egress logs</td><td>Hidden-service beacon itself not directly visible</td></tr>
-      <tr><td>npm Trusted Publishing self-replication</td><td>Q6 (endpoint)</td><td>§7 npm/registry audit log hunt</td><td><span class="pill med">Partial</span> — OIDC exchange is server-side; needs registry logs</td></tr>
-      <tr><td>GitHub Actions secret-artifact exfil</td><td>§7 native audit hunt</td><td>—</td><td><span class="pill high">Gap</span> — not endpoint telemetry; needs Actions log onboarding</td></tr>
-      <tr><td>Fallback exfil to temp.sh</td><td>Q8</td><td>Proxy/DNS logs</td><td>—</td></tr>
-      <tr><td>Backdated / spoofed-identity commits</td><td>§7 native audit hunt</td><td>—</td><td><span class="pill med">Partial</span> — VCS-side only</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 16 -->
-<section id="ticket">
-  <h2><span class="num">16.</span>Hunt Summary Ticket</h2>
-  <pre id="ticket-block">TITLE:        IronWorm npm supply-chain worm — proactive hunt &amp; detection deployment
-SCOPE:        Linux developer workstations + self-hosted CI/CD runners; npm + GitHub estate
-HYPOTHESIS:   Hosts that installed an affected npm version executed a native ELF from an
-              install hook, swept local credentials, and attempted Tor egress / npm re-publish.
-QUERIES RUN:  Q1 install-hook->binary | Q2 ELF in node_modules | Q3 Tor bootstrap |
-              Q4 loopback:8738 wallet exfil | Q5 cred-file sweep (partial) |
-              Q6 anomalous npm publish | Q7 eBPF tooling (gap) | Q8 temp.sh DNS
-DATA SOURCES: ProcessRollup2/SyntheticProcessRollup2, NetworkConnectIP4/NetworkListenIP4,
-              DnsRequest; GitHub + npm audit logs; auditd (where present)
-FINDINGS:     &lt;populate: hosts matched, packages found, secrets exposed&gt;
-GAPS:         eBPF rootkit load + Linux cred-file reads under-instrumented; GitHub Actions
-              secret-artifact exfil requires log onboarding; OIDC exchange is server-side.
-ACTIONS:      Promote Q1/Q4 (+scoped Q3) to Custom IOA; block 37 package versions in registry;
-              disable CI install scripts; kernel lockdown + unprivileged_bpf_disabled;
-              full credential rotation on any confirmed identity.
-SEVERITY:     High (credential-theft worm; rootkit-grade evasion)
-OWNER:        cap10        STATUS: Draft v0.1        DATE: 2026-06-05</pre>
-</section>
-
-<!-- 17 -->
-<section id="changelog">
-  <h2><span class="num">17.</span>Changelog</h2>
-  <table>
-    <thead><tr><th>Version</th><th>Date</th><th>Change summary</th></tr></thead>
-    <tbody>
-      <tr><td>v0.1</td><td>2026-06-05</td><td>Initial HuntPack generated from JFrog/OX/BleepingComputer intel. 8 CQL queries, 2 IOA candidates, full 37-package IOC set, tiered hardening, 4 playbooks, containment runbook. Q5/Q7 flagged as telemetry gaps pending tenant field validation.</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 18 -->
-<section id="refs">
-  <h2><span class="num">18.</span>References</h2>
-  <table>
-    <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Accessed</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td><a href="https://research.jfrog.com/post/iron-worm-shai-hulud-rustier-cousin/" target="_blank" rel="noopener">JFrog Security Research — IronWorm: Shai-Hulud's rustier cousin</a></td><td>Full teardown, TTPs, IOC list, attribution</td><td>2026-06-05</td></tr>
-      <tr><td>1</td><td><a href="https://www.ox.security/blog/ironworm-supply-chain-malware-hits-npm/" target="_blank" rel="noopener">OX Security — IronWorm Supply Chain Malware Hits npm</a></td><td>Affected package+version table, download stats, remediation</td><td>2026-06-05</td></tr>
-      <tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/new-ironworm-malware-hits-36-packages-in-npm-supply-chain-attack/" target="_blank" rel="noopener">BleepingComputer — New IronWorm malware hits 36 packages</a></td><td>Independent corroboration; Shai-Hulud link; parallel binding.gyp worm</td><td>2026-06-05</td></tr>
-      <tr><td>2</td><td><a href="https://phoenix.security/ironworm-npm-supply-chain-worm-rust-ebpf-rootkit-tor/" target="_blank" rel="noopener">Phoenix Security — IronWorm analysis</a></td><td>Binary/feature corroboration</td><td>2026-06-05</td></tr>
-      <tr><td>2</td><td><a href="https://thehackernews.com/2026/06/ironworm-and-new-miasma-worm-variant.html" target="_blank" rel="noopener">The Hacker News — IronWorm and Miasma variant</a></td><td>Campaign context</td><td>2026-06-05</td></tr>
-      <tr><td>2</td><td><a href="https://www.darkreading.com/cyberattacks-data-breaches/rust-written-ironworm-npm-supply-chain" target="_blank" rel="noopener">Dark Reading — Rust-written IronWorm hits npm</a></td><td>Campaign context</td><td>2026-06-05</td></tr>
-    </tbody>
-  </table>
-</section>
-
-</main>
-
-<footer>
-  <div class="container">
-    IronWorm HuntPack · Draft v0.1 · 2026-06-05 · Author: cap10 · No CVE assigned · Validate Q5/Q7 field names in your tenant before deployment. Generated by the HuntPack pipeline (web-hunter → threat-hunter → crowdstrike-logscale → alert-builder → threat-hardening → review).
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>IronWorm (identified by JFrog on 3 Jun 2026) is an evolved variant of the Shai-Hulud worm family, distributed through ~37–43 npm packages published from the compromised <code>asteroiddao</code> account and aimed at the Arweave/WeaveDB decentralized-database and broader <strong>Web3/crypto developer ecosystem</strong>. Unlike the JS-only Shai-Hulud waves, IronWorm's install hook drops a <strong>~976 KB native Rust ELF</strong> (<code>tools/setup</code>, UPX-packed with an overwritten magic to defeat unpackers).</p>
+    <p>The ELF aggressively harvests <strong>~86 environment variables and 20+ credential file paths</strong> (cloud keys, AI API keys, SCM/registry/CI tokens, Kubernetes/Vault secrets), captures <strong>Exodus desktop-wallet seed phrases</strong>, and deploys an <strong>eBPF kernel rootkit</strong> to hide its processes/sockets and resist debugging. It exfiltrates to a <strong>Tor hidden service</strong> (path <code>/api/agent</code>) with a <code>temp.sh</code> fallback, and <strong>self-propagates</strong> by abusing stolen npm publishing credentials — including npm's Trusted Publishing workflow. The actor made 57 backdated malicious commits across nine organizations to muddy the timeline.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Dev/CI-CD threat with kernel-level evasion. Hunt SCA inventory + npm-token audit first; the strongest endpoint signals are <strong>Q1</strong> (npm hook → a native ELF in <code>node_modules</code> being chmod'd/executed) and <strong>Q3</strong> (an <code>eBPF</code> program load by a non-system process). Treat any affected dev host/runner as fully compromised — the eBPF rootkit means you can't trust on-host visibility; rebuild.</p>
   </div>
-</footer>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Phoenix Security — IronWorm (Rust/eBPF/Tor)</td><td>Rust ELF, eBPF rootkit, Tor C2, self-propagation; 37 packages; full chain</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>SafeDep / OX Security — IronWorm campaign</td><td>asteroiddao account; cred/env harvesting scope; npm Trusted-Publishing abuse</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · News of record</td><td>BleepingComputer / The Hacker News / Dark Reading</td><td>36–37 packages; Shai-Hulud-family lineage; Miasma variant alongside</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Cyberpress — developer-secret theft</td><td>86 env vars, 20+ cred files, Exodus wallet seeds, temp.sh fallback</td><td><span class="badge b-low">yes</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> dev/CI-CD-first (native SCA + npm-token audit are primary); endpoint CQL covers the install-hook → ELF → eBPF/Tor behaviors on Linux/macOS dev hosts; flagged that the eBPF rootkit undermines on-host trust (rebuild, don't clean); cross-references the Shai-Hulud "Hades" + Mini Shai-Hulud sibling packs (same worm family).</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A dev/runner installs a trojanized npm package; the install hook drops and runs the Rust ELF, which harvests secrets + wallet seeds, loads an eBPF rootkit, exfiltrates over Tor, and re-publishes via stolen npm tokens.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Install</td><td>npm installs a trojanized package; install hook fires</td><td>npm exec</td><td>N1; <strong>Q1</strong></td></tr>
+        <tr><td>2 · Drop ELF</td><td>~976 KB Rust ELF written to <code>tools/setup</code> in node_modules; chmod +x; execute</td><td>file write; <code>ProcessRollup2</code></td><td><strong>Q1 / Q2</strong></td></tr>
+        <tr><td>3 · Rootkit</td><td>eBPF program loaded to hide processes/sockets; anti-debug</td><td>bpf syscall (eBPF)</td><td><strong>Q3</strong>; N3</td></tr>
+        <tr><td>4 · Harvest</td><td>Read ~86 env vars + 20+ cred files; Exodus wallet seeds</td><td>file read</td><td><strong>Q4</strong></td></tr>
+        <tr><td>5 · Exfil</td><td>Beacon to Tor hidden service <code>/api/agent</code>; temp.sh fallback</td><td>network; DNS</td><td><strong>Q5</strong></td></tr>
+        <tr><td>6 · Worm</td><td>Re-publish to npm via stolen Trusted-Publishing creds</td><td>npm publish audit</td><td><strong>Q6</strong>; N4</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Developer workstations (Linux/macOS)</td><td>Process + file telemetry; eBPF/syscall visibility</td><td><span class="badge b-high">Critical</span></td><td>High — eBPF rootkit hides on-host artifacts</td></tr>
+        <tr><td>CI/CD runners</td><td>Runner process/network; npm token use</td><td><span class="badge b-high">Critical</span></td><td>High — ephemeral &amp; often unmonitored</td></tr>
+        <tr><td>npm registry</td><td>SCA + Trusted-Publishing token audit</td><td><span class="badge b-high">High</span></td><td>Low — lockfile/SBOM + token review</td></tr>
+        <tr><td>Network egress</td><td>Tor / temp.sh connections</td><td><span class="badge b-med">Medium</span></td><td>Medium — Tor blends/rotates</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">The eBPF rootkit hides on-host artifacts — prefer off-host detection (network egress, SCA, npm audit). Package versions rotate as the worm spreads. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>File</td><td class="mono">tools/setup (~976 KB UPX-packed Rust ELF, overwritten magic)</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>The dropped implant</td></tr>
+        <tr><td>Account</td><td class="mono">npm publisher: asteroiddao (43 packages)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Compromised publisher — pin away</td></tr>
+        <tr><td>Behavior</td><td class="mono">eBPF program load by a non-system process (rootkit)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Process/socket hiding</td></tr>
+        <tr><td>Network</td><td class="mono">Tor hidden-service beacon (/api/agent) · temp.sh fallback exfil</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>C2 / exfil</td></tr>
+        <tr><td>Behavior</td><td class="mono">npm re-publish via stolen Trusted-Publishing creds</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Self-propagation</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1195.002 — Compromise Software Supply Chain</td><td>Trojanized npm packages (asteroiddao)</td><td>N1; SCA (§10)</td></tr>
+        <tr><td>Execution</td><td>T1059.007 / T1106 — JS hook / native ELF</td><td>install hook drops + runs Rust ELF</td><td>Q1, Q2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1014 / T1562.001 — Rootkit (eBPF)</td><td>Process/socket hiding; anti-debug</td><td>Q3; N3</td></tr>
+        <tr><td>Credential Access</td><td>T1552.001 / .005 / T1539 — Files / env / wallet seeds</td><td>86 env vars, 20+ cred files, Exodus seeds</td><td>Q4</td></tr>
+        <tr><td>C2 / Exfiltration</td><td>T1090.003 / T1567 — Tor / web exfil</td><td>Tor hidden service + temp.sh</td><td>Q5</td></tr>
+        <tr><td>Lateral / Impact</td><td>T1195.002 (worm) — re-publish via stolen tokens</td><td>npm Trusted-Publishing abuse</td><td>Q6; N4</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts (dev / CI-CD — primary surface)</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Affected-package inventory</td><td>SCA / SBOM / lockfiles</td><td>Any project resolving a package from the <code>asteroiddao</code> publisher / IronWorm advisory list</td><td>Pin away; rebuild; rotate</td></tr>
+        <tr><td>N2 · Rust-ELF artifact scan</td><td>Endpoint file scan (where eBPF hasn't hidden it)</td><td>~976 KB UPX-packed ELF at <code>node_modules/.../tools/setup</code> with overwritten magic</td><td>Rebuild host (don't trust clean)</td></tr>
+        <tr><td>N3 · eBPF / kernel object audit</td><td><code>bpftool prog list</code> / kernel audit / Falcon kernel telemetry</td><td>Unexpected eBPF programs/maps loaded by a non-system process</td><td>Treat host as rootkitted; rebuild</td></tr>
+        <tr><td>N4 · npm token / publish audit</td><td>npm publish + Trusted-Publishing logs</td><td>Unexpected publishes / OIDC-trusted-publish from your org's tokens</td><td>Revoke tokens; unpublish; report</td></tr>
+        <tr><td>N5 · Tor / temp.sh egress</td><td>Proxy / firewall / DNS</td><td>Dev-host connections to Tor entry nodes or <code>temp.sh</code></td><td>Block; isolate the source</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">These target Linux/macOS dev &amp; CI hosts. <strong>The eBPF rootkit can blind on-host telemetry once loaded</strong> — Q1–Q3 are most reliable <em>before</em> the rootkit activates; lean on off-host signals (N4/N5) afterward. Field names validated against the Falcon event reference.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · npm install hook dropping/executing a native binary</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> npm/node spawning <code>chmod</code>/exec of a binary under <code>node_modules</code> (esp. <code>tools/setup</code>). <strong>Accomplishes:</strong> catches the ELF drop+run. <strong>FP:</strong> some native modules ship binaries — verify path/size.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: IronWorm install hook drops/executes a native ELF (tools/setup)</span>
+<span class="cm">// MITRE: T1195.002, T1106 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// FP NOTES: some native modules ship binaries; flag tools/setup + chmod + exec from node_modules</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(npm|node|yarn|pnpm)$/i
+| (CommandLine=/node_modules\/.+\/tools\/setup/i or (FileName=/^chmod$/i and CommandLine=/node_modules\/.+(setup|bin)/i))
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Native ELF written into node_modules</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> an ELF/Mach-O written to a <code>tools/</code> path inside node_modules during install. <strong>Accomplishes:</strong> catches the implant drop pre-execution.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: IronWorm native implant written into node_modules</span>
+<span class="cm">// MITRE: T1105 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// TUNING: correlate to Q1; ~976KB UPX-packed; tools/setup path</span>
+#event_simpleName=/ElfFileWritten|NewExecutableWritten|FileCreateInfo/
+| TargetFileName=/node_modules\/.+\/tools\/(setup|bin)/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · eBPF program load by a non-system process (rootkit)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a non-system process loading an eBPF program (BPF_PROG_LOAD) or invoking <code>bpf()</code>. <strong>Accomplishes:</strong> the rootkit load. <strong>FP:</strong> observability/security agents use eBPF — allow-list them. Requires Linux sensor eBPF/syscall telemetry.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: IronWorm eBPF rootkit load (non-system process)</span>
+<span class="cm">// MITRE: T1014, T1562.001 | CONF: high  FP: low-med  COST: med</span>
+<span class="cm">// REQUIRES: Linux sensor eBPF/syscall telemetry; TUNING: allow-list observability/security agents</span>
+#event_simpleName=/BpfProgramLoad|SyscallBpf|KernelModuleLoad/
+| ImageFileName!=/\/(usr\/(s)?bin|opt\/(falcon|datadog|sysdig|cilium))\//i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Process reading many credential / env files</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a single process opening many credential files (<code>.aws</code>, <code>.npmrc</code>, kube config, Vault, Exodus wallet). <strong>Accomplishes:</strong> the harvest stage. <strong>FP:</strong> dev tooling reads some — flag breadth + a node_modules-spawned parent. Requires file-access telemetry.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: IronWorm credential/secret harvesting (broad cred-file reads)</span>
+<span class="cm">// MITRE: T1552.001, T1552.005, T1539 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// REQUIRES: file-access telemetry; TUNING: flag breadth + a node_modules-derived parent</span>
+#event_simpleName=/FileOpen|ProcessFileOpen|OsfmFileOpen/
+| TargetFileName=/(\.aws\/credentials|\.npmrc|\.config\/gcloud|kube\/config|\.vault-token|\.docker\/config|Exodus\/exodus\.wallet|\.ssh\/id_)/i
+| groupBy([aid, ImageFileName], function=[count(field=TargetFileName, distinct=true, as=files)])
+| files&gt;=4
+| sort(files, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Tor / temp.sh exfil from a dev host</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS/connections to <code>temp.sh</code> or Tor entry-node patterns from a dev host. <strong>Accomplishes:</strong> the exfil channel. <strong>FP:</strong> low for temp.sh on a dev host; Tor requires an entry-node feed.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: IronWorm exfil (temp.sh fallback / Tor)</span>
+<span class="cm">// MITRE: T1567, T1090.003 | CONF: medium  FP: low-med  COST: low</span>
+<span class="cm">// TUNING: enrich with Tor entry-node feed; temp.sh from a dev host is suspicious</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)(temp\.sh)$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, DomainName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Runtime contacting npm registry to publish (worm)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the dropped implant / node contacting <code>registry.npmjs.org</code> outside a sanctioned publish pipeline. <strong>Accomplishes:</strong> worm re-publish. <strong>FP:</strong> legit dev tooling — correlate with Q1–Q3 + non-CI host.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: IronWorm self-propagation (publish to npm outside a pipeline)</span>
+<span class="cm">// MITRE: T1195.002 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// TUNING: exclude sanctioned publish runners; correlate to Q1-Q3</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)registry\.npmjs\.org$/i
+| ContextBaseFileName=/^(node|setup|npm)$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, DomainName])</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>Detection Recommendations (SCA / npm / kernel)</h2></div>
+  <div class="section-body">
+    <div class="callout callout-info">Because of the eBPF rootkit, prioritize <strong>off-host + pre-execution</strong> detections: SCA package gating, npm Trusted-Publishing audit, and kernel/eBPF monitoring from a trusted layer.</div>
+    <table>
+      <thead><tr><th>Detection</th><th>Logic</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>Affected-publisher gate</td><td>Block/alert on packages from <code>asteroiddao</code> / the IronWorm advisory list</td><td>None — hard-block</td><td>SCA / dependency firewall / CI gate</td></tr>
+        <tr><td>Unexpected eBPF load</td><td>Q3: eBPF program loaded by a non-allow-listed process</td><td>Observability/security agents</td><td>Falcon kernel IOA / eBPF monitoring</td></tr>
+        <tr><td>Anomalous npm publish</td><td>N4: publishes / trusted-publish events outside expected workflows</td><td>Sanctioned pipelines</td><td>npm audit / SIEM correlation</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for SCA gating, endpoint/kernel sweeps, and response. The eBPF rootkit hides on-host artifacts — favour off-host signals and rebuild affected hosts.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Package / Publisher</span><span class="igc">SCA gate</span></div>
+        <button class="btn-copy" data-label="Copy pkgs" onclick="copyBlock('grab-pkgs',this)" style="margin:0 0 6px;">Copy pkgs</button>
+<pre class="code" id="grab-pkgs"># Compromised npm publisher: asteroiddao (~37-43 packages)
+# Targets Arweave / WeaveDB / Web3 / crypto-developer packages
+# Pin away from ALL asteroiddao-published packages; re-verify the exact list vs JFrog/SafeDep advisory
+# Sibling worm packs (same family): Shai-Hulud "Hades" (PyPI), Mini Shai-Hulud (npm/PyPI)
+# Hunt package-lock.json / yarn.lock for asteroiddao-published deps</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Host Artifacts</span><span class="igc">may be eBPF-hidden</span></div>
+        <button class="btn-copy" data-label="Copy artifacts" onclick="copyBlock('grab-art',this)" style="margin:0 0 6px;">Copy artifacts</button>
+<pre class="code" id="grab-art"># Implant
+node_modules/.../tools/setup    # ~976 KB Rust ELF, UPX-packed with overwritten magic
+# Rootkit
+unexpected eBPF programs/maps (bpftool prog list / bpftool map list)
+# Exfil
+Tor hidden-service beacon, path /api/agent ; temp.sh fallback upload
+# Harvest targets (read by the ELF)
+~86 env vars + 20+ cred files: ~/.aws, ~/.npmrc, ~/.config/gcloud, ~/.kube/config,
+  ~/.vault-token, ~/.docker/config.json, ~/.ssh/id_*, Exodus wallet seed</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">npm/node install hook -> chmod +x + exec of node_modules/.../tools/setup
+~976 KB ELF/Mach-O written into a node_modules tools/ path
+eBPF program/map loaded by a non-system process (process/socket hiding)
+One process reading many cred/env files (>=4 of: .aws/.npmrc/kube/vault/ssh/Exodus)
+Dev host connecting to temp.sh or a Tor entry node
+node/setup contacting registry.npmjs.org outside a sanctioned publish pipeline</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Response Checklist</span><span class="igc">rebuild &amp; rotate</span></div>
+        <button class="btn-copy" data-label="Copy response" onclick="copyBlock('grab-resp',this)" style="margin:0 0 6px;">Copy response</button>
+<pre class="code" id="grab-resp"># eBPF rootkit = do NOT trust on-host cleanup:
+1. Network-isolate affected dev hosts/runners
+2. REBUILD from clean images (the rootkit can hide processes/sockets/files)
+3. Rotate EVERYTHING reachable: cloud keys, AI API keys, SCM/registry/CI tokens,
+   Kubernetes/Vault secrets, SSH keys, npm publish/Trusted-Publishing tokens
+4. Move any Exodus wallet funds to a NEW seed (seed phrase assumed stolen)
+5. Audit npm publishes; unpublish worm-pushed versions; SCA hard-block asteroiddao
+6. Block Tor + temp.sh egress on dev/build networks</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Stop install-time native code and starve the worm of tokens and egress.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Block install-time native code</div>
+      <ul>
+        <li><strong>SCA / dependency-firewall: hard-block <code>asteroiddao</code> packages</strong> — <em>M1016</em>.</li>
+        <li><strong>Disable npm lifecycle scripts</strong> — <em>M1042</em>: <code>npm ci --ignore-scripts</code>; vet native binaries before allowing.</li>
+        <li><strong>Egress allow-list on dev/build hosts; block Tor + temp.sh</strong> — <em>M1037</em>. Starves exfil (Q5).</li>
+        <li><strong>Protect npm Trusted-Publishing: scoped, short-lived OIDC publish; no standing tokens</strong> — <em>M1015 / M1026</em>. Breaks self-propagation.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Kernel &amp; secret hygiene (pilot first)</div>
+      <ul>
+        <li><strong>Restrict unprivileged eBPF (<code>kernel.unprivileged_bpf_disabled=1</code>)</strong> — <em>M1038</em>. Raises the bar for the rootkit.</li>
+        <li><strong>Keep secrets out of env/files on dev hosts; use a broker / short-lived creds</strong> — <em>M1015</em>. Shrinks the harvest.</li>
+        <li><strong>Hash-pinned lockfiles + dependency review gate</strong> — <em>M1016</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Isolate builds, verify provenance</div>
+      <ul>
+        <li><strong>Ephemeral, network-restricted, secretless build runners</strong> — <em>M1015 / M1030</em>.</li>
+        <li><strong>Independently verify package provenance; internal mirror with review</strong> — <em>M1016</em>.</li>
+        <li><strong>Crypto-dev hardware wallets / cold storage; never store seeds on dev hosts</strong> — <em>M1027</em>.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain affected dev hosts/runners; freeze affected pipelines; capture network evidence off-host (eBPF hides on-host)</td><td>SOC / Platform</td><td>Containment timestamp; net evidence</td></tr>
+        <tr><td>Triage</td><td>Confirm via SCA (asteroiddao deps) + off-host egress (Tor/temp.sh); enumerate reachable secrets/tokens</td><td>IR</td><td>SCA results; secret reachability</td></tr>
+        <tr><td>Eradicate</td><td><strong>Rebuild</strong> hosts/runners from clean images (do not clean — rootkit); revoke npm tokens; unpublish worm versions</td><td>IR / Platform</td><td>Rebuild tickets; revoked tokens</td></tr>
+        <tr><td>Recover</td><td>Rotate ALL reachable creds; move Exodus funds to a new seed; restore clean pinned deps</td><td>IR / IT</td><td>Rotation log; new wallet</td></tr>
+        <tr><td>Harden</td><td>SCA gate; disable lifecycle scripts; restrict eBPF; egress allow-list; scope OIDC publish; promote Q1/Q3</td><td>Platform / Detection Eng</td><td>Control status; detections enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>Native</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1195.002</td><td>Trojanized package install + ELF drop</td><td>Q1, Q2</td><td>N1, N2</td><td><span class="badge b-low">Good</span> via SCA</td></tr>
+        <tr><td>T1014</td><td>eBPF rootkit load</td><td>Q3</td><td>N3</td><td><span class="badge b-med">Partial</span> needs kernel telemetry; pre-rootkit best</td></tr>
+        <tr><td>T1552 / T1539</td><td>Cred/env/wallet harvest</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> needs file-access telemetry</td></tr>
+        <tr><td>T1090.003 / T1567</td><td>Tor / temp.sh exfil</td><td>Q5</td><td>N5</td><td><span class="badge b-med">Partial</span> off-host best (rootkit)</td></tr>
+        <tr><td>T1195.002 (worm)</td><td>npm re-publish</td><td>Q6</td><td>N4</td><td><span class="badge b-med">Partial</span> npm audit primary</td></tr>
+        <tr><td>—</td><td>On-host visibility after rootkit</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> eBPF hides artifacts — rebuild</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm process/file/eBPF telemetry on dev/CI hosts + npm audit ingestion; (2) baseline legit native-module installs + eBPF-using agents (allow-list for Q3); (3) lab-test a benign package dropping a binary to <code>node_modules/tools/setup</code> (Q1/Q2) and a benign <code>temp.sh</code> upload (Q5); (4) promote Q1/Q3 + the asteroiddao SCA gate; treat any confirmed host as rootkitted (rebuild).</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — IronWorm (Rust npm supply-chain worm; eBPF rootkit; Tor C2)
+SEVERITY:     Critical (kernel rootkit; credential + wallet theft; self-propagating)
+SCOPE:        Developer workstations + CI/CD runners (esp. Web3/crypto) using asteroiddao deps
+HYPOTHESIS:   Trojanized npm package -> install hook drops ~976KB Rust ELF (tools/setup) ->
+              eBPF rootkit hides it -> harvest 86 env vars/20+ cred files + Exodus seed ->
+              Tor /api/agent exfil (temp.sh fallback) -> re-publish via stolen npm tokens.
+QUERIES RUN:  Q1 hook -> native exec | Q2 ELF in node_modules | Q3 eBPF load | Q4 cred harvest |
+              Q5 Tor/temp.sh exfil | Q6 npm re-publish
+              + Native N1-N5 (SCA, ELF scan, eBPF audit, npm token audit, Tor/temp.sh egress)
+DO FIRST:     N1 (asteroiddao inventory) + Q1/Q3; ISOLATE + REBUILD (don't clean - rootkit)
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         eBPF hides on-host artifacts -> off-host detection + rebuild
+ACTIONS:      SCA hard-block asteroiddao; --ignore-scripts; restrict eBPF; egress allow-list;
+              scope OIDC publish; rotate all creds; move Exodus to new seed; promote Q1/Q3
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-12</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from JFrog/Phoenix/SafeDep: Rust ELF (tools/setup, ~976KB, overwritten magic), eBPF rootkit, Tor /api/agent + temp.sh exfil, 86-env/20+-cred harvest, Exodus seed theft, asteroiddao publisher, npm Trusted-Publishing self-propagation. Cross-linked the Shai-Hulud "Hades" + Mini Shai-Hulud sibling packs. 6 CQL + 5 native hunts.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-26</span><span>Initial pack: IronWorm Rust npm worm overview + hunts. Pre-gold top-bar layout.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://phoenix.security/ironworm-npm-supply-chain-worm-rust-ebpf-rootkit-tor/" target="_blank">Phoenix Security — IronWorm (Rust/eBPF/Tor)</a></td><td>Full chain: ELF, eBPF rootkit, Tor C2, self-propagation</td></tr>
+        <tr><td>1</td><td><a href="https://safedep.io/ti/campaigns/ironworm/" target="_blank">SafeDep — IronWorm campaign</a> · <a href="https://www.ox.security/blog/ironworm-supply-chain-malware-hits-npm/" target="_blank">OX Security — IronWorm</a></td><td>asteroiddao account; harvest scope; Trusted-Publishing abuse</td></tr>
+        <tr><td>1</td><td><a href="https://www.bleepingcomputer.com/news/security/new-ironworm-malware-hits-36-packages-in-npm-supply-chain-attack/" target="_blank">BleepingComputer — IronWorm (36 packages)</a> · <a href="https://thehackernews.com/2026/06/ironworm-and-new-miasma-worm-variant.html" target="_blank">The Hacker News — IronWorm &amp; Miasma</a></td><td>Scope, lineage, timing</td></tr>
+        <tr><td>2</td><td><a href="https://cyberpress.org/ironworm-targets-developer-secrets/" target="_blank">Cyberpress — developer-secret theft</a></td><td>86 env vars, 20+ cred files, Exodus seeds, temp.sh</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · IronWorm · Generated 2026-06-12 · Defensive use only. The eBPF rootkit undermines on-host trust — favour off-host detection and rebuild affected hosts. Package set rotates; keep SCA + npm-token monitoring live. See the Shai-Hulud "Hades" + Mini Shai-Hulud packs for the related worm family. Validate field names in your tenant before promoting any query.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
 
 <script>
-const cloudSelect = document.getElementById("falcon-cloud");
-const cloudHost = document.getElementById("falcon-host");
-const toc = document.querySelector(".toc");
-
-function getTextById(id) {
-  const node = document.getElementById(id);
-  return node ? node.textContent.trim() : "";
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
 }
-
-async function copyText(text, button) {
-  try {
-    await navigator.clipboard.writeText(text);
-    const previous = button.textContent;
-    button.textContent = "Copied";
-    window.setTimeout(() => { button.textContent = previous; }, 1400);
-  } catch (error) {
-    window.prompt("Copy this text:", text);
-  }
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
 }
-
-function updateCloudHost() {
-  cloudHost.textContent = cloudSelect.value;
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
 }
-
-function updateStickyOffsets() {
-  if (toc) {
-    document.documentElement.style.setProperty("--toc-height", `${toc.offsetHeight}px`);
-  }
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
 }
-
-function openInFalcon(query) {
-  const base = cloudSelect.value.replace(/\/$/, "");
-  const encoded = encodeURIComponent(query);
-  window.open(`${base}/investigate/events/en-US/app/eam2/search?query=${encoded}`, "_blank", "noopener");
-}
-
-document.addEventListener("click", (event) => {
-  const copyButton = event.target.closest(".copy");
-  if (copyButton) { copyText(getTextById(copyButton.dataset.copyTarget), copyButton); }
-  const falconButton = event.target.closest(".open-falcon");
-  if (falconButton) { openInFalcon(getTextById(falconButton.dataset.queryTarget)); }
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
 });
-
-cloudSelect.addEventListener("change", updateCloudHost);
-window.addEventListener("resize", updateStickyOffsets);
-updateStickyOffsets();
-updateCloudHost();
 </script>
-
 </body>
 </html>
