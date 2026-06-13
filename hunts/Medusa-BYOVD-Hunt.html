@@ -2,1271 +2,603 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Medusa BYOVD — Hunt Package</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medusa Ransomware — ABYSSWORKER BYOVD EDR-Killer (smuol.sys) — HuntPack v0.3</title>
 <style>
 :root {
-  --bg: #0d1117;
-  --bg-2: #161b22;
-  --bg-3: #21262d;
-  --fg: #e6edf3;
-  --fg-muted: #8b949e;
-  --border: #30363d;
-  --accent: #ff5555;
-  --accent-2: #ff7a45;
-  --info: #58a6ff;
-  --good: #3fb950;
-  --warn: #d29922;
-  --crit: #f85149;
-  --mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
+  --bg: #0d1117; --surface: #1a1505; --surface2: #2a2008; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9ca3af; --accent: #d29922; --accent-dim: rgba(210,153,34,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; font-size: 15px; }
-.container { max-width: 1180px; margin: 0 auto; padding: 32px 28px 64px; }
-
-/* HERO */
-.hero { border: 1px solid var(--border); border-radius: 10px; padding: 28px 32px; background: linear-gradient(180deg, #1a1f27 0%, var(--bg-2) 100%); margin-bottom: 32px; }
-.hero h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.5px; }
-.hero .subtitle { color: var(--fg-muted); font-size: 17px; margin-bottom: 18px; }
-.hero .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-.hero .meta { color: var(--fg-muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 14px; }
-.hero .meta span { margin-right: 18px; }
-
-/* BADGES */
-.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
-.badge-crit { background: rgba(248,81,73,0.18); color: var(--crit); border: 1px solid rgba(248,81,73,0.5); }
-.badge-high { background: rgba(255,122,69,0.18); color: var(--accent-2); border: 1px solid rgba(255,122,69,0.5); }
-.badge-med { background: rgba(210,153,34,0.18); color: var(--warn); border: 1px solid rgba(210,153,34,0.5); }
-.badge-low { background: rgba(63,185,80,0.18); color: var(--good); border: 1px solid rgba(63,185,80,0.5); }
-.badge-info { background: rgba(88,166,255,0.18); color: var(--info); border: 1px solid rgba(88,166,255,0.5); }
-.badge-muted { background: rgba(139,148,158,0.15); color: var(--fg-muted); border: 1px solid var(--border); }
-
-/* SECTIONS */
-section { margin-bottom: 40px; }
-h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 0; margin-bottom: 18px; color: var(--fg); }
-h2 .anchor-num { color: var(--accent); margin-right: 10px; font-weight: 700; }
-h3 { font-size: 17px; margin-top: 26px; margin-bottom: 10px; color: var(--fg); }
-h4 { font-size: 15px; margin-top: 18px; margin-bottom: 6px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; }
-p { margin: 8px 0; }
-a { color: var(--info); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-/* TOC */
-.toc { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; }
-.toc ol { columns: 2; column-gap: 28px; margin: 0; padding-left: 22px; }
-.toc li { padding: 3px 0; break-inside: avoid; }
-.toc a { color: var(--fg); }
-
-/* CARDS */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 22px; }
-.card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
-.card .label { font-size: 12px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-.card .value { font-size: 22px; font-weight: 700; color: var(--fg); }
-.card .value.crit { color: var(--crit); }
-.card .value.warn { color: var(--warn); }
-.card .value.good { color: var(--good); }
-.card .sub { font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
-
-/* CALLOUTS */
-.callout { border-left: 4px solid var(--info); background: rgba(88,166,255,0.08); padding: 12px 16px; border-radius: 4px; margin: 14px 0; }
-.callout-crit { border-left-color: var(--crit); background: rgba(248,81,73,0.08); }
-.callout-warn { border-left-color: var(--warn); background: rgba(210,153,34,0.08); }
-.callout-good { border-left-color: var(--good); background: rgba(63,185,80,0.08); }
-.callout strong { color: var(--fg); }
-
-/* TABLES */
-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 14px; }
-th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
-th { background: var(--bg-3); color: var(--fg); font-weight: 600; }
-tr:nth-child(even) td { background: rgba(33,38,45,0.4); }
-td code { background: var(--bg-3); padding: 1px 6px; border-radius: 3px; font-family: var(--mono); font-size: 12.5px; }
-
-/* CODE / QUERIES */
-pre { background: #010409; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.5; color: #e6edf3; }
-code { font-family: var(--mono); }
-
-/* QUERY CARD */
-.query-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin-bottom: 22px; }
-.query-card .qhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
-.query-card .qid { background: var(--bg-3); color: var(--accent); padding: 2px 10px; border-radius: 4px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
-.query-card .qtitle { font-size: 17px; font-weight: 600; margin: 0; }
-.query-card .qmeta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--fg-muted); margin: 8px 0 12px; padding: 6px 10px; background: rgba(33,38,45,0.5); border-radius: 4px; }
-.query-card .qmeta span strong { color: var(--fg); }
-.query-card .hypothesis, .query-card .fpnotes { font-size: 14px; margin: 8px 0; }
-.query-card .hypothesis strong, .query-card .fpnotes strong { color: var(--accent-2); }
-
-/* COVERAGE CELL */
-.cov-good { background: rgba(63,185,80,0.15); color: var(--good); font-weight: 600; text-align: center; }
-.cov-partial { background: rgba(210,153,34,0.15); color: var(--warn); font-weight: 600; text-align: center; }
-.cov-gap { background: rgba(248,81,73,0.15); color: var(--crit); font-weight: 700; text-align: center; }
-
-/* FOOTER */
-footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 18px; font-size: 12px; color: var(--fg-muted); text-align: center; }
-
-/* REGION BAR */
-.region-bar { position: sticky; top: 0; z-index: 100; background: rgba(13,17,23,0.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 10px 0; }
-.region-bar-inner { max-width: 1180px; margin: 0 auto; padding: 0 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; }
-.region-label { color: var(--fg-muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
-.region-current { color: var(--accent-2); font-family: var(--mono); font-weight: 700; padding-left: 4px; }
-.region-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-.region-btn { background: var(--bg-3); color: var(--fg-muted); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-family: var(--mono); font-weight: 600; cursor: pointer; transition: all 0.15s; letter-spacing: 0.5px; }
-.region-btn:hover { border-color: var(--accent-2); color: var(--fg); }
-.region-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-.region-help { margin-left: auto; color: var(--fg-muted); font-size: 11px; }
-
-/* QUERY ACTION BUTTONS */
-.query-actions { display: flex; gap: 8px; margin: 12px 0 0; flex-wrap: wrap; }
-.query-btn { background: var(--bg-3); color: var(--fg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.15s; }
-.query-btn:hover { border-color: var(--accent-2); background: var(--bg-2); color: var(--fg); }
-.query-btn.copied { background: var(--good); color: white; border-color: var(--good); }
-.query-btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
-.query-btn-primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: white; }
-.query-btn-icon { font-size: 13px; line-height: 1; }
-
-/* PRINT */
-@media print {
-  .region-bar, .query-actions { display: none !important; }
-  html, body { background: #fff; color: #111; }
-  .container { max-width: 100%; padding: 12px; }
-  .hero, .card, .query-card, .toc, .callout, pre { background: #fff !important; color: #111 !important; border-color: #999 !important; }
-  th { background: #eee !important; color: #111 !important; }
-  td { background: #fff !important; color: #111 !important; }
-  pre { color: #111 !important; }
-  section, .query-card, .card { page-break-inside: avoid; }
-  a { color: #0645ad; }
-  .badge { border-color: #555 !important; }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b5a28; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a2000 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
 </style>
 </head>
 <body>
 
-<div class="region-bar">
-  <div class="region-bar-inner">
-    <span class="region-label">CrowdStrike Region</span>
-    <span class="region-current" id="region-current">US-2</span>
-    <div class="region-group" role="group" aria-label="CrowdStrike region selector">
-      <button class="region-btn" data-region="us-1">US-1</button>
-      <button class="region-btn active" data-region="us-2">US-2</button>
-      <button class="region-btn" data-region="eu-1">EU-1</button>
-      <button class="region-btn" data-region="us-gov-1">US-GOV-1</button>
-      <button class="region-btn" data-region="us-gov-2">US-GOV-2</button>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Medusa Ransomware<br>ABYSSWORKER BYOVD</div>
+    <div class="version">v0.3 · 2026-06-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Medusa Ransomware — ABYSSWORKER BYOVD EDR-Killer</h1>
+  <div class="subtitle">The Medusa RaaS operation (Spearwing / FROZEN SPIDER / Storm-1175) deploys <strong>ABYSSWORKER</strong>, a malicious kernel driver (<code>smuol.sys</code> and rotating names) that mimics CrowdStrike's <code>CSAgent.sys</code> and disables EDR via BYOVD before encryption. Delivered by a <strong>HEARTCRYPT</strong>-packed loader and signed with revoked, stolen certificates (POORTRY lineage). Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">Medusa RaaS · Spearwing / FROZEN SPIDER / Storm-1175</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">CRITICAL · EDR-DISABLING RANSOMWARE</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Ransomware · BYOVD kernel EDR-killer</div></div>
+    <div class="meta-item"><div class="mk">Driver</div><div class="mv">ABYSSWORKER (smuol.sys + rotating; mimics CSAgent.sys)</div></div>
+    <div class="meta-item"><div class="mk">Loader</div><div class="mv">HEARTCRYPT-packed · revoked stolen certs (POORTRY lineage)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Medusa is a long-running ransomware-as-a-service operation (tracked as <strong>Spearwing</strong> / <strong>FROZEN SPIDER</strong> / Microsoft <strong>Storm-1175</strong>) that, before encrypting, blinds defenders with a <strong>bring-your-own-vulnerable-driver (BYOVD)</strong> EDR-killer named <strong>ABYSSWORKER</strong>. The driver is most associated with the filename <code>smuol.sys</code> (and rotating names), and deliberately <strong>imitates CrowdStrike Falcon's <code>CSAgent.sys</code></strong> — same description metadata — to hide among legitimate security drivers. It is signed with <strong>revoked, stolen certificates</strong> (largely Chinese-issued), part of the same signed-malicious-driver ecosystem as <strong>POORTRY/STONESTOP</strong>.</p>
+    <p>ABYSSWORKER is delivered by a <strong>HEARTCRYPT</strong>-packed loader, then loaded via a service/driver install. Its IOCTL handlers let the operator <strong>terminate or disable EDR/AV processes from the kernel</strong>, remove callbacks, and clear handles — after which the Medusa encryptor runs unobstructed (shadow-copy deletion, service stop, file encryption with a ransom note). Because the kernel-level kill defeats user-mode protections, <strong>detection must catch the driver load and the loader behavior <em>before</em> encryption</strong>.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Enable the Microsoft <strong>vulnerable-driver blocklist</strong> (HVCI/WDAC) — that blocks ABYSSWORKER and POORTRY by design. Then hunt <strong>Q1</strong> (suspicious kernel driver load — <code>smuol.sys</code>, or a driver claiming to be <code>CSAgent.sys</code> from the wrong path/publisher), <strong>Q2</strong> (service/driver install), <strong>Q3</strong> (EDR/AV process termination), and <strong>Q5</strong> (shadow-copy deletion). A driver-load hit on a non-DC server is a likely pre-encryption window — respond immediately.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Elastic Security Labs — ABYSSWORKER</td><td>smuol.sys mimics CSAgent.sys; IOCTL handlers disable EDR; revoked certs; Medusa pairing</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Gov advisory</td><td>CISA / FBI #StopRansomware: Medusa (AA25-...)</td><td>Medusa TTPs, BYOVD EDR-kill, shadow-copy deletion, double extortion</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor</td><td>Symantec / Microsoft (Spearwing / Storm-1175)</td><td>Medusa attribution, HEARTCRYPT loader, initial-access vectors</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Sophos / Mandiant — POORTRY/STONESTOP ecosystem</td><td>Signed-malicious-driver lineage; revoked-cert abuse</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> blocklist-first (HVCI vulnerable-driver blocklist neutralizes the BYOVD core); behavior-anchored on the driver load + service install + EDR-kill + shadow-copy deletion; the <code>CSAgent.sys</code>-impersonation gives a strong, specific hunt (a driver claiming to be Falcon from the wrong path/publisher); encryptor IOCs rotate, so the BYOVD chain is the durable surface.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> An operator gains access (exploited edge service / valid accounts), drops a HEARTCRYPT-packed loader that installs ABYSSWORKER (<code>smuol.sys</code>) as a service, kills EDR/AV from the kernel, deletes shadow copies, and runs the Medusa encryptor.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Access</td><td>Exploited edge service / valid accounts / phishing</td><td>auth; edge logs</td><td>N1</td></tr>
+        <tr><td>2 · Loader</td><td>HEARTCRYPT-packed loader drops the driver</td><td><code>ProcessRollup2</code>; file</td><td><strong>Q4</strong></td></tr>
+        <tr><td>3 · Driver install</td><td>ABYSSWORKER (smuol.sys) registered as a service/driver</td><td>service/driver reg; file</td><td><strong>Q1 / Q2</strong></td></tr>
+        <tr><td>4 · EDR kill</td><td>Kernel IOCTLs terminate/disable EDR/AV</td><td><code>ProcessRollup2</code> (EndOfProcess); sensor health</td><td><strong>Q3</strong>; N3</td></tr>
+        <tr><td>5 · Inhibit recovery</td><td>Shadow-copy deletion; service/backup stop</td><td><code>ProcessRollup2</code></td><td><strong>Q5</strong></td></tr>
+        <tr><td>6 · Encrypt</td><td>Medusa encryptor + ransom note (.medusa / readme)</td><td>file; <code>ProcessRollup2</code></td><td><strong>Q6</strong>; N4</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows servers / endpoints</td><td>Driver-load + service-install events</td><td><span class="badge b-high">Critical</span></td><td>Low — DriverLoad telemetry</td></tr>
+        <tr><td>EDR sensor health</td><td>Process-termination + sensor-tamper signals</td><td><span class="badge b-high">Critical</span></td><td>Medium — needs tamper alerts</td></tr>
+        <tr><td>Backups / shadow copies</td><td>Process lineage (vssadmin/wmic/bcdedit)</td><td><span class="badge b-high">High</span></td><td>Low</td></tr>
+        <tr><td>Code-integrity policy</td><td>HVCI / WDAC blocklist state</td><td><span class="badge b-high">High</span></td><td>Medium — adoption gap</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">Driver names and encryptor hashes rotate; the impersonation of <code>CSAgent.sys</code>, the BYOVD-driver-load behavior, and the EDR-kill→shadow-delete→encrypt sequence are durable. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Driver</td><td class="mono">smuol.sys (ABYSSWORKER) — and rotating names</td><td><span class="badge b-high">high</span></td><td>block</td><td>BYOVD EDR-killer</td></tr>
+        <tr><td>Behavior</td><td class="mono">Driver claiming to be CSAgent.sys from wrong path/publisher</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Falcon impersonation — flagship</td></tr>
+        <tr><td>Signing</td><td class="mono">Revoked/stolen code-signing certs (POORTRY lineage)</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Signed-malicious-driver ecosystem</td></tr>
+        <tr><td>Loader</td><td class="mono">HEARTCRYPT-packed loader (drops the driver)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Pre-driver stage</td></tr>
+        <tr><td>Behavior</td><td class="mono">EDR/AV process termination + shadow-copy deletion</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Pre-encryption sequence</td></tr>
+        <tr><td>Encryptor</td><td class="mono">Medusa encryptor; .medusa extension / ransom note</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Impact stage</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1190 / T1078 — Exploit edge / valid accounts</td><td>Exploited service or stolen creds</td><td>N1</td></tr>
+        <tr><td>Defense Evasion</td><td>T1014 / T1562.001 — Rootkit / disable security tools</td><td>ABYSSWORKER kernel EDR-kill</td><td>Q1, Q3</td></tr>
+        <tr><td>Privilege Esc / Execution</td><td>T1543.003 / T1068 — Service install / BYOVD</td><td>smuol.sys registered as a driver service</td><td>Q2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1553.002 — Subverted trust (stolen certs)</td><td>Revoked certs (POORTRY lineage)</td><td>Q1; blocklist</td></tr>
+        <tr><td>Impact</td><td>T1490 — Inhibit system recovery</td><td>Shadow-copy deletion</td><td>Q5</td></tr>
+        <tr><td>Impact</td><td>T1486 — Data encrypted for impact</td><td>Medusa encryptor + ransom note</td><td>Q6, N4</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Initial access</td><td>Edge/VPN + auth logs</td><td>Exploited edge service or anomalous valid-account logins preceding the host activity</td><td>Reset creds; patch edge</td></tr>
+        <tr><td>N2 · Code-integrity state</td><td>Config inventory</td><td>Hosts without HVCI / the vulnerable-driver blocklist enabled</td><td>Enable blocklist (the fix)</td></tr>
+        <tr><td>N3 · EDR sensor health</td><td>EDR console</td><td>Sensors going silent / uninstalled / tampered on a host cluster</td><td>Treat as active intrusion</td></tr>
+        <tr><td>N4 · Encryption canary</td><td>File server / EDR</td><td>Mass file-rename / .medusa extension / ransom-note file creation</td><td>Isolate; invoke IR</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
     </div>
-    <span class="region-help">Region is remembered locally &middot; "Open in Falcon" launches your tenant directly</span>
+    <div class="callout callout-info">Driver-load hunts use <code>DriverLoad</code> / kernel-module events; verify the field names in your sensor schema. The <code>CSAgent.sys</code>-impersonation hunt is high-fidelity — a Falcon-named driver should only ever load from the CrowdStrike path with the CrowdStrike signer.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · ABYSSWORKER / CSAgent.sys-impersonating driver load</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a kernel driver named <code>smuol.sys</code>, or one claiming to be <code>CSAgent.sys</code> from outside the genuine CrowdStrike path. <strong>Accomplishes:</strong> catches ABYSSWORKER's Falcon-impersonation. <strong>FP:</strong> very low — legitimate CSAgent.sys loads only from the CrowdStrike directory.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: ABYSSWORKER BYOVD driver load (smuol.sys / fake CSAgent.sys)</span>
+<span class="cm">// MITRE: T1014, T1562.001, T1553.002 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: genuine CSAgent.sys loads only from \CrowdStrike\ path with CS signer</span>
+#event_simpleName=/DriverLoad|KernelModuleLoad|ModuleLoadFromMemory/
+| (FileName=/^smuol\.sys$/i
+   or (FileName=/^csagent\.sys$/i and ImageFileName!=/\\CrowdStrike\\/i))
+| table([@timestamp, ComputerName, FileName, ImageFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Suspicious kernel-driver service install</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a kernel-mode service registered pointing at a driver in a user/temp path (the BYOVD install). <strong>FP:</strong> some legit driver installs — flag user-writable paths + correlate to Q1.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: kernel-driver service install from a user/temp path (BYOVD)</span>
+<span class="cm">// MITRE: T1543.003, T1068 | CONF: med-high  FP: low-med  COST: low</span>
+<span class="cm">// TUNING: flag ImagePath -> .sys in %TEMP%/%AppData%/ProgramData; correlate to Q1</span>
+#event_simpleName=/ServiceStarted|ServiceImagePath|RegSystemConfigValueUpdate/
+| RegStringValue=/\\(Temp|AppData|ProgramData|Users)\\.+\.sys$/i
+| table([@timestamp, ComputerName, ServiceName, RegStringValue])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · EDR / AV process termination (kernel kill)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> security-product processes ending unexpectedly (ABYSSWORKER kernel kill). <strong>FP:</strong> normal updates/restarts — correlate to Q1/Q2 on the same host and watch for clusters.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: EDR/AV process termination around a driver load</span>
+<span class="cm">// MITRE: T1562.001 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: correlate to Q1/Q2 on the same host; alert on clusters of sensor death</span>
+#event_simpleName=EndOfProcess
+| FileName=/^(MsMpEng|SenseIR|MsSense|CSFalconService|elastic-endpoint|ekrn|avp|SentinelAgent|xagt|cb)\.exe$/i
+| table([@timestamp, ComputerName, FileName, ImageFileName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · HEARTCRYPT-packed loader execution</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> an unsigned/odd binary in a user/temp path writing a <code>.sys</code> file (the loader dropping the driver). <strong>FP:</strong> correlate with Q1/Q2; flag user-path PE writing a driver.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: loader dropping a kernel driver (HEARTCRYPT stage)</span>
+<span class="cm">// MITRE: T1105, T1027 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: flag a user/temp-path process writing a .sys; correlate to Q1/Q2</span>
+#event_simpleName=/PeFileWritten|NewExecutableWritten/
+| TargetFileName=/\\(Temp|AppData|ProgramData|Users)\\.+\.sys$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, TargetFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Shadow-copy deletion / recovery inhibition</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> shadow-copy deletion / boot-recovery disable (pre-encryption). <strong>Accomplishes:</strong> a high-fidelity late-stage ransomware signal. <strong>FP:</strong> low — rare outside admin maintenance.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: shadow-copy deletion / recovery inhibition (pre-encryption)</span>
+<span class="cm">// MITRE: T1490 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: rare outside admin maintenance; treat as critical with Q1-Q3</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ((FileName=/^(vssadmin|wmic|diskshadow)\.exe$/i and CommandLine=/(delete|shadowcopy|shadows)/i)
+   or (FileName=/^bcdedit\.exe$/i and CommandLine=/(recoveryenabled|bootstatuspolicy)/i)
+   or (FileName=/^wbadmin\.exe$/i and CommandLine=/delete/i))
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Medusa encryptor / ransom-note canary</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> ransom-note files / <code>.medusa</code> extension writes. <strong>Accomplishes:</strong> confirms detonation. <strong>FP:</strong> medium — tune note filenames to current Medusa intel.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Medusa encryptor / ransom-note canary</span>
+<span class="cm">// MITRE: T1486 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// TUNING: tune note filename + extension to current Medusa intel</span>
+#event_simpleName=/PeFileWritten|FileCreateInfo|NewExecutableWritten/
+| TargetFileName=/(\.medusa$|!READ_ME_MEDUSA!|MEDUSA.+README.+\.html?$)/i
+| table([@timestamp, ComputerName, TargetFileName])</pre>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="container">
-
-<!-- HERO -->
-<div class="hero">
-  <h1>Medusa BYOVD &mdash; Hunt Package</h1>
-  <div class="subtitle">Medusa ransomware (operator: Spearwing) using ABYSSWORKER &middot; POORTRY &middot; KillAV driver family to terminate EDR/AV processes prior to <code>gaze.exe</code> encryption</div>
-  <div class="badges">
-    <span class="badge badge-crit">CRITICAL</span>
-    <span class="badge badge-high">Actively Exploited</span>
-    <span class="badge badge-high">CISA AA25-071A</span>
-    <span class="badge badge-info">Critical Infrastructure Targeted</span>
-    <span class="badge badge-info">BYOVD + Custom Driver</span>
-    <span class="badge badge-muted">300+ victims (Feb 2025)</span>
-  </div>
-  <div class="meta">
-    <span><strong>Threat Family:</strong> Medusa Ransomware (RaaS)</span>
-    <span><strong>Operator:</strong> Spearwing</span>
-    <span><strong>Driver Family:</strong> ABYSSWORKER (<code>smuol.sys</code>) &middot; POORTRY (<code>mbaer.sys</code>) &middot; KillAV variants</span>
-    <span><strong>Reporting Vendors:</strong> Elastic Security Labs, Symantec Threat Hunter Team, CISA/FBI/MS-ISAC, Check Point Research, Mandiant</span>
-    <span><strong>Date:</strong> 2026-05-17</span>
-    <span><strong>Analyst:</strong> ai@hutzley.com</span>
-    <span><strong>Skill Chain:</strong> web-hunter v1.0 &rarr; threat-hunter v2.1 &rarr; crowdstrike-logscale &rarr; threat-hardening v1.0</span>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>Medusa — CSAgent.sys impersonation</td><td>Driver <code>csagent.sys</code> from a non-CrowdStrike path, or <code>smuol.sys</code></td><td>Genuine CrowdStrike path (allow)</td><td>Endpoint Security → Custom IOA → Driver Load, Detect+Block</td></tr>
+        <tr><td>Medusa — shadow-copy deletion</td><td><code>vssadmin/wmic delete shadows</code>; <code>bcdedit recoveryenabled no</code></td><td>Sanctioned backup maintenance windows</td><td>Custom IOA → Process Creation, Detect+Block</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1 and Q5 are strong promotions. The single most effective control is the <strong>HVCI vulnerable-driver blocklist</strong>, which blocks the BYOVD load outright — pair the IOAs with it.</div>
   </div>
 </div>
 
-<!-- TOC -->
-<section>
-<h2>Table of Contents</h2>
-<div class="toc">
-<ol>
-  <li><a href="#exec">Executive Summary</a></li>
-  <li><a href="#brief">Hunt Brief</a></li>
-  <li><a href="#mitre">MITRE ATT&amp;CK Mapping</a></li>
-  <li><a href="#queries">CQL Hunt Queries</a></li>
-  <li><a href="#iocs">IOC Blocklist</a></li>
-  <li><a href="#ioas">Custom IOA Rules</a></li>
-  <li><a href="#hardening">Hardening Recommendations</a></li>
-  <li><a href="#coverage">Detection Coverage Map</a></li>
-  <li><a href="#ticket">Hunt Summary Ticket</a></li>
-  <li><a href="#refs">References</a></li>
-</ol>
-</div>
-</section>
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for blocklisting and detection. Driver names + encryptor hashes rotate — the impersonation behavior and BYOVD sequence are durable. Add per-incident atoms during triage.</p>
+    <div class="ioc-grab-grid">
 
-<!-- EXEC SUMMARY -->
-<section id="exec">
-<h2><span class="anchor-num">1.</span>Executive Summary</h2>
-<div class="card-grid">
-  <div class="card"><div class="label">Severity</div><div class="value crit">Critical</div><div class="sub">Active RaaS; 300+ critical-infra victims (CISA Feb 2025)</div></div>
-  <div class="card"><div class="label">YoY Growth</div><div class="value warn">+42%</div><div class="sub">2023 &rarr; 2024 Medusa attacks; near-double Jan-Feb 2025 vs 2024</div></div>
-  <div class="card"><div class="label">Ransom Range</div><div class="value">$100K &ndash; $15M</div><div class="sub">Double-extortion; data leak site for non-payers</div></div>
-  <div class="card"><div class="label">Patch Status</div><div class="value warn">Behavioral</div><div class="sub">No single patch &mdash; controls only (driver blocklist, HVCI, ASR)</div></div>
-</div>
-<div class="callout callout-crit">
-<strong>Must-know caveat:</strong> The Medusa BYOVD step is the <em>single highest-leverage detection point</em> in the kill chain. If a Medusa-family driver (<code>smuol.sys</code>, <code>mbaer.sys</code>, <code>nitrogenk.sys</code>, etc.) successfully loads, the EDR agent will likely be terminated or callback-blinded within seconds. <strong>Every subsequent CrowdStrike telemetry event from that host is suspect</strong> until the driver-load timestamp is identified and the host is fully reimaged. Catching the driver-load step (HUNT-1 through HUNT-6) is therefore worth more than any post-execution hunt. Treat any hit on HUNT-1, HUNT-2, HUNT-5, or HUNT-6 as P1.
-</div>
-</section>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">Kernel driver smuol.sys loading (ABYSSWORKER)
+Driver claiming to be CSAgent.sys loading from a non-CrowdStrike path / wrong signer
+Kernel-driver service registered with ImagePath -> .sys in %TEMP%/%AppData%/ProgramData
+EDR/AV processes (MsMpEng/SenseIR/CSFalconService/elastic-endpoint/SentinelAgent/xagt...) ending unexpectedly in a cluster
+User/temp-path binary writing a .sys file (HEARTCRYPT loader dropping the driver)
+Shadow-copy deletion: vssadmin/wmic delete shadows, bcdedit recoveryenabled no, wbadmin delete
+.medusa extension writes / Medusa ransom-note files</pre>
+      </div>
 
-<!-- HUNT BRIEF -->
-<section id="brief">
-<h2><span class="anchor-num">2.</span>Hunt Brief</h2>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling / Attribution</span><span class="igc">Medusa RaaS</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">ABYSSWORKER  # malicious kernel driver / EDR-killer (smuol.sys + rotating names)
+smuol.sys    # most-reported ABYSSWORKER filename; mimics CrowdStrike CSAgent.sys metadata
+HEARTCRYPT   # packer/loader used to deliver the driver
+POORTRY / STONESTOP  # related signed-malicious-driver ecosystem (revoked-cert abuse)
+# Operation: Medusa ransomware (RaaS, double extortion)
+# Tracked as: Spearwing (Symantec) / FROZEN SPIDER / Storm-1175 (Microsoft)
+# NOTE: not the same as MedusaLocker or the Medusa Android botnet</pre>
+      </div>
 
-<h4>Identity</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Threat Name</td><td>Medusa ransomware (BYOVD + EDR-termination phase)</td></tr>
-<tr><td>Operator</td><td><strong>Spearwing</strong> (Symantec tracking) &mdash; RaaS model; tradecraft suggests small affiliate ring, not broad RaaS distribution</td></tr>
-<tr><td>Family Type</td><td>Ransomware-as-a-Service with consistent playbook: Exchange/IAB initial access &rarr; RMM staging &rarr; <strong>BYOVD EDR-kill</strong> &rarr; Rclone exfil &rarr; <code>gaze.exe</code> encryption</td></tr>
-<tr><td>First Active</td><td>June 2021 (Medusa); 2023 (Spearwing affiliate model); BYOVD step disclosed Q4 2024 / Q1 2025</td></tr>
-<tr><td>Encryptor Name</td><td><code>gaze.exe</code> (also <code>readtext85.exe</code>, <code>270.exe</code> variants); ransom note <code>!READ_ME_MEDUSA!!!.txt</code>; extension <code>.medusa</code></td></tr>
-<tr><td>Government Advisory</td><td>CISA / FBI / MS-ISAC Joint Advisory <strong>AA25-071A</strong> (March 2025) &mdash; 300+ critical-infrastructure victims through Feb 2025</td></tr>
-<tr><td>Driver Family Origin</td><td>POORTRY first disclosed by Mandiant (2022) as attestation-signed malicious driver; ABYSSWORKER analyzed by Elastic Security Labs (March 2025) as the modern Medusa-deployed variant</td></tr>
-</table>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Code-Signing / Trust</span><span class="igc">trust subversion</span></div>
+        <button class="btn-copy" data-label="Copy signing" onclick="copyBlock('grab-sign',this)" style="margin:0 0 6px;">Copy signing</button>
+<pre class="code" id="grab-sign">Driver signed with revoked / stolen code-signing certificates (largely Chinese-issued)
+Same signed-malicious-driver ecosystem as POORTRY/STONESTOP
+Verify driver signer against expected publisher; alert on revoked-cert driver loads
+A Falcon-named driver (CSAgent.sys) MUST be signed by CrowdStrike and load from the CS path</pre>
+      </div>
 
-<h4>BYOVD Driver Inventory (three families observed across Medusa attacks)</h4>
-<table>
-<tr><th>Family</th><th>Filename(s)</th><th>Class</th><th>Source</th></tr>
-<tr><td><strong>ABYSSWORKER</strong></td><td><code>smuol.sys</code>, <code>smuot.sys</code> (rotated filename)</td><td>Custom EDR-killer; 15 IOCTLs; impersonates CrowdStrike Falcon driver; signed with 6 stolen revoked Chinese certs</td><td>Elastic Security Labs</td></tr>
-<tr><td><strong>POORTRY</strong> + <strong>STONESTOP</strong></td><td><code>mbaer.sys</code> (POORTRY); <code>r4jo.exe</code> (STONESTOP loader, packed)</td><td>Mandiant-disclosed (2022) attestation-signed driver; STONESTOP loader pairs with POORTRY in Medusa attacks (Dec 2024 onward)</td><td>Mandiant 2022 / Symantec 2025</td></tr>
-<tr><td><strong>Classical BYOVD</strong></td><td><code>nitrogenk.sys</code> (ThrottleStop), <code>wnbios.sys</code>, <code>ggssk.sys</code>, <code>zrapb.sys</code>; TrueSight.sys &le;2.0.2</td><td>Legitimately-signed but vulnerable third-party drivers abused via arbitrary-process-termination IOCTLs (e.g., TrueSight <code>0x22E044</code>)</td><td>Symantec / Check Point Research</td></tr>
-</table>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Block</span><span class="igc">defense-in-depth</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl">Enable HVCI + Microsoft vulnerable-driver blocklist (blocks ABYSSWORKER/POORTRY) -- the fix
+WDAC driver allowlist where feasible; Memory Integrity on
+EDR tamper protection ON + alert on sensor uninstall/silence (treat as intrusion)
+Patch + harden external-facing services; phishing-resistant MFA on remote access
+Protected/immutable + offline backups; restrict vssadmin/bcdedit to admins
+Promote Q1 (driver impersonation) + Q5 (shadow-copy deletion) to Detect+Block IOAs</pre>
+      </div>
 
-<h4>Affected Systems</h4>
-<table>
-<tr><th>Platform</th><th>Exposure</th><th>Notes</th></tr>
-<tr><td>Windows 10 / 11 (all SKUs)</td><td><strong>High</strong></td><td>BYOVD primary target; HVCI + Vulnerable Driver Blocklist mitigates when enabled</td></tr>
-<tr><td>Windows Server 2016 / 2019 / 2022</td><td><strong>High</strong></td><td>Domain Controllers and file servers are prime encryption targets after Spearwing dumps <code>ntds.dit</code></td></tr>
-<tr><td>HVCI-disabled hosts</td><td><strong>Critical</strong></td><td>Most exposed &mdash; no kernel signing enforcement; both custom and classical BYOVD work</td></tr>
-<tr><td>HVCI-enabled + current Driver Blocklist</td><td>Reduced</td><td>Microsoft blocklist blocks POORTRY (revoked certs) and TrueSight 2.0.2 by hash/signer; ABYSSWORKER may still load until specific hashes blocked</td></tr>
-<tr><td>Linux / macOS</td><td>N/A for BYOVD step</td><td>Encryption phase is Windows-only; cross-platform exposure is initial access via Exchange or IAB-supplied creds</td></tr>
-</table>
-
-<h4>Kill Chain</h4>
-<ol>
-  <li><strong>Initial Access (T1190):</strong> Exploit unpatched public-facing Microsoft Exchange (most common) or use credentials supplied by an Initial Access Broker. Symantec notes ~40% of investigated attacks could not have initial access determined.</li>
-  <li><strong>Discovery (T1018, T1087):</strong> <code>quser</code>, <code>net user</code>, NetScan, PDQ Inventory.</li>
-  <li><strong>Credential Access (T1003.003):</strong> Access to <code>ntds.dit</code>, Mimikatz / Impacket against LSASS. Spearwing creates a VSS shadow copy first (<code>vssadmin create shadow /for=C:</code>) then mounts.</li>
-  <li><strong>Lateral Movement / Persistence (T1021.001, T1219):</strong> RDP, PsExec, plus heavy use of RMM tools dropped into user <code>Documents</code>: SimpleHelp (<code>mx.exe</code>, <code>sn.exe</code>), AnyDesk, Mesh Agent (<code>mesh.exe -fullinstall</code>), RevSocks (<code>svhost.exe</code>).</li>
-  <li><strong>Mass-Distribution (T1569.002):</strong> PDQ Deploy + PDQ Inventory. Files deployed from <code>CSIDL_WINDOWS\AdminArsenal\PDQDeployRunner\Service-1\exec\</code> &mdash; Symantec observed this same path in ~⅔ of Medusa attacks.</li>
-  <li><strong>THE BYOVD STEP (T1543.003 + T1068 + T1553.002):</strong> Kernel driver loaded as Windows service from non-System32 path. ABYSSWORKER signed with stolen Chinese cert; POORTRY attestation-signed; classical BYOVD legitimately signed. Service registers at <code>HKLM\System\CurrentControlSet\Services\&lt;svc&gt;\ImagePath</code> pointing at <code>.sys</code> in <code>\Users\&lt;user&gt;\Documents\</code> or <code>\Windows\Temp\</code>.</li>
-  <li><strong>EDR Kill (T1562.001 + T1014):</strong> User-mode loader sends <code>DeviceIoControl</code> to the driver. ABYSSWORKER unregisters kernel callbacks via IOCTL <code>0x222400</code> (blinding EDR), then terminates EDR processes via IOCTL <code>0x222144</code>. Userland fallback uses <code>taskkill /F /IM &lt;edr&gt;.exe</code> when BYOVD unavailable.</li>
-  <li><strong>Exfiltration (T1567):</strong> Renamed Rclone (<code>lsp.exe</code>) to mega.nz / gofile.io / anonfiles.com / S3 generics with <code>--config</code>, <code>--no-check-certificate</code>, <code>--transfers</code>; FRP <code>frpc.exe</code> for persistent tunneling.</li>
-  <li><strong>Inhibit Recovery (T1490):</strong> <code>vssadmin delete shadows</code>.</li>
-  <li><strong>Encryption Impact (T1486):</strong> <code>gaze.exe</code> deployed via PDQ Deploy. Skips <code>.dll</code>, <code>.exe</code>, <code>.lnk</code>, <code>.MEDUSA</code> and folders <code>WindowsOld</code>, <code>Perflogs</code>, <code>Msocache</code>, <code>ProgramFiles</code>, <code>ProgramFilesX86</code>, <code>Programdata</code>. AES-256; drops <code>!READ_ME_MEDUSA!!!.txt</code> recursively; self-deletes (<code>-d</code> arg disables).</li>
-</ol>
-
-<h4>ABYSSWORKER IOCTL Inventory (Elastic Security Labs, March 2025)</h4>
-<table>
-<tr><th>IOCTL Code</th><th>Capability</th><th>Detection Significance</th></tr>
-<tr><td><code>0x222080</code></td><td>Enable malware (password-gated)</td><td>Hardcoded password <code>7N6bCAoECbItsUR5-h4Rp2nkQxybfKb0F-wgbJGHGh20pWUuN1-ZxfXdiOYps6HTp0X</code> is a constant signature</td></tr>
-<tr><td><code>0x2220c0</code></td><td>Load API (kernel function offsets)</td><td>Prerequisite for most other operations</td></tr>
-<tr><td><code>0x222400</code></td><td><strong>Remove kernel callbacks by module name</strong></td><td><strong>The EDR-blinding call.</strong> Unregisters <code>PsSetCreateProcessNotifyRoutine</code>, <code>PsSetLoadImageNotifyRoutine</code>, <code>PsSetCreateThreadNotifyRoutine</code>, <code>ObRegisterCallbacks</code>, <code>CmRegisterCallback</code></td></tr>
-<tr><td><code>0x222404</code></td><td>Replace driver major functions</td><td>Disables target driver by overwriting its dispatch table</td></tr>
-<tr><td><code>0x222408</code></td><td>Kill system threads by module name</td><td>Terminates worker threads belonging to EDR/AV drivers</td></tr>
-<tr><td><code>0x222440</code></td><td>Detach mini-filter devices (<code>FltMgr.sys</code>)</td><td>Detaches EDR file-system filters</td></tr>
-<tr><td><code>0x222444</code></td><td>Remove hooks from NTFS / PNP major functions</td><td>Restores original NTFS dispatch table, undoing EDR hooks</td></tr>
-<tr><td><code>0x222144</code></td><td>Terminate process by PID</td><td>Direct kernel kill of EDR/AV process</td></tr>
-<tr><td><code>0x222140</code></td><td>Terminate thread by TID</td><td>Direct kernel kill of EDR/AV thread</td></tr>
-<tr><td><code>0x222180</code> / <code>0x222184</code></td><td>Delete / copy file (via raw IRP)</td><td>Bypasses user-mode file APIs; sub-IOCTL telemetry not exposed in Falcon</td></tr>
-<tr><td><code>0x222664</code></td><td>Reboot via <code>HalReturnToFirmware</code></td><td>Hard reboot to clear forensic state</td></tr>
-<tr><td><code>0x222084</code>, <code>0x222100</code>, <code>0x222104</code></td><td>Disable, drop driver/device ref counters</td><td>Maintenance / state-management calls</td></tr>
-</table>
-
-<h4>ABYSSWORKER Stolen Code-Signing Certificates (revoked)</h4>
-<table>
-<tr><th>Fingerprint (MD5)</th><th>Subject (Issued To)</th></tr>
-<tr><td><code>51 68 1b 3c 9e 66 5d d0 b2 9e 25 71 46 d5 39 dc</code></td><td>Foshan Gaoming Kedeyu Insulation Materials Co., Ltd</td></tr>
-<tr><td><code>7f 67 15 0f bb 0d 25 4e 47 42 84 c7 f7 81 9c 4f</code></td><td>FEI XIAO</td></tr>
-<tr><td><code>72 88 1f 10 cd 24 8a 33 e6 12 43 a9 e1 50 ec 1d</code></td><td>Fuzhou Dingxin Trade Co., Ltd.</td></tr>
-<tr><td><code>75 e8 e7 b9 04 3b 13 df 60 e7 64 99 66 30 21 c1</code></td><td>Changsha Hengxiang Information Technology Co., Ltd</td></tr>
-<tr><td><code>03 93 47 e6 1d ec 6f 63 98 d4 d4 6b f7 32 65 6c</code></td><td>Xinjiang Yishilian Network Technology Co., Ltd</td></tr>
-<tr><td><code>4e fa 7e 7b ba 65 ec 1a b7 74 f2 b3 13 57 d5 99</code></td><td>Shenzhen Yundian Technology Co., Ltd</td></tr>
-</table>
-
-<h4>Endpoint Indicators</h4>
-<table>
-<tr><th>Type</th><th>Value</th><th>Notes</th></tr>
-<tr><td>Kernel device namespace</td><td><code>\Device\czx9umpTReqbOOKF</code></td><td>ABYSSWORKER &mdash; high-entropy 16-char random; legitimate driver devices have human-readable names</td></tr>
-<tr><td>Symbolic link</td><td><code>\??\fqg0Et4KlNt4s1JT</code></td><td>ABYSSWORKER user-mode handle target</td></tr>
-<tr><td>Driver enable password</td><td><code>7N6bCAoECbItsUR5-h4Rp2nkQxybfKb0F-wgbJGHGh20pWUuN1-ZxfXdiOYps6HTp0X</code></td><td>Sent to ABYSSWORKER via IOCTL <code>0x222080</code>; constant string signature</td></tr>
-<tr><td>File path (driver staging)</td><td><code>CSIDL_PROFILE\Documents\smuol.sys</code> / <code>smuot.sys</code></td><td>Non-canonical driver path; legitimate drivers live in <code>\System32\drivers\</code></td></tr>
-<tr><td>File path (encryptor)</td><td><code>CSIDL_WINDOWS\AdminArsenal\PDQDeployRunner\Service-1\exec\gaze.exe</code></td><td>Spearwing hallmark &mdash; observed in ~⅔ of Medusa attacks</td></tr>
-<tr><td>Service-registration registry</td><td><code>HKLM\SYSTEM\CurrentControlSet\Services\&lt;driver-name&gt;\ImagePath</code> &rarr; <code>\??\C:\Users\&lt;user&gt;\Documents\smuol.sys</code></td><td>Service-creation artifact</td></tr>
-<tr><td>Ransom note</td><td><code>!READ_ME_MEDUSA!!!.txt</code> / <code>!!!read_me_medusa!!!.txt</code></td><td>Recursive drop in every encrypted directory</td></tr>
-<tr><td>Encrypted file extension</td><td><code>.medusa</code></td><td>Terminal impact marker; exclusive to this ransomware</td></tr>
-</table>
-</section>
-
-<!-- MITRE MAPPING -->
-<section id="mitre">
-<h2><span class="anchor-num">3.</span>MITRE ATT&amp;CK Mapping</h2>
-
-<h4>Attack Chain Diagram</h4>
-<pre>
- ┌──────────────────────────────────────────────────────────────────────────┐
- │  STAGE 0: Initial Access                                                 │
- │  ┌────────────────────────┐    OR    ┌──────────────────────────────┐    │
- │  │ Unpatched Exchange     │          │ Initial Access Broker        │    │
- │  │ T1190                  │          │ T1078 (Valid Accounts)       │    │
- │  └────────────┬───────────┘          └──────────────┬───────────────┘    │
- │               └──────────────────────┬──────────────┘                     │
- └──────────────────────────────────────┼─────────────────────────────────── │
-                                        ▼
- ┌──────────────────────────────────────────────────────────────────────────┐
- │  STAGE 1: Recon + Credential Access (hands-on-keyboard)                  │
- │  quser, net user, NetScan          T1018 / T1087                         │
- │  vssadmin create shadow + ntds.dit T1003.003                             │
- └──────────────────────────────────────┼─────────────────────────────────── │
-                                        ▼
- ┌──────────────────────────────────────────────────────────────────────────┐
- │  STAGE 2: Lateral / RMM Staging                                          │
- │  RDP + PsExec + PDQ Deploy + SimpleHelp + AnyDesk + Mesh + RevSocks      │
- │  T1021.001  T1569.002  T1219                                             │
- └──────────────────────────────────────┼─────────────────────────────────── │
-                                        ▼
- ┌──────────────────────────────────────────────────────────────────────────┐
- │  ** STAGE 3: THE BYOVD STEP — single highest-leverage detection point **  │
- │                                                                          │
- │   ┌──────────┐    ┌──────────┐    ┌──────────────────────────────────┐   │
- │   │PDQ Deploy│ →  │services. │ →  │ DriverLoad: smuol.sys / mbaer.sys│   │
- │   │ runner   │    │  exe     │    │ / nitrogenk.sys / wnbios.sys     │   │
- │   └──────────┘    └────┬─────┘    └────────────┬─────────────────────┘   │
- │                        │ creates              │ DeviceIoControl from   │
- │                        ▼ service              ▼ user-mode loader       │
- │              HKLM\...\Services\&lt;svc&gt;\         IOCTL 0x222080 (enable)   │
- │              ImagePath = \Users\...\.sys      IOCTL 0x222400 (callback  │
- │              T1543.003                                  removal)        │
- │                                               IOCTL 0x222144 (kill)     │
- │                                               T1068 / T1562.001 / T1014 │
- └──────────────────────────────────────┼─────────────────────────────────── │
-                                        ▼
- ┌──────────────────────────────────────────────────────────────────────────┐
- │  STAGE 4: Exfiltration + Encryption                                      │
- │  Rclone "lsp.exe" → cloud      T1567 / T1572 (FRP frpc.exe)              │
- │  vssadmin delete shadows       T1490                                     │
- │  gaze.exe → .medusa + ransom-note drop       T1486                       │
- └──────────────────────────────────────────────────────────────────────────┘
-</pre>
-
-<h4>Technique Mapping</h4>
-<table>
-<tr><th>Tactic</th><th>Technique</th><th>Sub-Technique</th><th>Medusa / Spearwing Behavior</th></tr>
-<tr><td>Initial Access</td><td>T1190 Exploit Public-Facing Application</td><td>&mdash;</td><td>Unpatched Microsoft Exchange (primary)</td></tr>
-<tr><td>Initial Access</td><td>T1078 Valid Accounts</td><td>&mdash;</td><td>Initial Access Broker-supplied credentials</td></tr>
-<tr><td>Execution</td><td>T1569 System Services</td><td>.002 Service Execution</td><td>PsExec; PDQ Deploy mass-execute</td></tr>
-<tr><td>Execution</td><td>T1059 Command and Scripting Interpreter</td><td>.001 PowerShell</td><td><code>gaze.exe -w</code> runs PowerShell file before encryption</td></tr>
-<tr><td><strong>Persistence</strong></td><td><strong>T1543 Create or Modify System Process</strong></td><td><strong>.003 Windows Service</strong></td><td><strong>Driver registered as kernel service in <code>HKLM\...\Services\&lt;svc&gt;</code></strong></td></tr>
-<tr><td><strong>Privilege Escalation</strong></td><td><strong>T1068 Exploitation for Privilege Escalation</strong></td><td>&mdash;</td><td><strong>Driver IOCTLs grant kernel primitive; TrueSight CVE pattern arbitrary-process-termination</strong></td></tr>
-<tr><td><strong>Defense Evasion</strong></td><td><strong>T1562.001 Disable or Modify Tools</strong></td><td>.001</td><td><strong>Core BYOVD purpose &mdash; EDR/AV process termination via kernel IOCTL or userland <code>taskkill</code></strong></td></tr>
-<tr><td><strong>Defense Evasion</strong></td><td><strong>T1014 Rootkit</strong></td><td>&mdash;</td><td><strong>ABYSSWORKER IOCTL <code>0x222400</code> unregisters kernel notification callbacks &mdash; blinds EDR</strong></td></tr>
-<tr><td>Defense Evasion</td><td>T1553 Subvert Trust Controls</td><td>.002 Code Signing</td><td>Stolen revoked Chinese certs (ABYSSWORKER); attestation-signed POORTRY; legitimately-signed-but-vulnerable TrueSight</td></tr>
-<tr><td>Defense Evasion</td><td>T1222 File and Directory Permissions Modification</td><td>&mdash;</td><td>ABYSSWORKER IOCTL <code>0x222180</code> resets <code>ATTRIBUTE_NORMAL</code> via raw IRP</td></tr>
-<tr><td>Defense Evasion</td><td>T1070 Indicator Removal</td><td>.004 File Deletion</td><td><code>gaze.exe</code> self-deletes after encryption</td></tr>
-<tr><td>Credential Access</td><td>T1003 OS Credential Dumping</td><td>.003 NTDS</td><td><code>ntds.dit</code> access via VSS shadow copy</td></tr>
-<tr><td>Discovery</td><td>T1018 Remote System Discovery</td><td>&mdash;</td><td>NetScan, PDQ Inventory</td></tr>
-<tr><td>Discovery</td><td>T1087 Account Discovery</td><td>&mdash;</td><td><code>quser</code>, <code>net user</code></td></tr>
-<tr><td>Lateral Movement</td><td>T1021 Remote Services</td><td>.001 RDP</td><td>Hands-on-keyboard RDP between staging hosts</td></tr>
-<tr><td>Command and Control</td><td>T1219 Remote Access Software</td><td>&mdash;</td><td>AnyDesk, SimpleHelp (<code>mx.exe</code>/<code>sn.exe</code>), Mesh Agent, RevSocks</td></tr>
-<tr><td>Command and Control</td><td>T1572 Protocol Tunneling</td><td>&mdash;</td><td>Fast Reverse Proxy <code>frpc.exe</code></td></tr>
-<tr><td>Exfiltration</td><td>T1567 Exfiltration Over Web Service</td><td>&mdash;</td><td>Renamed Rclone (<code>lsp.exe</code>) to mega.nz / gofile.io / anonfiles.com / S3</td></tr>
-<tr><td>Impact</td><td><strong>T1486 Data Encrypted for Impact</strong></td><td>&mdash;</td><td><code>gaze.exe</code> &rarr; <code>.medusa</code> extension; AES-256</td></tr>
-<tr><td>Impact</td><td>T1490 Inhibit System Recovery</td><td>&mdash;</td><td><code>vssadmin delete shadows</code></td></tr>
-</table>
-
-<h4>Detection Hypotheses</h4>
-<table>
-<tr><th>ID</th><th>Hypothesis</th><th>MITRE</th><th>FP Risk</th><th>Confidence</th></tr>
-<tr><td>H1</td><td>If Medusa-family BYOVD is loading in our environment, exactly one of the 23 published SHA256 hashes will appear in DriverLoad or ProcessRollup2 events.</td><td>T1068 / T1553.002</td><td><span class="badge badge-low">Low</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H2</td><td><code>services.exe</code> loading a <code>.sys</code> from <code>\Users\*\Documents\</code>, <code>\Windows\Temp\</code>, <code>\ProgramData\</code>, or <code>\AppData\</code> is BYOVD staging &mdash; legitimate drivers live in <code>\System32\drivers\</code>.</td><td>T1543.003 / T1068</td><td><span class="badge badge-low">Low</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H3</td><td><code>PDQDeployRunner-1.exe</code> spawning <code>gaze.exe</code>, any <code>.sys</code>, or known KillAV-named loaders is the Spearwing PDQ-mass-distribution fingerprint.</td><td>T1569.002 / T1543.003</td><td><span class="badge badge-med">Medium</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H4</td><td>A single PID issuing &ge;2 EDR/AV process-kill commands (<code>taskkill</code>, <code>net stop</code>, <code>sc stop</code>, <code>wmic process</code>, <code>Stop-Process</code>) within 60 seconds is the userland-fallback EDR-kill chain.</td><td>T1562.001</td><td><span class="badge badge-med">Medium</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H5</td><td>Registry write to <code>HKLM\System\CurrentControlSet\Services\*\ImagePath</code> pointing to a <code>.sys</code> outside <code>\System32\drivers\</code> is BYOVD service persistence.</td><td>T1543.003</td><td><span class="badge badge-low">Low</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H6</td><td>DriverLoad event signed by one of the six known stolen ABYSSWORKER cert subjects is ABYSSWORKER, regardless of hash rotation.</td><td>T1553.002</td><td><span class="badge badge-low">Low</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H7</td><td>RMM tools (AnyDesk, SimpleHelp, Mesh Agent, RevSocks) executing from <code>\Users\*\Documents\</code>, <code>\AppData\</code>, or <code>\Temp\</code> are Spearwing post-exploitation staging &mdash; legitimate RMM lives in <code>Program Files</code>.</td><td>T1219</td><td><span class="badge badge-med">Medium</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H8a</td><td>Any <code>RansomwareOpenFileForWrite</code> event targeting a <code>.medusa</code> file or <code>!READ_ME_MEDUSA!!!.txt</code> ransom-note filename is post-encryption ground truth.</td><td>T1486</td><td><span class="badge badge-low">Low</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H8b</td><td><code>gaze.exe</code> / <code>readtext*.exe</code> execution or any process command-line referencing <code>.medusa</code> / Medusa ransom-note filename / <code>vssadmin delete shadows</code> is active encryption stage.</td><td>T1486 / T1490</td><td><span class="badge badge-low">Low</span></td><td><span class="badge badge-high">High</span></td></tr>
-<tr><td>H9</td><td>Renamed-Rclone binary (<code>lsp.exe</code>) with cloud-storage-copy arguments OR <code>frpc.exe</code> Fast Reverse Proxy from a user-writable path is Spearwing exfiltration.</td><td>T1567 / T1572</td><td><span class="badge badge-med">Medium</span></td><td><span class="badge badge-high">High</span></td></tr>
-</table>
-</section>
-
-<!-- QUERIES -->
-<section id="queries">
-<h2><span class="anchor-num">4.</span>CQL Hunt Queries</h2>
-<p>All queries target Falcon LogScale / Next-Gen SIEM and have been syntax-reviewed against the <code>crowdstrike-logscale</code> CQL reference (RE2 regex, canonical event names, anchored event-type matches). HUNT-1, HUNT-6, and HUNT-8a are the fastest path to a definitive yes/no &mdash; run these first. HUNT-2 and HUNT-5 catch the BYOVD step regardless of hash/cert rotation.</p>
-
-<!-- HUNT-1 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-1</span>
-    <span class="qtitle">Known Medusa BYOVD driver hash detection (23 SHA256s)</span>
+    </div>
   </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1068 / T1553.002</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-low">Low</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 30 days retro; 7-day rolling</span>
-    <span><strong>Requires:</strong> Falcon DriverLoad + ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> If any Medusa-family BYOVD driver has loaded, one of the 23 published SHA256 hashes (ABYSSWORKER, POORTRY, KillAV, STONESTOP loaders, <code>gaze.exe</code> variants) will appear.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> None expected. Hash matches are deterministic. Treat any hit as P1.</p>
-<pre>// HUNT-1: Medusa BYOVD known-bad driver hashes — ABYSSWORKER / POORTRY / KillAV family
-// MITRE: T1068 Exploitation for PrivEsc + T1553.002 Subvert Trust Controls: Code Signing
-// HYPOTHESIS: Any of the 23 published SHA256s loading == confirmed Medusa BYOVD activity
-// FP RISK: Low - hash matches are deterministic
-// FP NOTES: None expected; treat any hit as P1
-// CONFIDENCE: High
-// TIMEFRAME: 30 days retro; 7-day rolling
-#event_simpleName = /^(DriverLoad|ProcessRollup2|SyntheticProcessRollup2)$/
-| in(field=SHA256HashData, values=[
-    "6a2a0f9c56ee9bf7b62e1d4e1929d13046cd78a93d8c607fe4728cc5b1e8d050",
-    "b7703a59c39a0d2f7ef6422945aaeaaf061431af0533557246397551b8eed505",
-    "e0b562b70b9fed98a05680a613f786bd482f71456976c7290ca2059004cb64a5",
-    "e7cad51c71403c229364147d66ef1858065b10645d1d09774cd9a91dd8e54717",
-    "ad3ec38f79b4964fc9ba0d8f2d9d28c7cd3bd20dee0e3acf427eebb5dc819275",
-    "7880968b0020947d5d13fac826e49c70b5a9421e3d6546a34663803a411b97ff",
-    "16f83f056177c4ec24c7e99d01ca9d9d6713bd0497eeedb777a3ffefa99c97f0",
-    "6106d1ce671b92d522144fcd3bc01276a975fe5d5b0fde09ca1cca16d09b7143",
-    "16c7497fc7b31936c1ecb845d2e61ef30935c1bba3074ac66a7329d7d134cbb1",
-    "df6cb5199c272c491b3a7ac44df6c4c279d23f7c09daed758c831b26732a4851",
-    "ae312393ef8e7c4a813a0ed8d4dd9e6a85b00303eb070eb15133797f41e99d90",
-    "dbe480495be5abc23437b5e916fa0368c617e4dbd58d9ed7ea303b102a6dc3b1",
-    "b1553dfee1da93fd2dedb0755230ce4e21d4cb78cfc369de29d29d04db1fe013",
-    "bf3b4762b518c4682cb06fe5848e7cf3cc515fca1c367f82c8d69a847ac1a0a1",
-    "f365ca957e733714691f4ac19f136b33442269816e71cab84c3ce0b319084cc2",
-    "3be651fe6619e62e483ff8d46e49c3578e7ce9d60b6d2b31d8d3e32beeeaabec",
-    "8dff18f10c857dd3eeb5511f5724da0ab1d9e411044aea27f6de23ee33f798c8",
-    "d5a1f90dc5c9717b3f900c91a6cdccc20e56e6f1d20f24170189260e8dde7608",
-    "dfdb6d5ef505a0d4cabbcd97e142106ecab9604d0086d77c9431e2fb09088eb6",
-    "1b7add5adbb9ba5b85437c11825e47663bd59729442f6f44fb2576b25945f0eb",
-    "7c340e4d69ac5221bbebcad320814929c1bc376c4d9a64e5daf70c191137fd4a",
-    "038fb5e0ba6c35e3ee2f56b5bd926109e8b321bd0c9e3b759489312518efea65",
-    "5f9d864d11c79b34c4502edba7d0e007197d0df086a6fb9d6bfda84a1771ff0f"
-  ])
-| event_type := #event_simpleName
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData, event_type])
-| sort(@timestamp, order=desc)</pre>
 </div>
 
-<!-- HUNT-2 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-2</span>
-    <span class="qtitle">services.exe loading driver from non-System32 path (generic BYOVD staging)</span>
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Block the vulnerable driver at the kernel, protect the sensor, and protect recovery.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Block the BYOVD core</div>
+      <ul>
+        <li><strong>Enable HVCI + the Microsoft vulnerable-driver blocklist</strong> — <em>M1050 / M1038</em>. Blocks ABYSSWORKER and POORTRY by design — the single highest-leverage control.</li>
+        <li><strong>Turn on EDR tamper protection; alert on sensor uninstall/silence</strong> — <em>M1040</em>. Treat sensor death as an active intrusion (N3).</li>
+        <li><strong>Promote Q1 (CSAgent.sys impersonation) + Q5 (shadow-copy deletion) to Detect+Block</strong> — <em>M1040</em>.</li>
+        <li><strong>Restrict vssadmin/bcdedit/wbadmin to admins; protect/immutable backups</strong> — <em>M1018 / M1053</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain &amp; observe (pilot first)</div>
+      <ul>
+        <li><strong>WDAC driver allowlist; Memory Integrity fleet-wide</strong> — <em>M1038</em>. Default-deny unknown kernel drivers.</li>
+        <li><strong>Patch/harden external-facing services; phishing-resistant MFA on remote access</strong> — <em>M1032 / M1051</em>. Cuts initial access (N1).</li>
+        <li><strong>Offline/immutable backups with tested restore</strong> — <em>M1053</em>. Beats T1490.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce ransomware surface</div>
+      <ul>
+        <li><strong>Network segmentation; constrain lateral movement (SMB/RDP)</strong> — <em>M1030</em>.</li>
+        <li><strong>Privileged-access workstations; tiered admin model</strong> — <em>M1026</em>.</li>
+        <li><strong>Ransomware tabletop incl. an EDR-blinded scenario</strong> — <em>M1047</em>.</li>
+      </ul>
+    </div>
   </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1543.003 / T1068</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-low">Low</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 30 days retro; 7-day rolling</span>
-    <span><strong>Requires:</strong> Falcon DriverLoad + ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Legitimate Windows drivers live in <code>\System32\drivers\</code>. Any <code>services.exe</code> parent loading a <code>.sys</code> from <code>\Users\*\Documents\</code>, <code>\Windows\Temp\</code>, <code>\ProgramData\</code>, or <code>\AppData\</code> is highly likely a BYOVD staging event. Catches all three Medusa driver families regardless of hash rotation.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> Anti-cheat (EAC, BattlEye), Razer/Logitech/HP/Dell/Lenovo HW vendor tools install drivers from <code>\ProgramData\&lt;Vendor&gt;\</code>. Vendor-exclusion filter handles these; treat unsigned drivers from these paths as P1 regardless.</p>
-<pre>// HUNT-2: services.exe loading driver from non-System32 path (generic BYOVD staging)
-// MITRE: T1543.003 Service Install + T1068 PrivEsc via driver
-// HYPOTHESIS: services.exe parent + .sys image-load from user-writable dir == BYOVD staging
-// FP RISK: Low - high-fidelity behavioral pattern
-// FP NOTES: Anti-cheat (EAC, BattlEye), some HW vendor tools. Exclusions applied below.
-// CONFIDENCE: High
-// TIMEFRAME: 30 days retro; 7-day rolling
-#event_simpleName = DriverLoad
-| ImageFileName = /\\(Users\\[^\\]+\\(Documents|Downloads|AppData)|Windows\\Temp|ProgramData)\\.*\.sys$/i
-| !(ImageFileName = /\\ProgramData\\(Microsoft|Intel|NVIDIA|AMD|EasyAntiCheat|BattlEye|Razer|Logitech|HP|Dell|Lenovo)\\/i)
-| !(AuthenticodeIssuerName = /Microsoft (Windows|Code Signing PCA|Corporation)/i)
-| join(query={
-    #event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
-    | ImageFileName = /\\services\.exe$/i
-    | rename(field=TargetProcessId_decimal, as=parent_pid)
-  }, field=[ContextProcessId_decimal], key=[parent_pid], include=[ImageFileName, CommandLine])
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, SHA256HashData, AuthenticodeIssuerName, AuthenticodeSubjectName])
-| sort(@timestamp, order=desc)</pre>
 </div>
 
-<!-- HUNT-3 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-3</span>
-    <span class="qtitle">PDQ Deploy Spearwing chain &mdash; <code>pdqdeployrunner-1.exe</code> spawning <code>gaze.exe</code> / <code>.sys</code> / KillAV</span>
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain affected hosts immediately (EDR may be blinded — use network controls); preserve the driver + loader</td><td>SOC L2</td><td>Containment timestamp; Q1 driver-load event</td></tr>
+        <tr><td>Triage</td><td>Map loader → driver install → EDR kill → shadow-delete → encrypt; scope the cluster; check backups</td><td>IR</td><td>Driver/service timeline; sensor-health log</td></tr>
+        <tr><td>Eradicate</td><td>Remove the driver/service + loader; rebuild EDR-blinded hosts; block C2/staging; reset creds</td><td>IR</td><td>Removal log; rebuild ticket</td></tr>
+        <tr><td>Recover</td><td>Restore from offline/immutable backups; verify integrity; do not trust EDR-tampered hosts until reimaged</td><td>IR + IT</td><td>Restore validation</td></tr>
+        <tr><td>Harden</td><td>Enable HVCI blocklist; tamper protection; promote Q1/Q5; restrict vssadmin/bcdedit</td><td>Detection Eng</td><td>Blocklist state; IOA enabled</td></tr>
+      </tbody>
+    </table>
   </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1569.002 / T1543.003</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-med">Medium</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 30 days retro</span>
-    <span><strong>Requires:</strong> Falcon ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Spearwing uses PDQ Deploy in ~⅔ of Medusa attacks. The chain <code>pdqdeployrunner-1.exe</code> &rarr; (<code>gaze.exe</code> | <code>*.sys</code> | known KillAV-named loaders) is a Spearwing fingerprint.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> PDQ Deploy is legitimately used by many IT teams. Validate via change-ticket. Microsoft-signed MSIs/EXEs deployed via PDQ are normal; the anomaly is unsigned binaries, <code>.sys</code> files, or filenames matching <code>gaze</code>/<code>2gk8</code>/<code>qz3juql</code>/<code>disabler</code>/<code>symantec</code>/etc.</p>
-<pre>// HUNT-3: PDQ Deploy Spearwing chain — pdqdeployrunner-1.exe spawning gaze.exe / .sys / KillAV
-// MITRE: T1569.002 Service Execution + T1543.003 Service Install
-// HYPOTHESIS: PDQ runner spawning unsigned EXE, .sys, or known Spearwing names == mass BYOVD push
-// FP RISK: Medium - PDQ Deploy is legitimate; validate via change ticket
-// FP NOTES: Microsoft-signed MSIs/EXEs distributed via PDQ are normal. The anomaly is unsigned
-//   binaries, .sys files, or filenames matching gaze/2gk8/qz3juql/disabler/symantec etc.
-// CONFIDENCE: High
-// TIMEFRAME: 30 days retro
-#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
-| ParentBaseFileName = /^pdqdeployrunner.*\.exe$/i
-| (ImageFileName = /\.sys$/i
-   or ImageFileName = /\\(gaze|2gk8|qz3juql|disabler|symantec|kill|ar61|r4jo|readtext\d+|syss\d*)\.exe$/i
-   or ImageFileName = /\\AdminArsenal\\PDQDeployRunner\\Service-1\\exec\\/i)
-| !(AuthenticodeIssuerName = /Microsoft (Windows|Code Signing PCA|Corporation)/i)
-| groupBy([aid, ComputerName, ParentBaseFileName],
-          function=[count(as=spawn_count),
-                    collect([@timestamp, ImageFileName, CommandLine, AuthenticodeIssuerName, AuthenticodeSubjectName, SHA256HashData], limit=50)])
-| sort(spawn_count, order=desc)</pre>
 </div>
 
-<!-- HUNT-4 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-4</span>
-    <span class="qtitle">Userland EDR/AV kill commands (taskkill / net stop / sc stop / wmic / pskill)</span>
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1014 / T1553.002</td><td>ABYSSWORKER driver load (CSAgent impersonation)</td><td>Q1</td><td>IOA-1</td><td><span class="badge b-low">Good</span> + blocklist</td></tr>
+        <tr><td>T1543.003 / T1068</td><td>Kernel-driver service install</td><td>Q2</td><td>—</td><td><span class="badge b-med">Partial</span> correlate to Q1</td></tr>
+        <tr><td>T1562.001</td><td>EDR/AV kernel kill</td><td>Q3</td><td>—</td><td><span class="badge b-med">Partial</span> + sensor health (N3)</td></tr>
+        <tr><td>T1105 / T1027</td><td>HEARTCRYPT loader drop</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+        <tr><td>T1490</td><td>Shadow-copy deletion</td><td>Q5</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1486</td><td>Medusa encryption</td><td>Q6</td><td>—</td><td><span class="badge b-med">Partial</span> + canary (N4)</td></tr>
+        <tr><td>T1190 / T1078</td><td>Initial access</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> edge/auth (N1)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm DriverLoad + service-install + sensor-health telemetry; (2) baseline genuine CrowdStrike driver paths/signer to anchor Q1; (3) lab-test a benign signed-driver load and a benign <code>vssadmin list shadows</code> (must NOT fire Q5 — it keys on <em>delete</em>); (4) enable the HVCI blocklist + promote Q1/Q5. Driver-load on a non-DC server = likely pre-encryption window — respond now.</p>
   </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1562.001</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-med">Medium</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 7 days rolling</span>
-    <span><strong>Requires:</strong> Falcon ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Userland fallback EDR-kill &mdash; Spearwing's secondary technique when BYOVD fails. A single PID issuing &ge;2 EDR-kill commands within 60 seconds is high-fidelity.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> EDR vendor upgrade scripts may legitimately stop services. Filter on vendor-signed installers via <code>AuthenticodeSubjectName</code>. <strong>BYOVD-driven (kernel IOCTL) kills are not directly observable from process telemetry &mdash; HUNT-1/2/5/6 are the primary defense for that path.</strong></p>
-<pre>// HUNT-4: Userland EDR/AV kill commands (taskkill / net stop / sc stop / wmic / pskill)
-// MITRE: T1562.001 Impair Defenses: Disable or Modify Tools
-// HYPOTHESIS: A single process issues kill commands against >=2 EDR/AV process or service names
-//   within a 60-second window == Spearwing userland fallback when BYOVD is unavailable
-// FP RISK: Medium - validate against vendor-signed installer command lines
-// FP NOTES: EDR vendor upgrade scripts. Filter on signer of the killer process.
-// CONFIDENCE: High
-// TIMEFRAME: 7 days rolling
-// NOTE: BYOVD-driven (kernel IOCTL) kills are not directly observable from process telemetry.
-//   Driver-load detection (HUNT-1, HUNT-2, HUNT-5, HUNT-6) is the primary defense for that path.
-#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
-| ImageFileName = /\\(taskkill|net|net1|sc|wmic|pskill\d*|powershell|pwsh)\.exe$/i
-| CommandLine = /(taskkill\s+(\/[ft]\s+)*\/IM|net1?\s+stop|sc\s+stop|wmic\s+process|stop-process|stop-service|pskill)/i
-| CommandLine = /(csfalcon|cssensor|csagent|sentinel|msmpeng|nissrv|mssense|sense.r|sensendr|sensecncproxy|ccsvchst|sepmasterservice|smc\.exe|sophos|sav(adminservice|agent)|tmccsf|pccntmon|tmlisten|egui|ekrn|sfc\.exe|cb\.exe|repmgr|reputils|cbsensor|cylance|avp\.exe|avpui)/i
-| !(AuthenticodeSubjectName = /(CrowdStrike|SentinelOne|Sentinel Labs|Microsoft|Symantec|Broadcom|Sophos|Trend Micro|ESET|Cisco|Carbon Black|Cylance|Kaspersky)/i)
-| groupBy([aid, ComputerName, UserName, ContextProcessId_decimal, ParentBaseFileName],
-          function=[count(as=kill_command_count),
-                    collect([@timestamp, ImageFileName, CommandLine], limit=20),
-                    min(@timestamp, as=first_seen),
-                    max(@timestamp, as=last_seen)])
-| window_seconds := (last_seen - first_seen) / 1000
-| kill_command_count >= 2
-| window_seconds <= 60
-| sort(kill_command_count, order=desc)</pre>
 </div>
 
-<!-- HUNT-5 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-5</span>
-    <span class="qtitle">Driver service registry persistence outside <code>\System32\drivers\</code></span>
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — Medusa Ransomware / ABYSSWORKER BYOVD EDR-Killer (smuol.sys)
+SEVERITY:     Critical (EDR-disabling ransomware; pre-encryption window)
+SCOPE:        Windows servers/endpoints; code-integrity (HVCI) state; EDR sensor health
+HYPOTHESIS:   Access -> HEARTCRYPT loader -> ABYSSWORKER (smuol.sys, fake CSAgent.sys) service
+              install -> kernel EDR kill -> shadow-copy deletion -> Medusa encryptor.
+QUERIES RUN:  Q1 driver load / CSAgent impersonation (IOA) | Q2 driver service install |
+              Q3 EDR/AV termination | Q4 HEARTCRYPT loader drop | Q5 shadow-copy deletion (IOA) |
+              Q6 Medusa encryptor canary + Native N1-N4 (access, HVCI state, sensor health, encryption)
+DO FIRST:     Enable HVCI vulnerable-driver blocklist; then Q1, Q5 — escalate any driver-load hit
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Initial access (edge/auth); encryptor hashes rotate
+ACTIONS:      HVCI blocklist; EDR tamper protection; restrict vssadmin/bcdedit; immutable backups;
+              promote Q1/Q5 IOAs; treat sensor death as active intrusion
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-12</pre>
+    </div>
   </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1543.003</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-low">Low</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 30 days retro; 7-day rolling</span>
-    <span><strong>Requires:</strong> Falcon Registry telemetry</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Service Control Manager creates a registry value at <code>HKLM\System\CurrentControlSet\Services\&lt;svc&gt;\ImagePath</code> for every kernel-driver service. If <code>ImagePath</code> points to a <code>.sys</code> outside <code>\System32\drivers\</code>, the driver is non-canonical and likely BYOVD.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> Anti-cheat and HW vendor tools register drivers under <code>\ProgramData\&lt;Vendor&gt;\</code>. Vendor exclusion list applied below.</p>
-<pre>// HUNT-5: Driver service registration with ImagePath outside System32\drivers
-// MITRE: T1543.003 Service Install (kernel driver)
-// HYPOTHESIS: HKLM\System\CurrentControlSet\Services\*\ImagePath -> .sys outside canonical path == BYOVD
-// FP RISK: Low - legitimate drivers register inside System32\drivers in nearly all cases
-// FP NOTES: Anti-cheat, some HW vendor tools. Vendor exclusions applied below.
-// CONFIDENCE: High
-// TIMEFRAME: 30 days retro; 7-day rolling
-#event_simpleName = /^(AsepValueUpdate|RegGenericValueUpdate)$/
-| RegObjectName = /\\REGISTRY\\MACHINE\\SYSTEM\\(ControlSet\d+|CurrentControlSet)\\Services\\[^\\]+$/i
-| RegValueName = "ImagePath"
-| RegStringValue = /\.sys$/i
-| !(RegStringValue = /\\(System32\\drivers|SystemRoot\\System32\\(drivers|DriverStore))\\/i)
-| !(RegStringValue = /\\ProgramData\\(Microsoft|Intel|NVIDIA|AMD|EasyAntiCheat|BattlEye|Razer|Logitech|HP|Dell|Lenovo)\\/i)
-| table([@timestamp, aid, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, ContextImageFileName, ContextBaseFileName])
-| sort(@timestamp, order=desc)</pre>
 </div>
 
-<!-- HUNT-6 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-6</span>
-    <span class="qtitle">DriverLoad signed by ABYSSWORKER stolen Chinese certificate subject</span>
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Elastic/CISA/Symantec/Microsoft: ABYSSWORKER (smuol.sys) CSAgent.sys impersonation + IOCTL EDR-kill, HEARTCRYPT loader, revoked/stolen certs (POORTRY lineage), Medusa = Spearwing/FROZEN SPIDER/Storm-1175, HVCI vulnerable-driver blocklist as the primary control. 6 CQL + 4 native hunts, 2 IOA candidates.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-20</span><span>Initial pack: Medusa BYOVD overview + hunts. Pre-gold top-bar layout.</span></div>
   </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1553.002</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-low">Low</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 90 days retro</span>
-    <span><strong>Requires:</strong> Falcon DriverLoad with cert metadata</span>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.elastic.co/security-labs/abyssworker" target="_blank">Elastic Security Labs — ABYSSWORKER</a></td><td>smuol.sys / CSAgent.sys impersonation, IOCTL EDR-kill, certs, Medusa pairing</td></tr>
+        <tr><td>1</td><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a" target="_blank">CISA/FBI #StopRansomware: Medusa (AA25-071A)</a></td><td>Medusa TTPs, BYOVD EDR-kill, shadow-copy deletion, extortion</td></tr>
+        <tr><td>1</td><td><a href="https://www.security.com/threat-intelligence/medusa-ransomware-attacks" target="_blank">Symantec — Spearwing / Medusa</a> · <a href="https://www.microsoft.com/en-us/security/blog/" target="_blank">Microsoft (Storm-1175)</a></td><td>Attribution, HEARTCRYPT loader, initial access</td></tr>
+        <tr><td>2</td><td><a href="https://news.sophos.com/en-us/2022/12/13/signed-driver-malware-moves-up-the-software-trust-chain/" target="_blank">Sophos — signed-driver malware (POORTRY/STONESTOP)</a></td><td>Signed-malicious-driver ecosystem; revoked-cert abuse</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · Medusa Ransomware / ABYSSWORKER BYOVD · Generated 2026-06-12 · Defensive use only — no offensive code. The HVCI vulnerable-driver blocklist blocks the BYOVD core; behavioral hunts cover the CSAgent.sys impersonation, EDR-kill, shadow-copy deletion, and encryption. Validate driver-load field names before promoting any query.</p>
   </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> ABYSSWORKER samples are signed with six known stolen/revoked Chinese certificates. The cert subjects rotate slowly across samples and are reused widely &mdash; matching on the cert subject is more durable than hash matching.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> None. All six certs are revoked; legitimate use is zero. Any DriverLoad signed by these subjects is malicious by definition.</p>
-<pre>// HUNT-6: DriverLoad signed by ABYSSWORKER stolen Chinese certificate subject
-// MITRE: T1553.002 Subvert Trust Controls: Code Signing
-// HYPOTHESIS: Any driver signed by one of 6 known stolen ABYSSWORKER cert subjects == ABYSSWORKER family
-// FP RISK: Low - all 6 certs are revoked; legitimate use is zero
-// FP NOTES: None - all six subjects are stolen/revoked per Elastic Security Labs
-// CONFIDENCE: High
-// TIMEFRAME: 90 days retro
-#event_simpleName = DriverLoad
-| (in(field=CertPublisher, values=[
-       "Foshan Gaoming Kedeyu Insulation Materials Co., Ltd",
-       "FEI XIAO",
-       "Fuzhou Dingxin Trade Co., Ltd.",
-       "Changsha Hengxiang Information Technology Co., Ltd",
-       "Xinjiang Yishilian Network Technology Co., Ltd",
-       "Shenzhen Yundian Technology Co., Ltd"
-     ], ignoreCase=true)
-   or in(field=AuthenticodeSubjectName, values=[
-       "Foshan Gaoming Kedeyu Insulation Materials Co., Ltd",
-       "FEI XIAO",
-       "Fuzhou Dingxin Trade Co., Ltd.",
-       "Changsha Hengxiang Information Technology Co., Ltd",
-       "Xinjiang Yishilian Network Technology Co., Ltd",
-       "Shenzhen Yundian Technology Co., Ltd"
-     ], ignoreCase=true))
-| table([@timestamp, aid, ComputerName, ImageFileName, SHA256HashData, CertPublisher, AuthenticodeSubjectName, AuthenticodeIssuerName])</pre>
 </div>
 
-<!-- HUNT-7 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-7</span>
-    <span class="qtitle">RMM tool execution from user Documents / AppData / Temp (Spearwing staging)</span>
-  </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1219</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-med">Medium</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 14 days rolling</span>
-    <span><strong>Requires:</strong> Falcon ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Spearwing drops Mesh Agent (<code>mesh.exe -fullinstall</code>), SimpleHelp (<code>mx.exe</code>, <code>sn.exe</code>), AnyDesk, and RevSocks (<code>svhost.exe</code>) into user-writable paths. Legitimate RMM deployments install into <code>Program Files</code>.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> Some end-users self-install AnyDesk. Filter via IT-approved RMM publisher allow-list; Mesh Agent <code>-fullinstall</code> from any user-writable path is highly anomalous regardless.</p>
-<pre>// HUNT-7: RMM tool execution from user Documents / AppData / Temp (Spearwing staging)
-// MITRE: T1219 Remote Access Software
-// HYPOTHESIS: AnyDesk / SimpleHelp / Mesh Agent / RevSocks from user dir == Spearwing post-exploitation
-// FP RISK: Medium - users self-install AnyDesk; validate via approved RMM list
-// FP NOTES: Approved RMM tools deployed by IT install to Program Files; Spearwing stages under \Users\
-// CONFIDENCE: High
-// TIMEFRAME: 14 days rolling
-#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
-| ImageFileName = /\\(anydesk|mesh|mx|sn|supportservicemain.*|svhost|SimpleHelp[^\\]*)\.exe$/i
-| ImageFileName = /\\(Users\\[^\\]+\\(Documents|Downloads|AppData\\(Roaming|Local))|Windows\\Temp|Temp)\\/i
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData, AuthenticodeSubjectName])
-| sort(@timestamp, order=desc)</pre>
-</div>
-
-<!-- HUNT-8a -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-8a</span>
-    <span class="qtitle">Medusa encryption file-write signal (<code>.medusa</code> extension)</span>
-  </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1486</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-low">Low</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 24 hours rolling (continuous monitor)</span>
-    <span><strong>Requires:</strong> Falcon RansomwareOpenFileForWrite</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Falcon's ransomware-behavioral engine emits <code>RansomwareOpenFileForWrite</code> when high-entropy writes match ransomware patterns. Any such event targeting a <code>.medusa</code>-extension file or the ransom-note filename is post-encryption ground truth.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> None. The <code>.medusa</code> extension is exclusive to this ransomware. Any hit is a P1 declared incident.</p>
-<pre>// HUNT-8a: Medusa encryption file-write signal (.medusa extension)
-// MITRE: T1486 Data Encrypted for Impact
-// HYPOTHESIS: Any RansomwareOpenFileForWrite event targeting a .medusa-extension file
-//   OR matching ransom-note filename == post-encryption ground-truth
-// FP RISK: Low - extension is exclusive to Medusa
-// FP NOTES: None
-// CONFIDENCE: High
-// TIMEFRAME: 24 hours rolling (terminal event - monitor continuously)
-#event_simpleName = RansomwareOpenFileForWrite
-| (TargetFileName = /\.medusa$/i
-   or TargetFileName = /\\!{1,3}read_?me_?medusa!{1,3}\.txt$/i)
-| groupBy([aid, ComputerName, UserName, ContextImageFileName, ContextBaseFileName],
-          function=[count(as=file_count),
-                    min(@timestamp, as=first_seen),
-                    max(@timestamp, as=last_seen),
-                    collect([TargetFileName], limit=20)])
-| sort(file_count, order=desc)</pre>
-</div>
-
-<!-- HUNT-8b -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-8b</span>
-    <span class="qtitle">Medusa ransomware process execution and command-line evidence</span>
-  </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1486 / T1490</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-low">Low</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 7 days rolling</span>
-    <span><strong>Requires:</strong> Falcon ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> <code>gaze.exe</code> / <code>readtext*.exe</code> / <code>270.exe</code> execution, or any process command-line referencing <code>.medusa</code> / Medusa ransom-note filename, or the <code>vssadmin delete shadows</code> recovery-inhibition step, is active encryption stage.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> None expected. <code>gaze.exe</code> filename and <code>.medusa</code> string are highly specific. <code>vssadmin delete shadows</code> is occasionally used legitimately by backup software but always merits review.</p>
-<pre>// HUNT-8b: Medusa ransomware process execution and command-line evidence
-// MITRE: T1486 Data Encrypted for Impact + T1490 Inhibit System Recovery
-// HYPOTHESIS: gaze.exe / readtext*.exe execution, or any process command-line referencing .medusa
-//   / Medusa ransom-note filename / vssadmin delete shadows == active encryption stage
-// FP RISK: Low - gaze.exe filename and .medusa string are highly specific
-// FP NOTES: None expected
-// CONFIDENCE: High
-// TIMEFRAME: 7 days rolling
-#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
-| (ImageFileName = /\\(gaze|readtext\d+|270)\.exe$/i
-   or CommandLine = /\.medusa\b/i
-   or CommandLine = /!{1,3}read_?me_?medusa!{1,3}\.txt/i
-   or (CommandLine = /vssadmin/i and CommandLine = /delete\s+shadows/i))
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])
-| sort(@timestamp, order=desc)</pre>
-</div>
-
-<!-- HUNT-9 -->
-<div class="query-card">
-  <div class="qhead">
-    <span class="qid">HUNT-9</span>
-    <span class="qtitle">Renamed Rclone exfiltration + Fast Reverse Proxy</span>
-  </div>
-  <div class="qmeta">
-    <span><strong>MITRE:</strong> T1567 / T1572</span>
-    <span><strong>FP Risk:</strong> <span class="badge badge-med">Medium</span></span>
-    <span><strong>Confidence:</strong> <span class="badge badge-high">High</span></span>
-    <span><strong>Timeframe:</strong> 14 days rolling</span>
-    <span><strong>Requires:</strong> Falcon ProcessRollup2</span>
-  </div>
-  <p class="hypothesis"><strong>Hypothesis:</strong> Spearwing exfiltrates via renamed Rclone (observed as <code>lsp.exe</code>). Rclone has a deterministic command-line fingerprint (<code>--config</code>, <code>copy &lt;local&gt; &lt;remote&gt;:</code>, <code>--no-check-certificate</code>, <code>--transfers</code>). FRP (<code>frpc.exe</code>) is used for tunnel persistence.</p>
-  <p class="fpnotes"><strong>FP notes:</strong> Legitimate Rclone use by IT teams for cloud backup. Filter on staging path &mdash; legitimate use is from <code>Program Files</code> or an IT-managed path; Spearwing renames the binary and stages under <code>\Temp\</code>.</p>
-<pre>// HUNT-9: Renamed Rclone exfiltration + FRP tunneling
-// MITRE: T1567 Exfiltration Over Web Service + T1572 Protocol Tunneling
-// HYPOTHESIS: Rclone CLI fingerprint from user-writable path OR frpc.exe execution == Spearwing exfil
-// FP RISK: Medium - validate IT-approved Rclone usage
-// FP NOTES: Legit Rclone runs from Program Files or IT-managed paths; Spearwing renames + stages in \Temp\
-// CONFIDENCE: High
-// TIMEFRAME: 14 days rolling
-#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
-| ImageFileName = /\\(Users\\[^\\]+\\(Documents|Downloads|AppData)|Windows\\Temp|ProgramData\\.*\\Temp)\\/i
-| (
-    (CommandLine = /\b(copy|sync|move)\s+\S+\s+\S+:/i
-     and CommandLine = /(--config|--no-check-certificate|--transfers|--checkers|remote:)/i)
-    or ImageFileName = /\\(frpc|frpc-.*)\.exe$/i
-    or ImageFileName = /\\lsp\.exe$/i
-  )
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData, ParentBaseFileName])
-| sort(@timestamp, order=desc)</pre>
-</div>
-
-</section>
-
-<!-- IOCS -->
-<section id="iocs">
-<h2><span class="anchor-num">5.</span>IOC Blocklist</h2>
-
-<h4>CrowdStrike IOC Management &mdash; Bulk Import CSV</h4>
-<p>Paste the block below into Falcon UI &rarr; Endpoint Security &rarr; IOC Management &rarr; Import, or push via the IOC Management API. All 23 hashes are recommended for <strong>PREVENT</strong> with 1-year expiry. No domains/IPs are included &mdash; Medusa infrastructure is too volatile for blocklist enforcement; rely on hunt queries for network-side detection.</p>
-<pre>type,value,action,severity,expiration,description,tags
-sha256,6a2a0f9c56ee9bf7b62e1d4e1929d13046cd78a93d8c607fe4728cc5b1e8d050,prevent,critical,2027-05-17,ABYSSWORKER reference sample (Elastic) - Medusa BYOVD driver,campaign:Medusa;actor:Spearwing;family:ABYSSWORKER;tlp:white
-sha256,b7703a59c39a0d2f7ef6422945aaeaaf061431af0533557246397551b8eed505,prevent,critical,2027-05-17,ABYSSWORKER / smuot.sys - Medusa BYOVD driver,campaign:Medusa;actor:Spearwing;family:ABYSSWORKER;tlp:white
-sha256,e0b562b70b9fed98a05680a613f786bd482f71456976c7290ca2059004cb64a5,prevent,critical,2027-05-17,POORTRY mbaer.sys - Medusa BYOVD driver,campaign:Medusa;actor:Spearwing;family:POORTRY;tlp:white
-sha256,e7cad51c71403c229364147d66ef1858065b10645d1d09774cd9a91dd8e54717,prevent,critical,2027-05-17,STONESTOP packed loader r4jo.exe,campaign:Medusa;actor:Spearwing;family:STONESTOP;tlp:white
-sha256,ad3ec38f79b4964fc9ba0d8f2d9d28c7cd3bd20dee0e3acf427eebb5dc819275,prevent,critical,2027-05-17,STONESTOP unpacked loader,campaign:Medusa;actor:Spearwing;family:STONESTOP;tlp:white
-sha256,7880968b0020947d5d13fac826e49c70b5a9421e3d6546a34663803a411b97ff,prevent,critical,2027-05-17,KillAV driver ggssk.sys,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,16f83f056177c4ec24c7e99d01ca9d9d6713bd0497eeedb777a3ffefa99c97f0,prevent,critical,2027-05-17,Weaponized ThrottleStop driver nitrogenk.sys,campaign:Medusa;actor:Spearwing;family:BYOVD;tlp:white
-sha256,6106d1ce671b92d522144fcd3bc01276a975fe5d5b0fde09ca1cca16d09b7143,prevent,critical,2027-05-17,wnbios.sys driver used to kill Defender,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,16c7497fc7b31936c1ecb845d2e61ef30935c1bba3074ac66a7329d7d134cbb1,prevent,critical,2027-05-17,Suspected KillAV driver zrapb.sys,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,df6cb5199c272c491b3a7ac44df6c4c279d23f7c09daed758c831b26732a4851,prevent,critical,2027-05-17,KillAV loader 2gk8.exe,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,ae312393ef8e7c4a813a0ed8d4dd9e6a85b00303eb070eb15133797f41e99d90,prevent,high,2027-05-17,Suspected KillAV kill.exe,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,dbe480495be5abc23437b5e916fa0368c617e4dbd58d9ed7ea303b102a6dc3b1,prevent,critical,2027-05-17,KillAV symantec.exe masquerade,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,b1553dfee1da93fd2dedb0755230ce4e21d4cb78cfc369de29d29d04db1fe013,prevent,critical,2027-05-17,KillAV symantec (2).exe masquerade,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,bf3b4762b518c4682cb06fe5848e7cf3cc515fca1c367f82c8d69a847ac1a0a1,prevent,high,2027-05-17,Suspected KillAV ar61.exe,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,f365ca957e733714691f4ac19f136b33442269816e71cab84c3ce0b319084cc2,prevent,high,2027-05-17,KillAV qz3juql.exe,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,3be651fe6619e62e483ff8d46e49c3578e7ce9d60b6d2b31d8d3e32beeeaabec,prevent,high,2027-05-17,Disable AV tool disabler.exe,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,8dff18f10c857dd3eeb5511f5724da0ab1d9e411044aea27f6de23ee33f798c8,prevent,high,2027-05-17,Disable AV tool syss.exe,campaign:Medusa;actor:Spearwing;family:KillAV;tlp:white
-sha256,d5a1f90dc5c9717b3f900c91a6cdccc20e56e6f1d20f24170189260e8dde7608,prevent,critical,2027-05-17,EDRSandblast syss2.exe,campaign:Medusa;actor:Spearwing;family:EDRSandblast;tlp:white
-sha256,dfdb6d5ef505a0d4cabbcd97e142106ecab9604d0086d77c9431e2fb09088eb6,prevent,critical,2027-05-17,Medusa ransomware gaze.exe,campaign:Medusa;actor:Spearwing;family:MedusaEncryptor;tlp:white
-sha256,1b7add5adbb9ba5b85437c11825e47663bd59729442f6f44fb2576b25945f0eb,prevent,critical,2027-05-17,Medusa ransomware gaze.exe variant,campaign:Medusa;actor:Spearwing;family:MedusaEncryptor;tlp:white
-sha256,7c340e4d69ac5221bbebcad320814929c1bc376c4d9a64e5daf70c191137fd4a,prevent,critical,2027-05-17,Medusa ransomware gaze.exe variant,campaign:Medusa;actor:Spearwing;family:MedusaEncryptor;tlp:white
-sha256,038fb5e0ba6c35e3ee2f56b5bd926109e8b321bd0c9e3b759489312518efea65,prevent,critical,2027-05-17,Medusa ransomware readtext85.exe,campaign:Medusa;actor:Spearwing;family:MedusaEncryptor;tlp:white
-sha256,5f9d864d11c79b34c4502edba7d0e007197d0df086a6fb9d6bfda84a1771ff0f,prevent,critical,2027-05-17,Medusa ransomware variant,campaign:Medusa;actor:Spearwing;family:MedusaEncryptor;tlp:white</pre>
-
-<h4>IOC Governance</h4>
-<table>
-<tr><th>IOC Type</th><th>Count</th><th>Action</th><th>Rationale</th></tr>
-<tr><td>SHA256</td><td>23</td><td><strong>PREVENT</strong></td><td>All from Tier-1 sources (Elastic, Symantec); zero legitimate use; deterministic. 1-year expiry; re-evaluate when CrowdStrike adds native coverage.</td></tr>
-<tr><td>IPv4 / IPv6</td><td>0</td><td>Not included</td><td>Medusa C2 is short-lived and rotates rapidly via Hetzner / DigitalOcean / cloud providers; blocklist enforcement creates more risk than detection value</td></tr>
-<tr><td>Domains</td><td>0</td><td>Not included</td><td>No long-lived Medusa domains published; exfil destinations (mega.nz, gofile.io, anonfiles.com) are dual-use and require egress-policy treatment, not IOC blocks</td></tr>
-<tr><td>Code-signing certs</td><td>6 (subject names)</td><td>Hunt + Disallowed Store</td><td>Covered behaviorally by HUNT-6; six cert thumbprints should also be added to Windows Disallowed Certificate Store via GPO (see Hardening IH-5)</td></tr>
-</table>
-</section>
-
-<!-- IOAs -->
-<section id="ioas">
-<h2><span class="anchor-num">6.</span>Custom IOA Rules</h2>
-<p>Three real-time prevention rules complement the IOC blocks. Build in Falcon UI &rarr; Endpoint Security &rarr; Custom IOA Rules. All recommended starting action is <strong>DETECT</strong>; promote to <strong>BLOCK</strong> after 14-day FP measurement.</p>
-
-<h3>IOA-1: services.exe loading driver from \Users\*\Documents\</h3>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Rule Group</td><td>Ransomware Defense / BYOVD</td></tr>
-<tr><td>Rule Type</td><td>Process Creation (with DriverLoad correlation)</td></tr>
-<tr><td>Action</td><td><strong>DETECT</strong> (promote to BLOCK after 14-day FP measurement)</td></tr>
-<tr><td>Severity</td><td>Critical</td></tr>
-<tr><td>MITRE</td><td>T1543.003 + T1068</td></tr>
-<tr><td>Image Filename pattern (PCRE)</td><td><code>.*\\(Users\\[^\\]+\\(Documents|Downloads|AppData)|Windows\\Temp|ProgramData(?!\\(Microsoft|Intel|NVIDIA|AMD|EasyAntiCheat|BattlEye))\\).*\.sys$</code></td></tr>
-<tr><td>Parent Image Filename (PCRE)</td><td><code>.*\\services\.exe$</code></td></tr>
-<tr><td>Description</td><td>Catches the canonical BYOVD staging pattern &mdash; SCM loading a <code>.sys</code> from a user-writable directory. Fires the moment Spearwing's loader hands off to the kernel driver, <strong>before</strong> EDR-callback removal completes.</td></tr>
-<tr><td>FP Tuning</td><td>Anti-cheat (EAC, BattlEye), some HW vendor tools. Vendor exclusion via negative lookahead in the regex.</td></tr>
-<tr><td>Validation</td><td>Copy a benign signed <code>.sys</code> to <code>C:\Users\testuser\Documents\test.sys</code> and <code>sc.exe create TestSvc binPath= "...\test.sys" type= kernel</code>, then <code>sc start TestSvc</code> on canary endpoint. Cleanup: <code>sc.exe delete TestSvc</code>.</td></tr>
-</table>
-
-<h3>IOA-2: Mass EDR/AV process termination via taskkill / net stop / sc stop / wmic</h3>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Rule Group</td><td>Ransomware Defense / EDR Tampering</td></tr>
-<tr><td>Rule Type</td><td>Process Creation</td></tr>
-<tr><td>Action</td><td><strong>DETECT</strong> only &mdash; do NOT promote to BLOCK (risk of false-positive blocking legitimate admin activity)</td></tr>
-<tr><td>Severity</td><td>Critical</td></tr>
-<tr><td>MITRE</td><td>T1562.001</td></tr>
-<tr><td>Image Filename (PCRE)</td><td><code>.*\\(taskkill|net|net1|sc|pskill64?|wmic)\.exe$</code></td></tr>
-<tr><td>Command Line (PCRE) &mdash; kill verb</td><td><code>(?i).*(taskkill\s+/F\s+/IM|net\s+stop|sc\s+stop|process\s+where).*</code></td></tr>
-<tr><td>Command Line (PCRE) &mdash; EDR target</td><td><code>(?i).*(csfalcon|sentinel|msmpeng|mssense|sense.r|ccsvchst|sophos|tmccsf|ekrn|cylance|avp\.exe|carbonblack|cb\.exe).*</code></td></tr>
-<tr><td>Description</td><td>Catches userland fallback EDR-kill &mdash; Spearwing's secondary technique when BYOVD fails. Fires on <code>taskkill /F /IM &lt;edr&gt;.exe</code>, <code>net stop &lt;edr-svc&gt;</code>, etc.</td></tr>
-<tr><td>FP Tuning</td><td>EDR-vendor upgrade scripts. Exclude when parent is vendor's signed installer (e.g., <code>SentinelInstaller_x64.exe</code>, <code>CSFalconSensorInstaller.exe</code>).</td></tr>
-<tr><td>Validation</td><td>Substitute <code>notepad.exe</code> for an EDR process name in a test environment. Run <code>taskkill /F /IM notepad.exe</code>; rule should fire within 30s.</td></tr>
-</table>
-
-<h3>IOA-3: PDQDeployRunner spawning driver or KillAV-named loader</h3>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Rule Group</td><td>Ransomware Defense / Lateral Movement</td></tr>
-<tr><td>Rule Type</td><td>Process Creation</td></tr>
-<tr><td>Action</td><td><strong>DETECT</strong> (promote to BLOCK after 14-day FP measurement and IT-team review of legitimate PDQ packages)</td></tr>
-<tr><td>Severity</td><td>High</td></tr>
-<tr><td>MITRE</td><td>T1569.002 + T1543.003</td></tr>
-<tr><td>Parent Image Filename (PCRE)</td><td><code>.*\\pdqdeployrunner.*\.exe$</code></td></tr>
-<tr><td>Image Filename (PCRE)</td><td><code>.*\\(.*\.sys|(gaze|2gk8|qz3juql|disabler|symantec|kill|ar61|r4jo|readtext\d+|syss\d*)\.exe)$</code></td></tr>
-<tr><td>Description</td><td>Catches Spearwing's PDQ-Deploy mass-distribution pattern. PDQ pushing known Medusa filenames or any <code>.sys</code> driver from the <code>PDQDeployRunner</code> runtime is highly indicative.</td></tr>
-<tr><td>FP Tuning</td><td>Legitimate PDQ deployments of signed Microsoft/vendor MSIs are common &mdash; the regex is restricted to <code>.sys</code> and known KillAV names so legitimate use isn't caught. Validate against IT change tickets.</td></tr>
-<tr><td>Validation</td><td>In a lab, use PDQ Deploy to deploy a renamed benign EXE matching one of the regex names (rename <code>notepad.exe</code> to <code>gaze.exe</code>).</td></tr>
-</table>
-
-<h4>Promotion Criteria Summary</h4>
-<table>
-<tr><th>Rule</th><th>Detect-Mode Duration</th><th>FP Rate Threshold</th><th>Promote to Block?</th></tr>
-<tr><td>IOA-1 services.exe &rarr; driver from \Users\</td><td>14 days</td><td>&lt;5% (expect &lt;1 hit/week)</td><td><strong>Yes</strong>, after canary group validation</td></tr>
-<tr><td>IOA-2 Mass EDR-process termination</td><td>30 days</td><td>&lt;2%</td><td><strong>No</strong> &mdash; keep Detect; risk of blocking legitimate admin</td></tr>
-<tr><td>IOA-3 PDQDeployRunner &rarr; driver/KillAV</td><td>14 days</td><td>&lt;5%</td><td><strong>Yes</strong>, after IT-team review of legitimate PDQ packages</td></tr>
-</table>
-</section>
-
-<!-- HARDENING -->
-<section id="hardening">
-<h2><span class="anchor-num">7.</span>Hardening Recommendations</h2>
-<p><strong>Scope:</strong> BYOVD driver-load &rarr; EDR/AV process termination &rarr; PDQ Deploy mass-distribution &rarr; RMM staging &rarr; Rclone exfiltration.</p>
-<p><strong>Primary MITRE Mitigations:</strong> M1038 (Execution Prevention), M1040 (Behavior Prevention on Endpoint), M1045 (Code Signing), M1043 (Credential Access Protection), M1022 (Restrict File and Directory Permissions), M1037 (Filter Network Traffic), M1018 (User Account Management), M1026 (Privileged Account Management), M1042 (Disable or Remove Feature or Program), M1054 (Software Configuration), M1057 (Data Loss Prevention).</p>
-
-<div class="callout callout-crit">
-<strong>The single highest-leverage control is HVCI + Microsoft Vulnerable Driver Blocklist together.</strong> They prevent the kernel-driver phase from succeeding, which collapses every downstream step in the Spearwing playbook &mdash; including the EDR-kill that would otherwise blind your sensors. If you do nothing else this week, do these two.
-</div>
-
-<h3>Immediate (deploy this week &mdash; directly blocks the observed Medusa BYOVD chain)</h3>
-
-<h4>IH-1 &mdash; Enable HVCI / Memory Integrity</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>ABYSSWORKER / POORTRY / TrueSight / <code>nitrogenk.sys</code> kernel-driver loads</td></tr>
-<tr><td>MITRE Mitigation</td><td>M1038 (Execution Prevention)</td></tr>
-<tr><td>CIS Benchmark</td><td>Windows 10/11 18.9.11.1 (Level 1) &mdash; <em>Turn on Virtualization Based Security</em></td></tr>
-<tr><td>MS Security Baseline</td><td><code>Computer Configuration &gt; Administrative Templates &gt; System &gt; Device Guard &gt; Turn On Virtualization Based Security</code> &rarr; Enabled, <em>Virtualization Based Protection of Code Integrity = Enabled with UEFI lock</em></td></tr>
-<tr><td>Registry</td><td><code>HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity</code> &rarr; <code>Enabled</code> = REG_DWORD 1; <code>Locked</code> = REG_DWORD 1</td></tr>
-<tr><td>Verify</td><td><code>(Get-CimInstance Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning</code> &mdash; must include <code>2</code></td></tr>
-<tr><td>Rollback Risk</td><td>Older drivers (10+ years) may fail under HVCI. Pilot on 5% of fleet for 14 days; monitor System log Event ID 3023 (DeviceGuard).</td></tr>
-</table>
-
-<h4>IH-2 &mdash; Microsoft Vulnerable Driver Blocklist (Enforcement Mode)</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>TrueSight.sys &le;2.0.2, POORTRY (revoked certs), <code>nitrogenk.sys</code> ThrottleStop, ~1,400 known-bad drivers Microsoft maintains</td></tr>
-<tr><td>MITRE Mitigation</td><td>M1038, M1045</td></tr>
-<tr><td>CIS Benchmark</td><td>Windows 11 18.9.46 (Level 1)</td></tr>
-<tr><td>MS Security Baseline</td><td>Microsoft Recommended Driver Block Rules &mdash; refreshed quarterly; TrueSight 2.0.2 added Dec 2024</td></tr>
-<tr><td>Registry</td><td><code>HKLM\SYSTEM\CurrentControlSet\Control\CI\Config</code> &rarr; <code>VulnerableDriverBlocklistEnable</code> = REG_DWORD 1</td></tr>
-<tr><td>Verify</td><td><code>CiTool.exe --list-policies | Select-String "Vulnerable Driver"</code> &mdash; expect <em>Microsoft Vulnerable Driver Blocklist Policy</em>: IsEnforced=True</td></tr>
-<tr><td>Rollback Risk</td><td>Negligible. A handful of HW-vendor diagnostic tools may be impacted; exception via supplemental WDAC policy.</td></tr>
-</table>
-
-<h4>IH-3 &mdash; ASR Rule: Block Abuse of Exploited Vulnerable Signed Drivers</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>Any attempt to load a known-vulnerable driver, even if not yet in the MS blocklist. Complementary to IH-2.</td></tr>
-<tr><td>MITRE Mitigation</td><td>M1040 (Behavior Prevention on Endpoint)</td></tr>
-<tr><td>ASR Rule GUID</td><td><code>56a863a9-875e-4185-98a7-b882c64b5ce5</code></td></tr>
-<tr><td>Mode</td><td><strong>Block (1)</strong> &mdash; Microsoft explicitly recommends Block, not Audit</td></tr>
-<tr><td>PowerShell</td><td><code>Set-MpPreference -AttackSurfaceReductionRules_Ids 56a863a9-875e-4185-98a7-b882c64b5ce5 -AttackSurfaceReductionRules_Actions Enabled</code></td></tr>
-<tr><td>GPO Path</td><td><code>Computer Configuration &gt; Administrative Templates &gt; Windows Components &gt; Microsoft Defender Antivirus &gt; Microsoft Defender Exploit Guard &gt; Attack Surface Reduction &gt; Configure Attack Surface Reduction rules</code></td></tr>
-</table>
-
-<h4>IH-4 &mdash; CrowdStrike Falcon Sensor Tamper Protection</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>Userland-fallback EDR-kill (HUNT-4 detections), uninstaller attempts</td></tr>
-<tr><td>MITRE Mitigation</td><td>M1040, M1022</td></tr>
-<tr><td>Falcon UI Path</td><td>Endpoint Security &rarr; Configure &rarr; Sensor Update Policies &rarr; &lt;policy&gt; &rarr; <em>Sensor Anti-tampering Protection</em> = Enabled; <em>Uninstallation Protection</em> = Enabled (maintenance token required)</td></tr>
-<tr><td>Verify (test endpoint)</td><td><code>Stop-Service -Name CSFalconService -Force</code> should fail with Access Denied; <code>Get-Service CSFalconService</code> remains <em>Running</em></td></tr>
-</table>
-
-<h4>IH-5 &mdash; Revoke Trust for the Six ABYSSWORKER Stolen Certificates</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>Future ABYSSWORKER samples re-using the same Chinese stolen signing certs</td></tr>
-<tr><td>MITRE Mitigation</td><td>M1045 (Code Signing)</td></tr>
-<tr><td>GPO Path</td><td><code>Computer Configuration &gt; Policies &gt; Windows Settings &gt; Security Settings &gt; Public Key Policies &gt; Untrusted Certificates</code> &mdash; import each of the 6 cert files</td></tr>
-<tr><td>PowerShell</td><td><code>Import-Certificate -FilePath C:\Temp\&lt;cert&gt;.cer -CertStoreLocation Cert:\LocalMachine\Disallowed</code> (repeat for each of 6)</td></tr>
-<tr><td>Verify</td><td><code>Get-ChildItem Cert:\LocalMachine\Disallowed | Where-Object Subject -match "(Foshan|FEI XIAO|Fuzhou Dingxin|Changsha Hengxiang|Xinjiang Yishilian|Shenzhen Yundian)"</code> returns all 6</td></tr>
-</table>
-<div class="callout callout-good">
-All six certs are already revoked by their CAs, but Windows' default cert-chain validation may still permit load when revocation checking is offline or cached. The Disallowed store is enforced <strong>regardless</strong> of revocation status &mdash; belt-and-suspenders.
-</div>
-
-<h3>Detect-First (deploy this week in Audit / monitor for 14 days before promoting to Block)</h3>
-
-<h4>DF-1 &mdash; WDAC App Control Driver Signer Policy (Audit Mode)</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>All BYOVD chains, including custom drivers like ABYSSWORKER not yet in the MS blocklist</td></tr>
-<tr><td>MITRE / CIS / Baseline</td><td>M1038, M1045 &middot; CIS Win11 18.9.46.4 (Level 2) &middot; MS App Control for Business baseline</td></tr>
-<tr><td>Deploy</td><td><code>New-CIPolicy -Level Publisher -FilePath C:\Temp\DriverSignerAudit.xml -UserPEs:$false -Audit; Set-RuleOption -FilePath ... -Option 3; ConvertFrom-CIPolicy ...</code> stage to <code>C:\Windows\System32\CodeIntegrity\CIPolicies\Active\</code>, then <code>RefreshPolicy.exe</code></td></tr>
-<tr><td>Promotion</td><td>After 14 days, review Event Log <code>Microsoft-Windows-CodeIntegrity/Operational</code> Event ID 3076; whitelist legitimate drivers via supplemental policy; remove Option 3 to enforce.</td></tr>
-</table>
-
-<h4>DF-2 &mdash; ASR Rule: Block Credential Stealing from LSASS</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>Spearwing's credential-access step &mdash; Mimikatz / Impacket / comsvcs.dll MiniDump-Writer against <code>lsass.exe</code></td></tr>
-<tr><td>MITRE / ASR GUID</td><td>M1040, M1043 &middot; ASR GUID <code>9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2</code></td></tr>
-<tr><td>Mode</td><td><strong>Block</strong> (stable since 2018; very low FP rate)</td></tr>
-<tr><td>PowerShell</td><td><code>Set-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled</code></td></tr>
-</table>
-
-<h4>DF-3 &mdash; ASR Rule: Block Executable Content from Email and Web Mail</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>Initial-access stage when Spearwing operators phish to drop the first-stage loader</td></tr>
-<tr><td>MITRE / ASR GUID</td><td>M1040 &middot; ASR GUID <code>BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550</code></td></tr>
-<tr><td>Mode</td><td><strong>Block</strong></td></tr>
-</table>
-
-<h4>DF-4 &mdash; Enable LSA Protection (RunAsPPL=1)</h4>
-<table>
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Defeats</td><td>User-mode credential dumping (Mimikatz) &mdash; Spearwing's precursor step for <code>ntds.dit</code> lateral movement</td></tr>
-<tr><td>MITRE / CIS / Baseline</td><td>M1043 &middot; CIS Win11 2.3.10.5 (Level 1) &middot; <em>MS Security Guide / LSA Protection</em></td></tr>
-<tr><td>Registry</td><td><code>HKLM\SYSTEM\CurrentControlSet\Control\Lsa</code> &rarr; <code>RunAsPPL</code> = REG_DWORD 1; <code>RunAsPPLBoot</code> = REG_DWORD 1 (Win11 22H2+, UEFI-locked)</td></tr>
-<tr><td>Rollback Risk</td><td>Legacy LSASS-hooking security tools (older AV/EDR, PAM agents) will fail to inject. Audit Event IDs 3033 / 3063 first; whitelist incompatible drivers via CodeIntegrity allow-list.</td></tr>
-</table>
-
-<h4>DF-5 &mdash; Service SDDL Hardening for CrowdStrike Falcon (Optional, after 30-day Tamper Protection baseline)</h4>
-<div class="callout callout-warn">
-<strong>Coordinate with the CrowdStrike sensor team before applying.</strong> Sensor upgrades require an authorized actor to stop the service. Recommended path: enable Tamper Protection (IH-4) first, run 30 days, only consider SDDL hardening if there's additional evidence of EDR-stop attempts from local Administrator accounts.
-</div>
-
-<h3>Strategic (broader attack-surface reduction &mdash; 1 to 3 months)</h3>
-
-<h4>ST-1 &mdash; WDAC Application Control &mdash; Enforce Mode</h4>
-<p>Promotion of DF-1 to enforcement after 14-day audit. Build supplemental policies for legitimate drivers/applications. Requires pilot rings, change-management sign-off, documented rollback. <strong>M1038, M1045, CIS Win11 18.9.46.x (Level 2)</strong>.</p>
-
-<h4>ST-2 &mdash; WDAC / AppLocker Publisher Allow-List for RMM Tools</h4>
-<p>Defines explicit publisher allow-list (e.g., ScreenConnect, ConnectWise, Splashtop, Atera) and blocks all others. Pair with the CrowdStrike Custom IOA in HUNT-7 for immediate coverage while WDAC is rolled out. <strong>M1038, M1042, CIS Win11 2.3.10.x</strong>.</p>
-
-<h4>ST-3 &mdash; Tier 0/1/2 Admin Separation + Privileged Access Workstations</h4>
-<p>Defeats Spearwing's full kill chain &mdash; most steps require Domain Admin or local admin. Implement Microsoft's Securing Privileged Access (SPA) Enterprise Access Model: Tier 0 admins log on only to dedicated PAWs (enforced via Authentication Silos), never to Tier 1/2 endpoints. <strong>M1026 (Privileged Account Management), M1018 (User Account Management)</strong>.</p>
-<div class="callout">
-<strong>Why this kills Spearwing:</strong> their typical post-exploitation move is to dump Domain Admin credentials from a workstation via Mimikatz/<code>ntds.dit</code>, then use those credentials to PsExec/PDQ-Deploy to every endpoint. With Tier 0 admins logging in only on PAWs, those credentials are <strong>never</strong> present on a Spearwing-compromised workstation in the first place.
-</div>
-
-<h4>ST-4 &mdash; Windows LAPS for Local Admin Password Rotation</h4>
-<p>Built into Windows 11 22H2+ and Server 2019+; replaces the older LAPS toolkit. Configure <code>HKLM\Software\Microsoft\Policies\LAPS</code> &rarr; <code>BackupDirectory</code>=2 (AD), <code>PasswordComplexity</code>=4, <code>PasswordLength</code>=20, <code>PasswordAgeDays</code>=30. <strong>M1027, M1026; CIS Win11 5.x</strong>.</p>
-
-<h4>ST-5 &mdash; Network Segmentation: Deny SMB/RDP Between Non-Server Workstations</h4>
-<p>PDQ Deploy uses SMB (<code>ADMIN$</code>) shares and RPC on port 445. Workstation-to-workstation SMB/RDP traffic is rarely legitimate; deny by default at the Windows Defender Firewall (Domain Profile) or perimeter NGFW. Pair with ST-3. <strong>M1037, M1030; CIS Win11 9.2.x</strong>.</p>
-
-<h4>ST-6 &mdash; Egress Filtering on Common Cloud-Storage Exfil Destinations</h4>
-<p>Block at perimeter: <code>*.mega.nz</code>, <code>*.mega.io</code>, <code>*.mega.co.nz</code>, <code>*.gofile.io</code>, <code>*.anonfiles.com</code>, <code>*.bayfiles.com</code>, <code>*.pixeldrain.com</code>, <code>*.file.io</code>, <code>*.transfer.sh</code>, <code>*.ufile.io</code>, Tor exits, and non-business S3 endpoints. Pair with DLP rule alerting on &gt;1 GB outbound to non-corporate destinations in a 60-minute rolling window. <strong>M1037, M1057</strong>.</p>
-
-<h4>ST-7 &mdash; Credential Guard</h4>
-<p>Registry: <code>HKLM\SYSTEM\CurrentControlSet\Control\LSA</code> &rarr; <code>LsaCfgFlags</code> = 1 (UEFI lock) or 2 (no lock, for pilot). Verify via <code>Win32_DeviceGuard.SecurityServicesRunning</code> &mdash; must include <code>1</code> (Credential Guard) and <code>2</code> (HVCI). <strong>M1043; CIS Win11 18.9.11.3 (Level 1)</strong>.</p>
-
-<h4>ST-8 &mdash; Block PsExec and Living-off-the-Land Lateral-Movement Tools</h4>
-<p>ASR Rule GUID <code>D1E49AAC-8F56-4280-B9BA-993A6D77406C</code> &mdash; <em>Block process creations originating from PSExec and WMI commands</em>. <strong>Block mode</strong>. Caveat: blocks legitimate PsExec usage; pair with ST-3 so IT admins use SCCM/Intune remoting instead. <strong>M1038, M1040</strong>.</p>
-
-<h4>ST-9 &mdash; Disable Service Auto-Load for Drivers Not in DriverStore</h4>
-<p>Built into HVCI (IH-1) on HVCI-enabled hosts. For non-HVCI environments, enforce via WDAC supplemental policy requiring drivers be sourced from <code>\SystemRoot\System32\DriverStore\</code>. <strong>M1054, M1038</strong>.</p>
-
-<h4>ST-10 &mdash; Disable WDigest Credential Caching (Legacy Hygiene)</h4>
-<p>Registry: <code>HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest</code> &rarr; <code>UseLogonCredential</code> = REG_DWORD 0. Lowest-effort hygiene control in this document; should already be set in any modern environment. <strong>M1027; CIS Win11 18.9.27.1.1 (Level 1)</strong>.</p>
-
-<div class="callout callout-good">
-<strong>Quick-wins TL;DR for leadership:</strong> Five controls &mdash; deployable in 24 hours by the endpoint team &mdash; defeat the entire observed Medusa BYOVD chain on a typical host: <strong>(1) HVCI / Memory Integrity, (2) Microsoft Vulnerable Driver Blocklist, (3) ASR rule 56a863a9 Block, (4) CrowdStrike Falcon Tamper Protection, (5) Untrusted-cert store entries for the six known ABYSSWORKER signing certificates.</strong> The remaining nineteen controls expand the surface area and bring the environment into alignment with Microsoft Security Baselines and CIS Level 1/2 &mdash; durable improvements regardless of which RaaS operator we're concerned with next.
-</div>
-</section>
-
-<!-- COVERAGE MAP -->
-<section id="coverage">
-<h2><span class="anchor-num">8.</span>Detection Coverage Map</h2>
-<table>
-<tr><th>MITRE Technique</th><th>Technique Name</th><th>CQL Hunt</th><th>Custom IOA</th><th>IOC Block</th><th>Coverage</th></tr>
-<tr><td>T1190</td><td>Exploit Public-Facing App</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="cov-gap">GAP</td></tr>
-<tr><td>T1569.002</td><td>Service Execution (PsExec / PDQ)</td><td>HUNT-3</td><td>IOA-3</td><td>&mdash;</td><td class="cov-good">Good</td></tr>
-<tr><td>T1543.003</td><td>Create / Modify Service: Windows Service</td><td>HUNT-2, HUNT-5</td><td>IOA-1</td><td>&mdash;</td><td class="cov-good">Good</td></tr>
-<tr><td>T1068</td><td>Exploitation for Privilege Escalation</td><td>HUNT-1, HUNT-2</td><td>IOA-1</td><td>sha256 (23)</td><td class="cov-good">Good</td></tr>
-<tr><td>T1562.001</td><td>Impair Defenses: Disable / Modify Tools</td><td>HUNT-4</td><td>IOA-2</td><td>sha256 (23)</td><td class="cov-good">Good</td></tr>
-<tr><td>T1014</td><td>Rootkit (kernel callback removal)</td><td>HUNT-2, HUNT-6</td><td>IOA-1</td><td>sha256 (23)</td><td class="cov-partial">Partial</td></tr>
-<tr><td>T1553.002</td><td>Subvert Trust Controls: Code Signing</td><td>HUNT-6</td><td>&mdash;</td><td>&mdash;</td><td class="cov-good">Good</td></tr>
-<tr><td>T1222</td><td>File Permissions Modification</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="cov-gap">GAP</td></tr>
-<tr><td>T1070.004</td><td>Indicator Removal: File Deletion</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="cov-partial">Partial</td></tr>
-<tr><td>T1003.003</td><td>OS Credential Dumping: NTDS</td><td>(separate hunt)</td><td>DF-2</td><td>&mdash;</td><td class="cov-partial">Partial</td></tr>
-<tr><td>T1018 / T1087</td><td>System / Account Discovery</td><td>(out of scope)</td><td>&mdash;</td><td>&mdash;</td><td class="cov-gap">GAP</td></tr>
-<tr><td>T1021.001</td><td>Remote Services: RDP</td><td>(existing detections)</td><td>&mdash;</td><td>&mdash;</td><td class="cov-partial">Partial</td></tr>
-<tr><td>T1219</td><td>Remote Access Software</td><td>HUNT-7</td><td>&mdash;</td><td>&mdash;</td><td class="cov-good">Good</td></tr>
-<tr><td>T1567</td><td>Exfiltration Over Web Service (Rclone)</td><td>HUNT-9</td><td>&mdash;</td><td>&mdash;</td><td class="cov-good">Good</td></tr>
-<tr><td>T1572</td><td>Protocol Tunneling (FRP)</td><td>HUNT-9</td><td>&mdash;</td><td>&mdash;</td><td class="cov-good">Good</td></tr>
-<tr><td>T1486</td><td>Data Encrypted for Impact</td><td>HUNT-8a, HUNT-8b</td><td>&mdash;</td><td>sha256 (gaze.exe x3, readtext85.exe)</td><td class="cov-good">Good</td></tr>
-<tr><td>T1490</td><td>Inhibit System Recovery</td><td>HUNT-8b</td><td>&mdash;</td><td>&mdash;</td><td class="cov-partial">Partial</td></tr>
-</table>
-
-<h4>Priority Gaps</h4>
-<ul>
-  <li><strong>T1222 (File Permissions Modification)</strong> &mdash; ABYSSWORKER IOCTL <code>0x222180</code> sets <code>ATTRIBUTE_NORMAL</code> and delete-disposition via raw IRP to the drive device, bypassing user-mode file APIs. CrowdStrike has no sub-IOCTL telemetry for this; mitigated only by preventing the driver from loading (HUNT-1 / HUNT-2 / HUNT-5 / HUNT-6 cover that).</li>
-  <li><strong>T1190 (Exploit Public-Facing Application)</strong> &mdash; server-side initial-access detection is out of scope for this endpoint-focused hunt; covered by Exchange-server-side hunts and patch management.</li>
-  <li><strong>T1018 / T1087 (Discovery)</strong> &mdash; <code>quser</code>, <code>net user</code>, NetScan are noisy to detect generically; treat as supporting evidence when other Medusa hunts hit.</li>
-</ul>
-</section>
-
-<!-- TICKET -->
-<section id="ticket">
-<h2><span class="anchor-num">9.</span>Hunt Summary Ticket</h2>
-
-<h4>Executive</h4>
-<p><strong>Threat:</strong> Medusa Ransomware &mdash; BYOVD Driver Load with EDR/AV Process Termination<br>
-<strong>Operator:</strong> Spearwing (RaaS) &middot; <strong>Severity:</strong> Critical &middot; <strong>Active:</strong> YES<br>
-<strong>Scale:</strong> 300+ critical-infrastructure victims confirmed by CISA AA25-071A through February 2025<br>
-<strong>What we're checking:</strong> Whether the BYOVD precursor step (driver-load + EDR-kill) has occurred or is occurring in our environment in the last 30 days.</p>
-
-<h4>Prioritization Matrix</h4>
-<table>
-<tr><th>Priority</th><th>Action</th><th>Effort</th><th>Risk</th><th>Owner</th></tr>
-<tr><td><strong>P0</strong></td><td>Import the 23 SHA256s as PREVENT IOCs (&sect;5)</td><td>Low</td><td>Low</td><td>SOC analyst</td></tr>
-<tr><td><strong>P0</strong></td><td>Run HUNT-1 (hash match) over 30 days retro</td><td>Low</td><td>None (read-only)</td><td>Hunt team</td></tr>
-<tr><td><strong>P0</strong></td><td>Run HUNT-8a (.medusa impact) &mdash; confirms no current encryption</td><td>Low</td><td>None</td><td>Hunt team</td></tr>
-<tr><td><strong>P1</strong></td><td>Run HUNT-2 + HUNT-5 + HUNT-6 (BYOVD behavior) over 30 days</td><td>Low</td><td>None</td><td>Hunt team</td></tr>
-<tr><td><strong>P1</strong></td><td>Deploy IOA-1, IOA-2, IOA-3 in <strong>Detect</strong> mode</td><td>Low</td><td>Low</td><td>Detection engineering</td></tr>
-<tr><td><strong>P1</strong></td><td>Enable IH-1 (HVCI) + IH-2 (Vulnerable Driver Blocklist) fleet-wide</td><td>Medium</td><td>Low (after pilot)</td><td>Endpoint engineering</td></tr>
-<tr><td><strong>P1</strong></td><td>Run HUNT-3 (PDQ chain) + HUNT-7 (RMM staging) over 14 days</td><td>Low</td><td>None</td><td>Hunt team</td></tr>
-<tr><td><strong>P2</strong></td><td>Run HUNT-4 (mass EDR kill) + HUNT-9 (Rclone exfil) over 7&ndash;14 days</td><td>Low</td><td>None</td><td>Hunt team</td></tr>
-<tr><td><strong>P2</strong></td><td>Deploy IH-3 ASR Block-Vulnerable-Drivers rule in Block mode</td><td>Medium</td><td>Medium</td><td>Endpoint engineering</td></tr>
-<tr><td><strong>P2</strong></td><td>Enable IH-4 CrowdStrike Tamper Protection + IH-5 Disallowed cert store</td><td>Low</td><td>Low</td><td>Endpoint engineering</td></tr>
-<tr><td><strong>P3</strong></td><td>Pilot WDAC driver-signer policy in Audit (DF-1)</td><td>High</td><td>Medium</td><td>Endpoint engineering</td></tr>
-<tr><td><strong>P3</strong></td><td>Strategic tier (ST-1 through ST-10) per quarterly roadmap</td><td>High</td><td>Variable</td><td>Architecture team</td></tr>
-</table>
-
-<h4>Expected Findings (what a positive result looks like)</h4>
-<ul>
-  <li><strong>HUNT-1 hit:</strong> Any single SHA256 match &mdash; declare P1 incident; isolate host immediately; assume EDR is blind on that host for events after the driver-load timestamp.</li>
-  <li><strong>HUNT-2 / HUNT-5 hit:</strong> <code>services.exe</code> parent + <code>.sys</code> from <code>\Users\&lt;user&gt;\Documents\</code> or matching registry event &mdash; near-certain BYOVD staging; isolate before driver does its work.</li>
-  <li><strong>HUNT-3 hit:</strong> PDQ runner spawning <code>gaze.exe</code> or driver &mdash; Spearwing mass-push in progress; isolate the PDQ-source host AND every endpoint that received the deployment.</li>
-  <li><strong>HUNT-4 hit:</strong> &ge;2 EDR-kill commands from one PID in 60s &mdash; userland fallback EDR-kill in progress; begin host containment.</li>
-  <li><strong>HUNT-6 hit:</strong> Any DriverLoad signed by the six revoked Chinese cert subjects &mdash; ABYSSWORKER on host; treat as HUNT-1.</li>
-  <li><strong>HUNT-8a / 8b hit:</strong> <code>.medusa</code> extension files or <code>gaze.exe</code> execution &mdash; already encrypted or actively encrypting; activate ransomware incident-response plan.</li>
-</ul>
-
-<h4>Risk Tiers for Recommended Actions</h4>
-<table>
-<tr><th>Action</th><th>Risk Tier</th><th>Notes</th></tr>
-<tr><td>Import 23 SHA256 PREVENT IOCs</td><td><span class="badge badge-low">LOW</span></td><td>Deterministic; zero legitimate use</td></tr>
-<tr><td>Run HUNT queries 1&ndash;9 (read-only)</td><td><span class="badge badge-low">LOW</span></td><td>No impact to endpoints</td></tr>
-<tr><td>Deploy IOA-1, IOA-2, IOA-3 in Detect</td><td><span class="badge badge-low">LOW</span></td><td>Detect mode only; no blocking</td></tr>
-<tr><td>Enable Microsoft Vulnerable Driver Blocklist (IH-2)</td><td><span class="badge badge-low">LOW</span></td><td>Microsoft-managed; rare FP from anti-cheat</td></tr>
-<tr><td>Enable HVCI / Memory Integrity (IH-1)</td><td><span class="badge badge-med">MEDIUM</span></td><td>Test on 5% canary; older drivers may break</td></tr>
-<tr><td>Deploy ASR rule 56a863a9 in Block mode (IH-3)</td><td><span class="badge badge-med">MEDIUM</span></td><td>Test on canary group; some legitimate driver installers may need allow-list</td></tr>
-<tr><td>Promote IOA-1 / IOA-3 to Block</td><td><span class="badge badge-med">MEDIUM</span></td><td>After 14-day FP measurement &lt;5%</td></tr>
-<tr><td>WDAC driver-signer enforce (ST-1)</td><td><span class="badge badge-high">HIGH</span></td><td>Change management required; pilot on canary first</td></tr>
-<tr><td>Revoke trust for 6 ABYSSWORKER cert thumbprints (IH-5)</td><td><span class="badge badge-low">LOW</span></td><td>All revoked already; belt-and-suspenders</td></tr>
-</table>
-
-<h4>Follow-Up Schedule</h4>
-<ul>
-  <li><strong>Re-run hunts:</strong> weekly for 4 weeks (active threat with 300+ recent victims)</li>
-  <li><strong>IOC expiry review:</strong> 2027-05-17 (1-year hash expiry)</li>
-  <li><strong>IOA promotion review:</strong> 2026-05-31 (14-day Detect-mode measurement)</li>
-  <li><strong>Intel monitoring:</strong> Elastic Security Labs, Symantec/Broadcom Threat Hunter Team, CISA AA25-* advisories &mdash; watch for new IOCs, new driver families, new affiliate playbooks</li>
-  <li><strong>Re-hunt triggers:</strong> new IOC publication for ABYSSWORKER/POORTRY/Spearwing; ConnectWise or other vendor disclosing additional cert thumbprints; new MS Vulnerable Driver Blocklist additions for Medusa-related drivers</li>
-</ul>
-</section>
-
-<!-- REFERENCES -->
-<section id="refs">
-<h2><span class="anchor-num">10.</span>References</h2>
-<ul>
-  <li><a href="https://www.elastic.co/security-labs/abyssworker">Elastic Security Labs &mdash; "Shedding light on the ABYSSWORKER driver" (Cyril Fran&ccedil;ois, 2025-03-20)</a></li>
-  <li><a href="https://www.security.com/threat-intelligence/medusa-ransomware-attacks">Symantec / Broadcom Threat Hunter Team &mdash; "Medusa Ransomware Activity Continues to Increase" (2025-03-06)</a></li>
-  <li><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a">CISA / FBI / MS-ISAC &mdash; Joint Advisory AA25-071A "#StopRansomware: Medusa Ransomware" (March 2025)</a></li>
-  <li><a href="https://research.checkpoint.com/2025/large-scale-exploitation-of-legacy-driver/">Check Point Research &mdash; "Silent Killers: Unmasking a Large-Scale Legacy Driver Exploitation Campaign" (2025)</a></li>
-  <li><a href="https://cloud.google.com/blog/topics/threat-intelligence/hunting-attestation-signed-malware/">Mandiant &mdash; "I Solemnly Swear My Driver Is Up to No Good" (POORTRY origin, 2022)</a></li>
-  <li><a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/design/microsoft-recommended-driver-block-rules">Microsoft Learn &mdash; Microsoft Recommended Driver Block Rules</a></li>
-  <li><a href="https://github.com/elastic/protections-artifacts/blob/main/yara/rules/Windows_Rootkit_AbyssWorker.yar">Elastic YARA rule &mdash; <code>Windows_Rootkit_AbyssWorker</code></a></li>
-  <li><a href="https://www.loldrivers.io/">LOLDrivers Project &mdash; Living-Off-The-Land Drivers community catalog</a></li>
-  <li><a href="https://thehackernews.com/2025/03/medusa-ransomware-uses-malicious-driver.html">The Hacker News &mdash; "Medusa Ransomware Uses Malicious Driver to Disable Anti-Malware with Stolen Certificates"</a></li>
-  <li><a href="https://www.cybersecuritydive.com/news/medusa-ransomware-malicious-driver-edr-killer/743181/">Cybersecurity Dive &mdash; "Medusa ransomware using malicious driver as EDR killer"</a></li>
-  <li><a href="https://thehackernews.com/2025/02/2500-truesightsys-driver-variants.html">The Hacker News &mdash; "2,500+ Truesight.sys Driver Variants Exploited to Bypass EDR"</a></li>
-  <li><a href="https://www.huntress.com/blog/readtext34-ransomware-incident">Huntress &mdash; "ReadText34 Ransomware Incident" (TrueSight BYOVD context)</a></li>
-</ul>
-</section>
-
-<footer>
-Generated 2026-05-17 by Cowork skill chain: web-hunter v1.0 &rarr; threat-hunter v2.1 &rarr; crowdstrike-logscale &rarr; threat-hardening v1.0. Companion split files saved alongside: <code>medusa-byovd-brief.md</code>, <code>medusa-byovd-hunt-package.md</code>, <code>medusa-byovd-cql-review.md</code>, <code>medusa-byovd-hardening.md</code>.
-</footer>
-
-</div>
+</div><!-- /main -->
 
 <script>
-(function() {
-  'use strict';
-
-  var REGIONS = {
-    'us-1':     { name: 'US-1',     host: 'falcon.crowdstrike.com' },
-    'us-2':     { name: 'US-2',     host: 'falcon.us-2.crowdstrike.com' },
-    'eu-1':     { name: 'EU-1',     host: 'falcon.eu-1.crowdstrike.com' },
-    'us-gov-1': { name: 'US-GOV-1', host: 'falcon.laggar.gcw.crowdstrike.com' },
-    'us-gov-2': { name: 'US-GOV-2', host: 'falcon.us-gov-2.crowdstrike.com' }
-  };
-
-  var DEFAULT_REGION = 'us-2';
-  var STORAGE_KEY = 'cs-region';
-
-  function readRegion() {
-    try {
-      var stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && REGIONS[stored]) return stored;
-    } catch (e) { /* file:// or storage blocked */ }
-    return DEFAULT_REGION;
-  }
-
-  function writeRegion(r) {
-    try { localStorage.setItem(STORAGE_KEY, r); } catch (e) { /* ignore */ }
-  }
-
-  function refreshRegionUI() {
-    var current = readRegion();
-    var label = document.getElementById('region-current');
-    if (label) label.textContent = REGIONS[current].name;
-    var btns = document.querySelectorAll('.region-btn');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].classList.toggle('active', btns[i].dataset.region === current);
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
     }
-  }
-
-  function copyToClipboard(text, btn) {
-    var done = function() {
-      var orig = btn.innerHTML;
-      btn.innerHTML = '<span class="query-btn-icon">&#10003;</span> Copied!';
-      btn.classList.add('copied');
-      setTimeout(function() {
-        btn.innerHTML = orig;
-        btn.classList.remove('copied');
-      }, 1800);
-    };
-    if (navigator.clipboard && window.isSecureContext !== false) {
-      navigator.clipboard.writeText(text).then(done).catch(function() { fallback(); });
-    } else {
-      fallback();
-    }
-    function fallback() {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); done(); } catch (e) { alert('Copy failed - select the query manually.'); }
-      document.body.removeChild(ta);
-    }
-  }
-
-  function openInFalcon(query) {
-    var region = REGIONS[readRegion()];
-    var url = 'https://' + region.host + '/investigate/search?query=' + encodeURIComponent(query);
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-
-  function attachQueryActions() {
-    var preBlocks = document.querySelectorAll('.query-card pre');
-    for (var i = 0; i < preBlocks.length; i++) {
-      (function(pre) {
-        if (pre.dataset.actionsAttached === '1') return;
-        pre.dataset.actionsAttached = '1';
-
-        var queryText = pre.textContent;
-
-        var actions = document.createElement('div');
-        actions.className = 'query-actions';
-
-        var copyBtn = document.createElement('button');
-        copyBtn.type = 'button';
-        copyBtn.className = 'query-btn';
-        copyBtn.innerHTML = '<span class="query-btn-icon">&#9112;</span> Copy Query';
-        copyBtn.addEventListener('click', function() { copyToClipboard(queryText, copyBtn); });
-
-        var openBtn = document.createElement('button');
-        openBtn.type = 'button';
-        openBtn.className = 'query-btn query-btn-primary';
-        openBtn.innerHTML = '<span class="query-btn-icon">&#8599;</span> Open in Falcon';
-        openBtn.title = 'Opens CrowdStrike Investigate search in your selected region with this query prefilled';
-        openBtn.addEventListener('click', function() { openInFalcon(queryText); });
-
-        actions.appendChild(copyBtn);
-        actions.appendChild(openBtn);
-
-        if (pre.nextSibling) {
-          pre.parentNode.insertBefore(actions, pre.nextSibling);
-        } else {
-          pre.parentNode.appendChild(actions);
-        }
-      })(preBlocks[i]);
-    }
-  }
-
-  function attachRegionHandlers() {
-    var btns = document.querySelectorAll('.region-btn');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener('click', function() {
-        writeRegion(this.dataset.region);
-        refreshRegionUI();
-      });
-    }
-  }
-
-  function init() {
-    attachRegionHandlers();
-    refreshRegionUI();
-    attachQueryActions();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+  });
+});
 </script>
 </body>
 </html>

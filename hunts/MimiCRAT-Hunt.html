@@ -2,955 +2,603 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MIMICRAT / ClickFix — Hunt Package</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MimiCRAT — ClickFix → Lua Loader → Meterpreter → C++ RAT — HuntPack v0.3</title>
 <style>
-  :root {
-    --bg: #0f1419;
-    --panel: #1a1f29;
-    --panel-2: #232936;
-    --border: #2d3543;
-    --text: #d4d7dd;
-    --muted: #8b95a5;
-    --accent: #2dd4bf;
-    --accent-2: #5eb3ff;
-    --good: #6dd178;
-    --warn: #ffc857;
-    --bad: #ff5d6c;
-    --code-bg: #0a0d12;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    margin: 0;
-    padding: 0;
-    line-height: 1.55;
-  }
-  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
-  header {
-    border-bottom: 2px solid var(--accent);
-    padding-bottom: 16px;
-    margin-bottom: 32px;
-  }
-  h1 { margin: 0 0 4px; font-size: 28px; color: var(--accent); }
-  .subtitle { color: var(--muted); font-size: 14px; }
-  h2 {
-    color: var(--accent-2);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 6px;
-    margin-top: 40px;
-    font-size: 22px;
-  }
-  h3 { color: var(--accent); margin-top: 28px; font-size: 16px; }
-  h4 { color: var(--text); margin: 16px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .brief {
-    background: var(--panel);
-    border-left: 4px solid var(--accent);
-    padding: 16px 20px;
-    border-radius: 4px;
-    margin-bottom: 24px;
-  }
-  .brief ul { margin: 8px 0; padding-left: 20px; }
-  .brief li { margin: 4px 0; }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  .badge-critical { background: var(--bad); color: #fff; }
-  .badge-high { background: var(--warn); color: #000; }
-  .badge-medium { background: var(--accent-2); color: #000; }
-  .badge-low { background: var(--muted); color: #000; }
-  .badge-good { background: var(--good); color: #000; }
-  .query-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
-  .query-header {
-    background: var(--panel-2);
-    padding: 10px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-    font-size: 14px;
-  }
-  .query-meta {
-    padding: 8px 14px;
-    background: rgba(94, 179, 255, 0.06);
-    font-size: 12px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  .query-meta strong { color: var(--text); }
-  pre {
-    margin: 0;
-    padding: 14px;
-    background: var(--code-bg);
-    color: #d4d7dd;
-    font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
-    font-size: 12.5px;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre;
-    tab-size: 2;
-  }
-  .copy-btn {
-    background: var(--accent);
-    color: #000;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: background 0.15s;
-  }
-  .copy-btn:hover { background: #5eead4; }
-  .copy-btn.copied { background: var(--good); }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 12px 0;
-    font-size: 13px;
-  }
-  th, td {
-    text-align: left;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-  th {
-    background: var(--panel-2);
-    color: var(--accent-2);
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  tr:hover td { background: rgba(94, 179, 255, 0.04); }
-  code {
-    background: var(--code-bg);
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-family: "JetBrains Mono", Consolas, monospace;
-    font-size: 12px;
-    color: var(--accent);
-    word-break: break-all;
-  }
-  .ioc-section { margin: 16px 0; }
-  .toc {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px 20px;
-    margin-bottom: 32px;
-  }
-  .toc h4 { margin-top: 0; }
-  .toc ul { margin: 0; padding-left: 20px; column-count: 2; column-gap: 24px; }
-  .toc a { color: var(--accent-2); text-decoration: none; font-size: 13px; }
-  .toc a:hover { text-decoration: underline; }
-  .callout {
-    background: rgba(45, 212, 191, 0.08);
-    border-left: 3px solid var(--accent);
-    padding: 12px 16px;
-    margin: 16px 0;
-    border-radius: 4px;
-    font-size: 13px;
-  }
-  .callout-warn {
-    background: rgba(255, 200, 87, 0.08);
-    border-left-color: var(--warn);
-  }
-  ul.harden { margin: 6px 0 16px; padding-left: 22px; }
-  ul.harden li { margin: 6px 0; font-size: 14px; }
-  .ioa-block {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px 18px;
-    margin: 14px 0;
-  }
-  .ioa-block h4 { margin-top: 0; color: var(--accent); text-transform: none; letter-spacing: 0; font-size: 15px; }
-  .meta-grid {
-    display: grid;
-    grid-template-columns: 150px 1fr;
-    gap: 4px 12px;
-    font-size: 13px;
-    margin: 8px 0;
-  }
-  .meta-grid dt { color: var(--muted); }
-  .meta-grid dd { margin: 0; }
-  footer {
-    margin-top: 60px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 12px;
-    text-align: center;
-  }
-  .gap { color: var(--bad); font-weight: 600; }
-  .partial { color: var(--warn); }
-  .good-text { color: var(--good); font-weight: 600; }
+:root {
+  --bg: #0d1117; --surface: #07140f; --surface2: #0c2018; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9ca3af; --accent: #02c39a; --accent-dim: rgba(2,195,154,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #2a5a4a; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #06231d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
 </style>
 </head>
 <body>
-<div class="container">
 
-<header>
-  <h1>MIMICRAT / ClickFix — Hunt Package</h1>
-  <div class="subtitle">ClickFix clipboard PowerShell &rarr; ETW/AMSI bypass &rarr; Lua 5.4.7 loader &rarr; Meterpreter shellcode &rarr; <strong>MIMICRAT</strong> native-C++ beacon (mimics multiple C2 frameworks) &middot; Generated 2026-05-12 &middot; Source: <a href="https://www.elastic.co/security-labs/mimicrat-custom-rat-mimics-c2-frameworks" style="color:var(--accent-2)">Elastic Security Labs</a></div>
-</header>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
 
-<div class="toc">
-  <h4>Contents</h4>
-  <ul>
-    <li><a href="#writeup">Threat Writeup Summary</a></li>
-    <li><a href="#brief">Hunt Brief</a></li>
-    <li><a href="#queries">CQL Hunt Queries (14)</a></li>
-    <li><a href="#iocs">IOC Blocklists</a></li>
-    <li><a href="#ioas">Custom IOA Rules</a></li>
-    <li><a href="#hardening">Hardening Recommendations</a></li>
-    <li><a href="#coverage">Detection Coverage Map</a></li>
-    <li><a href="#priority">Prioritization &amp; Risk</a></li>
-    <li><a href="#summary">Hunt Summary Ticket</a></li>
-  </ul>
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">MimiCRAT<br>ClickFix → Lua → C++ RAT</div>
+    <div class="version">v0.3 · 2026-06-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>MimiCRAT — ClickFix → Lua Loader → Meterpreter → C++ RAT</h1>
+  <div class="subtitle">A multi-stage intrusion chain (Elastic Security Labs) that starts with a <strong>ClickFix</strong> social-engineering lure, runs an obfuscated PowerShell downloader, bypasses ETW/AMSI, then uses a <strong>Lua-based in-memory loader</strong> to stage Meterpreter-style shellcode and a native C++ remote-access trojan, <strong>MIMICRAT</strong> (a.k.a. AstarionRAT) — with token theft, a SOCKS5 proxy, and malleable C2 over HTTPS. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">MimiCRAT / AstarionRAT · ClickFix delivery</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH · MULTI-STAGE RAT</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">RAT · in-memory loader · token theft · SOCKS5</div></div>
+    <div class="meta-item"><div class="mk">Delivery</div><div class="mv">ClickFix → obfuscated PowerShell → Lua loader → shellcode</div></div>
+    <div class="meta-item"><div class="mk">C2</div><div class="mv">Malleable profiles over HTTPS/443 (mimics web analytics)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
 </div>
 
-<section id="writeup">
-<h2>Threat Writeup Summary</h2>
-<div class="brief">
-  <p style="margin-top:0"><strong>Source:</strong> Elastic Security Labs &mdash; <em>MIMICRAT: Custom RAT Mimics Multiple C2 Frameworks</em></p>
-  <p><strong>URL:</strong> <a href="https://www.elastic.co/security-labs/mimicrat-custom-rat-mimics-c2-frameworks" style="color:var(--accent-2);word-break:break-all">https://www.elastic.co/security-labs/mimicrat-custom-rat-mimics-c2-frameworks</a></p>
-
-  <h4>Campaign Overview</h4>
-  <p style="font-size:14px">Elastic Security Labs documented a <strong>ClickFix</strong>-delivered campaign that ends in a previously-unreported native-C++ RAT they dubbed <strong>MIMICRAT</strong>. The infection chain abuses the user-paste-from-clipboard trick (Win+R / clipboard PowerShell), patches ETW + AMSI in memory, then loads a statically-linked <strong>Lua 5.4.7</strong> interpreter to decrypt and execute a <strong>Meterpreter-family</strong> shellcode that finally stages the MIMICRAT beacon. MIMICRAT's network profile is deliberately built to <em>look like</em> traffic from other known C2 frameworks (forged User-Agent, mimicked URIs, Google referer) &mdash; "mimic" in the name. Targets observed include a US university and Chinese-speaking users; the ClickFix lure is localized into 17 languages and rides on compromised legitimate sites (<code>bincheck.io</code>, <code>investonline.in</code>).</p>
-
-  <h4>The Attack Chain (Step-by-Step)</h4>
-  <ol style="font-size:14px;padding-left:22px">
-    <li><strong>ClickFix lure:</strong> Victim browses a compromised legit site (e.g., <code>bincheck.io</code>); injected JavaScript from <code>investonline.in/js/jq.php</code> renders a fake Cloudflare "verify you are human" page that instructs the victim to press <strong>Win+R</strong> and paste a clipboard payload, or paste into PowerShell directly.</li>
-    <li><strong>Stage 1 &mdash; Obfuscated PowerShell one-liner:</strong> Launched with <code>-WInDo Min</code> (windowstyle minimised). A garbled variable like <code>$RdLU='aZmEwGEtHPckKyBXPxMRi.neTwOrkicsGf'</code> is sliced/transformed at runtime to reconstruct the C2 domain (<code>xMRi.neTwOrk</code> &rarr; <code>45.13.212.250</code>). This avoids plaintext IOCs in process telemetry.</li>
-    <li><strong>Stage 2 &mdash; ETW + AMSI bypass:</strong> Downloaded PowerShell patches <code>System.Diagnostics.Eventing.EventProvider.m_enabled</code> to <code>0</code> (kills script-block logging) and flips <code>System.Management.Automation.AmsiUtils.amsiInitFailed</code> to <code>true</code>. <code>Marshal.Copy</code> rewrites the <code>ScanContent</code> method bytes for belt-and-braces AMSI neutralization.</li>
-    <li><strong>Stage 3 &mdash; Lua 5.4.7 loader (<code>zbuild.exe</code>):</strong> A native PE staged at <code>%ProgramData%\knz_{random}\zbuild.exe</code> embeds the Lua interpreter and an encrypted Lua script. Decrypts via <code>fxh::utility::lua_script_xor_decrypt</code>, custom-alphabet Base64-decodes, then maps shellcode in-memory &mdash; fileless from this point.</li>
-    <li><strong>Stage 4 &mdash; Meterpreter-family shellcode:</strong> Standard reverse-HTTPS reflective loader; pulls the final beacon from the post-exploitation C2 tier (<code>www.ndibstersoft.com</code>, <code>23.227.202.114</code>).</li>
-    <li><strong>Stage 5 &mdash; MIMICRAT beacon:</strong> 64-bit native C++ implant. C2 hostname (<code>d15mawx0xveem1.cloudfront.net</code>) is RC4-encrypted in the binary; session crypto is RSA-1024 + AES (hardcoded IV <code>abcdefghijklmnop</code>, key = runtime SHA-256). HTTPS to TCP/443, 10-second callback interval. 22-command dispatch table covering token theft (CMD 31), shellcode injection (CMD 100), SOCKS5 (CMD 101), interactive shell over pipe (CMD 78), and full file/process manipulation.</li>
-    <li><strong>Network mimicry:</strong> HTTP profiles forge Edge/Cortana User-Agents, a Google-search Referer, and Cookie names (<code>AFUAK</code>, <code>BLA</code>, <code>HFK</code>; POST: <code>ARCHUID</code>, <code>BRCHD</code>, <code>ZRCHUSR</code>) designed to look like traffic from common C2 frameworks (Cobalt Strike, Sliver, etc.) &mdash; defeating analysts who hunt for "framework X" rather than the actual TTPs.</li>
-  </ol>
-
-  <h4>Why It Matters</h4>
-  <ul style="font-size:14px">
-    <li><strong>ClickFix bypasses email gateways entirely.</strong> Delivery is via compromised legit websites + clipboard social-engineering. Attachment filtering doesn't apply; the user types the payload themselves.</li>
-    <li><strong>The PowerShell is invisible by default.</strong> ETW + AMSI patches land within seconds, before defenders ever see the script content. Detection has to catch <em>execution</em> &mdash; the <code>explorer.exe &rarr; powershell.exe</code> parentage from the Run dialog, or the Lua loader path &mdash; not the script body.</li>
-    <li><strong>Mimicked C2 traffic.</strong> Hunting on "Cobalt Strike-style" or "Sliver-style" indicators will misroute investigators. MIMICRAT is identifiable by its <em>combination</em> of forged artifacts (Cortana UA + zh-CN Accept-Language + Google referer + specific URIs).</li>
-    <li><strong>Custom Base64 + Lua = signature evasion.</strong> The Lua script is XOR-encrypted with a non-standard Base64 alphabet, so static signature engines miss the staged payload.</li>
-    <li><strong>Token theft built in.</strong> CMD 31 duplicates tokens by PID; CMD 12 spawns processes under stolen credentials. Lateral movement is one operator command away.</li>
-  </ul>
-</div>
-</section>
-
-<section id="brief">
-<h2>Hunt Brief</h2>
-<div class="brief">
-  <ul>
-    <li><strong>Threat:</strong> MIMICRAT / ClickFix campaign <span class="badge badge-high">High Severity</span></li>
-    <li><strong>Summary:</strong> ClickFix-style social engineering tricks users into pasting an obfuscated PowerShell one-liner via Win+R. The script patches ETW + AMSI, drops a Lua 5.4.7 loader (<code>zbuild.exe</code>) under <code>%ProgramData%\knz_*\</code>, decrypts and runs a Meterpreter-family shellcode, and stages the <strong>MIMICRAT</strong> native-C++ beacon to CloudFront over TCP/443 with HTTP traffic crafted to look like other C2 frameworks.</li>
-    <li><strong>Affected:</strong> Windows endpoints (x64). Documented victims include a US university and Chinese-speaking users; the ClickFix lure is localized into 17 languages so geo-targeting should be assumed wide.</li>
-    <li><strong>Actor:</strong> Unattributed; capability profile consistent with an experienced operator (custom RAT, multi-stage in-memory chain, C2 mimicry).</li>
-    <li><strong>CISA KEV:</strong> No (TTP-based campaign, not a CVE)</li>
-  </ul>
-  <h4>Key IOCs at a Glance</h4>
-  <ul>
-    <li>SHA256: <code>bcc7a0e53ebc62c77b7b6e3585166bfd7164f65a8115e7c8bda568279ab4f6f1</code> (Stage 1 PowerShell)</li>
-    <li>SHA256: <code>5e0a30d8d91d5fd46da73f3e6555936233d870ac789ca7dd64c9d3cc74719f51</code> (Lua loader / zbuild.exe)</li>
-    <li>SHA256: <code>a508d0bb583dc6e5f97b6094f8f910b5b6f2b9d5528c04e4dee62c343fce6f4b</code> (MIMICRAT beacon)</li>
-    <li>SHA256: <code>055336daf2ac9d5bbc329fd52bb539085d00e2302fa75a0c7e9d52f540b28beb</code> (related beacon)</li>
-    <li>IPv4: <code>45.13.212.250</code>, <code>45.13.212.251</code> (stage 1 delivery), <code>23.227.202.114</code> (post-ex C2)</li>
-    <li>Domains: <code>xmri.network</code>, <code>wexmri.cc</code>, <code>www.ndibstersoft.com</code>, <code>d15mawx0xveem1.cloudfront.net</code></li>
-    <li>URLs: <code>https://www.investonline.in/js/jq.php</code>, <code>backupdailyawss.s3.us-east-1.amazonaws.com/rgen.zip</code></li>
-    <li>Paths: <code>%ProgramData%\knz_*\zbuild.exe</code></li>
-    <li>HTTP URIs: <code>/intake/organizations/events?channel=app</code>, <code>/discover/pcversion/metrics?clientver=ds</code></li>
-    <li>Cookie names: <code>AFUAK</code>, <code>BLA</code>, <code>HFK</code> (GET); <code>ARCHUID</code>, <code>BRCHD</code>, <code>ZRCHUSR</code> (POST)</li>
-  </ul>
-</div>
-</section>
-
-<section id="queries">
-<h2>CrowdStrike Hunt Queries</h2>
-<div class="callout">Run IOC sweeps (Hunts 1, 2) first &mdash; lowest FP, highest confidence. The ClickFix-specific behavioral hunt (Hunt 3 &mdash; <code>explorer.exe &rarr; powershell.exe</code> from the Run dialog) is the single highest-value query in this pack and should be triaged second.<br><br><strong>Revision notes (2026-05-12):</strong> Queries audited against the <code>crowdstrike-logscale</code> CQL skill and the <code>threat-hunter</code> output rules. Changes: switched to <code>in()</code> for fixed-value lists (Hunts 2, 4), fixed an ambiguous OR-pipe boundary in Hunt 5, removed redundant regex alternations in Hunt 6, dropped <code>NetworkConnectIP4</code> from the HTTP-event filter in Hunt 8, tightened the parent/child user-context filter in Hunt 12, added Hunt 14 for SOCKS5 listener coverage (T1090).</div>
-
-<!-- HUNT 1 -->
-<div class="query-card">
-  <div class="query-header">Hunt 1 &mdash; IOC Sweep: Known MIMICRAT / Lua Loader Hashes <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> N/A (IOC) &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High &middot; <strong>Timeframe:</strong> 90d</div>
-<pre>// HUNT: MIMICRAT / ClickFix - Known SHA256 hashes (Stage 1 PS, Lua loader, MIMICRAT beacon, related)
-// HYPOTHESIS: If this campaign has touched our fleet, the documented sample hashes will appear in process or PE-write telemetry
-// FP RISK: Low - exact hash match
-// FP NOTES: None expected; any hit is high-confidence TP
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|ImageHash|ModuleLoad/
-| in(field=SHA256HashData, values=[
-    "bcc7a0e53ebc62c77b7b6e3585166bfd7164f65a8115e7c8bda568279ab4f6f1",
-    "5e0a30d8d91d5fd46da73f3e6555936233d870ac789ca7dd64c9d3cc74719f51",
-    "a508d0bb583dc6e5f97b6094f8f910b5b6f2b9d5528c04e4dee62c343fce6f4b",
-    "055336daf2ac9d5bbc329fd52bb539085d00e2302fa75a0c7e9d52f540b28beb"
-  ])
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>MimiCRAT (Elastic Security Labs, Feb 2026; also tracked as <strong>AstarionRAT</strong>) is a five-stage intrusion chain that begins with a <strong>ClickFix</strong> lure on compromised/typosquatted sites: the victim is tricked into pasting a command (Win+R / a fake "verify you are human" prompt) that launches an <strong>obfuscated PowerShell downloader</strong>. Stage two patches <strong>ETW and AMSI</strong> in memory and drops the next payload; stage three is a <strong>Lua-based loader</strong> (using <code>luaalloc</code> / <code>luacpy</code> / <code>luaexe</code>-style helpers) that maps shellcode entirely in memory; stage four is a <strong>Meterpreter-like reflective payload</strong>; stage five is the native C++ RAT, <strong>MIMICRAT</strong>.</p>
+    <p>MIMICRAT provides hands-on control: <strong>Windows access-token theft/impersonation</strong>, a built-in <strong>SOCKS5 proxy</strong> for pivoting, command execution, and file operations. It uses <strong>malleable C2 profiles over HTTPS (443)</strong> designed to look like ordinary web-analytics traffic. Because the chain is largely <strong>fileless and in-memory after the first PowerShell stage</strong>, detection centers on the <strong>ClickFix execution lineage</strong>, the <strong>ETW/AMSI-bypass + Lua-loader</strong> behavior, and the <strong>token-theft / SOCKS5 / malleable-C2</strong> indicators.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> ClickFix is the front door — hunt <strong>Q1</strong> (browser/explorer → PowerShell from a RunMRU/clipboard paste) and educate users that "paste this to continue" is an attack. Then hunt <strong>Q2</strong> (ETW/AMSI-bypass + Lua-loader artifacts), <strong>Q4</strong> (in-memory/Meterpreter behavior), and <strong>Q5</strong> (SOCKS5 / malleable-C2 egress). The whole chain runs from one pasted command — break Q1 and the rest never executes.</p>
+  </div>
 </div>
 
-<!-- HUNT 2 -->
-<div class="query-card">
-  <div class="query-header">Hunt 2 &mdash; C2 / Staging Network Indicators <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1071.001, T1041 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
-<pre>// HUNT: MIMICRAT documented C2 + staging infrastructure
-// HYPOTHESIS: A compromised host will resolve or connect to one of the campaign domains/IPs
-// FP RISK: Low - dedicated adversary infrastructure. CloudFront subdomain is a specific match, not wildcard.
-// FP NOTES: investonline.in and bincheck.io were COMPROMISED legit sites - if you see traffic to them, do not assume malicious without context. Treat the JS path /js/jq.php as the actionable signal.
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-(#event_simpleName = NetworkConnectIP4 AND in(field=RemoteAddressIP4, values=["45.13.212.250", "45.13.212.251", "23.227.202.114"]))
-or
-(#event_simpleName = DnsRequest AND in(field=DomainName, values=[
-    "xmri.network",
-    "wexmri.cc",
-    "www.ndibstersoft.com",
-    "ndibstersoft.com",
-    "d15mawx0xveem1.cloudfront.net"
-  ], ignoreCase=true))
-or
-(#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND CommandLine = /(investonline\.in\/js\/jq\.php|backupdailyawss\.s3\.us-east-1\.amazonaws\.com\/rgen\.zip)/i)
-// Enrich the network/DNS hits with process context (no-op for the PR2 branch; mode=left preserves all rows)
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName], mode=left)
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, RemoteAddressIP4, RemotePort, DomainName])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Elastic Security Labs — MimiCRAT</td><td>5-stage chain; ClickFix; ETW/AMSI bypass; Lua loader; Meterpreter; C++ RAT; token theft/SOCKS5</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>ClickFix technique reporting (Proofpoint / Microsoft)</td><td>ClickFix delivery mechanics: fake CAPTCHA / Win+R paste → PowerShell</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Meterpreter / malleable-C2 detection literature</td><td>Reflective-load + malleable-profile egress patterns</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> front-door-first (ClickFix lineage is the cheapest, highest-leverage break); behavior-anchored across the fileless chain (ETW/AMSI bypass + Lua loader + in-memory Meterpreter); the Lua-helper names and malleable-C2 give specific hunts; payload hashes are fileless/rotating, so the chain behavior is the durable surface.</p>
+  </div>
 </div>
 
-<!-- HUNT 3 -->
-<div class="query-card">
-  <div class="query-header">Hunt 3 &mdash; ClickFix Telltale: explorer.exe Spawning PowerShell / cmd <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1059.001, T1204.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> High</div>
-<pre>// HUNT: Win+R Run dialog or paste-into-PowerShell behavior - explorer.exe parenting a script host with network-y arguments
-// HYPOTHESIS: ClickFix forces the user to paste a PowerShell one-liner via Win+R, producing explorer.exe -> powershell.exe with download/IEX patterns
-// FP RISK: Medium - users do legitimately run powershell from Win+R
-// FP NOTES: Tune out admin tooling and signed deployment scripts. The give-away is download/exec patterns (iwr, IEX, FromBase64String, DownloadString) in CommandLine.
-// CONFIDENCE: High when filters match
-// TIMEFRAME: Last 30 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ParentBaseFileName = /^explorer\.exe$/i
-| ImageFileName = /\\(powershell(_ise)?\.exe|pwsh\.exe|cmd\.exe|mshta\.exe|wscript\.exe|cscript\.exe)$/i
-| CommandLine = /(IEX|Invoke-Expression|Invoke-WebRequest|iwr\s|Invoke-RestMethod|irm\s|DownloadString|DownloadFile|FromBase64String|-WInDo|-WindowStyle\s+(Min|Hidden)|-encodedcommand|-enc\s|curl\s+http|wget\s+http)/i
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A user is lured by ClickFix into pasting a command that launches obfuscated PowerShell, which bypasses ETW/AMSI, runs a Lua loader, maps Meterpreter shellcode, and deploys MIMICRAT for token theft, SOCKS5 pivoting, and malleable C2.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · ClickFix</td><td>Fake CAPTCHA / Win+R paste on a compromised site</td><td>RunMRU; browser→shell</td><td><strong>Q1</strong>; N1</td></tr>
+        <tr><td>2 · PS downloader</td><td>Obfuscated PowerShell pulls the next stage</td><td><code>ProcessRollup2</code>; script-block</td><td><strong>Q1 / Q2</strong></td></tr>
+        <tr><td>3 · ETW/AMSI bypass + Lua loader</td><td>In-memory patch + Lua-based shellcode map</td><td>module/file; script-block</td><td><strong>Q2 / Q3</strong></td></tr>
+        <tr><td>4 · Meterpreter</td><td>Reflective shellcode payload</td><td><code>ProcessRollup2</code>; net</td><td><strong>Q4</strong>; N2</td></tr>
+        <tr><td>5 · MIMICRAT</td><td>C++ RAT: token theft, SOCKS5, exec, file ops</td><td><code>ProcessRollup2</code>; net</td><td><strong>Q4 / Q5</strong></td></tr>
+        <tr><td>6 · C2</td><td>Malleable profiles over HTTPS/443</td><td><code>NetworkConnectIP4</code>; DNS</td><td><strong>Q5</strong>; N3</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Workstations (users)</td><td>Process lineage + RunMRU/clipboard signals</td><td><span class="badge b-high">Critical</span></td><td>Low — process telemetry</td></tr>
+        <tr><td>PowerShell</td><td>Script-block + module logging</td><td><span class="badge b-high">High</span></td><td>Medium — logging gap</td></tr>
+        <tr><td>In-memory loader</td><td>AMSI/ETW-tamper + reflective-load signals</td><td><span class="badge b-high">High</span></td><td>Medium — needs memory telemetry</td></tr>
+        <tr><td>Egress (C2/SOCKS5)</td><td>Proxy/DNS + netflow</td><td><span class="badge b-med">Medium</span></td><td>Medium — malleable/HTTPS</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 4 -->
-<div class="query-card">
-  <div class="query-header">Hunt 4 &mdash; PowerShell String-Slicing / Mixed-Case Domain Reconstruction <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1027.010, T1059.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
-<pre>// HUNT: MIMICRAT stage 1 reconstructs the C2 domain from a mangled, mixed-case string assignment (e.g. $RdLU='aZmEwGEtHPckKyBXPxMRi.neTwOrkicsGf')
-// HYPOTHESIS: Stage-1 PowerShell has an unusually long mixed-case variable assignment plus string-slicing operators
-// FP RISK: Medium - some legit obfuscators / RMM agents look similar
-// FP NOTES: Tune out signed deployment frameworks. Mixed-case TLDs like .neTwOrk / .CC inside a powershell CommandLine are the high-value substring.
-// CONFIDENCE: Medium
-// TIMEFRAME: Last 30 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /\\(powershell|pwsh)\.exe$/i
-| CommandLine = /-WInDo\s+Min/
-// Long mixed-case quoted-string assignment is the high-signal artefact (e.g. $RdLU='aZmEwGE...xMRi.neTwOrk...').
-// The previous over-broad CamelCase regex was unanchored and matched almost any path/assembly name; this
-// version requires the mixed-case run to live INSIDE a quoted string assigned to a short variable.
-| CommandLine = /\$[A-Za-z]{2,6}\s*=\s*['"][A-Za-z0-9]*[a-z][A-Z][a-z][A-Z][A-Za-z0-9]{20,}['"]/
-| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">The chain is largely fileless and C2 is malleable, so payload hashes/domains rotate. The ClickFix lineage, ETW/AMSI-bypass + Lua-loader, and token-theft/SOCKS5 behaviors are durable. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior</td><td class="mono">ClickFix: browser/explorer → PowerShell via RunMRU/clipboard paste</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Front door — flagship</td></tr>
+        <tr><td>Behavior</td><td class="mono">Obfuscated PowerShell downloader (IEX / encoded / hidden)</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Stage 1</td></tr>
+        <tr><td>Behavior</td><td class="mono">ETW/AMSI bypass + Lua loader (luaalloc/luacpy/luaexe-style)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>In-memory map</td></tr>
+        <tr><td>Malware</td><td class="mono">MIMICRAT / AstarionRAT (token theft, SOCKS5)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Native C++ RAT</td></tr>
+        <tr><td>Network</td><td class="mono">Malleable C2 over HTTPS/443 (mimics web analytics); SOCKS5 pivot</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>C2 / lateral</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 5 -->
-<div class="query-card">
-  <div class="query-header">Hunt 5 &mdash; ETW / AMSI Bypass Reflection Strings <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1562.001, T1562.002 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
-<pre>// HUNT: PowerShell command line OR script-scan content referencing the documented AMSI + ETW bypass primitives
-// HYPOTHESIS: Stage 2 PS patches EventProvider.m_enabled, AmsiUtils.amsiInitFailed, and ScanContent via Marshal.Copy
-// FP RISK: Low - these strings are diagnostic of the bypass technique itself
-// FP NOTES: Red-team / pentest tooling will also fire; correlate with authorized engagement records
-// CONFIDENCE: High
-// TIMEFRAME: Last 60 days
-
-// Branch 1: process-event hit on the PowerShell command line itself
-(
-  #event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-  AND ImageFileName = /\\(powershell|pwsh)\.exe$/i
-  AND CommandLine = /(amsiInitFailed|AmsiUtils|m_enabled|EventProvider|ScanContent|System\.Management\.Automation\.AmsiUtils|System\.Diagnostics\.Eventing\.EventProvider|\[Marshal\]::Copy|Marshal::Copy)/i
-)
-or
-// Branch 2: script-scan telemetry hit on the decoded script body (catches encoded launchers that decode at runtime)
-(
-  #event_simpleName = /ScriptControlScanTelemetry|ScriptBlockLog/
-  AND ScriptContent = /(amsiInitFailed|AmsiUtils|m_enabled|EventProvider|ScanContent|\[Marshal\]::Copy|Marshal::Copy)/i
-)
-| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, ScriptContent])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access / Execution</td><td>T1204.004 / T1059.001 — ClickFix / PowerShell</td><td>Pasted command launches PowerShell</td><td>Q1; N1</td></tr>
+        <tr><td>Defense Evasion</td><td>T1562.001 / T1620 — Impair defenses / reflective load</td><td>ETW/AMSI bypass; Lua in-memory map</td><td>Q2, Q3</td></tr>
+        <tr><td>Execution</td><td>T1059 / T1106 — Script / native API</td><td>Lua loader + Meterpreter shellcode</td><td>Q3, Q4</td></tr>
+        <tr><td>Privilege Esc / Defense Evasion</td><td>T1134 — Access-token manipulation</td><td>MIMICRAT token theft/impersonation</td><td>Q4</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1090 / T1071.001 — Proxy / web C2</td><td>SOCKS5 pivot; malleable HTTPS C2</td><td>Q5, N3</td></tr>
+        <tr><td>Collection / Exfil</td><td>T1005 / T1041 — Local data / C2 exfil</td><td>File ops + exfil over C2</td><td>Q5</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 6 -->
-<div class="query-card">
-  <div class="query-header">Hunt 6 &mdash; zbuild.exe Under %ProgramData%\knz_* <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1036, T1574 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Very Low</span> &middot; <strong>Confidence:</strong> High</div>
-<pre>// HUNT: Filename + path artefact unique to MIMICRAT's Lua loader stage
-// HYPOTHESIS: A successful infection drops zbuild.exe into a randomized %ProgramData%\knz_* directory
-// FP RISK: Very Low - the knz_ prefix + zbuild.exe combo has no legitimate counterpart
-// FP NOTES: None expected
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-// Match either the unique file name (zbuild.exe) OR the unique folder prefix (knz_) - either is sufficient
-(#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ AND (
-    ImageFileName = /\\zbuild\.exe$/i
- or CommandLine = /\\ProgramData\\knz_/i
-))
-or
-(#event_simpleName = /PeFileWritten|NewExecutableWritten|GenericFileWritten/ AND TargetFileName = /\\ProgramData\\knz_/i)
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, TargetFileName, ContextImageFileName, ParentBaseFileName])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · ClickFix paste</td><td>Registry (RunMRU) + process</td><td><code>...\RunMRU</code> entries containing powershell/cmd/mshta; browser→shell lineage</td><td>Isolate; user coaching</td></tr>
+        <tr><td>N2 · PowerShell script-block</td><td>PowerShell Operational (4104)</td><td>Obfuscated/encoded blocks, AMSI/ETW patch strings, download cradles</td><td>Triage host; pull payload</td></tr>
+        <tr><td>N3 · Malleable-C2 egress</td><td>Proxy / DNS / netflow</td><td>HTTPS beacons with analytics-like URIs; SOCKS5 pivot to internal hosts</td><td>Block; identify host</td></tr>
+        <tr><td>N4 · Anomalous token use</td><td>Security (4624/4672/4648)</td><td>Process running under an impersonated token / explicit-cred logons from the host</td><td>Reset creds; scope</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 7 -->
-<div class="query-card">
-  <div class="query-header">Hunt 7 &mdash; Suspicious PE Executing From %ProgramData% Random-Folder <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1036.005, T1059 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Med-High</div>
-<pre>// HUNT: Generalized hunt for non-vendor binaries running from %ProgramData%\<random>\<name>.exe (variant tolerance)
-// HYPOTHESIS: MIMICRAT may shift folder/exe names but keep %ProgramData% as the staging root
-// FP RISK: Medium - many vendors install under ProgramData; allowlist on first-pass
-// FP NOTES: Allowlist common vendors (Microsoft, Adobe, ConnectWise, NinjaOne, McAfee, Sophos, etc.). Alert on user-context invocations.
-// CONFIDENCE: Medium-High
-// TIMEFRAME: Last 30 days
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. The chain is fileless after stage 1 — Q1 (ClickFix) is the cheapest, highest-yield break. Pair the in-memory hunts (Q2-Q4) with PowerShell script-block logging.</div>
 
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /^C:\\ProgramData\\[A-Za-z0-9_\-]{3,32}\\[A-Za-z0-9_\-]{3,32}\.exe$/i
-| ImageFileName != /\\(Microsoft|Adobe|McAfee|Sophos|CrowdStrike|ConnectWise|NinjaOne|Intel|NVIDIA|Lenovo|Dell|HP|VMware|Citrix|Cisco|Zoom|Slack|Teams|Webex|GoTo|chocolatey|Package Cache|USOPrivate|USOShared|WindowsHolographicDevices)\\/i
-| groupBy([aid, ComputerName, ImageFileName, ParentBaseFileName], function=collect([@timestamp, CommandLine, UserName, SHA256HashData]))
-| sort(_count, order=desc)</pre>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · ClickFix lineage — browser/explorer → PowerShell</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a browser or explorer spawning PowerShell/mshta with download/encoded cradles (the ClickFix paste). <strong>Accomplishes:</strong> breaks the front door. <strong>FP:</strong> some admin tooling — flag hidden/encoded/IEX cradles.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: ClickFix lineage -> PowerShell download cradle</span>
+<span class="cm">// MITRE: T1204.004, T1059.001 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// FP NOTES: flag browser/explorer parent + encoded/hidden/IEX cradles</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(chrome|msedge|firefox|brave|explorer|mshta)\.exe$/i
+| FileName=/^(powershell|pwsh|mshta|cmd)\.exe$/i
+| CommandLine=/(-enc|-e\s|-w\s?hidden|FromBase64|IEX|Invoke-Expression|DownloadString|curl|Invoke-WebRequest)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · ETW / AMSI bypass indicators</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> command-line patterns that patch AMSI/ETW (amsiInitFailed, EtwEventWrite, VirtualProtect on amsi.dll). <strong>FP:</strong> some red-team/security tooling — correlate to Q1 on the same host.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: ETW/AMSI bypass strings (in-memory defense impair)</span>
+<span class="cm">// MITRE: T1562.001 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: pair with PowerShell script-block (4104); correlate to Q1</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(amsiInitFailed|amsi\.dll|AmsiScanBuffer|EtwEventWrite|ETW.{0,12}(patch|disable)|VirtualProtect)/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Lua-based loader artifacts</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a standalone Lua interpreter or Lua-loader helper names (<code>luaalloc</code>/<code>luacpy</code>/<code>luaexe</code>) and <code>.lua</code> scripts in user/temp paths. <strong>FP:</strong> some games/apps embed Lua — flag user-temp + unsigned context; correlate to Q1/Q2.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Lua-based in-memory loader (luaalloc/luacpy/luaexe)</span>
+<span class="cm">// MITRE: T1059, T1620 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: some apps embed Lua; flag user/temp paths + correlate to Q1/Q2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|FileCreateInfo/
+| (FileName=/^lua(5\d?|jit)?\.exe$/i
+   or CommandLine=/(luaalloc|luacpy|luaexe)/i
+   or TargetFileName=/\\(Temp|AppData|Users)\\.+\.lua$/i)
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, TargetFileName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · MIMICRAT — token theft / in-memory RAT behavior</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a user/temp-path or injected process spawning children under unusual tokens, or behaviors consistent with token impersonation. <strong>FP:</strong> correlate to Q1-Q3; pair with N4 (4624/4648). Tune to your environment.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: MIMICRAT token theft / RAT child behavior</span>
+<span class="cm">// MITRE: T1134, T1106 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: pair with Security 4624/4648; correlate to Q1-Q3 lineage</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| FileName=/^(cmd|powershell|net|net1|whoami|nltest|tasklist)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · SOCKS5 pivot / malleable-C2 egress</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a user/temp-path or non-browser binary making outbound HTTPS/443 connections (malleable C2) or acting as a SOCKS5 pivot. <strong>FP:</strong> medium — baseline normal egress; correlate to Q1-Q4.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: MIMICRAT SOCKS5 pivot / malleable-C2 egress</span>
+<span class="cm">// MITRE: T1090, T1071.001 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// TUNING: baseline normal egress; flag non-browser user-path binaries beaconing 443</span>
+#event_simpleName=NetworkConnectIP4
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| ImageFileName!=/\\(chrome|msedge|firefox|brave)\.exe$/i
+| RemotePort=443
+| table([@timestamp, ComputerName, ImageFileName, RemoteAddressIP4, RemotePort])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · RunMRU ClickFix paste artifact (registry)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a Run-dialog (RunMRU) entry containing powershell/cmd/mshta — the hallmark ClickFix paste. <strong>Accomplishes:</strong> a high-fidelity ClickFix signal. <strong>FP:</strong> low — few users type powershell into Win+R.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: ClickFix RunMRU paste artifact</span>
+<span class="cm">// MITRE: T1204.004 | CONF: med-high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: legit users rarely paste powershell/mshta into the Run dialog</span>
+#event_simpleName=/AsepValueUpdate|RegGenericValueUpdate/
+| RegObjectName=/\\Explorer\\RunMRU$/i
+| RegStringValue=/(powershell|pwsh|mshta|cmd|curl|Invoke-|FromBase64|-enc)/i
+| table([@timestamp, ComputerName, UserName, RegStringValue])</pre>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 8 -->
-<div class="query-card">
-  <div class="query-header">Hunt 8 &mdash; MIMICRAT Distinctive HTTP URIs / Cookie Names <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1071.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
-<pre>// HUNT: MIMICRAT GET/POST profile signatures (URIs + cookie names + UA + Referer)
-// HYPOTHESIS: HTTP telemetry (proxy logs / Falcon HTTP events) will contain MIMICRAT's distinctive paths and cookie set
-// FP RISK: Low - these URIs are bespoke; combined with the cookie set they are diagnostic
-// FP NOTES: Requires HTTP-payload telemetry. Falcon's stock NetworkConnectIP4 does NOT carry HTTP fields - this hunt
-//           depends on either (a) Falcon HTTP events from a higher-tier sensor policy, (b) NDR/proxy logs forwarded
-//           into LogScale, or (c) a custom parser. If you do not have any of these, run Hunt 2 instead.
-//           Falcon field names may differ from your normalized schema - HttpUri / HttpReferer / HttpUserAgent are
-//           shown here as the common normalized form; substitute the parser-specific names if your repo differs.
-// CONFIDENCE: High where telemetry exists
-// TIMEFRAME: Last 60 days
-
-#event_simpleName = /HttpRequestEvent|HttpResponseEvent|HttpRequest/ OR #type = /^(httpaccess|proxy|ndr|zeek_http)$/i
-| (
-    HttpUri = /\/intake\/organizations\/events\?channel=app/i
- or HttpUri = /\/discover\/pcversion\/metrics\?clientver=ds/i
- or HttpReferer = /https:\/\/www\.google\.com\/\?q=dj1/i
- or HttpReferer = /https:\/\/gsov\.google\.com\//i
- or HttpUserAgent = /Cortana 1\.14\.9\.19041/i
- or HttpCookieName = /(AFUAK|HFK|ARCHUID|BRCHD|ZRCHUSR)/i
-)
-| table([@timestamp, aid, ComputerName, UserName, HttpHost, HttpUri, HttpUserAgent, HttpReferer, HttpCookieName])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>MimiCRAT — ClickFix lineage</td><td>Parent <code>chrome/msedge/explorer.exe</code>; Child <code>powershell/mshta</code> + encoded/IEX cradle</td><td>Sanctioned admin scripts (allow-list)</td><td>Endpoint Security → Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>MimiCRAT — AMSI/ETW bypass</td><td>CommandLine <code>amsiInitFailed/EtwEventWrite/AmsiScanBuffer</code></td><td>Vetted security tooling</td><td>Custom IOA → Process Creation, Detect</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1/Q6 (ClickFix) are strong promotions — the entire chain depends on that first paste. Q2-Q5 stay tuned hunts (fileless / generic). Pair with PowerShell script-block logging for stage-2 visibility.</div>
+  </div>
 </div>
 
-<!-- HUNT 9 -->
-<div class="query-card">
-  <div class="query-header">Hunt 9 &mdash; Non-Browser Process Connecting to CloudFront <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1071.001, T1102 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Med-High</div>
-<pre>// HUNT: MIMICRAT C2 hostname (d15mawx0xveem1.cloudfront.net) and broader: any non-browser process talking to a single CloudFront alphanumeric subdomain
-// HYPOTHESIS: Beacons fronted on CloudFront produce DNS to <random>.cloudfront.net from non-browser processes
-// FP RISK: Medium - desktop apps legitimately use CloudFront (Slack, Zoom, IDE updaters, etc.)
-// FP NOTES: Allowlist known desktop apps that use CloudFront for assets/updates. Focus on parent process and CommandLine to decide if a hit is suspicious.
-// CONFIDENCE: Medium-High
-// TIMEFRAME: Last 30 days
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for detection. The chain is fileless and C2 is malleable — behavior is the durable surface. Add per-incident atoms during triage.</p>
+    <div class="ioc-grab-grid">
 
-#event_simpleName = DnsRequest
-| (DomainName = /^d15mawx0xveem1\.cloudfront\.net$/i or DomainName = /^[a-z0-9]{12,}\.cloudfront\.net$/i)
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName, UserName])
-| ImageFileName != /\\(chrome|msedge|firefox|brave|opera|safari|iexplore|Slack|Zoom|Teams|Code|Outlook|OneDrive|Dropbox|spotify|discord|cursor|idea64|pycharm64|webstorm64|rider64|clion64|datagrip64)\.exe$/i
-| ImageFileName != /\\(Adobe|McAfee|Sophos|CrowdStrike|ConnectWise|NinjaOne|Citrix|VMware)\\/i
-| groupBy([aid, ComputerName, ImageFileName, ParentBaseFileName, DomainName], function=collect([@timestamp, CommandLine]))
-| sort(_count, order=desc)</pre>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">ClickFix: browser/explorer spawning powershell/mshta with encoded/IEX/DownloadString cradle
+RunMRU registry entry containing powershell/cmd/mshta (Win+R paste artifact)
+Command-line ETW/AMSI bypass: amsiInitFailed, AmsiScanBuffer, EtwEventWrite, VirtualProtect on amsi.dll
+Lua loader: lua/luajit interpreter or luaalloc/luacpy/luaexe helpers; .lua in %TEMP%/%AppData%
+User/temp-path or injected process spawning recon (whoami/net/nltest) under an unusual token (MIMICRAT)
+Non-browser user-path binary beaconing HTTPS/443 (malleable C2) or acting as a SOCKS5 pivot</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling / Stages</span><span class="igc">MimiCRAT</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">MimiCRAT / AstarionRAT  # native C++ RAT (token theft, SOCKS5 proxy, exec, file ops)
+Stage 1: ClickFix lure -> obfuscated PowerShell downloader
+Stage 2: ETW + AMSI bypass (in-memory patch) + payload drop
+Stage 3: Lua-based in-memory loader (luaalloc / luacpy / luaexe helpers)
+Stage 4: Meterpreter-like reflective shellcode
+Stage 5: MIMICRAT native C++ RAT
+C2: malleable profiles over HTTPS/443, mimicking web-analytics traffic</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">User-Coaching Tells</span><span class="igc">ClickFix awareness</span></div>
+        <button class="btn-copy" data-label="Copy tells" onclick="copyBlock('grab-tells',this)" style="margin:0 0 6px;">Copy tells</button>
+<pre class="code" id="grab-tells">"Verify you are human" / fake CAPTCHA asking you to press Win+R and paste
+Any site instructing: copy this, press Win+R (or Win+X / Terminal), paste, Enter
+PowerShell/cmd text on the clipboard after visiting a site
+# Rule for users: legitimate sites NEVER ask you to paste a command to continue.</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Block</span><span class="igc">defense-in-depth</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl">User awareness: "paste this command to continue" = attack (ClickFix) -- the cheapest fix
+PowerShell Constrained Language Mode + script-block/module logging fleet-wide
+ASR: block credential/LSASS theft; block obfuscated scripts; block executable content from web
+Consider disabling/monitoring the Win+R Run box on user tier via GPO
+AMSI on; promote Q1/Q6 (ClickFix) to Detect+Block IOAs
+Egress: baseline + flag non-browser user-path binaries beaconing 443 / SOCKS5 pivots</pre>
+      </div>
+
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 10 -->
-<div class="query-card">
-  <div class="query-header">Hunt 10 &mdash; DNS to Suspicious .cc / .network TLDs From Non-Browser <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1071.004, T1568 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
-<pre>// HUNT: Stage 1 staging used xmri.network / wexmri.cc - both rarely-used TLDs in enterprise traffic
-// HYPOTHESIS: Programmatic resolution of a .cc or .network domain from a non-browser process is a strong campaign signal
-// FP RISK: Medium - some legitimate services do live on .cc / .network
-// FP NOTES: Allowlist known business domains in .cc / .network if any; if you don't know of any, the noise floor is low
-// CONFIDENCE: Medium
-// TIMEFRAME: Last 60 days
-
-#event_simpleName = DnsRequest
-| DomainName = /\.(cc|network)$/i
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName, UserName])
-| ImageFileName != /\\(chrome|msedge|firefox|brave|opera|safari|iexplore|Outlook|Teams|Slack|OneDrive)\.exe$/i
-| groupBy([aid, ComputerName, ImageFileName, DomainName, ParentBaseFileName], function=collect([@timestamp, CommandLine]))
-| sort(_count, order=desc)</pre>
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Break the ClickFix front door, constrain PowerShell, and surface the in-memory chain.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Break the front door</div>
+      <ul>
+        <li><strong>User awareness: "paste this command to continue" is an attack</strong> — <em>M1017</em>. ClickFix dies if the user doesn't paste — the cheapest control.</li>
+        <li><strong>Promote Q1/Q6 (ClickFix lineage + RunMRU) to Detect+Block</strong> — <em>M1040</em>.</li>
+        <li><strong>PowerShell Constrained Language Mode + script-block/module logging</strong> — <em>M1038 / M1047</em>. Blunts stages 1-2 and feeds N2.</li>
+        <li><strong>ASR: block obfuscated scripts + executable content from web/email; AMSI on</strong> — <em>M1042</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain &amp; observe (pilot first)</div>
+      <ul>
+        <li><strong>Disable/monitor the Win+R Run box on the user tier via GPO</strong> — <em>M1038</em>. Removes the ClickFix paste surface.</li>
+        <li><strong>WDAC/app control for LOLBins + unsigned interpreters (lua.exe)</strong> — <em>M1038</em>.</li>
+        <li><strong>Egress control: baseline + flag non-browser user-path binaries beaconing 443 / SOCKS5</strong> — <em>M1037</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce RAT surface</div>
+      <ul>
+        <li><strong>Application allowlisting; default-deny user-path execution</strong> — <em>M1038</em>.</li>
+        <li><strong>Credential-theft hardening (Credential Guard); phishing-resistant MFA</strong> — <em>M1043 / M1032</em>. Blunts token theft + reuse.</li>
+        <li><strong>Network segmentation to limit SOCKS5 pivoting</strong> — <em>M1030</em>.</li>
+      </ul>
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 11 -->
-<div class="query-card">
-  <div class="query-header">Hunt 11 &mdash; PowerShell Downloading + Executing From Compromised Sites <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1105, T1059.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-low">Low</span> &middot; <strong>Confidence:</strong> High</div>
-<pre>// HUNT: Direct download patterns referencing the campaign delivery URLs
-// HYPOTHESIS: Stage-1 PS pulls additional content from investonline.in/js/jq.php or backupdailyawss.s3 ZIP
-// FP RISK: Low - exact URL match
-// FP NOTES: Note that investonline.in is a compromised legitimate site; the actionable path is /js/jq.php specifically
-// CONFIDENCE: High
-// TIMEFRAME: Last 90 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| (
-    CommandLine = /investonline\.in\/js\/jq\.php/i
- or CommandLine = /backupdailyawss\.s3.*\/rgen\.zip/i
- or CommandLine = /xmri\.network/i
- or CommandLine = /wexmri\.cc/i
- or CommandLine = /ndibstersoft\.com/i
-)
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host; capture memory before reboot (fileless chain lives in RAM); preserve PowerShell logs + RunMRU</td><td>SOC L2</td><td>Containment timestamp; Q1 event; memory image</td></tr>
+        <tr><td>Triage</td><td>Map ClickFix → PowerShell → Lua loader → Meterpreter → MIMICRAT; find C2/SOCKS5; assess token theft &amp; lateral movement</td><td>IR</td><td>Process tree; script-block; C2 list</td></tr>
+        <tr><td>Eradicate</td><td>Kill the RAT; block C2; reset credentials touched on the host (token theft); remove any persistence</td><td>IR</td><td>Removal log; cred reset</td></tr>
+        <tr><td>Recover</td><td>Reimage if hands-on RAT control occurred; verify; restore from clean backup</td><td>IR + IT</td><td>Rebuild ticket</td></tr>
+        <tr><td>Harden</td><td>Promote Q1/Q6; CLM + script-block logging; ASR; user coaching; disable Win+R on user tier</td><td>Detection Eng</td><td>IOA enabled; logging on</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- HUNT 12 -->
-<div class="query-card">
-  <div class="query-header">Hunt 12 &mdash; Token Theft: Process Spawn With Different User Context Than Parent <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1134.001 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Med-High</span> &middot; <strong>Confidence:</strong> Medium</div>
-<pre>// HUNT: MIMICRAT CMD 31 + CMD 12 duplicate process tokens and spawn under stolen credentials
-// HYPOTHESIS: A child process running under a different user/SID than its parent indicates token theft, UNLESS
-//             the parent is a known service-context binary that legitimately re-impersonates (svchost, services, etc.)
-// FP RISK: Med-High - this pattern is common for legitimate elevation (UAC, RunAs, scheduled tasks). Use as a hunt prompt, not an alert.
-// FP NOTES: ParentUserSid / ParentUserName may not be populated in every PR2 record - LogScale repos vary. Baseline
-//           your own field availability first. Heavy tuning required - widen the parent exclusion list as you observe
-//           legitimate cases in your environment. Focus on rows where parent is a USER-context process spawning a
-//           child running as a DIFFERENT interactive user (not SYSTEM/LOCAL SERVICE/NETWORK SERVICE).
-// CONFIDENCE: Medium (requires analyst review)
-// TIMEFRAME: Last 14 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-// Exclude well-known system parents that legitimately spawn under a different SID
-| ParentBaseFileName != /^(services|svchost|lsass|wininit|smss|csrss|TrustedInstaller|MsMpEng|MoUsoCoreWorker|RuntimeBroker|sihost|fontdrvhost|spoolsv|conhost|userinit|dwm|taskhostw|ctfmon|searchindexer|consent|UsoClient|backgroundTaskHost|SearchProtocolHost|SearchFilterHost|SgrmBroker)\.exe$/i
-// Require BOTH SID and UserName mismatch (defends against the field being partially populated).
-// Cross-field comparisons must be wrapped in test() - a bare `field1 != field2` would treat the
-// right-hand side as a literal string rather than a field reference.
-| test(UserSid != ParentUserSid)
-| test(UserName != ParentUserName)
-// Require both sides populated and neither side a service account (these are noisy and legitimate)
-| UserName != "" AND ParentUserName != ""
-| !in(field=UserName, values=["SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE"], ignoreCase=true)
-| !in(field=ParentUserName, values=["SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE"], ignoreCase=true)
-// Aggregate so analysts see frequency, not raw rows
-| groupBy([aid, ComputerName, ParentBaseFileName, ImageFileName, ParentUserName, UserName], function=collect([@timestamp, CommandLine], limit=20))
-| sort(_count, order=desc)</pre>
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1204.004 / T1059.001</td><td>ClickFix → PowerShell</td><td>Q1, Q6</td><td>IOA-1</td><td><span class="badge b-low">Good</span> + user coaching</td></tr>
+        <tr><td>T1562.001</td><td>ETW/AMSI bypass</td><td>Q2</td><td>IOA-2</td><td><span class="badge b-med">Partial</span> + script-block (N2)</td></tr>
+        <tr><td>T1059 / T1620</td><td>Lua in-memory loader</td><td>Q3</td><td>—</td><td><span class="badge b-med">Partial</span> correlate to Q1/Q2</td></tr>
+        <tr><td>T1134 / T1106</td><td>MIMICRAT token theft</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> + 4624/4648 (N4)</td></tr>
+        <tr><td>T1090 / T1071.001</td><td>SOCKS5 / malleable C2</td><td>Q5</td><td>—</td><td><span class="badge b-med">Partial</span> + proxy (N3)</td></tr>
+        <tr><td>T1204.004</td><td>ClickFix lure delivery (web)</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> web/proxy + awareness</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm process lineage + RunMRU + PowerShell script-block + egress telemetry; (2) baseline any sanctioned admin PowerShell / Lua-using apps; (3) lab-test a benign <code>chrome → powershell</code> (Q1) and a benign RunMRU entry (Q6); (4) enable script-block logging + promote Q1/Q6. Break Q1 and stages 2-5 never run.</p>
+  </div>
 </div>
 
-<!-- HUNT 13 -->
-<div class="query-card">
-  <div class="query-header">Hunt 13 &mdash; Scheduled Task Created By Suspicious Parent <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1053.005 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
-<pre>// HUNT: schtasks /create or Register-ScheduledTask invoked by script host parent (powershell, cmd, mshta, wscript, etc.)
-// HYPOTHESIS: MIMICRAT persists via scheduled task created from the script chain
-// FP RISK: Medium - admin scripts do this legitimately; alert in user context
-// FP NOTES: Allowlist admin OUs / signed deployment pipelines; alert on tasks pointing to %ProgramData% or %TEMP%
-// CONFIDENCE: Medium
-// TIMEFRAME: Last 60 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /\\(schtasks\.exe|powershell\.exe|pwsh\.exe)$/i
-| CommandLine = /(schtasks(\.exe)?\s+\/create|Register-ScheduledTask|New-ScheduledTask)/i
-| CommandLine = /(\\ProgramData\\|\\AppData\\|\\Users\\Public\\|\\Temp\\|\\knz_)/i
-| ParentBaseFileName = /^(powershell|pwsh|cmd|wscript|cscript|mshta|rundll32|regsvr32|explorer|zbuild)\.exe$/i
-| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
-| sort(@timestamp, order=desc)</pre>
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — MimiCRAT (ClickFix -> Lua loader -> Meterpreter -> C++ RAT)
+SEVERITY:     High (multi-stage fileless RAT; token theft + SOCKS5 pivot)
+SCOPE:        User workstations; PowerShell logging; egress
+HYPOTHESIS:   ClickFix paste -> obfuscated PowerShell -> ETW/AMSI bypass -> Lua loader ->
+              Meterpreter shellcode -> MIMICRAT (token theft, SOCKS5, malleable HTTPS C2).
+QUERIES RUN:  Q1 ClickFix lineage (IOA) | Q2 ETW/AMSI bypass (IOA) | Q3 Lua loader |
+              Q4 token theft / RAT behavior | Q5 SOCKS5 / malleable C2 | Q6 RunMRU paste artifact
+              + Native N1-N4 (RunMRU, script-block, C2 egress, anomalous token use)
+DO FIRST:     User coaching + Q1/Q6 — the whole chain rides on the first paste
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Web delivery of the lure; fileless after stage 1 (needs memory/script-block telemetry)
+ACTIONS:      Promote Q1/Q6; CLM + script-block logging; ASR; AMSI on; disable Win+R on user tier;
+              Credential Guard; egress baselining for SOCKS5/443
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-12</pre>
+    </div>
+  </div>
 </div>
 
-<!-- HUNT 14 -->
-<div class="query-card">
-  <div class="query-header">Hunt 14 &mdash; Unexpected Listening Port (SOCKS5 / Tunnel) on User Endpoint <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-  <div class="query-meta"><strong>MITRE:</strong> T1090 &middot; <strong>FP Risk:</strong> <span class="badge badge-medium">Medium</span> &middot; <strong>Confidence:</strong> Medium</div>
-<pre>// HUNT: MIMICRAT CMD 101/102 stand up a SOCKS5 proxy listener on the compromised host
-// HYPOTHESIS: A non-server, non-vendor process binding a listening port on a user endpoint indicates a tunnel
-// FP RISK: Medium - dev tools (Code, JetBrains IDEs), media apps, and some collab clients bind local ports
-// FP NOTES: Allowlist Microsoft / vendor / dev-tool processes. Common SOCKS ports to weight higher: 1080, 1081, 4145, 9050.
-//           Listening ports in the dynamic-range (49152-65535) are very common in normal use; weight those LOWER.
-// CONFIDENCE: Medium
-// TIMEFRAME: Last 30 days
-
-#event_simpleName = /NetworkListenIP4|NetworkListenIP6/
-| LocalPort > 1024
-| !in(field=LocalPort, values=[3389, 5040, 5353, 5355, 5985, 5986, 47001, 49664, 49665, 49666, 49667, 49668, 49669, 49670, 49671, 49672])
-| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/}, field=[ContextProcessId_decimal], key=[TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName, UserName])
-// Exclude common signed apps that legitimately bind local listeners
-| ImageFileName != /\\(svchost|services|lsass|spoolsv|wininit|MsMpEng|System|wuauclt|sshd|RemoteDesktopManager)\.exe$/i
-| ImageFileName != /\\(Code|cursor|idea64|pycharm64|webstorm64|rider64|clion64|datagrip64|goland64|node|python(3|w)?|java|dotnet|Docker Desktop|wsl)\.exe$/i
-| ImageFileName != /\\(Slack|Teams|Outlook|Zoom|Webex|GoToMeeting|Spotify|Discord|OBS|Steam|EpicGamesLauncher)\.exe$/i
-| ImageFileName != /\\(Adobe|McAfee|Sophos|CrowdStrike|ConnectWise|NinjaOne|Citrix|VMware|Microsoft|Lenovo|Dell|HP)\\/i
-// Flag classic SOCKS ports separately so analysts can prioritize
-| socksLikely := if(in(field=LocalPort, values=[1080, 1081, 4145, 9050, 9051]), then="YES", else="no")
-| groupBy([aid, ComputerName, ImageFileName, LocalPort, socksLikely, ParentBaseFileName, UserName], function=collect([@timestamp, CommandLine], limit=10))
-| sort([socksLikely, _count], order=desc)</pre>
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Elastic Security Labs: the 5-stage chain (ClickFix → obfuscated PowerShell → ETW/AMSI bypass → Lua loader (luaalloc/luacpy/luaexe) → Meterpreter → MIMICRAT/AstarionRAT), token theft, SOCKS5 proxy, malleable HTTPS C2. 6 CQL + 4 native hunts, 2 IOA candidates; ClickFix front-door break emphasized.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-18</span><span>Initial pack: MimiCRAT overview + hunts. Pre-gold top-bar layout.</span></div>
+  </div>
 </div>
 
-</section>
-
-<section id="iocs">
-<h2>IOC Blocklists</h2>
-
-<h3>Recommended Actions Table</h3>
-<table>
-<thead><tr><th>Type</th><th>Value</th><th>Action</th><th>Severity</th><th>Confidence</th><th>Expiry</th><th>Notes</th></tr></thead>
-<tbody>
-<tr><td>sha256</td><td><code>bcc7a0e53ebc62c77b7b6e3585166bfd7164f65a8115e7c8bda568279ab4f6f1</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>Stage 1 PowerShell</td></tr>
-<tr><td>sha256</td><td><code>5e0a30d8d91d5fd46da73f3e6555936233d870ac789ca7dd64c9d3cc74719f51</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>Lua loader (zbuild.exe)</td></tr>
-<tr><td>sha256</td><td><code>a508d0bb583dc6e5f97b6094f8f910b5b6f2b9d5528c04e4dee62c343fce6f4b</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>MIMICRAT beacon</td></tr>
-<tr><td>sha256</td><td><code>055336daf2ac9d5bbc329fd52bb539085d00e2302fa75a0c7e9d52f540b28beb</code></td><td><span class="badge badge-critical">Prevent</span></td><td>Critical</td><td>High</td><td>2027-05-12</td><td>Related beacon sample</td></tr>
-<tr><td>domain</td><td><code>xmri.network</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>Stage 1 C2 / payload delivery</td></tr>
-<tr><td>domain</td><td><code>wexmri.cc</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>Stage 1 alternate</td></tr>
-<tr><td>domain</td><td><code>www.ndibstersoft.com</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>Post-exploitation C2</td></tr>
-<tr><td>domain</td><td><code>ndibstersoft.com</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>Parent domain</td></tr>
-<tr><td>domain</td><td><code>d15mawx0xveem1.cloudfront.net</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>MIMICRAT C2 (CloudFront-fronted) &mdash; specific subdomain only</td></tr>
-<tr><td>ipv4</td><td><code>45.13.212.250</code></td><td><span class="badge badge-medium">Detect</span></td><td>Medium</td><td>Medium</td><td>2026-06-11</td><td>Stage 1 delivery &mdash; 30-day expiry</td></tr>
-<tr><td>ipv4</td><td><code>45.13.212.251</code></td><td><span class="badge badge-medium">Detect</span></td><td>Medium</td><td>Medium</td><td>2026-06-11</td><td>Stage 1 delivery &mdash; 30-day expiry</td></tr>
-<tr><td>ipv4</td><td><code>23.227.202.114</code></td><td><span class="badge badge-medium">Detect</span></td><td>Medium</td><td>Medium</td><td>2026-06-11</td><td>Post-ex C2 &mdash; 30-day expiry</td></tr>
-<tr><td>url</td><td><code>https://www.investonline.in/js/jq.php</code></td><td><span class="badge badge-high">Detect</span></td><td>High</td><td>High</td><td>2026-08-10</td><td>Malicious JS path on compromised site &mdash; do not block parent domain</td></tr>
-</tbody>
-</table>
-
-<div class="callout callout-warn"><strong>Do NOT block</strong> the parent domains <code>investonline.in</code> or <code>bincheck.io</code> &mdash; both are legitimate sites that were compromised. Block at the URL/path level (<code>/js/jq.php</code>) or treat as detect-only. CloudFront top-level (<code>*.cloudfront.net</code>) is never a safe block target; specific subdomain only.</div>
-
-<h3>Bulk CSV Import (Falcon IOC Management)</h3>
-<div class="query-card">
-  <div class="query-header">mimicrat-iocs.csv <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-<pre>type,value,action,severity,expiration,description,tags
-sha256,bcc7a0e53ebc62c77b7b6e3585166bfd7164f65a8115e7c8bda568279ab4f6f1,prevent,critical,2027-05-12,MIMICRAT Stage 1 PowerShell,campaign:MIMICRAT;source:Elastic;tactic:ClickFix
-sha256,5e0a30d8d91d5fd46da73f3e6555936233d870ac789ca7dd64c9d3cc74719f51,prevent,critical,2027-05-12,MIMICRAT Lua loader zbuild.exe,campaign:MIMICRAT;source:Elastic;tactic:ClickFix
-sha256,a508d0bb583dc6e5f97b6094f8f910b5b6f2b9d5528c04e4dee62c343fce6f4b,prevent,critical,2027-05-12,MIMICRAT beacon,campaign:MIMICRAT;source:Elastic;tactic:ClickFix
-sha256,055336daf2ac9d5bbc329fd52bb539085d00e2302fa75a0c7e9d52f540b28beb,prevent,critical,2027-05-12,MIMICRAT related beacon,campaign:MIMICRAT;source:Elastic;tactic:ClickFix
-domain,xmri.network,detect,high,2026-08-10,Stage 1 C2 / payload delivery,campaign:MIMICRAT;source:Elastic
-domain,wexmri.cc,detect,high,2026-08-10,Stage 1 C2 alternate,campaign:MIMICRAT;source:Elastic
-domain,ndibstersoft.com,detect,high,2026-08-10,Post-exploitation C2 parent,campaign:MIMICRAT;source:Elastic
-domain,www.ndibstersoft.com,detect,high,2026-08-10,Post-exploitation C2,campaign:MIMICRAT;source:Elastic
-domain,d15mawx0xveem1.cloudfront.net,detect,high,2026-08-10,MIMICRAT C2 CloudFront subdomain,campaign:MIMICRAT;source:Elastic
-ipv4,45.13.212.250,detect,medium,2026-06-11,Stage 1 delivery IP,campaign:MIMICRAT;source:Elastic
-ipv4,45.13.212.251,detect,medium,2026-06-11,Stage 1 delivery IP,campaign:MIMICRAT;source:Elastic
-ipv4,23.227.202.114,detect,medium,2026-06-11,Post-ex C2 IP,campaign:MIMICRAT;source:Elastic</pre>
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.elastic.co/security-labs/mimicrat" target="_blank">Elastic Security Labs — MimiCRAT</a></td><td>5-stage chain, Lua loader, MIMICRAT capabilities, token theft/SOCKS5, malleable C2</td></tr>
+        <tr><td>2</td><td><a href="https://www.proofpoint.com/us/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape" target="_blank">Proofpoint — ClickFix technique</a></td><td>ClickFix delivery mechanics (fake CAPTCHA / Win+R paste)</td></tr>
+        <tr><td>2</td><td><a href="https://attack.mitre.org/techniques/T1204/004/" target="_blank">MITRE ATT&amp;CK T1204.004 — Malicious Copy and Paste</a></td><td>ClickFix technique mapping</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · MimiCRAT (ClickFix → Lua → Meterpreter → C++ RAT) · Generated 2026-06-12 · Defensive use only — no offensive code. The whole chain rides on one pasted command; breaking the ClickFix front door (Q1/Q6 + user coaching) is the highest-leverage control. The remaining stages are fileless — pair the CQL hunts with PowerShell script-block logging. Validate field names before promoting any query.</p>
+  </div>
 </div>
 
-<h3>Watchlist (no auto-action &mdash; for SIEM / proxy correlation)</h3>
-<table>
-<thead><tr><th>Type</th><th>Value</th><th>Purpose</th></tr></thead>
-<tbody>
-<tr><td>http_uri</td><td><code>/intake/organizations/events?channel=app</code></td><td>MIMICRAT GET profile URI</td></tr>
-<tr><td>http_uri</td><td><code>/discover/pcversion/metrics?clientver=ds</code></td><td>MIMICRAT POST profile URI</td></tr>
-<tr><td>http_referer</td><td><code>https://www.google.com/?q=dj1</code></td><td>MIMICRAT GET referer (forged)</td></tr>
-<tr><td>http_referer</td><td><code>https://gsov.google.com/</code></td><td>MIMICRAT POST referer (forged)</td></tr>
-<tr><td>http_user_agent</td><td><code>Mozilla/5.0 ... Cortana 1.14.9.19041 ... Edge/18.19045</code></td><td>MIMICRAT UA signature</td></tr>
-<tr><td>cookie_name</td><td><code>AFUAK, BLA, HFK</code> (GET) / <code>ARCHUID, BRCHD, ZRCHUSR</code> (POST)</td><td>MIMICRAT cookie sets</td></tr>
-<tr><td>file_path</td><td><code>%ProgramData%\knz_*\zbuild.exe</code></td><td>Lua loader stage location</td></tr>
-<tr><td>rc4_key</td><td>(omitted from index for brevity)</td><td>RC4 key in beacon binary &mdash; static; useful for memory scanning / YARA</td></tr>
-<tr><td>aes_iv</td><td><code>abcdefghijklmnop</code></td><td>Hardcoded session-encryption IV</td></tr>
-</tbody>
-</table>
-</section>
-
-<section id="ioas">
-<h2>Custom IOA Rule Recommendations</h2>
-<div class="callout callout-warn">All IOAs should start in <strong>Detect</strong> mode. Promote to <strong>Block</strong> only after 7&ndash;14 days with a measured FP rate &lt; 5%.</div>
-
-<div class="ioa-block">
-  <h4>IOA-1: explorer.exe Spawning PowerShell With Download/Exec Pattern (ClickFix)</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>ClickFix Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; promote to Block after 14d clean</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1059.001, T1204.001</dd>
-    <dt>Parent Image:</dt><dd><code>.*\\explorer\.exe$</code></dd>
-    <dt>Image Filename:</dt><dd><code>.*\\(powershell(_ise)?|pwsh|cmd|mshta|wscript|cscript)\.exe$</code></dd>
-    <dt>Command Line:</dt><dd><code>(?i).*(IEX|Invoke-Expression|Invoke-WebRequest|iwr\s|Invoke-RestMethod|irm\s|DownloadString|DownloadFile|FromBase64String|-WInDo|-WindowStyle\s+(Min|Hidden)|-encodedcommand|-enc\s).*</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Power-users occasionally launch PowerShell from Run with admin one-liners. The combination of explorer-parent + download/exec keywords is rare; expect very low FP.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-2: AMSI / ETW Bypass Reflection Strings In PowerShell</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>Defense Evasion</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; eligible for Block after 7d</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1562.001, T1562.002</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\(powershell|pwsh)\.exe$</code></dd>
-    <dt>Command Line:</dt><dd><code>(?i).*(amsiInitFailed|AmsiUtils|m_enabled|System\.Management\.Automation\.AmsiUtils|System\.Diagnostics\.Eventing\.EventProvider|ScanContent.*Marshal::Copy).*</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Authorized red-team activity will fire. Coordinate with offensive-security team to log scheduled engagements.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-3: zbuild.exe / %ProgramData%\knz_* Execution</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>Loader Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect &rarr; safe to Block immediately on canary group</dd>
-    <dt>Severity:</dt><dd>Critical</dd>
-    <dt>MITRE:</dt><dd>T1036, T1574</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\ProgramData\\knz_[A-Za-z0-9]+\\zbuild\.exe$</code> (OR loosely: <code>.*\\zbuild\.exe$</code>)</dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> No legitimate software uses this name + path combo.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-4: PowerShell With <code>-WInDo Min</code> Mangled-Style Switch</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>ClickFix Defense</dd>
-    <dt>Rule Type:</dt><dd>Process Creation</dd>
-    <dt>Action:</dt><dd>Detect</dd>
-    <dt>Severity:</dt><dd>High</dd>
-    <dt>MITRE:</dt><dd>T1027.010, T1059.001</dd>
-    <dt>Image Filename:</dt><dd><code>.*\\(powershell|pwsh)\.exe$</code></dd>
-    <dt>Command Line:</dt><dd><code>(?i).*-WInDo\s+Min.*</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> The specific mixed-case truncation <code>-WInDo Min</code> is a stylistic fingerprint of ClickFix-family lures and rarely appears in normal admin scripts.</p>
-</div>
-
-<div class="ioa-block">
-  <h4>IOA-5: Non-Browser Process Resolving Single-Subdomain CloudFront</h4>
-  <dl class="meta-grid">
-    <dt>Rule Group:</dt><dd>C2 Defense</dd>
-    <dt>Rule Type:</dt><dd>DNS Request</dd>
-    <dt>Action:</dt><dd>Detect</dd>
-    <dt>Severity:</dt><dd>Medium</dd>
-    <dt>MITRE:</dt><dd>T1071.001, T1102</dd>
-    <dt>Domain:</dt><dd><code>(?i)^[a-z0-9]{12,}\.cloudfront\.net$</code></dd>
-    <dt>Image Filename NOT:</dt><dd><code>.*\\(chrome|msedge|firefox|brave|opera|safari|iexplore|Slack|Zoom|Teams|Code|cursor|idea64|Outlook|OneDrive|Dropbox|spotify|discord)\.exe$</code></dd>
-  </dl>
-  <p style="font-size:13px;margin:6px 0"><strong>FP Notes:</strong> Many desktop apps use CloudFront for assets/updates. Expect noisy results until tuned; pilot on canary group only.</p>
-</div>
-
-</section>
-
-<section id="hardening">
-<h2>Hardening Recommendations</h2>
-
-<h3>Immediate &mdash; Target MIMICRAT / ClickFix TTPs</h3>
-
-<h4>1. Kill ClickFix at the Win+R Run-Dialog</h4>
-<ul class="harden">
-  <li>GPO: <em>User Configuration &rarr; Administrative Templates &rarr; Start Menu and Taskbar &rarr; "Remove Run menu from Start Menu"</em> for non-admin users.</li>
-  <li>AppLocker / WDAC rule: deny <code>powershell.exe</code> and <code>cmd.exe</code> when parented by <code>explorer.exe</code> AND command line contains <code>http</code> / <code>iwr</code> / <code>IEX</code>.</li>
-  <li>User-awareness module focused on "paste this into Win+R to verify you're human" prompts. This is the single biggest cultural fix.</li>
-</ul>
-
-<h4>2. Constrain PowerShell + Force Visibility</h4>
-<ul class="harden">
-  <li>Deploy <strong>Constrained Language Mode</strong> via WDAC for non-admin users &mdash; the ETW/AMSI bypass relies on .NET reflection that CLM blocks.</li>
-  <li>Enable <strong>Script Block Logging</strong> (4104), <strong>Module Logging</strong> (4103), <strong>Transcript Logging</strong>: <code>HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\EnableScriptBlockLogging = 1</code>.</li>
-  <li>Forward 4104 to SIEM and alert on script content matching the AMSI/ETW bypass strings (Hunt 5).</li>
-  <li>Disable PowerShell v2: <code>Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2*</code>.</li>
-  <li>Block <code>powershell.exe -ExecutionPolicy Bypass/Unrestricted</code> via WDAC custom rule where feasible.</li>
-</ul>
-
-<h4>3. Application Control on %ProgramData% and %AppData%</h4>
-<ul class="harden">
-  <li>WDAC / AppLocker: deny unsigned PE execution under <code>%ProgramData%\</code>, <code>%AppData%\</code>, <code>%LocalAppData%\Temp\</code>, <code>%Public%\</code>. This breaks the Lua loader stage directly.</li>
-  <li>Where full deny is too aggressive, enforce a publisher allow-list (Microsoft + your sanctioned vendors).</li>
-</ul>
-
-<h4>4. Browser / Web Defense</h4>
-<ul class="harden">
-  <li>Deploy a content-security web proxy (Zscaler, Netskope, Cloudflare Gateway, etc.) and block clipboard-injection script categories.</li>
-  <li>Block known ClickFix landing patterns at proxy level (regex on URL path: <code>/js/jq.php</code>, <code>cloudflare.*verify</code>, <code>verify[-_]captcha</code>).</li>
-  <li>Web filtering: increase scrutiny for newly-observed domains in <code>.cc</code>, <code>.network</code>, <code>.top</code>, <code>.icu</code>, <code>.xyz</code> when accessed from corporate endpoints.</li>
-</ul>
-
-<h4>5. Token-Theft Mitigation</h4>
-<ul class="harden">
-  <li>Enable <strong>LSA Protection</strong> (<code>RunAsPPL=1</code>) and <strong>Credential Guard</strong>; both blunt CMD 31 (token duplication) by limiting the token surface accessible to user-mode processes.</li>
-  <li>For tier-0 admins, enforce <strong>Protected Users</strong> group membership.</li>
-</ul>
-
-<h4>6. Block the C2 Infrastructure</h4>
-<ul class="harden">
-  <li>Firewall / DNS block <code>xmri.network</code>, <code>wexmri.cc</code>, <code>ndibstersoft.com</code> (and <code>www.</code>), <code>d15mawx0xveem1.cloudfront.net</code>, <code>45.13.212.250-251</code>, <code>23.227.202.114</code>.</li>
-  <li>URL block: <code>/js/jq.php</code> path on <code>investonline.in</code> at proxy only; <strong>do not</strong> block the parent domain (legitimate compromised site).</li>
-  <li><strong>Do NOT</strong> block <code>*.cloudfront.net</code> wholesale &mdash; massive shared infrastructure.</li>
-</ul>
-
-<h3>Strategic &mdash; Reduce Attack Surface Generally</h3>
-<ul class="harden">
-  <li><strong>Egress filtering:</strong> deny direct internet egress from endpoints on TCP/80 and TCP/443 to non-corporate destinations; force through proxy with TLS inspection where legally feasible.</li>
-  <li><strong>WDAC enforcement:</strong> roll WDAC in audit&rarr;enforce mode for all knowledge-worker endpoints. Block unsigned .NET assemblies in user-writable paths.</li>
-  <li><strong>HTTP telemetry into LogScale:</strong> if you don't currently forward proxy / NDR HTTP logs into LogScale, Hunt 8 (MIMICRAT URI / Cookie / UA profile) is the highest-fidelity detection you're missing.</li>
-  <li><strong>Clipboard hardening:</strong> some environments can deploy clipboard-monitoring agents that flag command-like content copied from non-trusted origins. Combined with Win+R restrictions, this neuters ClickFix.</li>
-  <li><strong>User training cadence:</strong> ClickFix is a 2024-2026 staple. Update phishing simulations to include browser-based "paste this to continue" scenarios; HR + finance + dev + research are the highest-yield audiences.</li>
-</ul>
-
-</section>
-
-<section id="coverage">
-<h2>Detection Coverage Map</h2>
-<table>
-<thead><tr><th>MITRE</th><th>Technique</th><th>CQL Hunt</th><th>Custom IOA</th><th>IOC Block</th><th>Coverage</th></tr></thead>
-<tbody>
-<tr><td>T1566.003</td><td>Phishing via Service (ClickFix)</td><td>&mdash;</td><td>&mdash;</td><td>URL</td><td class="gap">GAP (web-gateway)</td></tr>
-<tr><td>T1204.001</td><td>User Execution: Malicious Link</td><td>Hunt 3</td><td>IOA-1</td><td>&mdash;</td><td class="good-text">Good</td></tr>
-<tr><td>T1059.001</td><td>PowerShell</td><td>Hunts 3, 4, 11</td><td>IOA-1, IOA-4</td><td>&mdash;</td><td class="good-text">Strong</td></tr>
-<tr><td>T1027.010</td><td>Command Obfuscation</td><td>Hunt 4</td><td>IOA-4</td><td>&mdash;</td><td class="good-text">Good</td></tr>
-<tr><td>T1562.001</td><td>Impair Defenses: AMSI</td><td>Hunt 5</td><td>IOA-2</td><td>&mdash;</td><td class="good-text">Strong</td></tr>
-<tr><td>T1562.002</td><td>Impair Defenses: ETW</td><td>Hunt 5</td><td>IOA-2</td><td>&mdash;</td><td class="good-text">Strong</td></tr>
-<tr><td>T1620</td><td>Reflective Code Loading</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (Falcon native; ensure not suppressed)</td></tr>
-<tr><td>T1105</td><td>Ingress Tool Transfer</td><td>Hunts 2, 11</td><td>IOA-1</td><td>&#10003; (hash)</td><td class="good-text">Good</td></tr>
-<tr><td>T1036.005</td><td>Match Legit Name / Location</td><td>Hunts 6, 7</td><td>IOA-3</td><td>&mdash;</td><td class="good-text">Good</td></tr>
-<tr><td>T1574</td><td>Hijack Execution Flow</td><td>Hunt 6</td><td>IOA-3</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1053.005</td><td>Scheduled Task</td><td>Hunt 13</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1134.001</td><td>Token Impersonation/Theft</td><td>Hunt 12</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial (manual review)</td></tr>
-<tr><td>T1057</td><td>Process Discovery</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (high FP if hunted)</td></tr>
-<tr><td>T1083</td><td>File and Directory Discovery</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP</td></tr>
-<tr><td>T1055</td><td>Process Injection</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="gap">GAP (Falcon native)</td></tr>
-<tr><td>T1071.001</td><td>C2 / Web Protocols</td><td>Hunts 2, 8, 9</td><td>IOA-5</td><td>Domain + IP</td><td class="good-text">Strong</td></tr>
-<tr><td>T1071.004</td><td>DNS</td><td>Hunt 10</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1102</td><td>Web Service (CloudFront)</td><td>Hunt 9</td><td>IOA-5</td><td>Domain</td><td class="good-text">Good</td></tr>
-<tr><td>T1090</td><td>Proxy (SOCKS5)</td><td>Hunt 14</td><td>&mdash;</td><td>&mdash;</td><td class="partial">Partial</td></tr>
-<tr><td>T1041</td><td>Exfil Over C2</td><td>Hunts 2, 8</td><td>&mdash;</td><td>&#10003;</td><td class="partial">Partial</td></tr>
-</tbody>
-</table>
-
-<div class="callout callout-warn"><strong>Priority gaps:</strong> Initial delivery (ClickFix on compromised sites) needs web-gateway controls &mdash; endpoint detection is too late. Reflective code loading (T1620) and process injection (T1055) are best handled by Falcon's native unsigned-module-load detection + WDAC, not custom hunts. SOCKS5 (T1090) is now partially covered by Hunt 14 but expect tuning noise. HTTP telemetry (Hunt 8) is the highest-fidelity detection but only works if proxy / NDR logs are forwarded to LogScale.</div>
-</section>
-
-<section id="priority">
-<h2>Prioritization &amp; Risk Classification</h2>
-
-<h3>Do First &mdash; Low Effort, High Relevance</h3>
-<ol>
-  <li>Run <strong>Hunts 1, 2, 5, 6, 11</strong> today &mdash; highest-confidence, lowest-FP. Any hit = active intrusion.</li>
-  <li>Import SHA256 IOCs to Falcon IOC Management at Prevent (safe to auto-prevent).</li>
-  <li>Add domain Detect entries (xmri.network, wexmri.cc, ndibstersoft.com, d15mawx0xveem1.cloudfront.net).</li>
-  <li>Add IP Detect for 45.13.212.250-251 and 23.227.202.114 (30-day expiry).</li>
-  <li>Add URL Detect for <code>investonline.in/js/jq.php</code> at the web proxy.</li>
-</ol>
-
-<h3>Schedule &mdash; Medium Risk (Peer Review)</h3>
-<ol start="6">
-  <li>Deploy Custom IOAs 1, 2, 3 in Detect mode &rarr; review for 14 days &rarr; promote to Block (IOA-3 can be expedited; it has zero legitimate counterpart).</li>
-  <li>Roll Hunts 3, 4, 7, 9, 10, 12, 13, 14 weekly until campaign goes cold.</li>
-  <li>Pilot Custom IOA-5 (CloudFront from non-browser) on a canary group; significant tuning expected.</li>
-</ol>
-
-<h3>Change Management &mdash; High Risk (CAB)</h3>
-<ol start="9">
-  <li>WDAC / AppLocker policy blocking unsigned PE execution under <code>%ProgramData%</code>, <code>%AppData%</code>, <code>%Temp%</code>.</li>
-  <li>WDAC rule denying PowerShell child of explorer with download patterns.</li>
-  <li>Web-proxy rules: ClickFix landing-page categories blocked; emerging-TLD watchlist increased.</li>
-  <li>GPO: remove Win+R for non-admin users (or restrict to allowed binaries).</li>
-  <li>Constrained Language Mode enforcement.</li>
-</ol>
-
-<h3>Prevention Promotion Notes</h3>
-<ul class="harden">
-  <li><strong>SHA256 IOCs:</strong> safe to promote to Prevent immediately.</li>
-  <li><strong>Domain IOCs:</strong> safe to promote to Prevent after verifying no legitimate traffic; the CloudFront subdomain is specifically dedicated and can be promoted once verified.</li>
-  <li><strong>IPs:</strong> keep at Detect &mdash; 30-day expiry, rotate fast.</li>
-  <li><strong>Custom IOA-3 (zbuild.exe / knz_):</strong> safe to Block within 24 hours of pilot &mdash; no legit conflict.</li>
-  <li><strong>Custom IOA-1 (ClickFix explorer&rarr;PS):</strong> eligible for Block after 14d clean window.</li>
-  <li><strong>Custom IOA-2 (AMSI/ETW bypass strings):</strong> Block-eligible after coordination with red-team to schedule authorized engagements.</li>
-  <li><strong>Custom IOA-4 (-WInDo Min):</strong> Block-eligible after 7d.</li>
-  <li><strong>Custom IOA-5 (CloudFront from non-browser):</strong> keep at Detect long-term; too noisy to safely Block.</li>
-</ul>
-</section>
-
-<section id="summary">
-<h2>Hunt Summary Ticket</h2>
-<div class="query-card">
-  <div class="query-header">mimicrat-ticket.txt <button class="copy-btn" onclick="copyQuery(this)">Copy</button></div>
-<pre>## Hunt Summary: MIMICRAT / ClickFix Campaign
-Date: 2026-05-12
-Intel Source: Elastic Security Labs - MIMICRAT: Custom RAT Mimics Multiple C2 Frameworks
-
-### Expected Findings
-- ANY hit on Hunts 1, 2, 6, 11 -> treat as active intrusion; isolate host, capture memory, hunt for token-theft activity outbound from the host.
-- Hunt 3 (explorer -> powershell w/ download keywords) -> high-confidence ClickFix indicator; interview user about recent browser activity and "captcha" pages.
-- Hunt 5 (AMSI/ETW bypass strings) -> any hit is high-confidence TP unless authorized red-team engagement is on record.
-- Hunt 8 (MIMICRAT URI / cookie / UA) -> requires HTTP-payload telemetry in LogScale; absence is non-conclusive but presence is diagnostic.
-- Hunts 4, 7, 9, 10, 12, 13, 14 -> behavioral; expect tuning; review individual hits with parent-process context.
-- Hunt 14 (SOCKS5 / unexpected listener) -> sort the result set by socksLikely=YES first; review classic SOCKS ports (1080/1081/4145/9050) before dynamic-range hits.
-
-### Actions Taken (Low-Risk)
-- Hunt queries (read-only) ready for execution in LogScale.
-- SHA256 IOCs queued for Prevent in IOC Management.
-- Domain/IP IOCs queued for Detect (CloudFront subdomain Detect, NOT *.cloudfront.net wildcard).
-- URL Detect submitted to web proxy for investonline.in/js/jq.php.
-
-### Actions Pending Approval
-- Custom IOAs 1-5 -> deploy in Detect mode (peer review).
-- IOA-3 (zbuild.exe / knz_*) -> expedite to Block on canary group within 24h.
-- WDAC: block unsigned PE under %ProgramData%, %AppData% (Change Management).
-- GPO: restrict Win+R Run dialog for non-admin users (Change Management).
-- Constrained Language Mode rollout (Change Management).
-- Proxy: ClickFix landing-page category block (Change Management).
-
-### Queries to Run
-Hunts 1-14 above (paste into LogScale; 90-day window for IOC sweeps, 30-60 days for behavioral).
-
-### Cross-Functional Asks
-- Awareness: add a "fake CAPTCHA / paste into Win+R" simulation to the next phishing-test cycle.
-- Web gateway: enable clipboard-script-injection blocking if available; review newly-registered .cc / .network domain visits in the last 60 days.
-- Offensive Security: confirm whether any AMSI/ETW bypass testing has been authorized in the last 60 days to triage Hunt 5 results.
-- Threat Intel: track the actor's CloudFront subdomain pattern (random alphanumeric) for related infrastructure.
-
-### Follow-Up Schedule
-- Re-run Hunts 1, 2 (IOC-based) weekly for 60 days, then monthly.
-- Re-run Hunts 3-13 (behavioral) every 14 days.
-- IOC expiry: IPs 2026-06-11, Domains 2026-08-10, Hashes 2027-05-12.
-- Promotion review: IOA-3 in 24-48h; IOA-1, IOA-2, IOA-4 in 7-14 days.
-- Intel monitoring: Elastic Security Labs, Microsoft Threat Intelligence, ClickFix-tracking blogs, CISA advisories, abuse.ch threatfox for new MIMICRAT samples and CloudFront subdomains.
-- Re-hunt triggers: new MIMICRAT hashes published; new CloudFront C2 subdomains observed; ClickFix variants reported (esp. localized into other languages); related campaigns abusing Lua-loader staging.</pre>
-</div>
-</section>
-
-<footer>
-  Generated by Threat Hunter Skill &middot; Single-file HTML package &middot; All queries CrowdStrike CQL (Falcon LogScale / NG-SIEM)
-</footer>
-
-</div>
+</div><!-- /main -->
 
 <script>
-function copyQuery(btn) {
-  const pre = btn.closest('.query-card').querySelector('pre');
-  const text = pre.innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.innerText;
-    btn.innerText = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => {
-      btn.innerText = orig;
-      btn.classList.remove('copied');
-    }, 1500);
-  }).catch(() => {
-    btn.innerText = 'Copy failed';
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
   });
 }
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
 </script>
 </body>
 </html>

