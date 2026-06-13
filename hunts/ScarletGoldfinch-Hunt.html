@@ -1,851 +1,599 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Scarlet Goldfinch - Defender Hunt &amp; Hardening Pack</title>
-  <style>
-    :root {
-      --bg: #0d1117;
-      --panel: #161b22;
-      --panel-2: #1f2633;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #9ca3af;
-      --subtle: #6e7681;
-      --accent: #58a6ff;
-      --good: #7ee787;
-      --warn: #d29922;
-      --crit: #f85149;
-      --code: #080c12;
-    }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.55;
-    }
-    a { color: var(--accent); }
-    code, pre, .mono { font-family: Consolas, Menlo, Monaco, "Courier New", monospace; }
-    .container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
-    .hero {
-      padding: 40px 0 26px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(135deg, #351425 0%, #172033 50%, #0d1117 100%);
-    }
-    .badge-row, .meta-row, .button-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 3px 10px;
-      background: var(--panel-2);
-      color: var(--muted);
-      font-size: 0.74rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-    .badge.critical { color: var(--crit); border-color: rgba(248,81,73,.55); background: rgba(248,81,73,.12); }
-    .badge.warning { color: var(--warn); border-color: rgba(210,153,34,.5); background: rgba(210,153,34,.12); }
-    .badge.good { color: var(--good); border-color: rgba(126,231,135,.45); background: rgba(126,231,135,.09); }
-    h1 { margin: 14px 0 8px; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; letter-spacing: 0; }
-    .subtitle { max-width: 1050px; color: var(--muted); font-size: 1.05rem; margin: 0 0 18px; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 20px 0 16px; }
-    .stat { border: 1px solid var(--border); border-radius: 7px; background: rgba(31,38,51,.82); padding: 11px 12px; }
-    .stat-label { color: var(--subtle); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
-    .stat-value { display: block; margin-top: 3px; font-weight: 800; font-size: 1.05rem; overflow-wrap: anywhere; }
-    .meta-row { border-top: 1px solid rgba(255,255,255,.08); padding-top: 13px; color: var(--muted); font-size: .9rem; }
-    .meta-row strong { color: var(--text); }
-    .cloud-bar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      background: rgba(13,17,23,.94);
-      backdrop-filter: blur(8px);
-    }
-    .cloud-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    select {
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--panel);
-      color: var(--text);
-      padding: 6px 10px;
-    }
-    .host { border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; background: var(--panel); color: var(--accent); font-size: .84rem; }
-    section { padding: 34px 0; border-bottom: 1px solid var(--border); }
-    h2 { display: inline-block; margin: 0 0 16px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); font-size: 1.45rem; line-height: 1.2; }
-    h3 { margin: 24px 0 10px; font-size: 1.08rem; }
-    p { margin: 0 0 12px; }
-    .toc { margin: 24px 0 0; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: rgba(22,27,34,.82); }
-    .toc h3 { margin: 0 0 10px; color: var(--muted); font-size: .9rem; text-transform: uppercase; letter-spacing: .04em; }
-    .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 4px 16px; }
-    .toc-grid a { display: block; padding: 3px 0; text-decoration: none; font-size: .92rem; }
-    .callout { margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--accent); border-radius: 6px; background: rgba(88,166,255,.07); color: var(--muted); }
-    .callout strong { color: var(--text); }
-    .callout.warning { border-left-color: var(--warn); background: rgba(210,153,34,.08); }
-    .callout.critical { border-left-color: var(--crit); background: rgba(248,81,73,.08); }
-    table {
-      width: 100%;
-      table-layout: fixed;
-      margin: 14px 0;
-      border: 1px solid var(--border);
-      border-collapse: collapse;
-      border-radius: 7px;
-      overflow: hidden;
-      background: var(--panel);
-      font-size: .91rem;
-    }
-    th, td { padding: 9px 10px; border-top: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
-    th { border-top: 0; background: var(--panel-2); color: var(--text); text-align: left; }
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-    .panel, .query-card { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
-    .panel { padding: 14px; }
-    .panel h3 { margin-top: 0; }
-    .query-card { margin: 18px 0; overflow: hidden; }
-    .query-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 14px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
-    .query-title { margin: 0; font-size: 1rem; }
-    .query-meta { margin-top: 6px; color: var(--muted); font-size: .83rem; }
-    .query-summary { max-width: 760px; margin: 8px 0 0; color: var(--muted); font-size: .9rem; }
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 32px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 10px;
-      background: #212936;
-      color: var(--text);
-      cursor: pointer;
-      font-weight: 700;
-      font-size: .82rem;
-      text-decoration: none;
-    }
-    .button:hover, .button:focus-visible { border-color: #a5d6ff; outline: none; }
-    .button.primary { background: #0f3a5e; border-color: rgba(88,166,255,.55); }
-    pre { margin: 0; padding: 14px; overflow-x: auto; background: var(--code); color: #d6e2f0; font-size: .84rem; line-height: 1.45; white-space: pre; }
-    .small { color: var(--muted); font-size: .88rem; }
-    .checklist { margin: 10px 0 0; padding-left: 20px; }
-    .checklist li { margin-bottom: 6px; }
-    footer { padding: 24px 0 34px; color: var(--subtle); font-size: .86rem; }
-    @media (max-width: 720px) {
-      .container { width: min(100% - 24px, 1180px); }
-      .hero { padding-top: 28px; }
-      .query-head { display: block; }
-      .button-row { margin-top: 12px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scarlet Goldfinch — Fake-Update / ClickFix → NetSupport — HuntPack v0.3</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #181410; --surface2: #241c12; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9b9183; --accent: #ff9e64; --accent-dim: rgba(255,158,100,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b5d48; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1808 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(255,158,100,0.22); color: #ff9e64; border: 1px solid #ff9e64; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(255,158,100,0.09); border: 1px solid rgba(255,158,100,0.3); color: #ff9e64; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
 </head>
 <body>
-  <header class="hero">
-    <div class="container">
-      <div class="badge-row" aria-label="Hunt metadata badges">
-        <span class="badge critical">High Initial Access Risk</span>
-        <span class="badge warning">ClickFix / Paste and Run</span>
-        <span class="badge">Windows Endpoint</span>
-        <span class="badge good">Draft v0.1</span>
-      </div>
-      <h1>Scarlet Goldfinch</h1>
-      <p class="subtitle">Defender hunt pack for Scarlet Goldfinch activity described by Red Canary: compromised websites, fake update and ClickFix lures, LOLBAS-heavy paste-and-run execution, NetSupport Manager delivery, and late-2025 Remcos-to-NetSupport experimentation.</p>
 
-      <div class="stats" aria-label="Key hunt facts">
-        <div class="stat"><span class="stat-label">Primary objective</span><span class="stat-value">Persistent remote access</span></div>
-        <div class="stat"><span class="stat-label">Initial vector</span><span class="stat-value">Compromised websites and user-executed commands</span></div>
-        <div class="stat"><span class="stat-label">Affected platforms</span><span class="stat-value">Windows endpoints, browser users, RMM policy</span></div>
-        <div class="stat"><span class="stat-label">Hunt queries</span><span class="stat-value">10 CQL hunts</span></div>
-        <div class="stat"><span class="stat-label">Source activity</span><span class="stat-value">2025, six observed epochs</span></div>
-      </div>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
 
-      <div class="meta-row">
-        <span><strong>Generated:</strong> 2026-05-26</span>
-        <span><strong>Updated:</strong> 2026-05-26</span>
-        <span><strong>Primary source:</strong> Red Canary 2026 Threat Detection Report</span>
-        <span><strong>Threat cluster:</strong> Scarlet Goldfinch / SmartApeSG / ZPHP</span>
-        <span><strong>Use mode:</strong> Detect first, tune, then harden/prevent</span>
-      </div>
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Scarlet Goldfinch<br>Fake-Update / ClickFix → RAT</div>
+    <div class="version">v0.3 · 2026-06-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
 
-      <nav class="toc" aria-label="Contents">
-        <h3>Contents</h3>
-        <div class="toc-grid">
-          <a href="#summary">1. Executive Summary</a>
-          <a href="#source-review">2. Source Review &amp; Web Hunter Notes</a>
-          <a href="#brief">3. Hunt Brief &amp; Attack Chain</a>
-          <a href="#iocs">4. Consolidated IOC Table</a>
-          <a href="#affected">5. Affected Surface &amp; Telemetry Matrix</a>
-          <a href="#mitre">6. ATT&amp;CK Mapping</a>
-          <a href="#audit">7. Native Audit-Log Hunts</a>
-          <a href="#queries">8. CrowdStrike LogScale CQL Hunt Queries</a>
-          <a href="#ioa">9. CrowdStrike Custom IOA Recommendations</a>
-          <a href="#iocappendix">10. Machine-Readable IOC Appendix</a>
-          <a href="#validation">11. Detection Validation Gates</a>
-          <a href="#hardening">12. Hardening - Tiered &amp; Deployable</a>
-          <a href="#playbooks">13. Deployable Playbooks</a>
-          <a href="#containment">14. Containment Runbook</a>
-          <a href="#coverage">15. Detection Coverage Map</a>
-          <a href="#ticket">16. Hunt Summary Ticket</a>
-          <a href="#changelog">17. Changelog</a>
-          <a href="#refs">18. References</a>
-        </div>
-      </nav>
-    </div>
-  </header>
+<div id="main">
 
-  <div class="cloud-bar">
-    <div class="container cloud-inner">
-      <strong>Falcon cloud:</strong>
-      <select id="falcon-cloud" aria-label="Falcon cloud">
+<div class="hp-header">
+  <h1>Scarlet Goldfinch — Fake-Update / ClickFix → NetSupport &amp; Remcos</h1>
+  <div class="subtitle">Red Canary-tracked activity cluster: compromised sites push a fake browser-update (<code>updateinstaller.zip</code>) running malicious JavaScript — or, since 2025, a ClickFix fake-CAPTCHA paste-and-run — that installs NetSupport Manager RAT (and, since late 2025, Remcos). Defensive hunt &amp; harden pack — no malicious code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">Scarlet Goldfinch (Red Canary activity cluster)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE · RAT DELIVERY</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Fake-update / ClickFix loader → RAT</div></div>
+    <div class="meta-item"><div class="mk">Payloads</div><div class="mv">NetSupport Manager · Remcos (since late 2025)</div></div>
+    <div class="meta-item"><div class="mk">Delivery</div><div class="mv">Fake browser-update ZIP · ClickFix fake-CAPTCHA</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-12</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Scarlet Goldfinch is a Red Canary-tracked activity cluster that uses compromised websites to trick users into running malicious code that installs the <strong>NetSupport Manager RAT</strong>. Historically (pre-2025) it relied on <strong>fake browser-update lures</strong> — a compromised site claims a browser update is needed and serves a ZIP named like <code>updateinstaller.zip</code> / <code>updateinstall.zip</code> containing malicious JavaScript that drops the RAT. In 2025 the cluster followed the broader trend and pivoted to <strong>ClickFix fake-CAPTCHA "paste-and-run"</strong> lures for code execution, and in late 2025 began deploying <strong>Remcos RAT</strong> alongside NetSupport.</p>
+    <p>Both delivery paths converge on the same outcome: a remote-access tool persisting on a user endpoint for follow-on hands-on activity. The durable detection target is therefore the dual delivery (fake-update JS <em>and</em> ClickFix paste-and-run) plus the NetSupport/Remcos install behaviors — especially <strong>NetSupport's <code>client32.exe</code> running from a non-Program-Files path</strong>.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Cover both lures — <strong>Q1</strong> (fake-update <code>.zip</code>→<code>wscript .js</code>) and <strong>Q2</strong> (ClickFix browser→mshta/PowerShell). The decisive payload signal is <strong>Q3</strong>: <code>client32.exe</code>/NetSupport running outside Program Files. Any hit is a live RAT install — escalate and isolate.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Red Canary — Scarlet Goldfinch (blog + Threat Detection Report)</td><td>Fake-update → JS → NetSupport; 2025 pivot to ClickFix; ZIP names; late-2025 Remcos addition</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>Red Canary — "Scarlet Goldfinch's year in ClickFix"</td><td>Fake-CAPTCHA paste-and-run delivery evolution</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor</td><td>Picus / Darktrace — NetSupport RAT abuse</td><td>client32.exe install paths, persistence, C2 — payload detection</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Adjacent</td><td>Red Canary — Field Guide / Intelligence Insights</td><td>Relationship to SocGholish / Amber Albatross fake-update ecosystem</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> dual-delivery detection (fake-update JS + ClickFix) since the cluster runs both; payload-anchored on NetSupport <code>client32.exe</code> path anomaly + Remcos; cross-references the NetSupport Manager and SocGholish sibling packs for shared TTPs.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A user on a compromised site either downloads a fake-update ZIP (JS → RAT) or completes a ClickFix paste-and-run; either path installs NetSupport Manager (and/or Remcos) which persists and beacons for hands-on follow-up.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1a · Fake-update</td><td>Compromised site → <code>updateinstaller.zip</code> → <code>wscript</code> runs <code>.js</code></td><td><code>ProcessRollup2</code></td><td><strong>Q1</strong></td></tr>
+        <tr><td>1b · ClickFix</td><td>Fake CAPTCHA → paste-and-run mshta/PowerShell</td><td><code>ProcessRollup2</code></td><td><strong>Q2</strong></td></tr>
+        <tr><td>2 · RAT install</td><td>NetSupport <code>client32.exe</code> dropped to %ProgramData%/%AppData%</td><td><code>ProcessRollup2</code>; file write</td><td><strong>Q3</strong></td></tr>
+        <tr><td>3 · Persistence</td><td>Run key / scheduled task / Startup pointing at the RAT</td><td>registry / task events</td><td><strong>Q4</strong>; N3</td></tr>
+        <tr><td>4 · Remcos (alt)</td><td>Remcos RAT install/inject</td><td><code>ProcessRollup2</code></td><td><strong>Q5</strong></td></tr>
+        <tr><td>5 · C2</td><td>RAT beacon over HTTP/HTTPS</td><td><code>NetworkConnectIP4</code></td><td><strong>Q6</strong></td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows user endpoints</td><td>Process lineage + command line (<code>ProcessRollup2</code>)</td><td><span class="badge b-high">Critical</span></td><td>Low — standard sensor</td></tr>
+        <tr><td>RAT install paths</td><td>File writes to %ProgramData%/%AppData%; binary metadata</td><td><span class="badge b-high">High</span></td><td>Low — reliable</td></tr>
+        <tr><td>Persistence</td><td>Run keys / scheduled tasks / Startup</td><td><span class="badge b-high">High</span></td><td>Low — covered</td></tr>
+        <tr><td>Delivery (drive-by / ClickFix)</td><td>Proxy / RunMRU</td><td><span class="badge b-med">Medium</span></td><td>Medium — needs proxy/registry logging</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">Compromised-site domains and C2 rotate; the durable signals are the dual delivery and the NetSupport path anomaly. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior</td><td class="mono">NetSupport client32.exe running outside \Program Files\</td><td><span class="badge b-high">high</span></td><td>detect</td><td>RAT install path anomaly — flagship signal</td></tr>
+        <tr><td>File</td><td class="mono">updateinstaller.zip / updateinstall.zip → *.js</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>Fake-update delivery artifact</td></tr>
+        <tr><td>Behavior</td><td class="mono">browser/Explorer → mshta/powershell (ClickFix paste-and-run)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>2025+ delivery pivot</td></tr>
+        <tr><td>Behavior</td><td class="mono">Remcos RAT install/inject</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Late-2025 alt payload</td></tr>
+        <tr><td>Persistence</td><td class="mono">Run key / task pointing at %ProgramData%/%AppData% RAT</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>RAT persistence</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1189 / T1566 — Drive-by / phishing</td><td>Compromised-site fake update or ClickFix CAPTCHA</td><td>Q1, Q2; N1</td></tr>
+        <tr><td>Execution</td><td>T1059.007 / T1204.004 / T1218.005 — JS / paste-and-run / mshta</td><td>JS loader or ClickFix paste-and-run</td><td>Q1, Q2</td></tr>
+        <tr><td>Persistence</td><td>T1547.001 / T1053.005 — Run key / Startup / scheduled task</td><td>RAT auto-start</td><td>Q4; N3</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1219 — Remote Access Software (NetSupport)</td><td>client32.exe RAT C2</td><td>Q3, Q6</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1219 / T1055 — Remcos RAT</td><td>Remcos install/inject</td><td>Q5</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Fake-update / ClickFix delivery</td><td>Proxy / RunMRU</td><td>Download of <code>updateinstall*.zip</code> from a non-vendor site; RunMRU entries with <code>mshta</code>/<code>powershell</code>/<code>iex</code></td><td>Block domain; sweep host</td></tr>
+        <tr><td>N2 · NetSupport binary inventory</td><td>Software/binary inventory</td><td><code>client32.exe</code>/NetSupport metadata present outside <code>\Program Files\</code></td><td>Investigate; uninstall if unsanctioned</td></tr>
+        <tr><td>N3 · RAT persistence</td><td>Registry Run keys / Task Scheduler</td><td>Auto-start entries pointing at %ProgramData%/%AppData% binaries</td><td>Remove; isolate host</td></tr>
+        <tr><td>N4 · RAT C2</td><td>Proxy / firewall</td><td>NetSupport/Remcos beacon to unknown HTTP/HTTPS or non-standard ports</td><td>Block; identify the source host</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
         <option value="https://falcon.crowdstrike.com">US-1</option>
         <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
         <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
         <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
         <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
       </select>
-      <span class="host" id="falcon-host">https://falcon.crowdstrike.com</span>
-      <span class="small">Open-in-Falcon buttons use the selected cloud.</span>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. Q3 (NetSupport path anomaly) is the strongest payload keeper. If NetSupport is sanctioned in your environment, allow-list its managed install path.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Fake-update JS loader (wscript runs .js from a download path)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>wscript</code>/<code>cscript</code> running a <code>.js</code> from Downloads/Temp (esp. <code>updateinstall*</code>). <strong>Accomplishes:</strong> catches the legacy fake-update delivery path.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Scarlet Goldfinch fake-update JS loader</span>
+<span class="cm">// MITRE: T1189, T1059.007 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// FP NOTES: legit .js automation rarely runs from Downloads/Temp via wscript</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(wscript|cscript)\.exe$/i
+| CommandLine=/\.js("|\s|$)/i
+| CommandLine=/\\(Downloads|Temp)\\|updateinstall/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · ClickFix paste-and-run (browser → mshta/PowerShell)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> mshta/PowerShell parented by a browser/Explorer with iex+http. <strong>Accomplishes:</strong> catches the 2025+ ClickFix delivery pivot.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Scarlet Goldfinch ClickFix paste-and-run</span>
+<span class="cm">// MITRE: T1204.004, T1059.001, T1218.005 | CONF: high  FP: low  COST: low</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(explorer|chrome|msedge|firefox|brave|opera)\.exe$/i
+| FileName=/^(mshta|powershell|pwsh|cmd)\.exe$/i
+| CommandLine=/(iex|invoke-expression|mshta\s+http|DownloadString|FromBase64String|-enc(odedcommand)?\b).*?(http|\.zip)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · NetSupport client32.exe running outside Program Files</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> NetSupport <code>client32.exe</code> (or its files) executing from <code>%ProgramData%</code>/<code>%AppData%</code> rather than Program Files. <strong>Accomplishes:</strong> the decisive RAT-install signal. <strong>FP:</strong> sanctioned NetSupport in its managed path (allow-list).</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: NetSupport Manager RAT install path anomaly (Scarlet Goldfinch payload)</span>
+<span class="cm">// MITRE: T1219 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// TUNING: if NetSupport is sanctioned, allow-list its managed \Program Files\ install path</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (FileName=/^(client32|pcicapi|nskbfltr|remcmdstub)\.exe$/i or CommandLine=/client32\.ini|NetSupport/i)
+| ImageFileName=/\\(ProgramData|Users\\[^\\]+\\AppData|Temp)\\/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · RAT persistence (Run key / Startup / scheduled task)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> auto-start entries or Startup LNKs pointing at a binary in <code>%ProgramData%</code>/<code>%AppData%</code>. <strong>FP:</strong> some apps persist there — correlate with Q3 on the same host.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Scarlet Goldfinch RAT persistence</span>
+<span class="cm">// MITRE: T1547.001, T1053.005 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: correlate to Q3 on same aid; allow-list sanctioned auto-start apps</span>
+#event_simpleName=/AsepValueUpdate|ScheduledTaskRegistered|PeFileWritten/
+| (RegStringValue=/\\(ProgramData|AppData)\\.+\.(exe|scr)/i or TargetFileName=/\\Start Menu\\Programs\\Startup\\/i or CommandLine=/\\(ProgramData|AppData)\\.+\.(exe)/i)
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue, TargetFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Remcos RAT indicators</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Remcos artifacts (mutex/registry keys, install paths, common config strings). <strong>Accomplishes:</strong> catches the late-2025 alternate payload. <strong>FP:</strong> low — verify any hit.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Remcos RAT (Scarlet Goldfinch alt payload)</span>
+<span class="cm">// MITRE: T1219, T1055 | CONF: med-high  FP: low-med  COST: low</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|AsepValueUpdate/
+| (CommandLine=/remcos|\\Remcos\\|-no-restart.*-install/i or RegObjectName=/\\Software\\Remcos|\\Rmc-/i or ImageFileName=/\\(ProgramData|AppData)\\(remcos|rmc)/i)
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, RegObjectName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · RAT outbound C2 from a non-standard binary path</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> outbound connections initiated by a binary in <code>%ProgramData%</code>/<code>%AppData%</code> (the RAT). <strong>FP:</strong> some apps run from there — correlate with Q3/Q5.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: RAT C2 beacon from a user-writable path</span>
+<span class="cm">// MITRE: T1219, T1071.001 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// TUNING: correlate to Q3/Q5; exclude sanctioned apps that run from ProgramData</span>
+#event_simpleName=NetworkConnectIP4
+| ContextImageFileName=/\\(ProgramData|Users\\[^\\]+\\AppData)\\.+\.exe$/i
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|127\.)/
+| table([@timestamp, ComputerName, ContextImageFileName, RemoteAddressIP4, RemotePort])</pre>
+      </div>
     </div>
   </div>
+</div>
 
-  <main>
-    <section id="summary">
-      <div class="container">
-        <h2>1. Executive Summary</h2>
-        <p>Scarlet Goldfinch is a Windows initial-access activity cluster that uses compromised websites to convince users to execute malicious code. Red Canary reports that the cluster shifted in 2025 from fake browser-update lures toward paste-and-run, also known as ClickFix, with significant month-to-month changes in LOLBAS tradecraft.</p>
-        <p>The durable defender opportunity is not any single domain or command string. Build coverage around the repeated behaviors: user-context shell execution, web download cradles, LOLBAS proxy execution, script/archive staging, suspicious persistence, WMI-brokered execution, and NetSupport Manager or Remcos payload execution from user-writable paths.</p>
-        <div class="callout critical"><strong>Defender priority:</strong> Hunt for the execution chain first, then tune prevention around remote script download, mshta/msiexec/finger/forfiles abuse, and unsanctioned NetSupport Manager execution.</div>
-        <table>
-          <thead><tr><th>Metric</th><th>Value</th><th>Why it matters</th></tr></thead>
-          <tbody>
-            <tr><td>Red Canary rank</td><td>#6 overall, 3.3% customers affected</td><td>Prevalent enough to justify proactive detection even without local exposure evidence.</td></tr>
-            <tr><td>Behavior drift</td><td>Six 2025 epochs</td><td>Single-query coverage will decay. The pack uses behavior families instead of only IOCs.</td></tr>
-            <tr><td>Common payload</td><td>NetSupport Manager, with Remcos observed in late 2025</td><td>RMM governance and payload-path context are required to separate abuse from approved remote support.</td></tr>
-          </tbody>
-        </table>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>Scarlet Goldfinch — NetSupport outside Program Files</td><td>Image <code>*\client32.exe</code> from <code>*\ProgramData\*</code>/<code>*\AppData\*</code></td><td>Sanctioned NetSupport in its managed path</td><td>Endpoint Security → Custom IOA → Process Creation</td></tr>
+        <tr><td>Scarlet Goldfinch — fake-update wscript .js</td><td>Image <code>*\wscript.exe</code>; CmdLine <code>*.js</code> + <code>\Downloads\</code>/<code>updateinstall</code></td><td>Rare legit JS automation (allow-list)</td><td>Custom IOA → Process Creation</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q3 is the strongest promotion (payload path anomaly). Q1/Q2 are strong delivery detections. Q4–Q6 stay correlated hunts.</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for detection and IOC import. Compromised-site infra rotates — behavior + the NetSupport path anomaly are durable.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import (seed)</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,REPLACE_WITH_JS_LOADER_SHA256,detect,high,2026-09-12,Scarlet Goldfinch fake-update JS,campaign:ScarletGoldfinch
+sha256,REPLACE_WITH_NETSUPPORT_SHA256,detect,high,2027-06-12,NetSupport client32.exe (abused),campaign:ScarletGoldfinch
+domain,REPLACE_WITH_C2_DOMAIN,detect,medium,2026-08-12,NetSupport/Remcos C2 (rotates),campaign:ScarletGoldfinch</pre>
       </div>
-    </section>
 
-    <section id="source-review">
-      <div class="container">
-        <h2>2. Source Review &amp; Web Hunter Notes</h2>
-        <div class="callout">
-          <strong>Why this section exists:</strong> Scarlet Goldfinch overlaps with SmartApeSG, ZPHP, HANEYMANEY, NetSupport RAT abuse, and broader ClickFix tradecraft. The web-hunter pass keeps this pack from being a single-source restatement.
-        </div>
-        <table>
-          <thead><tr><th>Source</th><th>Type</th><th>What changed or confirmed</th><th>Carry forward?</th></tr></thead>
-          <tbody>
-            <tr><td><a href="https://redcanary.com/threat-detection-report/threats/scarlet-goldfinch/">Red Canary 2026 TDR - Scarlet Goldfinch</a></td><td>Primary research</td><td>Seed source for six 2025 epochs, sample commands, Red Canary ranking, detection opportunities, and NetSupport/Remcos behavior.</td><td>Yes. Baseline source for the pack.</td></tr>
-            <tr><td><a href="https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/">Red Canary - Scarlet Goldfinch's year in ClickFix</a></td><td>Primary research update</td><td>Adds 2026 Epoch 7 behavior: forfiles replaced by if exist checks, mshta remained important, cmd /v:on delayed expansion and variable-substring obfuscation hide curl/mshta, and Remcos-to-NetSupport continued.</td><td>Yes. Added Q10 and updated IOA/detection notes.</td></tr>
-            <tr><td><a href="https://www.blumira.com/blog/smartapesg-returns-with-unique-obfuscation-techniques">Blumira - SmartApeSG Returns with Unique Obfuscation Techniques</a></td><td>Vendor research</td><td>Corroborates delayed expansion, caret-obfuscated mshta, AppData HTA artifacts, NetSupport from unusual locations, and gives domains qeravito.com and pelgiron.com.</td><td>Partial. Carry behavior and indicators as hunt pivots.</td></tr>
-            <tr><td><a href="https://isc.sans.edu/diary/32474">SANS ISC - SmartApeSG campaign uses ClickFix page to push NetSupport RAT</a></td><td>Community malware lab</td><td>Corroborates fake CAPTCHA clipboard injection, mshta retrieval, Startup shortcut persistence, ProgramData NetSupport package, and provides URLs, C2, and a ZIP SHA256.</td><td>Yes, with expiry. Add IOCs as historical pivots, not permanent blocks.</td></tr>
-            <tr><td><a href="https://www.threatdown.com/blog/smartapesg-06-11-2024/">ThreatDown - SmartApeSG walkthrough</a></td><td>Vendor lab research</td><td>Documents earlier fake-update SmartApeSG chain using WScript, PowerShell, NetSupport, AppData execution, Run key persistence, and IOCs including psk777.casa and 94.158.245.103.</td><td>Partial. Useful for legacy coverage and IOC enrichment.</td></tr>
-            <tr><td><a href="https://www.proofpoint.com/us/blog/threat-insight/remote-monitoring-and-management-rmm-tooling-increasingly-attackers-first-choice">Proofpoint - RMM tooling increasingly an attacker's first choice</a></td><td>Vendor research</td><td>Confirms Proofpoint tracks this activity as ZPHP, with compromised-site injects, JavaScript/ZIP/NetSupport flow, and NetSupport license XMLCTL / serial NSM303008.</td><td>Partial. Carry config pivots and naming crosswalk.</td></tr>
-            <tr><td><a href="https://www.team-cymru.com/post/tracing-the-path-from-smartapesg-to-netsupport-rat">Team Cymru - Tracing the Path From SmartApeSG to NetSupport RAT</a></td><td>Internet telemetry research</td><td>Corroborates SmartApeSG-to-NetSupport infrastructure relationships, management hosts, X.509 overlaps, and C2 churn.</td><td>Partial. Treat infrastructure as enrichment pivots unless locally observed.</td></tr>
-          </tbody>
-        </table>
-
-        <h3>Web Hunter Decisions</h3>
-        <table>
-          <thead><tr><th>Decision</th><th>Rationale</th><th>Effect on this pack</th></tr></thead>
-          <tbody>
-            <tr><td>Add an obfuscation hunt</td><td>Red Canary and Blumira both describe cmd delayed expansion, caret insertion, and substring extraction hiding curl/mshta.</td><td>Added Q10 and a Custom IOA candidate for cmd /v:on plus obfuscated curl/mshta execution.</td></tr>
-            <tr><td>Expand IOCs but mark them volatile</td><td>SANS, Blumira, and ThreatDown provide additional domains, URLs, IPs, file paths, and hashes, but many are campaign-specific and short-lived.</td><td>Added them as hunt/enrichment pivots with short review windows rather than default block decisions.</td></tr>
-            <tr><td>Keep NetSupport governance central</td><td>Multiple sources converge on NetSupport Manager from abnormal paths as the durable payload signal.</td><td>Preserved Q9 and IOA guidance around approved RMM inventory and non-standard execution paths.</td></tr>
-            <tr><td>Separate infrastructure pivots from prevention</td><td>Team Cymru infrastructure is valuable for enrichment but may represent C2 management, old C2, or reassigned infrastructure.</td><td>Added references and caution; do not convert these directly into prevention rules without local corroboration.</td></tr>
-          </tbody>
-        </table>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">wscript.exe runs *.js from \Downloads\ (esp. updateinstaller.zip / updateinstall.zip)
+browser/Explorer -> mshta/powershell with iex+http (ClickFix paste-and-run)
+NetSupport client32.exe / client32.ini running from %ProgramData% or %AppData% (not Program Files)
+Run key / scheduled task / Startup LNK pointing at a %ProgramData%/%AppData% binary
+Remcos artifacts: \Software\Remcos registry, Rmc- keys, remcos install path
+RAT outbound C2 from a binary in %ProgramData%/%AppData%</pre>
       </div>
-    </section>
 
-    <section id="brief">
-      <div class="container">
-        <h2>3. Hunt Brief &amp; Attack Chain</h2>
-        <h3>Attack Chain</h3>
-        <table>
-          <thead><tr><th>Step</th><th>Observed or reported behavior</th><th>Primary telemetry</th><th>Primary hunt</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td>Compromised website presents fake update, CAPTCHA, or verification lure that convinces a user to run a command.</td><td>Browser history, proxy, DNS, process creation, EDR user context.</td><td>Q1, Q2, Q3, Q4, Q5, Q6</td></tr>
-            <tr><td>2</td><td>User-executed command launches curl, PowerShell, msiexec, mshta, finger, forfiles, conhost, cmd, or nested shells.</td><td>ProcessRollup2 with full command line and ancestry.</td><td>Q1-Q6, Q10</td></tr>
-            <tr><td>3</td><td>Script or LOLBAS chain downloads BAT, PS1, MSI, ZIP/RAR/PDF-masqueraded archive, VBS, CAB, HTA, or payload content.</td><td>Process, network, DNS, file-write, PowerShell, proxy logs.</td><td>Q1-Q5, Q8, Q10</td></tr>
-            <tr><td>4</td><td>Payload extraction and execution, including PowerShell ZIP extraction, rar.exe extraction, tar -xf, WMI Invoke-CimMethod, WmiPrvSE child process, and DLL side-loading.</td><td>Process, file-write, WMI-Activity, image-load, network connection.</td><td>Q7, Q8</td></tr>
-            <tr><td>5</td><td>Persistence through HKCU Run, HKCU Environment UserInitMprLogonScript, scheduled tasks, and Startup folder LNK files.</td><td>Registry events, scheduled task creation, file writes under Startup.</td><td>Q8</td></tr>
-            <tr><td>6</td><td>Remote access payload executes, commonly NetSupport Manager client32.exe or renamed variants, and in one late-2025 chain Remcos before NetSupport.</td><td>Process, network, binary metadata, RMM inventory, EDR detections.</td><td>Q7, Q9</td></tr>
-          </tbody>
-        </table>
-
-        <h3>2025 Epoch Model</h3>
-        <table>
-          <thead><tr><th>Epoch</th><th>Timeframe</th><th>Key tradecraft</th><th>Hunt focus</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td>April-June</td><td>cmd plus curl downloads BAT; PowerShell downloads/extracts ZIP; HKCU Run persistence; client32.exe execution; conhost nested cmd variants.</td><td>curl to script extensions, nested cmd/conhost, Run key persistence.</td></tr>
-            <tr><td>2</td><td>July</td><td>PowerShell download cradle retrieves and executes PS1; variables obfuscate iwr and iex.</td><td>PowerShell IEX/IWR, WebClient DownloadString, no-profile or hidden windows.</td></tr>
-            <tr><td>3</td><td>August-September</td><td>Remote msiexec with quiet install; Base64/byte PowerShell; ZIP/RAR; rar.exe; schtasks and UserInitMprLogonScript persistence; renamed client32.exe.</td><td>msiexec URL plus /q or /qn, rar.exe in ProgramData, scheduled tasks to user-writable executables.</td></tr>
-            <tr><td>4</td><td>October-December</td><td>mshta URL launcher, PowerShell PS1 execution, Startup LNK, wscript run.js, renamed NetSupport payload.</td><td>mshta external URL, Temp PS1, Startup LNK writes, wscript from Temp.</td></tr>
-            <tr><td>5</td><td>December</td><td>PowerShell starts cmd; finger pipes content to cmd; curl downloads PDF-masqueraded ZIP; tar extracts; Invoke-CimMethod launches DLL-sideloaded nearby_share.exe; Remcos; then NetSupport.</td><td>finger to cmd pipe, tar extracting PDF from Local AppData, WmiPrvSE spawning user-writable EXE.</td></tr>
-            <tr><td>6</td><td>Late December</td><td>forfiles executes cmd and mshta; cmd/PowerShell/curl/tar/Invoke-CimMethod chain repeats.</td><td>forfiles with /c cmd, mshta URL, PowerShell tar and Invoke-CimMethod.</td></tr>
-            <tr><td>7</td><td>Mid-January 2026 onward</td><td>forfiles gives way to if exist checks, mshta remains important, then cmd /v:on delayed expansion and variable-substring extraction hide curl/mshta before HTA execution and cleanup.</td><td>Q10 for obfuscated cmd plus Q1/Q4 for deobfuscated curl/mshta behavior.</td></tr>
-          </tbody>
-        </table>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Payloads &amp; Lineage</span><span class="igc">attribution</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">Scarlet Goldfinch       # Red Canary activity cluster (compromised-site fake update / ClickFix)
+Payloads: NetSupport Manager RAT (primary) ; Remcos RAT (since late 2025)
+Delivery: fake browser-update ZIP (pre-2025) -> ClickFix fake-CAPTCHA (2025+)
+NetSupport binaries: client32.exe, client32.ini, pcicapi.dll, nskbfltr.inf
+Adjacent fake-update ecosystem: SocGholish, Amber Albatross, NetSupport Manager (sibling packs)</pre>
       </div>
-    </section>
 
-    <section id="iocs">
-      <div class="container">
-        <h2>4. Consolidated IOC Table</h2>
-        <div class="callout warning"><strong>IOC handling:</strong> Treat these as historical indicators and pivots from Red Canary reporting, not permanent blocklists. Promote to block only after local reputation and false-positive review.</div>
-        <table>
-          <thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Notes</th></tr></thead>
-          <tbody>
-            <tr><td>Domain</td><td class="mono">lovedou.top</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 1 curl BAT download sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">jerseysus.top</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 1 obfuscated curl sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">classiccolonialhomes.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 1 conhost/curl and ZIP staging sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">sinofreights.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 1 BAT download sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">kabarbhayangkara.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 2 PowerShell DownloadString sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">folderhaha.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 3 msiexec remote package sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">pokelv.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 3 msiexec remote package sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">globaltechbilling.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 4 mshta sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">newenglandacademy.net</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 4 cmd to mshta sample.</td></tr>
-            <tr><td>Domain</td><td class="mono">midpils.com</td><td>Research-backed</td><td>Hunt / consider block</td><td>Epoch 5 curl pull for PDF-masqueraded ZIP.</td></tr>
-            <tr><td>IPv4</td><td class="mono">91.193.19.108</td><td>Research-backed</td><td>Hunt / enrich</td><td>Epoch 5 finger command sample.</td></tr>
-            <tr><td>IPv4</td><td class="mono">84.54.44.3:443</td><td>Research-backed</td><td>Hunt / enrich</td><td>Epoch 5 Remcos C2 connection sample.</td></tr>
-            <tr><td>IPv4</td><td class="mono">79.141.172.212</td><td>Research-backed</td><td>Hunt / enrich</td><td>Epoch 6 forfiles/mshta and later curl sample.</td></tr>
-            <tr><td>File name</td><td class="mono">client32.exe</td><td>Behavioral</td><td>Detect in abnormal paths</td><td>Legitimate NetSupport client filename; do not block without RMM allowlist review.</td></tr>
-            <tr><td>File name</td><td class="mono">ntcache.exe, spcache.exe, nearby_share.exe, intelbq.exe</td><td>Behavioral</td><td>Hunt / triage</td><td>Observed or representative payload names in user-writable locations.</td></tr>
-            <tr><td>Hash-like value</td><td class="mono">549d1f271d2026bce28b73afd9b1e665</td><td>Research-backed</td><td>Hunt / enrich</td><td>Reported file artifact for ProgramData ZIP sample.</td></tr>
-            <tr><td>Hash-like value</td><td class="mono">64f1310f6300870f1c81792733e92e5e</td><td>Research-backed</td><td>Hunt / enrich</td><td>Reported ntcache.exe/spcache.exe file artifact.</td></tr>
-            <tr><td>Hash-like value</td><td class="mono">ea4e1111720fc440257fd88f038d35c4</td><td>Research-backed</td><td>Hunt / enrich</td><td>Reported nearby_sharing_dart.dll side-loaded artifact.</td></tr>
-            <tr><td>Domain</td><td class="mono">qeravito.com</td><td>Supplemental research</td><td>Hunt / short-term review</td><td>Blumira SmartApeSG incident domain.</td></tr>
-            <tr><td>Domain</td><td class="mono">pelgiron.com</td><td>Supplemental research</td><td>Hunt / short-term review</td><td>Blumira SmartApeSG incident domain.</td></tr>
-            <tr><td>Domain</td><td class="mono">frostshiledr.com</td><td>Supplemental research</td><td>Hunt / short-term review</td><td>SANS ISC injected script and fake CAPTCHA URL host.</td></tr>
-            <tr><td>Domain</td><td class="mono">newstarmold.com</td><td>Supplemental research</td><td>Hunt / short-term review</td><td>SANS ISC mshta-retrieved script host.</td></tr>
-            <tr><td>Domain</td><td class="mono">iconconsultants.com</td><td>Supplemental research</td><td>Hunt / short-term review</td><td>SANS ISC NetSupport ZIP host.</td></tr>
-            <tr><td>IPv4</td><td class="mono">194.180.191.121</td><td>Supplemental research</td><td>Hunt / short-term review</td><td>SANS ISC NetSupport RAT C2 traffic sample.</td></tr>
-            <tr><td>SHA256</td><td class="mono">1e9a1be5611927c22a8c934f0fdd716811e0c93256b4ee784fadd9daaf2459a1</td><td>Supplemental research</td><td>Hunt / enrich</td><td>SANS ISC ZIP archive containing malicious NetSupport RAT package.</td></tr>
-            <tr><td>Domain</td><td class="mono">elvesofiax.com</td><td>Legacy supplemental</td><td>Hunt / enrich</td><td>ThreatDown SmartApeSG infrastructure.</td></tr>
-            <tr><td>Domain</td><td class="mono">psk777.casa</td><td>Legacy supplemental</td><td>Hunt / enrich</td><td>ThreatDown NetSupport RAT host.</td></tr>
-            <tr><td>IPv4</td><td class="mono">45.150.65.147</td><td>Legacy supplemental</td><td>Hunt / enrich</td><td>ThreatDown SmartApeSG infrastructure.</td></tr>
-            <tr><td>IPv4</td><td class="mono">94.158.245.103</td><td>Legacy supplemental</td><td>Hunt / enrich</td><td>ThreatDown NetSupport RAT C2.</td></tr>
-            <tr><td>SHA256</td><td class="mono">4cf69758cb191de3edc2030019c3bb0c56346de4e85b6badcce9aba8a23706fa</td><td>Legacy supplemental</td><td>Hunt / enrich</td><td>ThreatDown SmartApeSG sample hash.</td></tr>
-            <tr><td>Config pivot</td><td class="mono">Licensee XMLCTL / SerialNumber NSM303008</td><td>Supplemental research</td><td>Hunt / enrich</td><td>Proofpoint ZPHP NetSupport configuration pivot.</td></tr>
-            <tr><td>Infrastructure pivot</td><td class="mono">5.181.156.16, 5.181.157.69, 5.181.158.15, 194.31.109.74</td><td>Enrichment only</td><td>Pivot only</td><td>Team Cymru management/C2 infrastructure. Do not block without local corroboration.</td></tr>
-          </tbody>
-        </table>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Block</span><span class="igc">break the chain</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl"># Both delivery paths + the RAT:
+Change default .js/.jse handler from WScript to Notepad
+ASR: Block JS/VBScript launching downloaded executables + block executable content from email
+Block mshta.exe via WDAC/AppLocker (ClickFix first stage)
+WDAC/AppLocker: deny unsanctioned NetSupport (client32.exe) outside its managed path
+Disable/monitor the Run dialog (RunMRU) for paste-and-run lures
+Web filtering; browser updates via managed channels only</pre>
       </div>
-    </section>
 
-    <section id="affected">
-      <div class="container">
-        <h2>5. Affected Surface &amp; Telemetry Matrix</h2>
-        <table>
-          <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Residual risk if missing</th></tr></thead>
-          <tbody>
-            <tr><td>Endpoint process execution</td><td>Process creation with full command line, parent, grandparent, user, path, hash.</td><td>Critical</td><td>Cannot distinguish user-pasted commands, LOLBAS proxy chains, or payload execution.</td></tr>
-            <tr><td>Network and DNS</td><td>DNS requests, proxy/HTTP, TLS SNI where available, destination IP/port.</td><td>High</td><td>Loss of C2 and staging-domain pivots; weak ability to validate URL-bearing LOLBAS activity.</td></tr>
-            <tr><td>File writes and archive extraction</td><td>New file creation under ProgramData, Public, Temp, Local AppData, Roaming, Startup.</td><td>High</td><td>Staging artifacts and persistence files may be invisible until payload execution.</td></tr>
-            <tr><td>Registry and scheduled task creation</td><td>HKCU Run, HKCU Environment, Task Scheduler Operational logs, EDR registry events.</td><td>High</td><td>Persistence can survive after initial download evidence rolls off.</td></tr>
-            <tr><td>PowerShell</td><td>Script block logging, module logging, PowerShell process command lines, AMSI where available.</td><td>High</td><td>Obfuscated iwr/iex and Invoke-CimMethod logic may be reduced to opaque powershell.exe execution.</td></tr>
-            <tr><td>WMI</td><td>WMI-Activity logs, WmiPrvSE child process telemetry, command-line arguments.</td><td>Medium</td><td>Epoch 5/6 process tree breaks can hide the original user-executed command chain.</td></tr>
-            <tr><td>RMM inventory</td><td>Approved remote support tools, approved paths, signed binary metadata, allowlist owner.</td><td>High</td><td>NetSupport detections will be noisy or under-tuned without sanctioned-use context.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="mitre">
-      <div class="container">
-        <h2>6. ATT&amp;CK Mapping</h2>
-        <table>
-          <thead><tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Hunt coverage</th></tr></thead>
-          <tbody>
-            <tr><td>Execution</td><td>T1204.004 - Malicious Copy and Paste</td><td>ClickFix/paste-and-run lures instruct users to execute commands.</td><td>Q1-Q6</td></tr>
-            <tr><td>Execution</td><td>T1059.001 - PowerShell</td><td>PowerShell IWR/IEX, DownloadString, ZIP extraction, Invoke-CimMethod.</td><td>Q2, Q7, Q8</td></tr>
-            <tr><td>Execution</td><td>T1059.003 - Windows Command Shell</td><td>cmd /c and nested cmd chains launch curl, mshta, BAT, and extracted payloads.</td><td>Q1, Q5, Q6, Q10</td></tr>
-            <tr><td>Defense Evasion</td><td>T1027.010 - Command Obfuscation</td><td>cmd delayed expansion, caret insertion, and substring extraction hide curl, mshta, and start keywords.</td><td>Q10</td></tr>
-            <tr><td>Command and Control</td><td>T1105 - Ingress Tool Transfer</td><td>curl, PowerShell, msiexec, mshta, and finger chains retrieve payload content.</td><td>Q1-Q6, Q10</td></tr>
-            <tr><td>Defense Evasion</td><td>T1218.005 - Mshta</td><td>mshta executes remote HTA/script content and proxies PowerShell execution.</td><td>Q4, Q6</td></tr>
-            <tr><td>Defense Evasion</td><td>T1218.007 - Msiexec</td><td>msiexec downloads and installs remote packages with quiet flags.</td><td>Q3</td></tr>
-            <tr><td>Defense Evasion</td><td>T1202 - Indirect Command Execution</td><td>conhost and forfiles proxy execution of child commands.</td><td>Q1, Q6</td></tr>
-            <tr><td>Execution</td><td>T1047 - Windows Management Instrumentation</td><td>Invoke-CimMethod creates a process through WMI, yielding WmiPrvSE as parent.</td><td>Q7</td></tr>
-            <tr><td>Persistence</td><td>T1547.001 - Registry Run Keys / Startup Folder</td><td>HKCU Run, Startup LNK, and UserInitMprLogonScript persistence.</td><td>Q8</td></tr>
-            <tr><td>Persistence</td><td>T1053.005 - Scheduled Task</td><td>schtasks creates one-time execution for NetSupport payloads.</td><td>Q8</td></tr>
-            <tr><td>Command and Control</td><td>T1219 - Remote Access Software</td><td>NetSupport Manager client and Remcos provide remote access.</td><td>Q9</td></tr>
-            <tr><td>Defense Evasion</td><td>T1574.002 - DLL Side-Loading</td><td>nearby_share.exe side-loads nearby_sharing_dart.dll in late-2025 chain.</td><td>Q7</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="audit">
-      <div class="container">
-        <h2>7. Native Audit-Log Hunts</h2>
-        <div class="callout warning"><strong>Coverage warning:</strong> Endpoint process telemetry is the core signal, but proxy, DNS, WMI, PowerShell, registry, and scheduled task logs are needed to prove the chain and tune response.</div>
-        <table>
-          <thead><tr><th>Hunt</th><th>Where</th><th>Search logic</th><th>Action on hit</th></tr></thead>
-          <tbody>
-            <tr><td>PowerShell web cradle</td><td>PowerShell Operational, EDR process, AMSI/script block logs</td><td>Search for IEX, Invoke-Expression, iwr, Invoke-WebRequest, DownloadString, WebClient, -NoP, -WindowStyle Hidden.</td><td>Pivot to parent browser/shell, downloaded URL, file writes, and child processes.</td></tr>
-            <tr><td>LOLBAS external URL launch</td><td>EDR process, proxy, DNS</td><td>mshta, msiexec, forfiles, finger, conhost, curl with external URL or IP literals.</td><td>Check user context, lure source, command origin, and payload chain.</td></tr>
-            <tr><td>Script/archive staging</td><td>EDR file writes, Sysmon, Windows Defender for Endpoint, proxy</td><td>BAT/PS1/VBS/CAB/RAR/ZIP/PDF-masqueraded archive writes under ProgramData, Public, Temp, Local AppData, Roaming.</td><td>Collect file, hash, origin process, archive contents, and subsequent execution.</td></tr>
-            <tr><td>WMI process creation</td><td>Microsoft-Windows-WMI-Activity/Operational, EDR process ancestry</td><td>Invoke-CimMethod or Win32_Process Create followed by WmiPrvSE child process in user-writable path.</td><td>Reconstruct original PowerShell command and inspect side-loaded DLLs.</td></tr>
-            <tr><td>Persistence writes</td><td>Registry, Task Scheduler, file-write logs</td><td>HKCU Run, HKCU Environment UserInitMprLogonScript, Startup LNK, schtasks to ProgramData/AppData executables.</td><td>Disable persistence, isolate host if malicious chain confirmed, preserve artifacts.</td></tr>
-            <tr><td>RMM abuse</td><td>EDR process, software inventory, network</td><td>client32.exe or NetSupport metadata from non-standard paths, renamed binaries, outbound NetSupport traffic from unmanaged host.</td><td>Compare against approved RMM inventory and remote support owners.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="queries">
-      <div class="container">
-        <h2>8. CrowdStrike LogScale CQL Hunt Queries</h2>
-        <div class="callout"><strong>Schema note:</strong> These are Falcon LogScale / NG-SIEM starter hunts. Validate field names such as FileName, ImageFileName, CommandLine, ParentBaseFileName, DomainName, RemoteAddressIP4, RegistryKeyName, and TargetFileName in your tenant.</div>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q1. Curl Downloading Script-Like Payloads</h3><div class="query-meta">CONF: High | FP: Medium | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Finds curl commands that save downloaded content as script-capable or executable-adjacent file types, matching Scarlet Goldfinch's early paste-and-run BAT/script staging pattern.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q1">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q1">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q1">#event_simpleName=ProcessRollup2
-| FileName=/^curl(\.exe)?$/i
-| CommandLine=/(\s-o\s|\s--output\s|\s--remote-name\s).*\.(bat|cmd|cpl|hta|ocx|scr|sys|vbs)(\"|\s|$)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName, SHA256HashData], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q2. PowerShell IWR/IEX Download Cradle</h3><div class="query-meta">CONF: Medium-High | FP: Medium | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Looks for PowerShell web-download and execute patterns such as IWR, WebClient DownloadString, and IEX that Scarlet Goldfinch used to pull and run PS1 payload logic.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q2">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q2">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q2">#event_simpleName=ProcessRollup2
-| FileName=/^(powershell|powershell\.exe|pwsh|pwsh\.exe)$/i
-| CommandLine=/(invoke-expression|\biex\b|downloadstring|new-object\s+system\.net\.webclient|invoke-webrequest|\biwr\b)/i
-| CommandLine=/(http:\/\/|https:\/\/|\-nop|\-noprofile|\-w\s+hidden|\-windowstyle\s+hidden)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName, SHA256HashData], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q3. Msiexec Remote Quiet Install</h3><div class="query-meta">CONF: High | FP: Low-Medium | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Flags msiexec pulling packages from HTTP or HTTPS with quiet install switches, covering the Scarlet Goldfinch epoch that used remote MSI execution to separate initial access from payload activity.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q3">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q3">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q3">#event_simpleName=ProcessRollup2
-| FileName=/^msiexec(\.exe)?$/i
-| CommandLine=/(http:\/\/|https:\/\/)/i
-| CommandLine=/(\s\/i\s|\s-i\s|\s\/package\s)/i
-| CommandLine=/(\s\/q\b|\s\/qn\b|\s-q\b|\s-quiet\b)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q4. Mshta External URL Launcher</h3><div class="query-meta">CONF: High | FP: Low-Medium | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Catches mshta launching remote content, a high-signal LOLBAS behavior Scarlet Goldfinch used to fetch script content and hand execution to PowerShell.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q4">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q4">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q4">#event_simpleName=ProcessRollup2
-| FileName=/^mshta(\.exe)?$/i
-| CommandLine=/(http:\/\/|https:\/\/)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q10. Cmd Delayed Expansion And Caret Obfuscation</h3><div class="query-meta">CONF: Medium-High | FP: Medium | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Finds command shells using delayed expansion, caret insertion, or substring extraction to hide curl, mshta, start, and related download/execute keywords, matching 2026 Scarlet Goldfinch/SmartApeSG obfuscation updates.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q10">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q10">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q10">#event_simpleName=ProcessRollup2
-| FileName=/^(cmd|cmd\.exe)$/i
-| CommandLine=/\/v:on|![A-Za-z0-9_]+:~\d+,\d+!|\^[A-Za-z]\^[A-Za-z]\^[A-Za-z]/i
-| CommandLine=/(curl|c\^u\^r\^l|mshta|m\^s\^h\^t\^a|start|s\^t\^a\^r\^t|http:\/\/|https:\/\/|\.hta)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q5. Finger Piped Into Command Shell</h3><div class="query-meta">CONF: High | FP: Low | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Hunts rare finger.exe abuse where output from a remote Finger server is piped into cmd, matching Scarlet Goldfinch's December paste-and-run pivot.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q5">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q5">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q5">#event_simpleName=ProcessRollup2
-| (FileName=/^finger(\.exe)?$/i OR CommandLine=/\bfinger\s+\S+@\d{1,3}(\.\d{1,3}){3}/i OR CommandLine=/\bfinger\s+\S+@\S+\s*\|\s*cmd/i)
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q6. Forfiles Proxy To Cmd Or Mshta</h3><div class="query-meta">CONF: High | FP: Low-Medium | COST: Low | Requires: ProcessRollup2 command line</div><p class="query-summary">Identifies forfiles.exe being used as an indirect launcher for cmd, PowerShell, mshta, curl, or URLs, covering the later Scarlet Goldfinch proxy-execution chain.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q6">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q6">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q6">#event_simpleName=ProcessRollup2
-| FileName=/^forfiles(\.exe)?$/i
-| CommandLine=/\/c\s+.*(cmd|powershell|mshta|curl|http:\/\/|https:\/\/)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ImageFileName], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q7. WmiPrvSE Spawns User-Writable Payload</h3><div class="query-meta">CONF: Medium-High | FP: Medium | COST: Low | Requires: ProcessRollup2 ancestry and image path</div><p class="query-summary">Looks for WMI-brokered execution where WmiPrvSE launches an executable from ProgramData, AppData, Public, Temp, or Downloads, useful for finding Invoke-CimMethod process-tree breaks and DLL side-load follow-on payloads.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q7">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q7">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q7">#event_simpleName=ProcessRollup2
-| ParentBaseFileName=/^wmiprvse\.exe$/i
-| ImageFileName=/\\(ProgramData|Users\\[^\\]+\\AppData\\|Users\\Public\\|Temp\\|Downloads\\)/i
-| FileName=/\.(exe|dll)$/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, MD5HashData, SHA256HashData], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q8. Persistence Paths Used In Scarlet Goldfinch Chains</h3><div class="query-meta">CONF: Medium | FP: Medium | COST: Medium | Requires: registry, file-write, scheduled-task process events</div><p class="query-summary">Correlates persistence-related registry, Startup folder, scheduled task, and file-write signals tied to HKCU Run, UserInitMprLogonScript, Startup LNKs, and user-writable payload paths.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q8">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q8">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q8">(#event_simpleName=RegistryModification OR #event_simpleName=NewExecutableWritten OR #event_simpleName=ProcessRollup2)
-| (CommandLine=/UserInitMprLogonScript|\\CurrentVersion\\Run|schtasks\s+\/create|Startup\\.*\.lnk/i OR RegistryKeyName=/UserInitMprLogonScript|\\CurrentVersion\\Run/i OR TargetFileName=/\\Startup\\.*\.lnk$/i)
-| (CommandLine=/\\(ProgramData|Users\\[^\\]+\\AppData\\|Users\\Public\\)/i OR TargetFileName=/\\(ProgramData|Users\\[^\\]+\\AppData\\|Users\\Public\\)/i OR RegistryData=/\\(ProgramData|Users\\[^\\]+\\AppData\\|Users\\Public\\)/i)
-| table([@timestamp, ComputerName, UserName, #event_simpleName, FileName, CommandLine, RegistryKeyName, RegistryData, TargetFileName], limit=200)</pre>
-        </article>
-
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Q9. NetSupport Client From Non-Standard Paths</h3><div class="query-meta">CONF: Medium-High | FP: Medium | COST: Low | Requires: process path and RMM allowlist context</div><p class="query-summary">Surfaces NetSupport Manager client execution from suspicious or user-writable directories so analysts can separate sanctioned RMM use from Scarlet Goldfinch payload deployment.</p></div>
-            <div class="button-row"><button class="button copy" type="button" data-copy-target="query-q9">Copy</button><button class="button primary open-falcon" type="button" data-query-target="query-q9">Open in Falcon</button></div>
-          </div>
-          <pre id="query-q9">#event_simpleName=ProcessRollup2
-| (FileName=/^client32\.exe$/i OR CommandLine=/\\(client32|ntcache|spcache)\.exe/i)
-| ImageFileName=/\\(ProgramData|Users\\[^\\]+\\AppData\\|Users\\Public\\|Temp\\|Downloads\\)/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, MD5HashData, SHA256HashData], limit=200)</pre>
-        </article>
-      </div>
-    </section>
-
-    <section id="ioa">
-      <div class="container">
-        <h2>9. CrowdStrike Custom IOA Recommendations</h2>
-        <table>
-          <thead><tr><th>Candidate</th><th>Rule logic</th><th>Exclusions</th><th>Rollout guidance</th></tr></thead>
-          <tbody>
-            <tr><td>curl script download from user shell</td><td>Image Filename include <span class="mono">.*\\curl\.exe$</span>; Command Line include <span class="mono">.*(\s-o\s|\s--output\s).*\.(bat|cmd|hta|vbs|scr|cpl).*</span>; parent cmd, powershell, conhost, forfiles, browser-adjacent shell.</td><td>Approved software deployment tools, developer build scripts, package managers, known admin download paths.</td><td>Start detect-only. Promote after excluding sanctioned admin and developer automation.</td></tr>
-            <tr><td>PowerShell web cradle with IEX</td><td>Image Filename include <span class="mono">.*\\(powershell|pwsh)\.exe$</span>; Command Line include <span class="mono">.*(iex|invoke-expression|downloadstring|invoke-webrequest|iwr).*(http|https).*</span>.</td><td>Managed scripts, EDR response scripts, known IT automation accounts and signed script paths.</td><td>Detect-only unless constrained to untrusted parents or user-writable output paths.</td></tr>
-            <tr><td>cmd delayed expansion and caret obfuscation</td><td>Image Filename include <span class="mono">.*\\cmd\.exe$</span>; Command Line include delayed expansion or variable substring syntax such as <span class="mono">/v:on</span> or <span class="mono">!var:~1,1!</span>; require curl, mshta, start, HTTP, or HTA execution context, including caret-obfuscated forms.</td><td>Build systems and administrative scripts that legitimately use delayed expansion; exclude signed software management paths and known automation accounts.</td><td>Detect-only first. Stronger prevention candidate when combined with user-run context and downloaded HTA/script payloads.</td></tr>
-            <tr><td>msiexec remote quiet install</td><td>Image Filename include <span class="mono">.*\\msiexec\.exe$</span>; Command Line include <span class="mono">.*(http|https).*\/i.*(\/q|\/qn).*</span>.</td><td>Approved software distribution systems and vendor update domains.</td><td>Strong candidate for prevention in workstations after allowlist maturity.</td></tr>
-            <tr><td>mshta remote URL launcher</td><td>Image Filename include <span class="mono">.*\\mshta\.exe$</span>; Command Line include <span class="mono">.*https?:\/\/.*</span>.</td><td>Legacy internal HTA applications if any exist; otherwise few benign cases expected.</td><td>Begin detect-only for short baseline, then consider prevention.</td></tr>
-            <tr><td>finger piped to cmd</td><td>Image Filename include <span class="mono">.*\\finger\.exe$</span>; Command Line include <span class="mono">.*@.*\|.*cmd.*</span>, or child cmd where parent command includes finger.</td><td>Rare legitimate use; document any network administration edge cases.</td><td>Good prevention candidate after validation because normal workstation use is uncommon.</td></tr>
-            <tr><td>WmiPrvSE launches user-writable EXE</td><td>Parent Image Filename include <span class="mono">.*\\WmiPrvSE\.exe$</span>; Image Filename include <span class="mono">.*\\(ProgramData|Users\\.*\\AppData|Users\\Public)\\.*\.exe$</span>.</td><td>Known endpoint management agents using WMI for local execution.</td><td>Detect-only first. High-value correlation with preceding PowerShell Invoke-CimMethod.</td></tr>
-            <tr><td>NetSupport outside approved paths</td><td>Image Filename include <span class="mono">.*\\client32\.exe$</span> or internal-name based detection if available; path include user-writable locations.</td><td>Approved NetSupport installs, standard Program Files path, approved support team devices.</td><td>Use with RMM governance inventory. Do not block legitimate support tooling blindly.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="iocappendix">
-      <div class="container">
-        <h2>10. Machine-Readable IOC Appendix</h2>
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">IOC JSON</h3><div class="query-meta">Historical Red Canary report pivots; review before blocklisting.</div></div>
-            <button class="button copy" type="button" data-copy-target="ioc-json">Copy</button>
-          </div>
-          <pre id="ioc-json">{
-  "hunt": "scarlet-goldfinch",
-  "updated": "2026-05-26",
-  "source": "https://redcanary.com/threat-detection-report/threats/scarlet-goldfinch/",
-  "indicators": [
-    {"type": "domain", "value": "lovedou.top", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "jerseysus.top", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "classiccolonialhomes.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "sinofreights.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "kabarbhayangkara.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "folderhaha.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "pokelv.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "globaltechbilling.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "newenglandacademy.net", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "midpils.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "ip", "value": "91.193.19.108", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "ip", "value": "84.54.44.3", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "ip", "value": "79.141.172.212", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "filename", "value": "client32.exe", "confidence": "behavioral", "action": "detect-in-abnormal-paths", "expiry": "none"},
-    {"type": "filename", "value": "ntcache.exe", "confidence": "behavioral", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "filename", "value": "spcache.exe", "confidence": "behavioral", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "hash-md5-or-hash-like", "value": "549d1f271d2026bce28b73afd9b1e665", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "hash-md5-or-hash-like", "value": "64f1310f6300870f1c81792733e92e5e", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "hash-md5-or-hash-like", "value": "ea4e1111720fc440257fd88f038d35c4", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "qeravito.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "pelgiron.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "frostshiledr.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "newstarmold.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "iconconsultants.com", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "ip", "value": "194.180.191.121", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "sha256", "value": "1e9a1be5611927c22a8c934f0fdd716811e0c93256b4ee784fadd9daaf2459a1", "confidence": "medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "elvesofiax.com", "confidence": "low-medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "domain", "value": "psk777.casa", "confidence": "low-medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "ip", "value": "45.150.65.147", "confidence": "low-medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "ip", "value": "94.158.245.103", "confidence": "low-medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "sha256", "value": "4cf69758cb191de3edc2030019c3bb0c56346de4e85b6badcce9aba8a23706fa", "confidence": "low-medium", "action": "hunt", "expiry": "review-after-30-days"},
-    {"type": "config", "value": "Licensee XMLCTL / SerialNumber NSM303008", "confidence": "medium", "action": "enrich", "expiry": "none"},
-    {"type": "infrastructure-pivot", "value": "5.181.156.16, 5.181.157.69, 5.181.158.15, 194.31.109.74", "confidence": "contextual", "action": "pivot-only", "expiry": "review-before-action"}
-  ]
-}</pre>
-        </article>
-      </div>
-    </section>
-
-    <section id="validation">
-      <div class="container">
-        <h2>11. Detection Validation Gates</h2>
-        <table>
-          <thead><tr><th>Gate</th><th>Pass criteria</th><th>Evidence to capture</th></tr></thead>
-          <tbody>
-            <tr><td>Field validation</td><td>Every query returns expected columns or documented nulls in the target Falcon dataset.</td><td>Screenshot or export of sample benign and suspicious rows.</td></tr>
-            <tr><td>Positive tests</td><td>Atomic Red Team or controlled simulations produce hits for curl download, IEX PowerShell, msiexec remote package, mshta URL, cmd delayed-expansion/caret obfuscation, and WMI process creation.</td><td>Command transcript, timestamp, host, expected query ID, and resulting event rows.</td></tr>
-            <tr><td>Benign controls</td><td>Approved software deployment, RMM, PowerShell automation, and installer activity are measured and either excluded or accepted as triage noise.</td><td>Named exclusions, owner, expiration, and sample benign rows.</td></tr>
-            <tr><td>Promotion</td><td>High-signal queries have acceptable noise and a documented response owner.</td><td>Detection owner approval and rollback steps.</td></tr>
-            <tr><td>Prevention readiness</td><td>Custom IOAs have passed Falcon pattern tests and at least one baseline period in monitor/detect-only mode.</td><td>Pattern-test screenshots, hit counts, false-positive list, business approval.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="hardening">
-      <div class="container">
-        <h2>12. Hardening - Tiered &amp; Deployable</h2>
-        <div class="grid-2">
-          <div class="panel">
-            <h3>Immediate</h3>
-            <ul class="checklist">
-              <li>Baseline sanctioned RMM tools and flag NetSupport Manager outside approved hosts and paths.</li>
-              <li>Block or alert on mshta making internet requests where business use is absent.</li>
-              <li>Alert on finger.exe network use and finger piped to cmd on workstations.</li>
-              <li>Review proxy and DNS logs for the historical domains and IPs in the appendix.</li>
-            </ul>
-          </div>
-          <div class="panel">
-            <h3>Near Term</h3>
-            <ul class="checklist">
-              <li>Enable PowerShell script block and module logging for workstations and admin hosts.</li>
-              <li>Deploy ASR or application-control policy for script and LOLBAS abuse where compatible.</li>
-              <li>Monitor Startup folder LNK creation and HKCU Environment UserInitMprLogonScript writes.</li>
-              <li>Require administrative review for new remote support software or trialware.</li>
-            </ul>
-          </div>
-          <div class="panel">
-            <h3>Strategic</h3>
-            <ul class="checklist">
-              <li>Adopt WDAC or AppLocker policy for high-risk user groups and unmanaged endpoints.</li>
-              <li>Build paste-and-run detection as a behavior family rather than one indicator-specific rule.</li>
-              <li>Continuously compare RMM telemetry against CMDB or endpoint-management inventory.</li>
-              <li>Train users and help desk teams on fake CAPTCHA and ClickFix prompts that request Run dialog commands.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="playbooks">
-      <div class="container">
-        <h2>13. Deployable Playbooks</h2>
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">PowerShell: Quick Local Persistence Sweep</h3><div class="query-meta">Endpoint triage helper; run in an approved response shell.</div></div>
-            <button class="button copy" type="button" data-copy-target="playbook-1">Copy</button>
-          </div>
-          <pre id="playbook-1">$paths = @(
-  "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run",
-  "HKCU:\Environment"
-)
-
-foreach ($path in $paths) {
-  if (Test-Path $path) {
-    Get-ItemProperty -Path $path | Select-Object PSPath, *
-  }
-}
-
-$startup = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
-if (Test-Path $startup) {
-  Get-ChildItem -Path $startup -Force | Select-Object FullName, Length, LastWriteTime
-}
-
-Get-ScheduledTask |
-  Where-Object { $_.TaskPath -notlike "\Microsoft*" } |
-  Select-Object TaskName, TaskPath, State</pre>
-        </article>
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">RMM Allowlist Review Fields</h3><div class="query-meta">Use to document whether NetSupport activity is sanctioned.</div></div>
-            <button class="button copy" type="button" data-copy-target="playbook-2">Copy</button>
-          </div>
-          <pre id="playbook-2">Host:
-User:
-Process path:
-File name:
-Internal/product name:
-Signer:
-Hash:
-Destination domains/IPs:
-Approved RMM owner:
-Business justification:
-Install source:
-Ticket/change record:
-Decision: approved / suspicious / malicious
-Expiration for approval:</pre>
-        </article>
-      </div>
-    </section>
-
-    <section id="containment">
-      <div class="container">
-        <h2>14. Containment Runbook</h2>
-        <table>
-          <thead><tr><th>Phase</th><th>Action</th><th>Owner</th><th>Evidence</th></tr></thead>
-          <tbody>
-            <tr><td>Confirm</td><td>Validate process chain from browser/user shell to LOLBAS downloader, script/archive staging, persistence, and payload execution.</td><td>SOC analyst</td><td>Timeline with process GUIDs, command lines, URLs, hashes, and user context.</td></tr>
-            <tr><td>Contain</td><td>Isolate endpoint if payload execution or persistence is confirmed. Disable malicious scheduled tasks, Run keys, Startup LNK, and UserInitMprLogonScript value after evidence capture.</td><td>Incident responder</td><td>Containment timestamp, artifacts collected, persistence removed.</td></tr>
-            <tr><td>Eradicate</td><td>Remove staged BAT/PS1/VBS/CAB/RAR/ZIP/PDF-masqueraded files, NetSupport/Remcos payloads, side-loaded DLLs, and attacker-created directories.</td><td>Endpoint response</td><td>File list, hashes, deletion or quarantine records.</td></tr>
-            <tr><td>Recover</td><td>Reboot if required, verify persistence does not reappear, restore approved RMM state, and monitor egress for 72 hours.</td><td>IT operations</td><td>Clean reboot, post-remediation query results, user validation.</td></tr>
-            <tr><td>Report</td><td>Record lure URL, affected user, source website if known, and whether credentials or remote access sessions were exposed.</td><td>Incident lead</td><td>Case summary, notification requirements, follow-up detections.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="coverage">
-      <div class="container">
-        <h2>15. Detection Coverage Map</h2>
-        <table>
-          <thead><tr><th>Behavior</th><th>Primary coverage</th><th>Fallback coverage</th><th>Gap</th></tr></thead>
-          <tbody>
-            <tr><td>curl downloads script payload</td><td>Q1 and IOA curl script download</td><td>Proxy downloads to script extensions</td><td>Encoded or renamed curl alternatives may evade filename-only logic.</td></tr>
-            <tr><td>cmd obfuscates curl/mshta with delayed expansion or carets</td><td>Q10 and cmd obfuscation IOA</td><td>Script-block, proxy, and file-write correlation around downloaded HTA/script payloads</td><td>Generic delayed-expansion use can be benign; require download/execute context before alert promotion.</td></tr>
-            <tr><td>PowerShell IEX/IWR</td><td>Q2 and PowerShell logs</td><td>AMSI/script block analytics</td><td>Variables can hide literal strings if only command-line telemetry exists.</td></tr>
-            <tr><td>msiexec remote package</td><td>Q3 and msiexec IOA</td><td>Proxy egress to MSI-like endpoints</td><td>Legitimate software deployment must be allowlisted carefully.</td></tr>
-            <tr><td>mshta URL</td><td>Q4 and mshta IOA</td><td>Proxy and DNS</td><td>Some legacy applications may still use mshta internally.</td></tr>
-            <tr><td>finger or forfiles proxy execution</td><td>Q5, Q6, IOA candidates</td><td>LOLBAS allowlist monitoring</td><td>Coverage depends on full command line and parent/child process correlation.</td></tr>
-            <tr><td>WMI-brokered payload</td><td>Q7 and WMI logs</td><td>Image-load and network from child process</td><td>Original initiator may be lost without PowerShell/WMI telemetry.</td></tr>
-            <tr><td>Persistence</td><td>Q8 registry/task/file-write</td><td>EDR persistence alerts</td><td>RegistryData and TargetFileName field names vary across parsers.</td></tr>
-            <tr><td>NetSupport payload</td><td>Q9 plus RMM inventory</td><td>Binary metadata and network detections</td><td>Renamed client binaries require product/internal-name metadata.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="ticket">
-      <div class="container">
-        <h2>16. Hunt Summary Ticket</h2>
-        <article class="query-card">
-          <div class="query-head">
-            <div><h3 class="query-title">Ticket Summary</h3><div class="query-meta">Paste into case management or detection backlog.</div></div>
-            <button class="button copy" type="button" data-copy-target="ticket-text">Copy</button>
-          </div>
-          <pre id="ticket-text">Title: Scarlet Goldfinch paste-and-run and NetSupport Manager hunt
-Scope: Windows workstations and servers, recommended lookback 90 days or source-specific 2025 window
-Hypothesis: A user-executed ClickFix/fake-update command launched LOLBAS tooling to download scripts or archives, establish persistence, and execute NetSupport Manager or Remcos from user-writable paths.
-Queries run: Q1-Q10
-Data sources searched: Falcon process, network/DNS, file-write, registry, scheduled task, WMI, PowerShell
-Findings: Record confirmed malicious, suspicious, benign admin, or no hits.
-Gaps: Full command line, PowerShell script blocks, WMI-Activity, proxy/DNS, RMM allowlist
-Actions: Triage hits, isolate confirmed hosts, remove persistence, review RMM policy, tune IOAs
-Owner: SOC / Detection Engineering / Endpoint Engineering</pre>
-        </article>
-      </div>
-    </section>
-
-    <section id="changelog">
-      <div class="container">
-        <h2>17. Changelog</h2>
-        <table>
-          <thead><tr><th>Version</th><th>Date</th><th>Change</th></tr></thead>
-          <tbody>
-            <tr><td>v0.1</td><td>2026-05-26</td><td>Initial dry-run HuntPack generated from Red Canary Scarlet Goldfinch reporting and related ATT&amp;CK/LOLBAS references.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="refs">
-      <div class="container">
-        <h2>18. References</h2>
-        <table>
-          <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Accessed</th></tr></thead>
-          <tbody>
-            <tr><td>Primary research</td><td><a href="https://redcanary.com/threat-detection-report/threats/scarlet-goldfinch/">Red Canary - Scarlet Goldfinch</a></td><td>Threat summary, epoch model, sample commands, detection opportunities, testing guidance.</td><td>2026-05-26</td></tr>
-            <tr><td>Primary research update</td><td><a href="https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/">Red Canary - Scarlet Goldfinch's year in ClickFix</a></td><td>2026 Epoch 7 behavior, delayed expansion and substring obfuscation, continued Remcos-to-NetSupport chain.</td><td>2026-05-26</td></tr>
-            <tr><td>Primary research</td><td><a href="https://redcanary.com/threat-detection-report/threats/netsupport-manager/">Red Canary - NetSupport Manager</a></td><td>Payload context, NetSupport path heuristics, RMM allowlist guidance.</td><td>2026-05-26</td></tr>
-            <tr><td>Vendor research</td><td><a href="https://www.blumira.com/blog/smartapesg-returns-with-unique-obfuscation-techniques">Blumira - SmartApeSG Returns with Unique Obfuscation Techniques</a></td><td>Delayed expansion, caret obfuscation, AppData HTA artifacts, NetSupport unusual-location detection, supplemental IOCs.</td><td>2026-05-26</td></tr>
-            <tr><td>Community malware lab</td><td><a href="https://isc.sans.edu/diary/32474">SANS ISC - SmartApeSG campaign uses ClickFix page to push NetSupport RAT</a></td><td>ClickFix clipboard injection, mshta retrieval, Startup shortcut persistence, ProgramData NetSupport package, supplemental IOCs.</td><td>2026-05-26</td></tr>
-            <tr><td>Vendor lab research</td><td><a href="https://www.threatdown.com/blog/smartapesg-06-11-2024/">ThreatDown - SmartApeSG walkthrough</a></td><td>Legacy fake-update SmartApeSG chain, WScript/PowerShell/NetSupport behavior, Run key persistence, supplemental IOCs.</td><td>2026-05-26</td></tr>
-            <tr><td>Vendor research</td><td><a href="https://www.proofpoint.com/us/blog/threat-insight/remote-monitoring-and-management-rmm-tooling-increasingly-attackers-first-choice">Proofpoint - RMM tooling increasingly an attacker's first choice</a></td><td>ZPHP naming, compromised-site inject behavior, NetSupport configuration pivots.</td><td>2026-05-26</td></tr>
-            <tr><td>Internet telemetry research</td><td><a href="https://www.team-cymru.com/post/tracing-the-path-from-smartapesg-to-netsupport-rat">Team Cymru - Tracing the Path From SmartApeSG to NetSupport RAT</a></td><td>Infrastructure relationships, management hosts, X.509 overlap, and C2 churn context.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1204/004/">MITRE ATT&amp;CK T1204.004</a></td><td>Malicious Copy and Paste mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1059/001/">MITRE ATT&amp;CK T1059.001</a></td><td>PowerShell mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1105/">MITRE ATT&amp;CK T1105</a></td><td>Ingress Tool Transfer mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1218/005/">MITRE ATT&amp;CK T1218.005</a></td><td>Mshta mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1218/007/">MITRE ATT&amp;CK T1218.007</a></td><td>Msiexec mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1047/">MITRE ATT&amp;CK T1047</a></td><td>WMI mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1219/">MITRE ATT&amp;CK T1219</a></td><td>Remote access software mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>ATT&amp;CK</td><td><a href="https://attack.mitre.org/techniques/T1547/001/">MITRE ATT&amp;CK T1547.001</a></td><td>Run key and Startup Folder persistence mapping.</td><td>2026-05-26</td></tr>
-            <tr><td>LOLBAS</td><td><a href="https://lolbas-project.github.io/lolbas/Binaries/Finger/">LOLBAS - Finger.exe</a></td><td>finger abuse context and detection framing.</td><td>2026-05-26</td></tr>
-            <tr><td>LOLBAS</td><td><a href="https://lolbas-project.github.io/lolbas/Binaries/Forfiles/">LOLBAS - Forfiles.exe</a></td><td>forfiles proxy execution context.</td><td>2026-05-26</td></tr>
-            <tr><td>LOLBAS</td><td><a href="https://lolbas-project.github.io/lolbas/Binaries/Mshta/">LOLBAS - Mshta.exe</a></td><td>mshta proxy execution context.</td><td>2026-05-26</td></tr>
-            <tr><td>LOLBAS</td><td><a href="https://lolbas-project.github.io/lolbas/Binaries/Msiexec/">LOLBAS - Msiexec.exe</a></td><td>msiexec remote execution context.</td><td>2026-05-26</td></tr>
-            <tr><td>Validation</td><td><a href="https://www.atomicredteam.io/docs/atomics/T1105">Atomic Red Team T1105</a></td><td>Testing references for ingress tool transfer and curl download behavior.</td><td>2026-05-26</td></tr>
-            <tr><td>Query syntax</td><td><a href="https://library.humio.com/data-analysis/syntax.html">CrowdStrike LogScale Query Language Syntax</a></td><td>CQL starter query syntax and function assumptions.</td><td>2026-05-26</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="container">
-      <p>Scarlet Goldfinch HuntPack draft. Validate all query field names, IOC actions, and IOA patterns in your tenant before operational use.</p>
     </div>
-  </footer>
+  </div>
+</div>
 
-  <script>
-    const cloudSelect = document.getElementById("falcon-cloud");
-    const cloudHost = document.getElementById("falcon-host");
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Break both delivery paths and deny the unsanctioned RAT.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Cut delivery</div>
+      <ul>
+        <li><strong>Change the default <code>.js</code>/<code>.jse</code> handler to Notepad</strong> — <em>M1042</em>. Defangs the fake-update double-click.</li>
+        <li><strong>ASR: Block JS/VBScript launching downloaded executables; block content from email/webmail</strong> — <em>M1042</em>.</li>
+        <li><strong>Block <code>mshta.exe</code> via WDAC/AppLocker</strong> — <em>M1038</em>. Kills the ClickFix first stage.</li>
+        <li><strong>WDAC/AppLocker: deny NetSupport <code>client32.exe</code> outside its sanctioned path</strong> — <em>M1038</em>. Directly blocks the payload (Q3).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain &amp; observe (pilot first)</div>
+      <ul>
+        <li><strong>Disable/monitor the Run dialog (RunMRU); PowerShell CLM + script-block logging</strong> — <em>M1038 / M1040</em>. Removes the paste-and-run UX; feeds Q2.</li>
+        <li><strong>Inventory + alert on RMM tools (NetSupport, Remcos-like) from non-standard paths</strong> — <em>M1042</em>.</li>
+        <li><strong>Web filtering; managed browser-update channels only</strong> — <em>M1021</em>. Cuts the fake-update lure.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Default-deny &amp; awareness</div>
+      <ul>
+        <li><strong>Application allowlisting enterprise-wide</strong> — <em>M1038</em>. Blocks unsigned loaders and unsanctioned RATs.</li>
+        <li><strong>RMM governance: sanctioned tools only, alert on all others</strong> — <em>M1038</em>.</li>
+        <li><strong>User training on fake-update + "paste-this-to-verify" lures</strong> — <em>M1017</em>.</li>
+      </ul>
+    </div>
+  </div>
+</div>
 
-    function getTextById(id) {
-      const node = document.getElementById(id);
-      return node ? node.textContent.trim() : "";
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host; preserve the delivery artifact (ZIP/.js or pasted command) and the RAT binary</td><td>SOC L2</td><td>Containment timestamp; Q1/Q2/Q3 events</td></tr>
+        <tr><td>Triage</td><td>Pull the delivery → RAT-install tree; identify NetSupport/Remcos config + C2; check persistence</td><td>SOC L2</td><td>Process tree; RAT config</td></tr>
+        <tr><td>Eradicate</td><td>Remove the RAT + persistence; block C2; confirm no hands-on lateral activity</td><td>IR</td><td>Removal log; C2 block</td></tr>
+        <tr><td>Recover</td><td>Rotate creds used on the host; verify no follow-on access; rebuild if RAT had hands-on time</td><td>IR + IT</td><td>Cred reset; lateral review</td></tr>
+        <tr><td>Harden</td><td>Change .js handler; block mshta; deny unsanctioned NetSupport; promote Q1/Q2/Q3 IOAs</td><td>Detection Eng</td><td>Control status; IOA enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1189</td><td>Fake-update / ClickFix delivery</td><td>Q1, Q2</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1219</td><td>NetSupport install path anomaly</td><td>Q3</td><td>IOA-1</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1547.001 / T1053.005</td><td>RAT persistence</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> correlate to Q3</td></tr>
+        <tr><td>T1219 / T1055</td><td>Remcos RAT</td><td>Q5</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+        <tr><td>T1071.001</td><td>RAT C2 beacon</td><td>Q6</td><td>—</td><td><span class="badge b-med">Partial</span> correlate to Q3/Q5</td></tr>
+        <tr><td>T1189 (delivery infra)</td><td>Compromised-site lure</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> proxy/web filtering (N1)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm process + file telemetry fleet-wide; (2) baseline any sanctioned NetSupport path (allow-list for Q3); (3) lab-test a benign <code>wscript benign.js</code> from Downloads (Q1) and a benign binary run from <code>%ProgramData%</code> (Q3 logic); (4) promote Q1/Q2/Q3 to Custom IOA Detect+Block; keep Q4–Q6 correlated.</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — Scarlet Goldfinch (fake-update / ClickFix -> NetSupport &amp; Remcos)
+SEVERITY:     High (RAT delivery; hands-on follow-on)
+SCOPE:        Windows user endpoints browsing compromised sites
+HYPOTHESIS:   Compromised site -> fake-update ZIP (wscript .js) OR ClickFix paste-and-run
+              -> NetSupport client32.exe from %ProgramData%/%AppData% (and/or Remcos) -> persist -> C2.
+QUERIES RUN:  Q1 fake-update JS (IOA) | Q2 ClickFix (IOA) | Q3 NetSupport path anomaly (IOA) |
+              Q4 RAT persistence | Q5 Remcos | Q6 RAT C2
+              + Native N1-N4 (delivery, NetSupport inventory, persistence, C2)
+DO FIRST:     Q3 (payload), Q1/Q2 (delivery) — isolate on any hit
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Compromised-site delivery needs proxy/web filtering
+ACTIONS:      Change .js handler; block mshta; deny unsanctioned NetSupport; promote Q1/Q2/Q3
+OWNER:        HuntPack
+VERSION:      v0.3 - 2026-06-12</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Red Canary: 2025 pivot to ClickFix fake-CAPTCHA, late-2025 Remcos addition, NetSupport client32.exe path-anomaly detection. 6 CQL + 4 native hunts, 3 IOA candidates.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-26</span><span>Initial pack: fake-update → NetSupport hunts. Pre-gold top-bar layout.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://redcanary.com/threat-detection-report/threats/scarlet-goldfinch/" target="_blank">Red Canary — Scarlet Goldfinch (Threat Detection Report)</a></td><td>Full chain, ZIP names, ClickFix pivot, Remcos addition</td></tr>
+        <tr><td>1</td><td><a href="https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/" target="_blank">Red Canary — Scarlet Goldfinch's year in ClickFix</a></td><td>Fake-CAPTCHA paste-and-run delivery</td></tr>
+        <tr><td>1</td><td><a href="https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch/" target="_blank">Red Canary — Taking flight with NetSupport Manager</a></td><td>NetSupport payload behavior</td></tr>
+        <tr><td>2</td><td><a href="https://www.picussecurity.com/resource/blog/how-netsupport-rat-abuses-legitimate-remote-admin-tool" target="_blank">Picus — NetSupport RAT abuse</a></td><td>client32.exe path/persistence/C2 detection</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.3 · Scarlet Goldfinch · Generated 2026-06-12 · Defensive use only. Delivery infrastructure rotates — the dual-delivery detections + the NetSupport path anomaly are the durable signal. Validate field names in your tenant (and any sanctioned NetSupport path) before promoting any query.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
     }
-
-    async function copyText(text, button) {
-      try {
-        await navigator.clipboard.writeText(text);
-        const previous = button.textContent;
-        button.textContent = "Copied";
-        window.setTimeout(() => { button.textContent = previous; }, 1400);
-      } catch (error) {
-        window.prompt("Copy this text:", text);
-      }
-    }
-
-    function updateCloudHost() {
-      cloudHost.textContent = cloudSelect.value;
-    }
-
-    function openInFalcon(query) {
-      const base = cloudSelect.value.replace(/\/$/, "");
-      const encoded = encodeURIComponent(query);
-      window.open(`${base}/investigate/events/en-US/app/eam2/search?query=${encoded}`, "_blank", "noopener");
-    }
-
-    document.addEventListener("click", (event) => {
-      const copyButton = event.target.closest(".copy");
-      if (copyButton) {
-        copyText(getTextById(copyButton.dataset.copyTarget), copyButton);
-      }
-
-      const falconButton = event.target.closest(".open-falcon");
-      if (falconButton) {
-        openInFalcon(getTextById(falconButton.dataset.queryTarget));
-      }
-    });
-
-    cloudSelect.addEventListener("change", updateCloudHost);
-    updateCloudHost();
-  </script>
+  });
+});
+</script>
 </body>
 </html>
