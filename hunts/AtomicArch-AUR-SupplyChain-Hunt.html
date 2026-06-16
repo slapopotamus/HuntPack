@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atomic Arch — AUR Supply-Chain Attack (Rust Infostealer + eBPF Rootkit) — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --text: #e6edf3; --text-muted: #8b949e; --accent: #d2a8ff; --accent-dim: rgba(210,168,255,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1a3a 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(210,168,255,0.1); color: #d2a8ff; border-color: rgba(210,168,255,0.5); }
+.btn-falcon:hover { background: rgba(210,168,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #d2a8ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #d2a8ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(210,168,255,0.09); border: 1px solid rgba(210,168,255,0.3); color: #d2a8ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Atomic Arch<br>AUR Supply-Chain (Rust Stealer + eBPF Rootkit)</div>
+    <div class="version">v0.1 · 2026-06-16</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Atomic Arch — Arch Linux AUR Supply-Chain Attack (Rust Infostealer + eBPF Rootkit)</h1>
+  <div class="subtitle">Attackers seized abandoned / maintainer Arch User Repository (AUR) packages and rewrote their PKGBUILD build scripts to deploy malware at <strong>build/install time</strong>. A Rust-compiled Linux ELF infostealer (sample "deps") harvests developer secrets — SSH keys, cloud/dev tokens, browser &amp; Electron sessions — and, with root, loads an eBPF rootkit to hide. 408 packages compromised in the first wave (Jun 11), &gt;1,500 by Jun 12. Sonatype-2026-003775 · CVSS 8.7. Linux endpoint hunt &amp; harden pack — defensive only, no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">Atomic Arch · AUR supply-chain compromise</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">SUPPLY-CHAIN · ACTIVE · CVSS 8.7</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Build-time malware → Rust stealer + eBPF rootkit</div></div>
+    <div class="meta-item"><div class="mk">Tracking</div><div class="mv">Sonatype-2026-003775</div></div>
+    <div class="meta-item"><div class="mk">Platform</div><div class="mv">Arch Linux developer / dev-ops endpoints</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-16</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><strong>Atomic Arch</strong> is a supply-chain attack against the <strong>Arch User Repository (AUR)</strong>, disclosed around <strong>June 11&ndash;13, 2026</strong>. Attackers took over <strong>abandoned and maintainer-held AUR packages</strong> and rewrote their <code>PKGBUILD</code> build recipes so that running <code>makepkg</code> / a helper (<code>yay</code>, <code>paru</code>) to install or update the package fetches and executes malware at <strong>build/install time</strong> &mdash; before the package is even fully built. The first wave (Jun 11) hit <strong>408 packages</strong>; a second wave (Jun 12) pushed the count past <strong>1,500 compromised packages</strong>.</p>
+    <p>The payload is a <strong>Rust-compiled Linux ELF infostealer</strong> (one sample named <code>deps</code>, dropped at the build path <code>src/hooks/deps</code>). It harvests developer secrets: <strong>SSH keys, cloud/dev tokens</strong> (GitHub, npm, Vault, cloud providers, OpenAI), <strong>credential files</strong>, browser/Chromium cookies and tokens, and <strong>Electron app sessions</strong> (Slack, Discord, Teams), then exfiltrates over a <strong>Tor .onion C2</strong> via a local loopback proxy (some samples also stage to <code>temp.sh</code>). With <strong>root</strong>, it additionally loads an <strong>eBPF rootkit</strong> (pinned BPF maps <code>hidden_pids</code> / <code>hidden_names</code> / <code>hidden_inodes</code>) to hide its process, files and inodes, and installs a <code>Restart=always</code> systemd service for persistence. Sonatype tracks it as <strong>Sonatype-2026-003775 (CVSS 8.7)</strong>; the family lineage relates to prior Rust+eBPF stealers.</p>
+    <div class="callout callout-danger">⚠ <strong>Highest-fidelity signal:</strong> a <code>makepkg</code> / pacman-helper / git build process spawning a compiler toolchain (<code>cargo</code>/<code>rustc</code>/<code>cc</code>) that then spawns a <strong>network</strong> child or reads <strong>credential files</strong> (<code>~/.ssh/*</code>, <code>~/.aws/credentials</code>, <code>~/.config/gcloud</code>, kube config, <code>~/.npmrc</code>) — see <strong>Q1/Q3</strong>. Two near-deterministic signals: <strong>ELF execution from a build/cache dir</strong> matching the <code>src/hooks/deps</code> path (<strong>Q2</strong>) and an <strong>eBPF BPF_PROG_LOAD</strong> by a non-system process (<strong>Q6</strong>). The file-hash IOC (SHA-256 below, <strong>Q7</strong>) is a quick win but rotates — lead with behavior.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · News of record</td><td>The Hacker News</td><td>408 AUR packages backdoored via PKGBUILD rewrite; "deps" ELF; first/second wave; npm carriers atomic-lockfile / js-digest; temp.sh exfil; Tor C2</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>Sonatype — Sonatype-2026-003775 (CVSS 8.7)</td><td>Tracking ID; Rust+eBPF stealer family lineage; package-takeover mechanism</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · News</td><td>Latest Hacking News</td><td>&gt;1,500 packages by second wave; install/build-time execution; infostealer + rootkit</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Analysis</td><td>HowToFix Guide</td><td>eBPF rootkit hides process/files; root vs user behavior; remediation guidance</td><td><span class="badge b-med">partial</span></td></tr>
+        <tr><td>2 · Deep analysis</td><td>ioctl.fail analysis (referenced)</td><td>Full indicator set: SHA-256, build strings, BPF map names, Tor C2 detail</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> the durable detections are behavioral &mdash; build-tooling lineage spawning network/credential children, ELF exec from build/cache dirs, eBPF program loads by non-system processes, and Tor/anomalous outbound from dev hosts. The SHA-256 and the build-output strings (<code>atomic-lockfile</code>, <code>js-digest</code>, <code>src/hooks/deps</code>) are included as atomic IOCs but treated as perishable. AUR is community-maintained and largely off any vendor PSIRT cycle, so there is no single "patch" &mdash; remediation is package-list review, secret rotation, and rebuild/reinstall from clean sources.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A developer on an Arch endpoint installs or updates an AUR package (via <code>makepkg</code>, <code>yay</code>, or <code>paru</code>) on or after 2026-06-11. The hijacked <code>PKGBUILD</code> runs attacker code during build/prepare/package, compiling and executing a Rust ELF stealer (<code>src/hooks/deps</code>) that reads developer secrets and exfiltrates over Tor. If the build ran as root, the stealer loads an eBPF rootkit and installs a persistent systemd service.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Build-time trigger</td><td><code>makepkg</code> / <code>yay</code> / <code>paru</code> / <code>git</code> build runs a hijacked PKGBUILD; spawns <code>cargo</code>/<code>rustc</code>/<code>cc</code></td><td><code>ProcessRollup2</code></td><td><strong>Q1</strong>; Native N1</td></tr>
+        <tr><td>2 · Dropper exec</td><td>Rust ELF executed from a build/cache dir (<code>src/hooks/deps</code>, <code>~/.cache</code>, <code>/tmp</code>)</td><td><code>ProcessRollup2</code></td><td><strong>Q2</strong></td></tr>
+        <tr><td>3 · Credential access</td><td>Reads <code>~/.ssh/*</code>, <code>~/.aws/credentials</code>, <code>~/.config/gcloud</code>, kube config, <code>~/.npmrc</code>; env-var harvesting</td><td><code>ProcessRollup2</code>, file telemetry</td><td><strong>Q3</strong>; Native N2</td></tr>
+        <tr><td>4 · Rootkit load (root)</td><td><code>bpf()</code> BPF_PROG_LOAD by non-system process; pinned maps <code>hidden_pids</code>/<code>hidden_names</code>/<code>hidden_inodes</code></td><td><code>ProcessRollup2</code> (libbpf/bpftool), BPF telemetry</td><td><strong>Q6</strong>; Native N3</td></tr>
+        <tr><td>5 · Persistence</td><td><code>Restart=always</code> systemd unit at <code>/etc/systemd/system</code> or <code>~/.config/systemd/user</code></td><td><code>ProcessRollup2</code>, file telemetry</td><td><strong>Q5</strong>; Native N4</td></tr>
+        <tr><td>6 · C2 / exfil</td><td>Outbound to Tor (loopback SOCKS proxy / .onion) or <code>temp.sh</code> upload</td><td><code>ProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td><strong>Q4</strong>; §11</td></tr>
+        <tr><td>7 · Atomic IOC</td><td>Known payload SHA-256 / build strings present on disk</td><td><code>ProcessRollup2</code>, file-write telemetry</td><td><strong>Q7</strong></td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Arch Linux dev / dev-ops endpoints</td><td>Falcon Linux sensor: <code>ProcessRollup2</code> with command line</td><td><span class="badge b-high">Critical</span></td><td>Low — standard Linux sensor</td></tr>
+        <tr><td>Credential-file access</td><td>Process lineage + file-open telemetry for cred paths</td><td><span class="badge b-high">High</span></td><td>Medium — file-read events vary by sensor config</td></tr>
+        <tr><td>eBPF program loads</td><td>libbpf/bpftool exec or BPF syscall telemetry</td><td><span class="badge b-high">High</span></td><td>High — kernel BPF events not always emitted; lean on process proxy</td></tr>
+        <tr><td>Egress / Tor</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code>, proxy exec lineage</td><td><span class="badge b-med">Medium</span></td><td>Medium — Tor over loopback can hide true dst</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">The strongest detections are behavioral (build lineage → network/credential children; ELF from build dirs; eBPF loads). The atomic IOCs below are real but perishable — the payload hash rotates and the Tor C2 is not a static IP. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>SHA-256</td><td class="mono">6144d433f8a0316869877b5f834c801251bbb936e5f1577c5680878c7443c98b</td><td><span class="badge b-high">high</span></td><td>block</td><td>Main Rust ELF infostealer ("deps")</td></tr>
+        <tr><td>String / path</td><td class="mono">src/hooks/deps</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Build path the payload is dropped/executed from</td></tr>
+        <tr><td>String</td><td class="mono">atomic-lockfile</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>First-wave npm carrier / build-output string</td></tr>
+        <tr><td>String</td><td class="mono">js-digest</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Second-wave npm carrier / build-output string</td></tr>
+        <tr><td>BPF map names</td><td class="mono">hidden_pids · hidden_names · hidden_inodes</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Pinned eBPF rootkit maps (process/file hiding)</td></tr>
+        <tr><td>Behavior</td><td class="mono">makepkg/yay/paru → cargo/rustc/cc → network or cred read</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Core build-time execution signature</td></tr>
+        <tr><td>Behavior</td><td class="mono">bpf() BPF_PROG_LOAD by non-system process</td><td><span class="badge b-high">high</span></td><td>detect</td><td>eBPF rootkit load (root path)</td></tr>
+        <tr><td>Network</td><td class="mono">Tor / .onion egress or temp.sh upload from a dev host</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>C2 / exfil channel</td></tr>
+        <tr><td>Window</td><td class="mono">Any AUR install/update on/after 2026-06-11</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>Affected-period review per vendor guidance</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1195.001 — Supply Chain: Software Dependencies &amp; Dev Tools</td><td>Hijacked AUR/npm carrier package pulled into a build</td><td>Q1, Q2; N1; §10</td></tr>
+        <tr><td>Initial Access</td><td>T1195.002 — Supply Chain: Software Supply Chain</td><td>Maintainer/abandoned AUR package takeover + PKGBUILD rewrite</td><td>Q1; N1; §10</td></tr>
+        <tr><td>Execution</td><td>T1059.004 — Command &amp; Scripting Interpreter: Unix Shell</td><td>PKGBUILD shell runs build-time payload via makepkg/helper</td><td>Q1, Q2; N1</td></tr>
+        <tr><td>Credential Access</td><td>T1552.001 — Unsecured Credentials: Credentials in Files</td><td>Reads ~/.aws/credentials, ~/.config/gcloud, kube config, ~/.npmrc</td><td>Q3; N2</td></tr>
+        <tr><td>Credential Access</td><td>T1552.004 — Unsecured Credentials: Private Keys</td><td>Reads ~/.ssh/* private keys</td><td>Q3; N2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1014 — Rootkit</td><td>eBPF program load; hidden_pids/names/inodes maps hide artifacts</td><td>Q6; N3</td></tr>
+        <tr><td>Persistence</td><td>T1543.002 — Create/Modify System Process: systemd Service</td><td>Restart=always unit (system or user scope)</td><td>Q5; N4</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1071 / T1090 — App-Layer C2 / Proxy (Tor)</td><td>Loopback SOCKS proxy → .onion C2</td><td>Q4; §11</td></tr>
+        <tr><td>Exfiltration</td><td>T1041 — Exfiltration Over C2 Channel</td><td>Secrets sent over Tor C2 / staged to temp.sh</td><td>Q4; §11</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · AUR install/update review</td><td>pacman log (<code>/var/log/pacman.log</code>) + helper caches (<code>~/.cache/yay</code>, <code>~/.cache/paru</code>)</td><td>List every package installed/updated on/after 2026-06-11; cross-check against the affected-package lists</td><td>Rebuild/reinstall from clean sources; rotate secrets</td></tr>
+        <tr><td>N2 · Credential-file access review</td><td>auditd / file telemetry on cred paths</td><td>Recent reads of <code>~/.ssh/*</code>, <code>~/.aws/credentials</code>, <code>~/.config/gcloud</code>, kube config, <code>~/.npmrc</code> by build/compiler processes</td><td>Treat keys/tokens as compromised; rotate</td></tr>
+        <tr><td>N3 · eBPF / pinned-map review</td><td>bpffs (<code>/sys/fs/bpf</code>), <code>bpftool prog/map show</code></td><td>Unexpected loaded BPF programs or pinned maps named <code>hidden_pids</code>/<code>hidden_names</code>/<code>hidden_inodes</code></td><td>Quarantine host; the host is likely root-compromised</td></tr>
+        <tr><td>N4 · systemd persistence audit</td><td><code>systemctl list-units</code> / unit files</td><td>New units with <code>Restart=always</code> in <code>/etc/systemd/system</code> or <code>~/.config/systemd/user</code> pointing at build/cache ELFs</td><td>Disable/remove unit; scope the dropper</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">All seven queries are Falcon <strong>Linux sensor</strong> endpoint hunts driven by <code>ProcessRollup2</code> / <code>SyntheticProcessRollup2</code> (plus <code>NetworkConnectIP4</code> / <code>DnsRequest</code> for Q4). Field names validated against the Falcon Linux event model. eBPF/BPF kernel events are not emitted by every sensor build — Q6 uses a process-lineage proxy (libbpf/bpftool exec) and Native N3 confirms on-host.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Build tooling spawning compiler then a network/cred child</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> an AUR build chain — <code>makepkg</code>/<code>yay</code>/<code>paru</code>/<code>git</code> as ancestor — where a compiler (<code>cargo</code>/<code>rustc</code>/<code>cc</code>) or its child reaches out to the network or a downloader. <strong>Accomplishes:</strong> the core build-time execution signal for Atomic Arch.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: AUR build tooling spawning compiler that spawns network/downloader child</span>
+<span class="cm">// MITRE: T1195.001, T1195.002, T1059.004 | CONF: high  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux) with command line + parent lineage</span>
+<span class="cm">// FALSE POSITIVES: legitimate Rust crate builds that fetch deps via cargo/curl</span>
+<span class="cm">// TUNING: scope to interactive dev hosts; baseline normal cargo-fetch parents; alert on curl/wget/nc under a build tree</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i event_platform=Lin
+| ParentBaseFileName=/^(makepkg|yay|paru|pacman|git|bash|sh)$/i
+| ImageFileName=/\/(cargo|rustc|cc|gcc|clang|curl|wget|nc|ncat|bun|node|npm)$/i
+| childNet := if(ImageFileName=/\/(curl|wget|nc|ncat)$/i, 1, 0)
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, childNet])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · ELF executed from a build / cache / tmp directory</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a binary executed out of an AUR build / package-helper cache / tmp path, especially one matching the <code>src/hooks/deps</code> drop location. <strong>FP:</strong> legitimate build artifacts run during testing — pair with Q1/Q3 lineage.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: ELF executed from AUR build / cache / tmp dir (dropper exec, e.g. src/hooks/deps)</span>
+<span class="cm">// MITRE: T1059.004, T1195.002 | CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux) with ImageFileName path</span>
+<span class="cm">// FALSE POSITIVES: legit compiled binaries run from a build/test tree</span>
+<span class="cm">// TUNING: prioritise paths matching src/hooks/deps; correlate with build parent (Q1)</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i event_platform=Lin
+| ImageFileName=/(\/src\/hooks\/deps|\/\.cache\/(yay|paru|makepkg)\/|\/tmp\/[^\/]*\/src\/|\/pkg\/|\/build\/)/i
+| ParentBaseFileName=/^(makepkg|yay|paru|pacman|bash|sh|cargo|rustc|cc)$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Build/compiler process reading credential files or env secrets</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a build/dropper process touching SSH keys or cloud/dev credential files, or running a shell that <code>cat</code>/<code>env</code>-harvests secrets. <strong>Accomplishes:</strong> catches the credential-access stage independent of network egress.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: build/dropper process reading SSH/cloud/dev credential files or env secrets</span>
+<span class="cm">// MITRE: T1552.001, T1552.004 | CONF: high  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux) command line; file-read telemetry if available</span>
+<span class="cm">// FALSE POSITIVES: legit tooling reading ~/.npmrc / ~/.aws during normal builds</span>
+<span class="cm">// TUNING: weight ~/.ssh and cloud cred reads under a makepkg/cargo build tree; allow-list CI agents</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i event_platform=Lin
+| CommandLine=/(\.ssh\/(id_|authorized_|known_)|\.aws\/credentials|\.config\/gcloud|\.kube\/config|\.npmrc|\.docker\/config|\.netrc|printenv|\benv\b)/i
+| ParentBaseFileName=/^(makepkg|yay|paru|cargo|rustc|cc|bash|sh|deps)$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Tor / loopback-proxy egress or temp.sh upload from a dev host</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Tor exec, a loopback SOCKS proxy connect (9050/9150), or an upload to <code>temp.sh</code> originating from a process in a build lineage. <strong>FP:</strong> developers who legitimately run Tor — allow-list. Tor over loopback hides the true dst, so the proxy connect is the tell.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Tor / loopback-SOCKS proxy egress or temp.sh exfil from a dev endpoint</span>
+<span class="cm">// MITRE: T1071, T1090, T1041 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 + NetworkConnectIP4 / DnsRequest (Linux)</span>
+<span class="cm">// FALSE POSITIVES: legitimate Tor users; tools that POST to temp.sh</span>
+<span class="cm">// TUNING: allow-list sanctioned Tor/proxy users; alert when the connecting proc has a build ancestor</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|NetworkConnectIP4|DnsRequest/i event_platform=Lin
+| tor := if(ImageFileName=/\/tor$/i OR CommandLine=/\.onion|socks5|9050|9150/i, 1, 0)
+| tmp := if(DomainName=/temp\.sh$/i OR CommandLine=/temp\.sh/i, 1, 0)
+| tor=1 OR tmp=1
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, DomainName, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · systemd persistence written by a build/cache process</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a process writing or enabling a systemd unit (system or user scope) — the <code>Restart=always</code> persistence the stealer installs. <strong>Accomplishes:</strong> high-fidelity persistence detection with little benign baseline for a build-tree parent.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: systemd unit creation/enable by a build/cache/dropper process (Restart=always persistence)</span>
+<span class="cm">// MITRE: T1543.002 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux) command line; file-write telemetry if available</span>
+<span class="cm">// FALSE POSITIVES: legit installers using systemctl enable — rare under a makepkg/deps parent</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i event_platform=Lin
+| CommandLine=/(systemctl\s+(enable|--user\s+enable)|\/etc\/systemd\/system\/|\.config\/systemd\/user\/|Restart=always)/i
+| ParentBaseFileName=/^(makepkg|yay|paru|cargo|rustc|cc|bash|sh|deps)$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · eBPF program load by a non-system process (rootkit)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> BPF program loading (<code>bpftool prog load</code>, libbpf-driven binaries, references to <code>BPF_PROG_LOAD</code> or the rootkit map names) by a process that is not a known system/observability tool. <strong>FP:</strong> falcon-sensor, systemd, observability agents — allow-list. <span class="badge b-med">⚠ kernel BPF events not always emitted — confirm with Native N3</span></p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: eBPF program load / pinned rootkit maps by a non-system process</span>
+<span class="cm">// MITRE: T1014 | CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux); kernel BPF telemetry where available (confirm via N3)</span>
+<span class="cm">// FALSE POSITIVES: falcon-sensor, systemd, cilium/observability agents loading BPF legitimately</span>
+<span class="cm">// TUNING: allow-list known BPF loaders by ImageFileName; alert on build-tree or /tmp parents</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i event_platform=Lin
+| CommandLine=/(bpftool\s+prog\s+load|BPF_PROG_LOAD|bpf_prog_load|hidden_pids|hidden_names|hidden_inodes|\/sys\/fs\/bpf\/)/i
+| ImageFileName!=/\/(falcon-sensor|falconctl|systemd|cilium-agent|tetragon)$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Known payload SHA-256 / build-string match</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the exact known infostealer hash, or the build-output strings (<code>atomic-lockfile</code>, <code>js-digest</code>, <code>src/hooks/deps</code>) on the command line / image path. <strong>Accomplishes:</strong> a fast atomic sweep — perishable, so run alongside the behavioral hunts.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: known Atomic Arch payload hash / build-string atomic match</span>
+<span class="cm">// MITRE: T1195.002, T1059.004 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux) with SHA256HashData / ImageFileName / CommandLine</span>
+<span class="cm">// FALSE POSITIVES: very low — hash is the specific sample; strings are distinctive</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i event_platform=Lin
+| SHA256HashData=/6144d433f8a0316869877b5f834c801251bbb936e5f1577c5680878c7443c98b/i
+   OR CommandLine=/(atomic-lockfile|js-digest|src\/hooks\/deps)/i
+   OR ImageFileName=/(atomic-lockfile|js-digest|src\/hooks\/deps)/i
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>Atomic Arch — Dropper from build dir</td><td>ImageFileName matches <code>src/hooks/deps</code> or helper cache; parent <code>makepkg/yay/paru</code> (Q2 logic)</td><td>Sanctioned CI build agents (excluded)</td><td>Endpoint Security → Custom IOA → Process Creation (Linux) → Detect+Block</td></tr>
+        <tr><td>Atomic Arch — systemd persistence by build tree</td><td>Child <code>systemctl enable</code> / unit write with <code>Restart=always</code>; parent <code>makepkg/deps</code> (Q5 logic)</td><td>Package post-install scripts from trusted repos (excluded)</td><td>Custom IOA → Process Creation (Linux) → Detect+Block</td></tr>
+        <tr><td>Atomic Arch — Known payload hash</td><td>SHA256 <code>6144d433…3c98b</code></td><td>None</td><td>Custom IOC (hash) → Block; pair with Q7 scheduled search</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q2 and Q5 are the strongest promotions (dropper-from-build-dir and persistence-by-build-tree have minimal benign baseline on dev endpoints). Q1/Q3 stay hunt/investigate-only on dev hosts due to legitimate Rust-build FP risk — correlate before alerting. Q6 (eBPF) is investigate-only until BPF telemetry is confirmed in your tenant; lean on Native N3. The hash (Q7) → Custom IOC block.</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for hash blocking, behavioral detection, on-host audit, and references. The hash + strings are perishable — behavior is the durable detection. Confirm root compromise (eBPF) on-host before declaring clean.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Atomic IOCs (hash + strings)</span><span class="igc">block / detect</span></div>
+        <button class="btn-copy" data-label="Copy IOCs" onclick="copyBlock('grab-atomic',this)" style="margin:0 0 6px;">Copy IOCs</button>
+<pre class="code" id="grab-atomic">6144d433f8a0316869877b5f834c801251bbb936e5f1577c5680878c7443c98b   # SHA-256 — Rust ELF infostealer ("deps")
+src/hooks/deps        # build path the payload is dropped/run from
+atomic-lockfile       # first-wave npm carrier / build string
+js-digest             # second-wave npm carrier / build string
+hidden_pids           # pinned eBPF rootkit map (process hiding)
+hidden_names          # pinned eBPF rootkit map (filename hiding)
+hidden_inodes         # pinned eBPF rootkit map (inode hiding)
+temp.sh               # observed HTTP exfil staging host
+# Tor .onion C2 via local loopback SOCKS proxy (9050/9150) — dst not static</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">makepkg/yay/paru/git build spawning cargo/rustc/cc that spawns curl/wget/nc
+ELF executed from a build/cache/tmp dir (esp. matching src/hooks/deps)
+Build/compiler process reading ~/.ssh/*, ~/.aws/credentials, ~/.config/gcloud, kube config, ~/.npmrc
+Env-var / printenv secret harvesting under a build tree
+bpf() BPF_PROG_LOAD / bpftool prog load by a non-system process
+Pinned BPF maps named hidden_pids / hidden_names / hidden_inodes
+systemd unit with Restart=always written by a build/dropper process
+Tor / loopback-SOCKS egress or temp.sh upload from a developer endpoint</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">On-Host Audit Commands</span><span class="igc">triage</span></div>
+        <button class="btn-copy" data-label="Copy audit" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy audit</button>
+<pre class="code" id="grab-audit"># Arch endpoint triage — run as the affected user, then root
+# 1) AUR installs/updates on/after the compromise window
+grep -E '2026-06-1[1-9]|2026-06-[2-3][0-9]' /var/log/pacman.log | grep -Ei 'installed|upgraded'
+# 2) eBPF rootkit pinned maps / loaded programs (needs root)
+sudo bpftool map show 2>/dev/null | grep -Ei 'hidden_pids|hidden_names|hidden_inodes'
+sudo bpftool prog show 2>/dev/null ; ls -la /sys/fs/bpf/ 2>/dev/null
+# 3) systemd persistence (Restart=always) — system + user scope
+grep -RIl 'Restart=always' /etc/systemd/system/ ~/.config/systemd/user/ 2>/dev/null
+# 4) hunt the known build path / payload name
+find / -path '*/src/hooks/deps' 2>/dev/null ; pgrep -a -f 'deps'
+# 5) hash a suspect file to compare against the known IOC
+sha256sum &lt;suspect_file&gt;</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Related References</span><span class="igc">tracking / context</span></div>
+        <button class="btn-copy" data-label="Copy refs" onclick="copyBlock('grab-ref',this)" style="margin:0 0 6px;">Copy refs</button>
+<pre class="code" id="grab-ref">Atomic Arch          # AUR supply-chain attack (this pack) — disclosed 2026-06-11..13
+Sonatype-2026-003775 # Sonatype tracking ID — CVSS 8.7
+Scale                # 408 packages (wave 1, Jun 11) -> 1,500+ (wave 2, Jun 12)
+Family               # Rust-compiled infostealer + eBPF rootkit lineage
+Guidance             # anyone who installed/updated an AUR package on/after 2026-06-11
+                     #   should check against affected-package lists and rotate secrets</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>AUR is community-built — there is no vendor hotfix. Remediation is identifying affected installs, rotating exposed secrets, and constraining how build tooling runs. Controls below target the build-time execution path and the value of harvested secrets.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Contain &amp; rotate (this week)</div>
+      <ul>
+        <li><strong>Inventory AUR installs/updates on/after 2026-06-11 and cross-check the affected-package lists</strong> — <em>M1051</em>. Use Native N1 (<code>/var/log/pacman.log</code> + helper caches).</li>
+        <li><strong>Treat all developer secrets on any affected host as compromised and rotate</strong> — <em>M1027</em>: SSH keys, GitHub/npm/Vault/cloud/OpenAI tokens, <code>~/.aws/credentials</code>, gcloud, kube config, <code>~/.npmrc</code>.</li>
+        <li><strong>Audit for the eBPF rootkit and systemd persistence</strong> — <em>M1040</em>. Run Native N3/N4; any <code>hidden_*</code> map means root compromise — rebuild the host, do not just remove files.</li>
+        <li><strong>Push the SHA-256 to the Custom IOC block list</strong> — <em>M1040</em>. Deploy Q2/Q5 as Custom IOAs (Detect+Block).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain the build path (pilot first)</div>
+      <ul>
+        <li><strong>Never build AUR packages as root; build under a dedicated low-priv build user</strong> — <em>M1026</em>. Removes the root path that enables the eBPF rootkit.</li>
+        <li><strong>Review PKGBUILDs before building; pin to vetted commits / known-good maintainers</strong> — <em>M1051 / M1016</em>. Manual diff before <code>makepkg</code>.</li>
+        <li><strong>Egress-control developer endpoints; block/alert on Tor and unknown outbound</strong> — <em>M1037 / M1031</em>. Breaks the C2/exfil channel.</li>
+        <li><strong>Move long-lived secrets off disk into a broker / short-lived tokens</strong> — <em>M1027 / M1041</em>. Devalues file-based credential theft (Q3).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce reliance on untrusted build inputs</div>
+      <ul>
+        <li><strong>Build AUR/third-party packages in ephemeral, network-restricted sandboxes/containers</strong> — <em>M1048 / M1038</em>. Build-time code can't reach host secrets or the internet.</li>
+        <li><strong>Prefer signed, official-repo packages over AUR for production hosts</strong> — <em>M1051</em>. Cuts the AUR attack surface for anything that doesn't need it.</li>
+        <li><strong>Continuous eBPF/program-load monitoring on Linux fleet</strong> — <em>M1040</em>. Alert when a non-system process loads a BPF program (Q6 + N3).</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain any host with a Q1/Q2/Q4/Q7 hit; block the SHA-256; block/alert Tor egress at the perimeter</td><td>SOC L2</td><td>Q-row hits; containment log</td></tr>
+        <tr><td>Triage</td><td>Run Native N1–N4 on the host: AUR install window, credential-file reads, eBPF pinned maps, systemd <code>Restart=always</code> units; confirm root vs user compromise</td><td>SOC L2</td><td>pacman.log; bpftool output; unit list</td></tr>
+        <tr><td>Eradicate</td><td>If eBPF rootkit present, <strong>rebuild the host from clean media</strong> (rootkit hides itself — removal is unreliable); else remove dropper, systemd unit, and reinstall affected packages from clean sources</td><td>IR + IT</td><td>Rebuild record; removed-artifact list</td></tr>
+        <tr><td>Recover</td><td>Rotate every developer secret that touched the host (SSH, cloud, dev tokens, browser/Electron sessions); reissue keys; invalidate stolen sessions</td><td>IR + IT</td><td>Rotation log; session-revocation record</td></tr>
+        <tr><td>Harden</td><td>Build AUR under low-priv user / sandbox; egress-control dev hosts; promote Q2/Q5 IOAs; enable BPF-load monitoring (§10)</td><td>Detection Eng</td><td>Policy state; IOA enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1195.001/.002 · T1059.004</td><td>Build tooling → compiler → network/cred child</td><td>Q1</td><td>—</td><td><span class="badge b-low">Good</span> behavioral</td></tr>
+        <tr><td>T1059.004 / T1195.002</td><td>ELF from build/cache dir (src/hooks/deps)</td><td>Q2</td><td>IOA-1</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1552.001 / .004</td><td>SSH/cloud/dev cred &amp; env harvesting</td><td>Q3</td><td>—</td><td><span class="badge b-med">Partial</span> file-read telemetry dependent</td></tr>
+        <tr><td>T1071 / T1090 / T1041</td><td>Tor / temp.sh C2 &amp; exfil</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> loopback hides dst; allow-list Tor</td></tr>
+        <tr><td>T1543.002</td><td>systemd Restart=always persistence</td><td>Q5</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1014</td><td>eBPF rootkit program load</td><td>Q6</td><td>—</td><td><span class="badge b-med">Partial</span> BPF events not always emitted — use N3</td></tr>
+        <tr><td>—</td><td>Known payload hash / build strings</td><td>Q7</td><td>IOC</td><td><span class="badge b-low">Good</span> but perishable</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm <code>event_platform=Lin</code> <code>ProcessRollup2</code> with command line is flowing from your Arch fleet; (2) baseline normal <code>cargo</code>-fetch parents so Q1 alerts only on <code>curl/wget/nc</code> under a build tree; (3) verify Q2 path regex matches your helper cache layout (<code>~/.cache/yay</code> vs <code>~/.cache/paru</code>); (4) allow-list sanctioned Tor/proxy users before alerting on Q4; (5) confirm whether kernel BPF telemetry exists in your tenant — if not, Q6 is investigate-only and N3 is the authoritative check; (6) promote Q2 and Q5 to Custom IOA Detect+Block and push the SHA-256 as a Custom IOC (target FP &lt; 1/week).</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — Atomic Arch (AUR Supply-Chain: Rust Infostealer + eBPF Rootkit)
+SEVERITY:     High (active supply-chain, 1,500+ packages, Sonatype-2026-003775, CVSS 8.7)
+SCOPE:        Arch Linux developer / dev-ops endpoints that install/update AUR packages
+HYPOTHESIS:   A dev installs/updates a hijacked AUR package on/after 2026-06-11; the rewritten
+              PKGBUILD compiles &amp; runs a Rust ELF stealer (src/hooks/deps) that reads SSH/cloud/dev
+              secrets and exfils over Tor; with root it loads an eBPF rootkit + systemd persistence.
+QUERIES RUN:  Q1 build->compiler->net/cred | Q2 ELF from build dir | Q3 cred-file reads |
+              Q4 Tor/temp.sh exfil | Q5 systemd persistence | Q6 eBPF load | Q7 hash/string
+              + Native N1-N4 (AUR install review, cred reads, eBPF maps, systemd units)
+DO FIRST:     Inventory AUR installs since 2026-06-11; run Q2/Q5/Q7; check N3 for eBPF rootkit
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         eBPF kernel events not always emitted (Q6 -&gt; lean on N3); Tor loopback hides dst;
+              hash/strings are perishable
+ACTIONS:      Rotate all dev secrets on affected hosts; rebuild any host with eBPF rootkit;
+              promote Q2/Q5 to Custom IOA; block SHA-256; sandbox AUR builds
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-06-16</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-16</span><span>Initial pack — built to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, Falcon cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation gates, .ticket). Covers Atomic Arch AUR supply-chain attack (Sonatype-2026-003775, CVSS 8.7): 7 Linux CQL hunts (build lineage, ELF-from-build-dir, cred-file reads, Tor/temp.sh exfil, systemd persistence, eBPF load, hash/string), 4 native hunts, 3 IOA/IOC candidates. Atomic IOCs (SHA-256 6144d433…3c98b; strings atomic-lockfile / js-digest / src/hooks/deps; BPF maps hidden_pids/names/inodes) included but treated as perishable; behavior is the durable detection.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://thehackernews.com/2026/06/over-400-arch-linux-aur-packages.html" target="_blank">The Hacker News — Over 400 Arch Linux AUR packages backdoored</a></td><td>Mechanism, "deps" ELF, waves, npm carriers, temp.sh, Tor C2, IOCs</td></tr>
+        <tr><td>1</td><td><a href="https://latesthackingnews.com/2026/06/13/aur-supply-chain-attack-arch-packages-backdoored/" target="_blank">Latest Hacking News — AUR supply-chain attack</a></td><td>1,500+ package scale, build/install-time execution, infostealer + rootkit</td></tr>
+        <tr><td>2</td><td><a href="https://howtofix.guide/arch-linux-aur-packages-hijacked-infostealer-rootkit/" target="_blank">HowToFix Guide — AUR packages hijacked (infostealer + rootkit)</a></td><td>eBPF rootkit behavior, root vs user, remediation guidance</td></tr>
+        <tr><td>2</td><td>Sonatype — Sonatype-2026-003775</td><td>Tracking ID, CVSS 8.7, Rust+eBPF family lineage</td></tr>
+        <tr><td>2</td><td>ioctl.fail — Atomic Arch analysis</td><td>Full indicator set: SHA-256, build strings, BPF map names, Tor C2</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · Atomic Arch (AUR Supply-Chain · Rust Infostealer + eBPF Rootkit) · Sonatype-2026-003775 · Generated 2026-06-16 · Defensive use only — no exploit code. There is no vendor patch (AUR is community-built); remediation is affected-package review, secret rotation, and rebuild from clean sources. Atomic IOCs are perishable — lead with the behavioral hunts. Confirm eBPF rootkit on-host (Native N3) before declaring a host clean; an infected host is likely root-compromised and should be rebuilt.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>

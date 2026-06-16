@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Awesome Motive CDN Supply-Chain Attack (OptinMonster / TrustPulse / PushEngage) — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --text: #e6edf3; --text-muted: #8b949e; --accent: #02c39a; --accent-dim: rgba(2,195,154,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #06302a 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(2,195,154,0.15); color: #02c39a; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(2,195,154,0.1); color: #02c39a; border-color: rgba(2,195,154,0.5); }
+.btn-falcon:hover { background: rgba(2,195,154,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #02c39a; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #02c39a; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(2,195,154,0.09); border: 1px solid rgba(2,195,154,0.3); color: #02c39a; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Awesome Motive CDN<br>WordPress Supply-Chain Attack</div>
+    <div class="version">v0.1 · 2026-06-16</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Awesome Motive CDN Supply-Chain Attack — OptinMonster / TrustPulse / PushEngage Tampered CDN Scripts</h1>
+  <div class="subtitle">A compromised Awesome Motive CDN API key let attackers inject malicious JavaScript into three popular WordPress plugins served from the vendors' official CDNs. The tampered JS runs in a logged-in administrator's browser and abuses that authenticated session to silently create hidden rogue admin accounts (<span class="mono">developer_api1</span> / <span class="mono">dev_*</span>) and install self-hiding backdoor plugins (<span class="mono">content-delivery-helper</span>, <span class="mono">database-optimizer</span>); new credentials are exfiltrated to the typosquat C2 domain <span class="mono">tidio.cc</span>. ~1.2M WordPress sites exposed. First activity 2026-06-12; PushEngage CDN nodes served the payload through 2026-06-14. Defensive hunt &amp; harden pack — no exploit code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">CDN supply-chain JS injection · Awesome Motive plugins</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">SUPPLY-CHAIN · ACTIVE · ~1.2M SITES</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Tampered CDN JS → rogue admin + backdoor plugin → web C2 exfil</div></div>
+    <div class="meta-item"><div class="mk">Fix</div><div class="mv">Update plugins; purge CDN cache; audit admins + plugins on disk</div></div>
+    <div class="meta-item"><div class="mk">C2</div><div class="mv">tidio.cc (typosquat of tidio.com; reg. 2026-04-28)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-16</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Attackers compromised an <strong>Awesome Motive CDN API key</strong> and used it to inject malicious JavaScript into plugin files served from the official CDNs behind three widely deployed WordPress plugins: <strong>OptinMonster</strong>, <strong>TrustPulse</strong>, and <strong>PushEngage</strong>. Because the payload was delivered through the vendors' trusted CDNs rather than the plugin install on disk, sites pulled tampered code without any local file change — a classic browser-side supply-chain compromise affecting an estimated <strong>~1.2 million sites</strong> (OptinMonster alone is installed on roughly 1.2M sites).</p>
+    <p>The tampered CDN JavaScript executes in the browser of <strong>any logged-in WordPress administrator</strong> who loads an affected admin page. Riding that admin's authenticated session, it performs two actions silently: (a) <strong>creates a hidden rogue administrator account</strong> — the observed account is <span class="mono">developer_api1</span> (email <span class="mono">customer1usx@gmail.com</span>), with additional <span class="mono">dev_xxxxxx</span> variants — and (b) <strong>installs a self-hiding backdoor plugin</strong> on disk under <span class="mono">wp-content/plugins/</span>, named <strong>content-delivery-helper</strong> ("Content Delivery Helper") and/or <strong>database-optimizer</strong> ("Database Optimizer"). The newly minted credentials are exfiltrated to <strong>tidio.cc</strong>, a typosquat lookalike of the legitimate <span class="mono">tidio.com</span> chat vendor; the C2 domain was registered <strong>2026-04-28</strong>, two weeks before the campaign went live.</p>
+    <div class="callout callout-danger">⚠ <strong>Two-surface hunt.</strong> The injection point (the vendor CDN) is off-sensor, so detection splits: (1) <strong>Network / DNS telemetry</strong> from web servers and admin workstations — outbound lookups and connections to <span class="mono">tidio.cc</span> and any non-<span class="mono">tidio.com</span> <span class="mono">tidio*</span> lookalikes (Q1, Q2 — highest fidelity, near-zero benign baseline); and (2) <strong>Endpoint file/process telemetry</strong> on Linux/Windows web servers — the php-fpm / w3wp / nginx / apache worker writing new plugin files under <span class="mono">wp-content/plugins/content-delivery-helper</span> or <span class="mono">database-optimizer</span> (Q3, Q4). Q5 covers admin-page CDN script loads from the affected vendors; Q6 covers follow-on webshell behavior. The single strongest signal: <strong>Q1 — any DNS request for <span class="mono">tidio.cc</span></strong>.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Patchstack — Supply-chain attack on OptinMonster/TrustPulse/PushEngage</td><td>Tampered CDN scripts auto-creating rogue admins; IOC account / backdoor plugin names; tidio.cc exfil</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor research</td><td>Sansec — OptinMonster supply-chain attack</td><td>Compromised CDN API key; injected JS abusing admin session; ~1.2M sites exposed; timeline</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · News of record</td><td>BleepingComputer — OptinMonster plugin hacked in CDN supply-chain attack</td><td>Mechanism, affected vendors, PushEngage nodes serving payload through 2026-06-14</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · News</td><td>Security Affairs — Supply-chain attack hits popular WordPress plugins via Awesome Motive CDN</td><td>Corroboration of scope, root cause (CDN key), rogue-admin + backdoor behavior</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> lead with the durable atomic IOC — the C2 domain <span class="mono">tidio.cc</span> — because it is concrete, low-FP, and pivots both network and DNS telemetry. Pair it with the on-disk artifacts (backdoor plugin directory names) and the identity artifact (rogue admin account names). The CDN injection itself is off-sensor; the remediation is to update the plugins to the cleaned versions, purge the CDN cache, and audit every WordPress admin roster and <span class="mono">wp-content/plugins/</span> directory for the planted artifacts. Treat the <span class="mono">tidio*</span> typosquat family as a small allow-list problem: <span class="mono">tidio.com</span> (and its legitimate subdomains/CDN) are benign; everything else <span class="mono">tidio*</span> is suspect.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> An organization runs one or more of OptinMonster / TrustPulse / PushEngage on a self-hosted WordPress site. Between 2026-06-12 and 2026-06-14 an administrator logged into wp-admin and loaded a page that pulled tampered JavaScript from the affected vendor CDN. The script used the admin's session to create a hidden <span class="mono">developer_api1</span> / <span class="mono">dev_*</span> account and drop a self-hiding backdoor plugin (<span class="mono">content-delivery-helper</span> / <span class="mono">database-optimizer</span>) on disk, then exfiltrated the new credentials to <span class="mono">tidio.cc</span> for later hands-on-keyboard re-entry.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Supply-chain inject</td><td>Compromised CDN API key injects malicious JS into plugin files on the vendor CDN (T1195.002)</td><td>Off-sensor (vendor CDN)</td><td>Native N1/N3; vendor advisory</td></tr>
+        <tr><td>2 · Browser execution</td><td>Tampered CDN JS runs in the logged-in admin's browser (T1059.007)</td><td>Admin workstation web/proxy logs; <code>DnsRequest</code></td><td><strong>Q5</strong>; Native N2</td></tr>
+        <tr><td>3 · Create rogue admin</td><td>Hidden <span class="mono">developer_api1</span> / <span class="mono">dev_*</span> admin account created via the admin's session (T1136)</td><td>WP audit log / DB; web-server process activity</td><td><strong>Q3</strong>; Native N4</td></tr>
+        <tr><td>4 · Drop backdoor plugin</td><td>Web-server worker writes new plugin files under <code>wp-content/plugins/</code> (T1505.003)</td><td><code>FileCreateInfo</code>, <code>ProcessRollup2</code></td><td><strong>Q4</strong></td></tr>
+        <tr><td>5 · Exfil credentials</td><td>New admin creds POSTed to <span class="mono">tidio.cc</span> (T1567 / T1071.001)</td><td><code>DnsRequest</code>, <code>NetworkConnectIP4</code></td><td><strong>Q1, Q2</strong></td></tr>
+        <tr><td>6 · Hands-on re-entry</td><td>Backdoor plugin / rogue admin used for follow-on web-shell behavior (T1505.003)</td><td><code>ProcessRollup2</code> (worker spawns shell)</td><td><strong>Q6</strong>; Containment §11</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Web servers running affected WP plugins</td><td><code>DnsRequest</code>, <code>NetworkConnectIP4</code>, <code>FileCreateInfo</code>, <code>ProcessRollup2</code></td><td><span class="badge b-high">Critical</span></td><td>Low — standard Falcon sensor on the host</td></tr>
+        <tr><td>WordPress admin workstations</td><td><code>DnsRequest</code> / proxy logs for browser-side CDN + C2 calls</td><td><span class="badge b-high">High</span></td><td>Medium — depends on sensor / proxy coverage of admins</td></tr>
+        <tr><td>WordPress identity (admin roster)</td><td>WP audit-log plugin or DB <code>wp_users</code> / <code>wp_usermeta</code> review</td><td><span class="badge b-high">High</span></td><td>High — off-sensor; needs WP audit logging or DB query</td></tr>
+        <tr><td>Vendor CDN integrity</td><td>Plugin version + CDN cache state (vendor-side)</td><td><span class="badge b-med">Medium</span></td><td>High — off-sensor; relies on vendor remediation</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">The C2 domain <span class="mono">tidio.cc</span> is the strongest atomic IOC — concrete and near-zero benign baseline (do NOT confuse with the legitimate <span class="mono">tidio.com</span>). Pair it with the on-disk backdoor-plugin directory names and the rogue-admin account names. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Domain (C2/exfil)</td><td class="mono">tidio.cc</td><td><span class="badge b-high">high</span></td><td>block</td><td>Typosquat of tidio.com; reg. 2026-04-28; exfil of stolen admin creds</td></tr>
+        <tr><td>Domain pattern</td><td class="mono">tidio* (any TLD != tidio.com)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Lookalike family; allow-list legitimate tidio.com only</td></tr>
+        <tr><td>Account</td><td class="mono">developer_api1 (customer1usx@gmail.com)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Observed rogue WordPress admin account</td></tr>
+        <tr><td>Account pattern</td><td class="mono">dev_xxxxxx (unexpected admin role)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Variant naming for auto-created rogue admins</td></tr>
+        <tr><td>File / dir</td><td class="mono">wp-content/plugins/content-delivery-helper</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Self-hiding backdoor plugin ("Content Delivery Helper")</td></tr>
+        <tr><td>File / dir</td><td class="mono">wp-content/plugins/database-optimizer</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Self-hiding backdoor plugin ("Database Optimizer")</td></tr>
+        <tr><td>Affected plugins</td><td class="mono">OptinMonster · TrustPulse · PushEngage</td><td><span class="badge b-high">high</span></td><td>audit</td><td>Update to cleaned versions; purge CDN cache</td></tr>
+        <tr><td>Window</td><td class="mono">CDN script review 2026-06-12 → 2026-06-14</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>Payload-serving window (PushEngage nodes latest)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1195.002 — Compromise Software Supply Chain</td><td>Malicious JS injected into plugin files on the vendor CDN via stolen API key</td><td>N1/N3; S10 update</td></tr>
+        <tr><td>Execution</td><td>T1059.007 — JavaScript</td><td>Tampered CDN script executes in the admin's browser session</td><td>Q5; N2</td></tr>
+        <tr><td>Persistence</td><td>T1136 — Create Account</td><td>Hidden developer_api1 / dev_* admin account auto-created</td><td>Q3; N4</td></tr>
+        <tr><td>Persistence</td><td>T1505.003 — Server Software Component: Web Shell</td><td>Self-hiding backdoor plugin dropped under wp-content/plugins/</td><td>Q4, Q6</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1071.001 — Application Layer Protocol: Web</td><td>Backdoor / exfil beacons to tidio.cc over HTTP(S)</td><td>Q1, Q2</td></tr>
+        <tr><td>Exfiltration</td><td>T1567 — Exfiltration Over Web Service</td><td>Stolen admin credentials POSTed to tidio.cc</td><td>Q1, Q2; §11</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Plugin inventory &amp; version</td><td>WP admin / wp-cli</td><td>Identify sites running OptinMonster / TrustPulse / PushEngage and confirm they are on the cleaned post-incident versions</td><td>Update plugins; purge the CDN cache</td></tr>
+        <tr><td>N2 · CDN script-load review</td><td>Browser/proxy logs for admins; web-server access logs</td><td>Admin sessions that loaded affected-vendor CDN JS 2026-06-12 → 2026-06-14</td><td>Treat any such admin session as potentially compromised; pivot to N4</td></tr>
+        <tr><td>N3 · Backdoor plugin on disk</td><td>Filesystem audit of wp-content/plugins/</td><td>Presence of content-delivery-helper or database-optimizer directories (often self-hidden from the admin plugin list)</td><td>Remove; treat host as compromised; pivot to Q4/Q6</td></tr>
+        <tr><td>N4 · Rogue admin roster review</td><td>WP DB (wp_users/wp_usermeta) or audit-log plugin</td><td>Admin accounts named developer_api1 / dev_*, unexpected admins, or admins with email customer1usx@gmail.com</td><td>Delete rogue admins; rotate all admin creds; force re-login</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Q1–Q4 and Q6 are Falcon-sensor endpoint hunts (fields validated against the Falcon event reference) and run on web servers and admin workstations. Q5 keys on browser-side CDN script loads visible in <code>DnsRequest</code> / proxy data — coverage depends on whether your admins' workstations are sensored. The C2 domain hunts (Q1/Q2) carry the highest fidelity: <code>tidio.cc</code> has essentially no benign baseline.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · DNS lookups for the tidio.cc C2 / typosquat family</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any DNS request for <code>tidio.cc</code> or a <code>tidio*</code> lookalike that is not the legitimate <code>tidio.com</code>. <strong>Accomplishes:</strong> the single highest-fidelity signal in the pack — near-zero benign baseline.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: DNS lookups for tidio.cc C2 / non-tidio.com typosquat family</span>
+<span class="cm">// MITRE: T1071.001, T1567 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest telemetry from web servers and admin workstations</span>
+<span class="cm">// FALSE POSITIVES: legitimate tidio.com chat widget (explicitly excluded below)</span>
+<span class="cm">// TUNING: keep tidio.com (and its real CDN subdomains) on the allow-list; alert on all other tidio*</span>
+#event_simpleName=/DnsRequest/i
+| DomainName=/(^|\.)tidio/i
+| DomainName!=/(^|\.)tidio\.com$/i
+| table([@timestamp, aid, ComputerName, DomainName, RequestType])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Outbound web connections from web-server worker processes to C2</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> outbound connections on web ports made by a PHP / web-server worker process — abnormal for a web server, and the path the backdoor uses to beacon/exfil. <strong>Accomplishes:</strong> catches the exfil even if DNS is cached or hard-coded to an IP.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Web-server worker process making outbound web connections (backdoor beacon / exfil)</span>
+<span class="cm">// MITRE: T1071.001, T1567 | CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 with initiating-process context</span>
+<span class="cm">// FALSE POSITIVES: legitimate plugin update/license checks, REST calls to known APIs</span>
+<span class="cm">// TUNING: allow-list sanctioned outbound endpoints (plugin update servers, payment gateways)</span>
+#event_simpleName=/NetworkConnectIP4/i
+| ContextBaseFileName=/^(php|php-fpm[0-9.]*|httpd|apache2|nginx|w3wp)(\.exe)?$/i
+| RemotePort=/^(80|443|8080|8443)$/
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|127\.)/
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Rogue WordPress admin account artifacts on disk / in process args</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the rogue-admin identifiers (<code>developer_api1</code>, <code>customer1usx@gmail.com</code>, <code>dev_*</code>) appearing in process command lines — e.g. a wp-cli user create, a DB client, or a script touching the account. <strong>FP:</strong> legitimate dev-named accounts — review hits. Pair with Native N4 (the authoritative roster check is in the WP DB).</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Rogue WP admin identifiers (developer_api1 / customer1usx / dev_*) in process args</span>
+<span class="cm">// MITRE: T1136 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 command-line telemetry on web servers</span>
+<span class="cm">// FALSE POSITIVES: legitimate developer accounts using a dev_ naming convention</span>
+<span class="cm">// TUNING: confirm against the WP DB (N4); allow-list known-good dev_ accounts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| CommandLine=/(developer_api1|customer1usx@gmail\.com|user\s+create\s+dev_[a-z0-9]+|INSERT.+wp_users)/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Web-server worker writing new backdoor plugin files</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> files being written under the backdoor plugin directories <code>content-delivery-helper</code> / <code>database-optimizer</code>, or any new <code>.php</code> written under <code>wp-content/plugins/</code> by a web-server worker. <strong>Accomplishes:</strong> catches the on-disk backdoor drop at the moment of install.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: New backdoor plugin files written under wp-content/plugins (Content Delivery Helper / Database Optimizer)</span>
+<span class="cm">// MITRE: T1505.003 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: FileCreateInfo / PeFileWritten with writing-process context</span>
+<span class="cm">// FALSE POSITIVES: legitimate plugin installs/updates from the WP admin UI</span>
+<span class="cm">// TUNING: alert on the two named dirs first; for the generic .php rule, allow-list scheduled update windows</span>
+#event_simpleName=/FileCreateInfo|PeFileWritten/i
+| TargetFileName=/wp-content[\/\\]plugins[\/\\](content-delivery-helper|database-optimizer)[\/\\]/i
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, TargetFileName, UserName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Admin workstation loading affected-vendor CDN scripts (exposure)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS resolution of the affected vendors' CDN domains from admin workstations during the payload window — the exposure surface for the browser-side execution. <strong>FP:</strong> normal plugin usage — scope to the 2026-06-12 → 2026-06-14 window and pivot exposed admins to N4. <span class="badge b-med">⚠ vendor CDN host names vary — confirm against your traffic</span></p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Admin workstation resolving affected-vendor CDN domains (browser-side exposure window)</span>
+<span class="cm">// MITRE: T1195.002, T1059.007 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest telemetry from WordPress admin workstations</span>
+<span class="cm">// FALSE POSITIVES: routine plugin usage outside the payload window</span>
+<span class="cm">// TUNING: constrain to 2026-06-12..2026-06-14; treat resolving admins as exposed, pivot to N4</span>
+#event_simpleName=/DnsRequest/i
+| DomainName=/(optinmonster|trustpulse|pushengage|awesomemotive)/i
+| @timestamp&gt;=1749686400000
+| @timestamp&lt;=1749945600000
+| table([@timestamp, aid, ComputerName, DomainName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Web-server worker spawning a shell / interpreter (follow-on web shell)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a PHP / web-server worker spawning a command shell or scripting interpreter — the canonical web-shell / backdoor-plugin hands-on-keyboard fingerprint. <strong>Accomplishes:</strong> detects post-compromise use of the planted backdoor independent of the C2 domain.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Web-server worker spawning a shell / interpreter (web-shell / backdoor-plugin activity)</span>
+<span class="cm">// MITRE: T1505.003 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with parent-process context</span>
+<span class="cm">// FALSE POSITIVES: rare legitimate exec() in plugins (image processing, cron) — allow-list by host/path</span>
+<span class="cm">// TUNING: allow-list known plugin helper binaries; alert on bash/sh/powershell/cmd children of web workers</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
+| ParentBaseFileName=/^(php|php-fpm[0-9.]*|httpd|apache2|nginx|w3wp)(\.exe)?$/i
+| FileName=/^(bash|sh|dash|ksh|zsh|cmd|powershell|pwsh|wget|curl|python[0-9.]*)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>WP Backdoor — plugin drop</td><td>File write where TargetFileName matches <code>wp-content/plugins/(content-delivery-helper|database-optimizer)/</code></td><td>None — these names are attacker-specific (Detect+Block)</td><td>Endpoint Security → Custom IOA → File Creation (Detect+Block)</td></tr>
+        <tr><td>WP Worker — shell spawn</td><td>Parent <code>php/php-fpm/httpd/nginx/w3wp</code>; child <code>bash/sh/cmd/powershell/python</code> (Q6 logic)</td><td>Known plugin helpers / cron exec (allow-listed)</td><td>Endpoint Security → Custom IOA → Process Creation (Detect, then Block after tuning)</td></tr>
+        <tr><td>C2 — tidio.cc beacon</td><td>Network/DNS to <code>tidio.cc</code> or non-<code>tidio.com</code> <code>tidio*</code> (Q1/Q2 logic)</td><td>Legitimate <code>tidio.com</code> chat widget (excluded)</td><td>Custom IOC (domain) → Block; NG-SIEM scheduled search for alerting</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">The backdoor-plugin drop (Q4) and the tidio.cc domain (Q1) are the strongest promotions — both have essentially no benign baseline and can go straight to Detect+Block / Custom IOC. Q6 should run as Detect first and be tuned before blocking (some plugins legitimately shell out). Q3 and Q5 stay hunt/investigate-only — Q3 needs WP-DB confirmation (N4) and Q5 keys on exposure, not compromise.</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for network blocking, on-disk audit, identity review, and behavioral detection. Update the plugins to the cleaned versions and purge the CDN cache (the fix); the domain + on-disk + identity artifacts are the durable detections.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Network / Domain Blocklist</span><span class="igc">Custom IOC</span></div>
+        <button class="btn-copy" data-label="Copy domains" onclick="copyBlock('grab-net',this)" style="margin:0 0 6px;">Copy domains</button>
+<pre class="code" id="grab-net">tidio.cc
+# Typosquat of tidio.com (registered 2026-04-28) — C2 / credential exfil
+# Block tidio.cc; ALSO hunt any tidio* domain whose registrable name is NOT tidio.com
+# DO NOT block tidio.com — that is the legitimate chat vendor</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">On-Disk Backdoor Artifacts</span><span class="igc">filesystem audit</span></div>
+        <button class="btn-copy" data-label="Copy paths" onclick="copyBlock('grab-disk',this)" style="margin:0 0 6px;">Copy paths</button>
+<pre class="code" id="grab-disk">wp-content/plugins/content-delivery-helper    # "Content Delivery Helper" backdoor
+wp-content/plugins/database-optimizer         # "Database Optimizer" backdoor
+# These plugins self-hide from the WP admin plugin list — audit the FILESYSTEM, not the UI
+# Any unexpected plugin dir created 2026-06-12..2026-06-14 is suspect</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Rogue Admin Accounts</span><span class="igc">WP DB / audit log</span></div>
+        <button class="btn-copy" data-label="Copy accounts" onclick="copyBlock('grab-acct',this)" style="margin:0 0 6px;">Copy accounts</button>
+<pre class="code" id="grab-acct">developer_api1                # observed rogue WordPress admin
+customer1usx@gmail.com        # email tied to the rogue admin
+dev_*                         # variant auto-created rogue admins (dev_xxxxxx)
+# Review wp_users / wp_usermeta for any admin-role account not in your known roster
+# Delete rogue admins, rotate ALL admin credentials, force re-login</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Affected Plugins / Window</span><span class="igc">the fix</span></div>
+        <button class="btn-copy" data-label="Copy fix" onclick="copyBlock('grab-fix',this)" style="margin:0 0 6px;">Copy fix</button>
+<pre class="code" id="grab-fix"># Affected Awesome Motive plugins (served tampered CDN JS):
+OptinMonster
+TrustPulse
+PushEngage
+# Payload-serving window: 2026-06-12 -> 2026-06-14 (PushEngage CDN nodes latest)
+# FIX: update each plugin to the cleaned post-incident version AND purge the CDN cache,
+#      then audit admins (N4) + wp-content/plugins on disk (N3) before declaring clean.</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>The immediate fix is to update the affected plugins to their cleaned versions and purge the CDN cache, then eradicate the planted admin + backdoor plugin. The rest reduces the blast radius of a browser-side supply-chain compromise.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Remediate &amp; eradicate</div>
+      <ul>
+        <li><strong>Update OptinMonster / TrustPulse / PushEngage to the cleaned versions and purge the CDN cache</strong> — <em>M1051</em>. Stops the tampered JS from being served.</li>
+        <li><strong>Delete rogue admin accounts (developer_api1 / dev_* / customer1usx@gmail.com) and remove backdoor plugins (content-delivery-helper, database-optimizer)</strong> — <em>M1018 / M1040</em>. Removes attacker persistence.</li>
+        <li><strong>Block tidio.cc (and non-tidio.com tidio* lookalikes) at DNS/proxy/Custom-IOC</strong> — <em>M1031 / M1037</em>. Cuts the C2/exfil channel. Do not block tidio.com.</li>
+        <li><strong>Rotate all WordPress admin credentials and invalidate active sessions</strong> — <em>M1027 / M1018</em>. The injected JS rode live admin sessions.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Reduce browser-side supply-chain exposure (pilot first)</div>
+      <ul>
+        <li><strong>Enforce a Content-Security-Policy on wp-admin restricting script sources</strong> — <em>M1050</em>. Constrains which CDNs can execute JS in the admin context.</li>
+        <li><strong>Require phishing-resistant MFA for all WordPress administrators</strong> — <em>M1032</em>. Limits the value of an exfiltrated admin credential.</li>
+        <li><strong>File-integrity monitoring on wp-content/plugins/ for unexpected writes</strong> — <em>M1040 / M1022</em>. Catches a future backdoor-plugin drop (Q4 logic).</li>
+        <li><strong>Restrict outbound egress from web servers to an allow-list</strong> — <em>M1037</em>. A web server beaconing to an arbitrary C2 should be impossible (Q2 logic).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Harden the plugin / CDN trust model</div>
+      <ul>
+        <li><strong>Pin/host critical admin-side JS locally or use Subresource Integrity where supported</strong> — <em>M1051</em>. Removes blind trust in vendor CDN content.</li>
+        <li><strong>Vendor / supply-chain risk review for all admin-context third-party scripts</strong> — <em>M1016</em>. Know which CDNs can run code in your admin sessions.</li>
+        <li><strong>Continuous WordPress admin-roster &amp; plugin-inventory monitoring</strong> — <em>M1047</em>. Alert when an unexpected admin or plugin appears.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Block tidio.cc at DNS/proxy/Custom-IOC; network-contain any web server with a Q1/Q2/Q4 hit; invalidate all WordPress admin sessions</td><td>Network + SOC L2</td><td>Q1/Q2 rows; IOC block confirmation</td></tr>
+        <tr><td>Triage</td><td>Audit wp-content/plugins on disk (N3) and the admin roster in the WP DB (N4); pull process trees for plugin drop / shell spawn (Q4/Q6)</td><td>SOC L2</td><td>N3/N4 findings; Q4/Q6 rows</td></tr>
+        <tr><td>Eradicate</td><td>Delete rogue admins (developer_api1 / dev_*); remove backdoor plugins; update affected plugins to cleaned versions; purge the CDN cache</td><td>IR + IT</td><td>Account deletion log; plugin removal/version</td></tr>
+        <tr><td>Recover</td><td>Rotate all admin credentials + WP salts/keys; rebuild from known-good if backdoor depth is uncertain; confirm no residual tidio.cc traffic</td><td>IR + IT</td><td>Credential rotation log; clean DNS/network</td></tr>
+        <tr><td>Harden</td><td>Enforce admin MFA + wp-admin CSP; restrict web-server egress; enable plugin-dir FIM; promote Q4 + tidio.cc to Detect+Block (§10)</td><td>Detection Eng</td><td>Policy state; IOA/IOC enabled</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1195.002</td><td>CDN JS injection (vendor side)</td><td>—</td><td>—</td><td><span class="badge b-med">Partial</span> off-sensor; N1/N3 + vendor fix</td></tr>
+        <tr><td>T1059.007</td><td>Tampered JS in admin browser</td><td>Q5</td><td>—</td><td><span class="badge b-med">Partial</span> exposure-only; needs admin sensor/proxy</td></tr>
+        <tr><td>T1136</td><td>Rogue admin creation</td><td>Q3</td><td>—</td><td><span class="badge b-med">Partial</span> authoritative check is WP DB (N4)</td></tr>
+        <tr><td>T1505.003</td><td>Backdoor plugin drop</td><td>Q4</td><td>IOA-1</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1505.003</td><td>Web-shell / backdoor use</td><td>Q6</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1071.001 / T1567</td><td>C2 / exfil to tidio.cc</td><td>Q1, Q2</td><td>IOC</td><td><span class="badge b-low">Good</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm <code>DnsRequest</code> and <code>NetworkConnectIP4</code> telemetry is flowing from your web servers (and admin workstations for Q5); (2) Q1 returns zero hits in a benign lookback unless compromised — any hit is high-priority; (3) verify the Q5 window epochs (2026-06-12..06-14 UTC) match your timezone before relying on them; (4) tune the Q6 allow-list against your plugins' legitimate <code>exec()</code> usage before promoting to Block; (5) run Native N3 (filesystem) + N4 (WP DB) on every affected site — the plugin self-hides from the admin UI; (6) promote Q4 + the tidio.cc IOC to Detect+Block (target FP near zero).</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt - Awesome Motive CDN Supply-Chain Attack (OptinMonster/TrustPulse/PushEngage)
+SEVERITY:     Critical (active supply-chain compromise; ~1.2M sites exposed; rogue admin + backdoor)
+SCOPE:        Self-hosted WordPress sites running OptinMonster / TrustPulse / PushEngage +
+              their web servers and administrator workstations
+HYPOTHESIS:   Tampered CDN JS ran in a logged-in admin's browser, created a hidden developer_api1 /
+              dev_* admin and dropped a self-hiding backdoor plugin (content-delivery-helper /
+              database-optimizer), exfiltrating new creds to tidio.cc.
+QUERIES RUN:  Q1 tidio.cc DNS | Q2 worker outbound C2 | Q3 rogue-admin args |
+              Q4 backdoor plugin drop (IOA) | Q5 admin CDN exposure | Q6 worker shell spawn (IOA)
+              + Native N1-N4 (plugin inventory, CDN script review, on-disk audit, admin roster)
+DO FIRST:     Block tidio.cc; run Q1 + Q4 -&gt; escalate any hit; audit wp-content/plugins (N3) and
+              admin roster (N4); update plugins + purge CDN cache.
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         CDN injection is off-sensor; Q5 needs admin-workstation sensor/proxy coverage; the
+              authoritative rogue-admin check is the WP DB (N4), not the sensor.
+ACTIONS:      Update plugins; delete rogue admins + backdoor plugins; rotate admin creds; block
+              tidio.cc; enforce admin MFA + wp-admin CSP; promote Q4 + tidio.cc to Detect+Block.
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-06-16</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-16</span><span>Initial pack — built to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, Falcon cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation gates, .ticket). Covers the Awesome Motive CDN supply-chain attack on OptinMonster / TrustPulse / PushEngage: 6 CQL hunts (2 network/DNS C2, 1 identity, 2 file/process backdoor, 1 CDN-exposure), 4 native hunts, 3 IOA/IOC candidates. Keyed on the tidio.cc C2 domain, the content-delivery-helper / database-optimizer backdoor plugins, and the developer_api1 / dev_* rogue admins, plus the 2026-06-12..06-14 payload window.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://patchstack.com/articles/supply-chain-attack-on-optinmonster-trustpulse-and-pushengage-tampered-cdn-scripts-auto-creating-rogue-admins/" target="_blank">Patchstack — Supply-chain attack on OptinMonster/TrustPulse/PushEngage</a></td><td>Mechanism, rogue-admin + backdoor IOCs, tidio.cc exfil</td></tr>
+        <tr><td>1</td><td><a href="https://sansec.io/research/optinmonster-supply-chain-attack" target="_blank">Sansec — OptinMonster supply-chain attack</a></td><td>Compromised CDN API key, injected JS, ~1.2M sites, timeline</td></tr>
+        <tr><td>1</td><td><a href="https://www.bleepingcomputer.com/news/security/optinmonster-wordpress-plugin-hacked-in-cdn-supply-chain-attack/" target="_blank">BleepingComputer — OptinMonster plugin hacked in CDN supply-chain attack</a></td><td>Affected vendors, PushEngage CDN nodes through 2026-06-14</td></tr>
+        <tr><td>2</td><td><a href="https://securityaffairs.com/193616/malware/supply-chain-attack-hits-popular-wordpress-plugins-through-awesome-motive-cdn.html" target="_blank">Security Affairs — Supply-chain attack via Awesome Motive CDN</a></td><td>Scope corroboration, root cause, rogue-admin + backdoor behavior</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · Awesome Motive CDN Supply-Chain Attack (OptinMonster / TrustPulse / PushEngage) · Generated 2026-06-16 · Defensive use only — no exploit code. The fix (update plugins to cleaned versions + purge CDN cache, delete rogue admins + backdoor plugins, rotate admin creds) closes the incident; the hunts are detection &amp; defense-in-depth. Q5 keys on browser-side exposure and depends on admin-workstation telemetry — validate coverage in your tenant.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
