@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APT37 / ScarCruft NarwhalRAT — Fake Microsoft Alert → LNK → Batch → Compiled-Python RAT — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #07140f; --surface2: #0c2018; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9ca3af; --accent: #ff7b72; --accent-dim: rgba(255,123,114,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #2a5a4a; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1410 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">APT37 / ScarCruft<br>NarwhalRAT</div>
+    <div class="version">v0.1 · 2026-06-17</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Quick-Copy</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening — Tiered</a>
+    <a href="#s13">13 · Deployable Playbooks</a>
+    <a href="#s14">14 · Containment Runbook</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>APT37 / ScarCruft — NarwhalRAT (Fake Microsoft Alert → LNK → Batch → Compiled-Python RAT)</h1>
+  <div class="subtitle">A DPRK-nexus espionage campaign (Genians Security Center, June 2026) that opens with <strong>spear-phishing emails impersonating Microsoft account-security / OTP-abuse alerts</strong>, designed to alarm the recipient into opening a <strong>ZIP archive disguised as a Microsoft security advisory</strong>. The ZIP carries a malicious <strong>LNK</strong> that launches a multi-stage, largely in-memory chain — env-var-obfuscated batch scripts that download and run <strong>NarwhalRAT</strong>, a compiled-Python RAT with keylogging, screen capture, audio recording and data collection. C2 is a <strong>dead-drop resolver</strong> abusing legitimate Korean websites plus <strong>pCloud</strong> storage. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">APT37 / ScarCruft · NarwhalRAT</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH · NATION-STATE ESPIONAGE</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Compiled-Python RAT · keylog · screenshot · audio</div></div>
+    <div class="meta-item"><div class="mk">Delivery</div><div class="mv">Phish (fake MS alert) → ZIP → LNK → batch → in-memory Python</div></div>
+    <div class="meta-item"><div class="mk">C2</div><div class="mv">Dead-drop resolver (Korean sites) + pCloud API</div></div>
+    <div class="meta-item"><div class="mk">Attribution</div><div class="mv">APT37 (Reaper / Group123), DPRK; targeting South Korea</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-17</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>NarwhalRAT (Genians Security Center, June 16 2026) is an APT37 / ScarCruft (a.k.a. Reaper, Group123) espionage campaign that opens with <strong>spear-phishing emails impersonating Microsoft account-security and one-time-password (OTP) abuse alerts</strong>. The lure is engineered to <strong>alarm the recipient</strong> — "suspicious sign-in", "your OTP was abused" — into opening the attachment: a <strong>ZIP archive disguised as a Microsoft security advisory</strong> containing a malicious <strong>LNK</strong> file. Opening the LNK launches a multi-stage, largely <strong>in-memory infection chain</strong>: the shortcut spawns <code>cmd.exe</code> / PowerShell, drops and runs <strong>env-var-obfuscated batch scripts</strong> (e.g. <code>KHjWFcsE.bat</code>) that abuse a copied <code>curl.exe</code> to download the next stage and display a decoy HWP document.</p>
+    <p>The final payload, <strong>NarwhalRAT</strong>, is a <strong>compiled-Python RAT</strong> (Python bytecode disguised as a Windows catalog file — <code>config.cat</code> / <code>AccountConfig.cat</code>) executed via a renamed <code>pythonw.exe</code> (<code>userscreen.exe</code>). It reflectively maps and runs shellcode in RWX memory and supports <strong>keylogging (with active-window context), periodic screen capture, microphone/audio recording, USB/removable-media collection, and remote command execution</strong>. Persistence is a scheduled task with a legitimate-sounding name (<code>MicrosoftUserInterfacePicturesUpdateTackMachine</code>) firing at one-minute intervals from <code>C:\Users\Public\AccountPictures\</code>. C2 is a <strong>dead-drop resolver</strong> that fronts on compromised legitimate Korean websites and uses the <strong>pCloud API</strong> as a secondary channel, with staged collection to a hidden <code>%APPDATA%\naverwhale</code> working directory.</p>
+    <p>Because the chain is <strong>fileless after the LNK</strong> and C2 hides behind legitimate infrastructure, detection centers on the <strong>LNK-from-archive execution lineage</strong>, the <strong>batch/env-var-obfuscation + curl-copy staging</strong>, the <strong>renamed-pythonw / compiled-Python loader</strong> behavior, the <strong>capture (keylog/screenshot/audio) and naverwhale staging</strong> artifacts, the <strong>scheduled-task persistence</strong>, and <strong>egress to pCloud / dead-drop domains</strong>.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> the front door is a fake Microsoft security-alert email carrying a ZIP→LNK. Hunt <strong>Q1</strong> (LNK / Explorer / archive-tool spawning <code>cmd</code>/<code>powershell</code>) and <strong>Q2</strong> (env-var-obfuscated batch + copied <code>curl.exe</code> download) first — those break the chain before NarwhalRAT ever loads. Then chase <strong>Q3</strong> (renamed <code>pythonw.exe</code> / compiled-Python loader), <strong>Q6</strong> (scheduled-task persistence), and <strong>Q7</strong> (pCloud / dead-drop egress). Coach users that a "security alert" telling them to open an attached advisory is itself the attack.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Genians Security Center — NarwhalRAT</td><td>Full chain + IOCs: ZIP→LNK→batch (env-var obfuscation, curl copy)→compiled-Python RAT; renamed pythonw; scheduled-task persistence; pCloud / Korean-site dead-drop C2; keylog/screenshot/audio/USB capture</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · News / analysis</td><td>The Hacker News — fake Microsoft alerts deploy NarwhalRAT</td><td>Phishing pretext: fake MS account-security / OTP-abuse alerts; ZIP disguised as MS advisory; APT37 attribution</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · News / analysis</td><td>GBHackers — APT37 use NarwhalRAT malware</td><td>Multi-stage in-memory chain; compiled-Python RAT capabilities; DPRK targeting of South Korea</td><td><span class="badge b-med">partial</span></td></tr>
+        <tr><td>2 · News / analysis</td><td>SC World / SC Media — NK hackers use fake MS alerts</td><td>Corroborates lure theme, attribution, dead-drop-resolver C2 over legitimate websites + cloud storage</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> front-door-first (LNK-from-archive lineage and the batch/curl staging are the cheapest, highest-leverage breaks); behavior-anchored across the fileless chain (env-var-obfuscated batch, renamed pythonw / compiled-Python, RWX in-memory exec); named artifacts (<code>userscreen.exe</code>, <code>config.cat</code>, <code>naverwhale</code>, the scheduled-task name, pCloud) give specific hunts; the listed MD5s and domains/IPs are durable-but-rotatable atoms, so chain behavior is the resilient surface. Author handle: HuntPack. No victim names — rephrased around TTPs.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> A user receives a fake Microsoft security-alert / OTP-abuse email, opens a ZIP disguised as a Microsoft advisory, and runs the LNK inside. The LNK spawns <code>cmd</code>/PowerShell, which writes and runs env-var-obfuscated batch scripts; those copy <code>curl.exe</code> to stage a compiled-Python payload, display a decoy HWP, install a one-minute scheduled task, and launch NarwhalRAT (renamed <code>pythonw.exe</code>) for keylog/screenshot/audio/USB collection and dead-drop / pCloud C2.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Phish</td><td>Fake MS account-security / OTP-abuse alert email; ZIP attachment disguised as advisory</td><td>Mail gateway; ZIP write</td><td>N1; user coaching</td></tr>
+        <tr><td>2 · LNK exec</td><td>LNK in archive spawns <code>cmd</code>/PowerShell from Explorer / archive tool</td><td><code>ProcessRollup2</code></td><td><strong>Q1</strong>; N2</td></tr>
+        <tr><td>3 · Batch staging</td><td>Env-var-obfuscated <code>.bat</code>; copied <code>curl.exe</code> downloads payload; decoy HWP shown</td><td><code>ProcessRollup2</code>; file write</td><td><strong>Q2</strong></td></tr>
+        <tr><td>4 · Python loader</td><td>Renamed <code>pythonw.exe</code> (<code>userscreen.exe</code>) runs <code>.cat</code> bytecode; RWX in-memory exec</td><td><code>ProcessRollup2</code></td><td><strong>Q3</strong></td></tr>
+        <tr><td>5 · Collection</td><td>Keylog (active-window), screenshots, mic/audio, USB; stage to <code>%APPDATA%\naverwhale</code></td><td>file write; <code>ProcessRollup2</code></td><td><strong>Q4</strong></td></tr>
+        <tr><td>6 · Persistence</td><td>Scheduled task <code>MicrosoftUserInterfacePicturesUpdateTackMachine</code>, 1-min interval</td><td><code>ScheduledTask</code>; reg</td><td><strong>Q6</strong>; N3</td></tr>
+        <tr><td>7 · C2 / exfil</td><td>Dead-drop resolver over Korean sites + pCloud API; staged exfil</td><td><code>NetworkConnectIP4</code>; DNS</td><td><strong>Q7, Q8</strong>; N4</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">The chain is largely fileless after the LNK and C2 fronts on legitimate infrastructure, so hashes/domains rotate. The archive→LNK lineage, env-var-obfuscated batch + curl-copy staging, renamed-pythonw / compiled-Python loader, capture/naverwhale staging, and scheduled-task persistence are durable. Copy-ready blocks in §10.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior</td><td class="mono">Archive/Explorer → LNK → cmd/powershell lineage</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Front door — flagship</td></tr>
+        <tr><td>Behavior</td><td class="mono">Env-var-obfuscated .bat (%var:~n,1%) + copied curl.exe download</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Stage 3 staging</td></tr>
+        <tr><td>Behavior</td><td class="mono">Renamed pythonw.exe (userscreen.exe) running .cat bytecode</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Compiled-Python loader</td></tr>
+        <tr><td>File</td><td class="mono">userscreen.exe ; config.cat ; AccountConfig.cat</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Renamed pythonw + bytecode</td></tr>
+        <tr><td>File</td><td class="mono">KHjWFcsE.bat ; GuFLjO7q.bat</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Obfuscated batch droppers</td></tr>
+        <tr><td>Path</td><td class="mono">%APPDATA%\naverwhale (Hidden+System) ; C:\Users\Public\AccountPictures\UserInerfacePicture\</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Staging + persistence dir</td></tr>
+        <tr><td>Persistence</td><td class="mono">Scheduled task: MicrosoftUserInterfacePicturesUpdateTackMachine (1-min)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>NarwhalRAT relaunch</td></tr>
+        <tr><td>Mutex</td><td class="mono">i5zJH9FL10cVd3sSW9eyWWErPJ</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>RAT single-instance</td></tr>
+        <tr><td>Network</td><td class="mono">api.pcloud.com (dead-drop secondary C2)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Cloud-storage C2</td></tr>
+        <tr><td>Network</td><td class="mono">daehoat.com ; novel21.co.kr ; webhostingkorea.com ; crwellfood.com ; fe01.co.kr</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Dead-drop resolver fronts</td></tr>
+        <tr><td>Network</td><td class="mono">121.254.222.10 ; 121.254.222.80 ; 211.239.157.126 ; 218.150.78.198 ; 218.150.78.231 ; 61.100.9.206</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>C2 IPs</td></tr>
+        <tr><td>Hash (MD5)</td><td class="mono">3715092aa00f380cefe8b4d2eddb7d08 ; 7cef19f9c4480adac0cd4702ff98f46c ; 7eb9cee1f696727752169f25cf79a338 ; b6b0602310bb2d4360c52685119aac1b</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Known samples — block</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Workstations (users)</td><td>Process lineage (archive/Explorer → LNK → cmd/ps)</td><td><span class="badge b-high">Critical</span></td><td>Low — process telemetry</td></tr>
+        <tr><td>Mail / web gateway</td><td>Attachment ZIP + phishing-pretext detection</td><td><span class="badge b-high">High</span></td><td>Medium — lure delivery</td></tr>
+        <tr><td>Command-line / scripting</td><td>cmd/batch + PowerShell script-block (4104); curl copy</td><td><span class="badge b-high">High</span></td><td>Medium — logging gap</td></tr>
+        <tr><td>Python loader</td><td>Process metadata (OriginalFileName vs FileName); file writes (.cat)</td><td><span class="badge b-med">Medium</span></td><td>Medium — renamed binary</td></tr>
+        <tr><td>Persistence</td><td>Scheduled-task creation + registry telemetry</td><td><span class="badge b-high">High</span></td><td>Low — task events</td></tr>
+        <tr><td>Egress (C2/exfil)</td><td>DNS + netflow to cloud-storage / dead-drop fronts</td><td><span class="badge b-med">Medium</span></td><td>Medium — legit infra</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1566.001 — Spearphishing Attachment</td><td>Fake MS alert email; ZIP disguised as advisory</td><td>N1; coaching</td></tr>
+        <tr><td>Execution</td><td>T1204.002 / T1059.001 / T1059.003 — User exec / PowerShell / cmd</td><td>LNK launches cmd/PowerShell; batch scripts run</td><td>Q1, Q2; N2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1027 / T1140 — Obfuscated files / deobfuscate</td><td>Env-var <code>%var:~n,1%</code> command reconstruction</td><td>Q2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1036.003 / T1036.008 — Masquerading (rename / extension)</td><td>pythonw → userscreen.exe; .pyc → .cat; legit task name</td><td>Q3, Q5, Q6</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1105 — Ingress tool transfer</td><td>Copied <code>curl.exe</code> downloads next stage</td><td>Q2</td></tr>
+        <tr><td>Execution / Defense Evasion</td><td>T1620 / T1106 — Reflective load / native API</td><td>RWX VirtualAlloc → RtlMoveMemory → CFUNCTYPE exec</td><td>Q3</td></tr>
+        <tr><td>Collection</td><td>T1056.001 / T1113 / T1123 / T1025 — Keylog / screen / audio / removable</td><td>Capture + stage to <code>naverwhale</code></td><td>Q4</td></tr>
+        <tr><td>Persistence</td><td>T1053.005 — Scheduled Task</td><td>1-min task <code>MicrosoftUserInterface...</code></td><td>Q6; N3</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1102 / T1071.001 — Web service / web C2</td><td>Dead-drop resolver over Korean sites + pCloud API</td><td>Q7, Q8; N4</td></tr>
+        <tr><td>Defense Evasion</td><td>T1497.001 — Virtualization / sandbox checks</td><td>CPUID anti-VM (VMware/VBox/Parallels)</td><td>Q3 (context)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Phish attachment</td><td>Mail gateway / EOP</td><td>Inbound mail w/ ZIP attachment + MS-security / OTP-abuse pretext; sender spoof of Microsoft</td><td>Quarantine; coach users</td></tr>
+        <tr><td>N2 · LNK / batch exec</td><td>Sysmon 1 / Security 4688</td><td><code>explorer.exe</code> or archive tool → <code>cmd</code>/<code>powershell</code>; child <code>.bat</code> with env-var substring tricks</td><td>Isolate; pull tree</td></tr>
+        <tr><td>N3 · Scheduled task</td><td>Security 4698 / TaskScheduler Op</td><td>Task created with MS-lookalike name running from <code>C:\Users\Public\AccountPictures\</code> at 1-min interval</td><td>Disable task; triage host</td></tr>
+        <tr><td>N4 · Cloud / dead-drop egress</td><td>Proxy / DNS / netflow</td><td>Connections to <code>api.pcloud.com</code> or the dead-drop Korean fronts from a non-browser binary</td><td>Block; identify host</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. The chain is fileless after the LNK — Q1/Q2 (archive→LNK→batch + curl staging) are the cheapest, highest-yield breaks. Pair the in-memory hunts with PowerShell script-block logging (4104) and scheduled-task telemetry.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · LNK-from-archive lineage — Explorer/archive tool → cmd/powershell</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Explorer or an archive tool (WinRAR/7-Zip/Windows Zip handler) spawning <code>cmd</code>/<code>powershell</code> with download / hidden / batch indicators — the LNK-inside-ZIP launch. <strong>Accomplishes:</strong> breaks the front door before staging. <strong>FP:</strong> low-med — some legit installers; flag hidden/encoded/curl/.bat tells.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: ZIP-&gt;LNK launch -&gt; cmd/powershell staging lineage</span>
+<span class="cm">// MITRE: T1204.002, T1059.001, T1059.003 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 process telemetry</span>
+<span class="cm">// FALSE POSITIVES: legit installers/IT scripts launched from Explorer -- flag hidden/encoded/curl/.bat tells</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(explorer|7zFM|7zG|winrar|rar|opener|isoburn)\.exe$/i
+| FileName=/^(cmd|powershell|pwsh|mshta|wscript|cscript)\.exe$/i
+| CommandLine=/(-w\s?hidden|-enc|FromBase64|IEX|Invoke-WebRequest|curl|\.bat|\.lnk|ExecutionPolicy\s+Bypass)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Env-var-obfuscated batch + copied curl.exe download</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the env-var substring-substitution obfuscation (<code>%x:~n,1%</code>) used by the batch droppers, and <code>curl</code> downloading to a user/temp path or running from a non-standard copy. <strong>Accomplishes:</strong> catches stage-3 staging. <strong>FP:</strong> low — substring-substitution command building is rare in benign scripts.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: env-var substring obfuscation + curl ingress download</span>
+<span class="cm">// MITRE: T1027, T1140, T1105, T1059.003 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with full CommandLine</span>
+<span class="cm">// FALSE POSITIVES: rare; some packagers build strings via %var:~%; confirm parent is cmd/.bat</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (CommandLine=/%[A-Za-z0-9_]+:~\d+,1%/
+   or (FileName=/^curl\.exe$/i and CommandLine=/(-o|--output|-O)\b/i and CommandLine=/https?:/i))
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Renamed pythonw.exe / compiled-Python loader (.cat bytecode)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a process whose on-disk name differs from its PE <code>OriginalFileName</code> of <code>python</code>/<code>pythonw</code> (the <code>userscreen.exe</code> rename), or a Python interpreter loading a <code>.cat</code>/<code>.pyc</code> from a user path. <strong>Accomplishes:</strong> catches the compiled-Python RAT loader. <strong>FP:</strong> low-med — baseline sanctioned Python apps.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: renamed pythonw (userscreen.exe) / compiled-Python .cat loader</span>
+<span class="cm">// MITRE: T1036.003, T1059.006, T1620 | CONF: med-high  FP: low-med  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with OriginalFileName (PE VersionInfo)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned packaged Python apps -- allow-list signer/path</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ((OriginalFileName=/^pythonw?\.exe$/i and FileName!=/^pythonw?\.exe$/i)
+   or FileName=/^userscreen\.exe$/i
+   or CommandLine=/\\(config|AccountConfig)\.cat\b/i
+   or CommandLine=/\.cat["'\s]/i and ImageFileName=/python/i)
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, OriginalFileName, ImageFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · NarwhalRAT staging dir + capture artifacts (naverwhale)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> file writes into the hidden <code>%APPDATA%\naverwhale</code> staging directory or the <code>AccountPictures\UserInerfacePicture</code> persistence path. <strong>Accomplishes:</strong> surfaces keylog/screenshot/audio staging. <strong>FP:</strong> medium — narrow on the specific dir names; correlate to Q3 on the same host.</p>
+        <p class="callout callout-warn" style="margin:6px 0;"><strong>FP note:</strong> file-write hunts can be noisy — anchor on the literal <code>naverwhale</code> / <code>UserInerfacePicture</code> directory names (note the misspelling) and require co-occurrence with a Q3 hit on the host.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: NarwhalRAT staging/persistence directory writes</span>
+<span class="cm">// MITRE: T1056.001, T1113, T1123, T1025 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: file-write telemetry (FileCreateInfo / PeFileWritten)</span>
+<span class="cm">// FALSE POSITIVES: anchor on literal naverwhale/UserInerfacePicture dir names; correlate to Q3</span>
+#event_simpleName=/FileCreateInfo|PeFileWritten|NewExecutableWritten/
+| TargetFileName=/\\(naverwhale|UserInerfacePicture)\\/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, TargetFileName])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Known NarwhalRAT sample hashes</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> execution or write of any reported NarwhalRAT MD5. <strong>Accomplishes:</strong> a high-fidelity known-sample sweep. <strong>FP:</strong> low — exact-hash match. Hashes rotate, so pair with the behavioral hunts.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: known NarwhalRAT sample MD5s</span>
+<span class="cm">// MITRE: T1204.002 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: MD5HashData on process/file events</span>
+<span class="cm">// FALSE POSITIVES: none on exact match; hashes rotate -- keep behavioral hunts on</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten/
+| MD5HashData=/^(3715092aa00f380cefe8b4d2eddb7d08|7cef19f9c4480adac0cd4702ff98f46c|7eb9cee1f696727752169f25cf79a338|b6b0602310bb2d4360c52685119aac1b)$/i
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, MD5HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Scheduled-task persistence (MS-lookalike, 1-min)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a scheduled task created with the MS-lookalike name, or any task whose action runs from <code>C:\Users\Public\AccountPictures\</code> — the NarwhalRAT relaunch. <strong>Accomplishes:</strong> a high-fidelity persistence signal. <strong>FP:</strong> low — no legit task runs from that user path.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: NarwhalRAT scheduled-task persistence</span>
+<span class="cm">// MITRE: T1053.005, T1036.005 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ScheduledTask telemetry or schtasks ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: low -- no benign task runs from Users\Public\AccountPictures</span>
+#event_simpleName=/ScheduledTaskRegistered|ScheduledTaskModified|ProcessRollup2|SyntheticProcessRollup2/
+| (TaskName=/MicrosoftUserInterfacePicturesUpdate/i
+   or TaskExecArguments=/Users\\Public\\AccountPictures/i
+   or (FileName=/^schtasks\.exe$/i and CommandLine=/(\/create).*(Users\\Public\\AccountPictures|userscreen\.exe)/i))
+| table([@timestamp, ComputerName, UserName, TaskName, TaskExecArguments, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · pCloud dead-drop egress from non-browser binary</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS / connections to <code>pcloud</code> infrastructure made by a non-browser, user/temp-path binary (NarwhalRAT abusing the pCloud API as C2). <strong>Accomplishes:</strong> surfaces the cloud dead-drop channel. <strong>FP:</strong> medium — baseline sanctioned pCloud desktop clients; flag python/userscreen parents.</p>
+        <p class="callout callout-warn" style="margin:6px 0;"><strong>FP note:</strong> orgs that legitimately use pCloud will hit this — allow-list the official pCloud client by signer/path and require a non-browser, user-path image (e.g. <code>userscreen.exe</code> / a renamed pythonw).</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: pCloud API used as dead-drop C2 by non-browser binary</span>
+<span class="cm">// MITRE: T1102, T1567.002 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// REQUIRES: DnsRequest and/or NetworkConnectIP4 telemetry</span>
+<span class="cm">// FALSE POSITIVES: legit pCloud desktop client -- allow-list signer/path; flag user-path images</span>
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| (DomainName=/(^|\.)pcloud\.com$/i or DomainName=/api\.pcloud\.com$/i)
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| ImageFileName!=/\\(chrome|msedge|firefox|brave|pcloud)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, DomainName, RemoteAddressIP4])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Dead-drop resolver C2 (Korean fronts + C2 IPs)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS / connections to the reported dead-drop front domains or hardcoded C2 IPs. <strong>Accomplishes:</strong> a targeted IOC sweep for the C2 channel. <strong>FP:</strong> low-med — these are reported-malicious atoms; some fronts are compromised legit sites, so confirm host context.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: NarwhalRAT dead-drop resolver fronts + C2 IPs</span>
+<span class="cm">// MITRE: T1071.001, T1102 | CONF: high  FP: low-med  COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest and/or NetworkConnectIP4 telemetry</span>
+<span class="cm">// FALSE POSITIVES: fronts are compromised legit sites -- confirm initiating process context</span>
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| (DomainName=/(^|\.)(daehoat\.com|novel21\.co\.kr|webhostingkorea\.com|crwellfood\.com|fe01\.co\.kr)$/i
+   or RemoteAddressIP4=/^(121\.254\.222\.(10|80)|211\.239\.157\.126|218\.150\.78\.(198|231)|61\.100\.9\.206)$/)
+| table([@timestamp, ComputerName, UserName, ImageFileName, DomainName, RemoteAddressIP4])</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>NarwhalRAT — archive→LNK→shell</td><td>Parent <code>explorer/7z/winrar.exe</code>; Child <code>cmd/powershell</code> + <code>.bat</code>/curl/hidden cradle</td><td>Sanctioned installers / IT scripts (allow-list)</td><td>Endpoint Security → Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>NarwhalRAT — env-var batch obfuscation</td><td>CommandLine matches <code>%var:~n,1%</code> substring substitution</td><td>Vetted packaging scripts</td><td>Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>NarwhalRAT — scheduled-task persistence</td><td><code>schtasks /create</code> with <code>Users\Public\AccountPictures</code> or MS-lookalike task name</td><td>None expected from that path</td><td>Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>NarwhalRAT — renamed pythonw loader</td><td><code>OriginalFileName=pythonw.exe</code> &amp; on-disk name differs; or <code>userscreen.exe</code></td><td>Sanctioned packaged Python apps (signer allow-list)</td><td>Custom IOA → Process Creation, Detect</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1/Q2/Q6 are strong promotions — they break the chain at the front door (LNK/batch staging) and at relaunch (scheduled task). Q3-Q8 stay tuned hunts. Pair with PowerShell script-block logging (4104) for stage visibility and feed §10 IOC atoms to threat-intel blocklists.</div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for detection / blocklisting. The chain is fileless after the LNK and C2 fronts on legitimate infra — behavior is the durable surface, atoms rotate. Add per-incident atoms during triage.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">Explorer/archive tool (7z/winrar) spawning cmd/powershell from a ZIP-extracted LNK
+Env-var substring obfuscation in batch: %var:~n,1% command reconstruction
+Copied curl.exe downloading payload to a user/temp path (ingress tool transfer)
+Renamed pythonw.exe (OriginalFileName=pythonw.exe, on-disk userscreen.exe) running .cat bytecode
+RWX in-memory exec: VirtualAlloc(PAGE_EXECUTE_READWRITE) -> RtlMoveMemory -> ctypes CFUNCTYPE
+File writes into %APPDATA%\naverwhale (Hidden+System) staging dir
+Scheduled task w/ MS-lookalike name running from C:\Users\Public\AccountPictures at 1-min interval
+Non-browser user-path binary resolving/connecting to api.pcloud.com or Korean dead-drop fronts</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Files / Tooling / Stages</span><span class="igc">NarwhalRAT</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">Cybersecurity Advisory Notice (Regarding One-Time Password Abuse).zip   # lure archive
+Cybersecurity Advisory Notice (Regarding One-Time Password Abuse).lnk   # malicious shortcut
+Cybersecurity Advisory Notice (Regarding One-Time Password Abuse).hwp   # decoy doc
+KHjWFcsE.bat ; GuFLjO7q.bat        # env-var-obfuscated batch droppers
+curl.exe                            # copied/abused legit downloader
+config.cat ; AccountConfig.cat      # Python bytecode disguised as Windows catalog
+userscreen.exe                      # renamed pythonw.exe (NarwhalRAT loader)
+Mutex: i5zJH9FL10cVd3sSW9eyWWErPJ
+Scheduled task: MicrosoftUserInterfacePicturesUpdateTackMachine (1-min)
+Staging dir: %APPDATA%\naverwhale (Hidden+System)
+Persistence dir: C:\Users\Public\AccountPictures\UserInerfacePicture\
+Config: %LOCALAPPDATA%\Microsoft\Internet Explorer\&lt;random&gt;.ent (AES-128)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Network IOCs</span><span class="igc">dead-drop + pCloud</span></div>
+        <button class="btn-copy" data-label="Copy network" onclick="copyBlock('grab-net',this)" style="margin:0 0 6px;">Copy network</button>
+<pre class="code" id="grab-net">api.pcloud.com        # secondary dead-drop C2 (cloud storage API)
+daehoat.com
+novel21.co.kr
+webhostingkorea.com
+crwellfood.com
+fe01.co.kr
+121.254.222.10
+121.254.222.80
+211.239.157.126
+218.150.78.198
+218.150.78.231
+61.100.9.206</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hashes (MD5)</span><span class="igc">known samples</span></div>
+        <button class="btn-copy" data-label="Copy hashes" onclick="copyBlock('grab-hash',this)" style="margin:0 0 6px;">Copy hashes</button>
+<pre class="code" id="grab-hash">3715092aa00f380cefe8b4d2eddb7d08
+7cef19f9c4480adac0cd4702ff98f46c
+7eb9cee1f696727752169f25cf79a338
+b6b0602310bb2d4360c52685119aac1b</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">User-Coaching Tells</span><span class="igc">phish awareness</span></div>
+        <button class="btn-copy" data-label="Copy tells" onclick="copyBlock('grab-tells',this)" style="margin:0 0 6px;">Copy tells</button>
+<pre class="code" id="grab-tells">Email impersonating a Microsoft "account security" / "OTP abuse" alert urging you to open an attachment
+A ZIP attachment described as a "security advisory" containing a shortcut (.lnk) file
+A document that opens but "nothing else happens" (decoy HWP while malware runs in background)
+# Rule for users: a real security alert never ships its "advisory" as a ZIP you must open. Report, don't open.</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Block</span><span class="igc">defense-in-depth</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl">User awareness: a "MS security alert" attaching a ZIP advisory = phish -- report, do not open
+Block/strip .lnk inside inbound archives at the mail gateway; quarantine MS-spoof OTP lures
+ASR: block executable content from email/webmail; block obfuscated scripts; block Office child procs
+PowerShell Constrained Language Mode + script-block/module logging (4104) fleet-wide
+WDAC/app control: deny user-path execution of pythonw/renamed interpreters and unsigned .exe
+Audit scheduled-task creation (4698); alert on tasks running from Users\Public
+Egress: baseline + flag non-browser user-path binaries reaching api.pcloud.com / dead-drop fronts</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <ol>
+      <li><strong>Telemetry confirmation:</strong> verify process lineage (parent/child + <code>OriginalFileName</code>), file-write, scheduled-task (4698 / ScheduledTaskRegistered), DNS/netflow, and PowerShell script-block (4104) are all flowing from the user fleet.</li>
+      <li><strong>Baseline:</strong> enumerate any sanctioned packaged-Python apps, the official pCloud desktop client (signer/path), and legit IT scripts launched from Explorer — allow-list before promoting Q1/Q3/Q7.</li>
+      <li><strong>Benign lab test:</strong> launch a benign <code>explorer → powershell</code> (Q1), a script using <code>%var:~n,1%</code> (Q2), a renamed copy of <code>pythonw.exe</code> (Q3), and a <code>schtasks /create</code> from <code>Users\Public</code> (Q6) to confirm the queries fire and to measure FP volume.</li>
+      <li><strong>Promote:</strong> enable script-block logging + scheduled-task auditing, then promote Q1/Q2/Q6 to Detect+Block IOAs. Break Q1/Q2 and NarwhalRAT never loads.</li>
+      <li><strong>IOC sweep:</strong> run Q5 (hashes) and Q8 (domains/IPs) as a one-time retro-hunt over 30-90 days, then feed the atoms to threat-intel blocklists (atoms rotate — keep behavioral hunts live).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Break the phishing front door, neutralize the LNK/batch staging, constrain the Python loader, and surface persistence + egress.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Break the front door</div>
+      <ul>
+        <li><strong>User awareness: a "Microsoft security/OTP alert" attaching a ZIP advisory is the attack</strong> — <em>M1017</em>. Report, don't open — the cheapest control.</li>
+        <li><strong>Strip/block <code>.lnk</code> (and nested <code>.lnk</code> inside archives) at the mail gateway; quarantine MS-spoof OTP-abuse lures</strong> — <em>M1031 / M1054</em>.</li>
+        <li><strong>ASR: block executable content from email/webmail, block obfuscated scripts, block Office/Outlook child processes</strong> — <em>M1042</em>. Blunts the LNK→cmd→batch chain.</li>
+        <li><strong>Promote Q1/Q2/Q6 to Detect+Block IOAs</strong> — <em>M1040</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain &amp; observe (pilot first)</div>
+      <ul>
+        <li><strong>PowerShell Constrained Language Mode + script-block/module logging (4104) fleet-wide</strong> — <em>M1038 / M1047</em>. Feeds N2 and the in-memory hunts.</li>
+        <li><strong>WDAC / app control: deny user-path execution of <code>pythonw</code> / renamed interpreters and unsigned EXEs</strong> — <em>M1038</em>. Kills the <code>userscreen.exe</code> loader.</li>
+        <li><strong>Enable scheduled-task creation auditing (4698); alert on tasks running from <code>Users\Public</code></strong> — <em>M1047</em>.</li>
+        <li><strong>Egress control: baseline + flag non-browser user-path binaries reaching <code>api.pcloud.com</code> / dead-drop fronts</strong> — <em>M1037</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce espionage surface</div>
+      <ul>
+        <li><strong>Application allowlisting; default-deny user-path execution</strong> — <em>M1038</em>.</li>
+        <li><strong>Disable / restrict removable-media auto-collection; DLP on staging dirs</strong> — <em>M1057 / M1034</em>. Blunts USB collection + naverwhale staging.</li>
+        <li><strong>Block unsanctioned cloud-storage egress (pCloud) at the proxy; phishing-resistant MFA</strong> — <em>M1021 / M1032</em>. Cuts the dead-drop C2 channel and limits credential reuse.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h4>A · Block .lnk in inbound archives (Exchange Online / EOP transport rule — concept)</h4>
+<pre class="code" id="pb-mail">Transport rule: if attachment is/contains an archive (.zip/.7z/.rar) AND archive contains *.lnk
+  -> Quarantine + notify SOC.
+Common Attachment Types Filter: add 'lnk' to the blocked list (anti-malware policy).
+Pretext rule: subject/body matches ("account security"|"one-time password"|"OTP")
+  AND sender fails DMARC for microsoft.com -> Quarantine.</pre>
+    <h4>B · ASR rules (GPO / Intune — set to Block)</h4>
+<pre class="code" id="pb-asr">Block executable content from email client and webmail   : BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550 = 1
+Block all Office applications from creating child procs  : D4F940AB-401B-4EFC-AADC-AD5F3C50688A = 1
+Block execution of potentially obfuscated scripts        : 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC = 1
+Block Win32 API calls from Office macros                 : 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B = 1
+# Deploy: Defender > ASR (Block); pilot in Audit (=2) first, then Block (=1).</pre>
+    <h4>C · Scheduled-task persistence sweep (PowerShell — read-only, defensive)</h4>
+<pre class="code" id="pb-sched">Get-ScheduledTask | Where-Object {
+  $_.TaskName -match 'MicrosoftUserInterfacePicturesUpdate' -or
+  ($_.Actions.Execute -match 'Users\\Public\\AccountPictures|userscreen\.exe')
+} | Select-Object TaskName, State, @{n='Action';e={$_.Actions.Execute}}
+# Review hits; disable confirmed-malicious tasks via Disable-ScheduledTask after IR sign-off.</pre>
+    <h4>D · PowerShell logging + Constrained Language Mode (GPO)</h4>
+<pre class="code" id="pb-ps">Computer Config > Admin Templates > Windows Components > Windows PowerShell:
+  Turn on Module Logging                = Enabled (Module Names: *)
+  Turn on PowerShell Script Block Logging = Enabled
+System-wide env (machine-tier policy): __PSLockdownPolicy / WDAC enforces ConstrainedLanguage.
+# Forward 4103/4104 to SIEM; feeds Native hunt N2.</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host; capture memory before reboot (chain is in-memory after the LNK); preserve PowerShell logs, the <code>.bat</code>/<code>.cat</code> artifacts, <code>%APPDATA%\naverwhale</code>, and the scheduled task</td><td>SOC L2</td><td>Containment timestamp; Q1/Q3 events; memory image</td></tr>
+        <tr><td>Triage</td><td>Map ZIP→LNK→batch→pythonw→NarwhalRAT; confirm scheduled-task persistence; identify C2 (pCloud / dead-drop fronts); assess scope of keylog/screenshot/audio/USB collection</td><td>IR</td><td>Process tree; task export; C2 list; staged-data inventory</td></tr>
+        <tr><td>Eradicate</td><td>Disable + delete the scheduled task; kill <code>userscreen.exe</code>; remove <code>naverwhale</code> + <code>AccountPictures\UserInerfacePicture</code>; block C2 domains/IPs + pCloud egress</td><td>IR</td><td>Removal log; blocklist entries</td></tr>
+        <tr><td>Recover</td><td>Reimage if RAT collection occurred (assume keystroke/credential capture); rotate any credentials typed on the host; restore from clean backup</td><td>IR + IT</td><td>Rebuild ticket; cred-reset log</td></tr>
+        <tr><td>Harden</td><td>Promote Q1/Q2/Q6; strip <code>.lnk</code> in archives at the gateway; ASR; CLM + script-block logging; WDAC for renamed interpreters; user coaching on MS-alert phish</td><td>Detection Eng</td><td>IOA enabled; transport rule live; logging on</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1566.001</td><td>Fake MS-alert phish + ZIP</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> mail gateway (N1) + awareness</td></tr>
+        <tr><td>T1204.002 / T1059</td><td>Archive→LNK→cmd/ps</td><td>Q1</td><td>IOA-1</td><td><span class="badge b-low">Good</span> + N2</td></tr>
+        <tr><td>T1027 / T1140 / T1105</td><td>Env-var batch + curl download</td><td>Q2</td><td>IOA-2</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1036.003 / T1620</td><td>Renamed pythonw / compiled-Python</td><td>Q3</td><td>IOA-4</td><td><span class="badge b-med">Partial</span> correlate to Q1/Q2</td></tr>
+        <tr><td>T1056/T1113/T1123/T1025</td><td>Keylog/screenshot/audio/USB staging</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> dir-name anchored</td></tr>
+        <tr><td>Known samples</td><td>NarwhalRAT MD5s</td><td>Q5</td><td>—</td><td><span class="badge b-low">Good</span> (rotates)</td></tr>
+        <tr><td>T1053.005</td><td>Scheduled-task persistence</td><td>Q6</td><td>IOA-3</td><td><span class="badge b-low">Good</span> + N3</td></tr>
+        <tr><td>T1102 / T1567.002</td><td>pCloud dead-drop C2</td><td>Q7</td><td>—</td><td><span class="badge b-med">Partial</span> + proxy (N4)</td></tr>
+        <tr><td>T1071.001 / T1102</td><td>Korean dead-drop fronts + C2 IPs</td><td>Q8</td><td>—</td><td><span class="badge b-low">Good</span> (rotates) + N4</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — APT37/ScarCruft NarwhalRAT (fake MS alert -> ZIP/LNK -> batch -> compiled-Python RAT)
+SEVERITY:     High (DPRK-nexus espionage; keylog/screenshot/audio/USB collection)
+SCOPE:        User workstations; mail gateway; PowerShell logging; scheduled tasks; egress
+HYPOTHESIS:   Fake Microsoft security/OTP-abuse email -> ZIP "advisory" -> LNK -> cmd/powershell ->
+              env-var-obfuscated .bat + copied curl download -> renamed pythonw (userscreen.exe)
+              -> NarwhalRAT (compiled-Python). Persistence = 1-min scheduled task from Users\Public;
+              C2 = dead-drop resolver over Korean sites + pCloud API; staging to %APPDATA%\naverwhale.
+QUERIES RUN:  Q1 archive-&gt;LNK-&gt;shell (IOA) | Q2 env-var batch + curl (IOA) | Q3 renamed pythonw |
+              Q4 naverwhale staging | Q5 known MD5s | Q6 scheduled-task persistence (IOA) |
+              Q7 pCloud dead-drop | Q8 Korean fronts + C2 IPs   + Native N1-N4
+DO FIRST:     User coaching + Q1/Q2 -- break the LNK/batch staging before NarwhalRAT loads
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Web/mail delivery of the lure (gateway + awareness); fileless after LNK (needs memory/4104)
+ACTIONS:      Promote Q1/Q2/Q6; strip .lnk in archives at gateway; ASR; CLM + script-block logging;
+              WDAC for renamed interpreters; audit 4698; egress baselining for pCloud / dead-drop fronts
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-06-17</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-17</span><span>Initial pack — APT37 / ScarCruft NarwhalRAT campaign (Genians Security Center, June 16 2026). Built to the review-v2 gold layout: fixed left-sidebar scrollspy TOC (collapsible), cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, tiered hardening, deployable playbooks, containment runbook, coverage map, and .ticket. Chain: fake Microsoft security/OTP-abuse phish → ZIP "advisory" → LNK → cmd/powershell → env-var-obfuscated batch + copied curl → renamed pythonw (userscreen.exe) → NarwhalRAT compiled-Python RAT (keylog/screenshot/audio/USB). Persistence = 1-min scheduled task from Users\Public\AccountPictures; C2 = dead-drop resolver over Korean sites + pCloud API; staging to %APPDATA%\naverwhale. 8 CQL queries + 4 native hunts + 4 IOA candidates; LNK/batch front-door break emphasized.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.genians.co.kr/en/blog/threat_intelligence/narwhalrat" target="_blank">Genians Security Center — NarwhalRAT</a></td><td>Full chain + IOCs: ZIP/LNK/batch, renamed pythonw, compiled-Python RAT, scheduled-task persistence, dead-drop/pCloud C2, capture commands, hashes</td></tr>
+        <tr><td>2</td><td><a href="https://thehackernews.com/2026/06/fake-microsoft-alerts-used-to-deploy.html" target="_blank">The Hacker News — Fake Microsoft alerts deploy NarwhalRAT</a></td><td>Phishing pretext (fake MS / OTP-abuse alerts); ZIP-as-advisory; APT37 attribution</td></tr>
+        <tr><td>2</td><td><a href="https://gbhackers.com/apt37-hackers-use-narwhalrat-malware/" target="_blank">GBHackers — APT37 use NarwhalRAT malware</a></td><td>Multi-stage in-memory chain; RAT capabilities; DPRK targeting of South Korea</td></tr>
+        <tr><td>2</td><td><a href="https://www.scworld.com/brief/north-korean-hackers-use-fake-microsoft-alerts-to-deploy-narwhalrat-malware" target="_blank">SC World — NK hackers use fake Microsoft alerts to deploy NarwhalRAT</a></td><td>Corroborates lure, attribution, dead-drop-resolver C2 over legit sites + cloud storage</td></tr>
+        <tr><td>2</td><td><a href="https://attack.mitre.org/groups/G0067/" target="_blank">MITRE ATT&amp;CK G0067 — APT37 (Reaper)</a></td><td>Actor mapping / technique attribution</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · APT37 / ScarCruft NarwhalRAT (fake MS alert → ZIP/LNK → batch → compiled-Python RAT) · Generated 2026-06-17 · Defensive use only — no offensive code. The chain rides on a phishing-driven LNK; breaking the LNK/batch staging (Q1/Q2 + mail-gateway .lnk stripping + user coaching) is the highest-leverage control. The remaining stages are fileless — pair the CQL hunts with PowerShell script-block logging and scheduled-task auditing. C2 fronts on legitimate infrastructure and atoms rotate — validate field names and keep the behavioral hunts live before promoting any query.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SprySOCKS Windows Variants (WIN_DRV / WIN_PLUS) — FishMonger Kernel-Rootkit Backdoor — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #07140f; --surface2: #0c2018; --border: #30363d;
+  --text: #e6edf3; --text-muted: #9ca3af; --accent: #02c39a; --accent-dim: rgba(2,195,154,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #2a5a4a; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #06231d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">SprySOCKS Windows<br>WIN_DRV / WIN_PLUS · FishMonger</div>
+    <div class="version">v0.1 · 2026-06-17</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>SprySOCKS Windows Variants — WIN_DRV / WIN_PLUS (FishMonger)</h1>
+  <div class="subtitle">ESET (June 16, 2026) documented two previously unseen <strong>Windows</strong> ports of the China-nexus <strong>SprySOCKS</strong> backdoor — historically a Linux-only implant — attributed to <strong>FishMonger</strong> (linked to the I-Soon contractor). <strong>WIN_PLUS</strong> loads via the <strong>Print Spooler</strong> (a print-processor loader injecting <code>svchost.exe</code>); the stealthier <strong>WIN_DRV</strong> ships a <strong>kernel-mode driver acting as a rootkit</strong> — hiding files, processes, registry keys, and network connections, and rerouting traffic from any open port to the backdoor's hidden port when a <strong>packet marker</strong> appears (port-knocking covert channel). Both retain the Linux C2 protocol/encryption over TCP, UDP, and WebSocket, and run 30+ espionage commands. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">SprySOCKS WIN_DRV / WIN_PLUS · FishMonger (China-nexus)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH · NATION-STATE ROOTKIT</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Espionage backdoor · kernel rootkit · covert C2</div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">Print Spooler load (WIN_PLUS) · DLL side-load + sched task (WIN_DRV)</div></div>
+    <div class="meta-item"><div class="mk">C2</div><div class="mv">Hardcoded; TCP / UDP / WebSocket; port-knock packet marker</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-17</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>SprySOCKS first surfaced in 2023 as a <strong>Linux-only</strong> espionage backdoor. On <strong>June 16, 2026</strong>, ESET disclosed two previously undocumented <strong>Windows variants</strong> — labeled <strong>WIN_DRV</strong> and <strong>WIN_PLUS</strong> — attributed to the China-nexus <strong>FishMonger</strong> group, publicly linked to the I-Soon contractor. Both Windows builds preserve the Linux predecessor's <strong>C2 protocol and encryption</strong>, ship a <strong>hardcoded C2 configuration</strong> in each sample, communicate over <strong>TCP, UDP, and WebSocket</strong>, and expose <strong>30+ commands</strong> (system reconnaissance, process/service management, file operations, SOCKS proxy, upload/download, interactive console).</p>
+    <p><strong>WIN_PLUS</strong> establishes itself through the <strong>Windows Print Spooler</strong> (<code>spoolsv.exe</code>) as an entry point: a malicious <strong>print-processor loader</strong> executes and injects into <code>svchost.exe</code>. <strong>WIN_DRV</strong> is the stealthier build — delivered via a <strong>DLL side-loading chain triggered by a scheduled task</strong>, it loads an encrypted <strong>kernel-mode driver</strong> (a DriverLoader decrypts and maps a RawWNPF-style network filter driver) that acts as a <strong>rootkit</strong>: it hides files, processes, registry keys, and network connections, and performs <strong>TCP traffic diversion</strong> — when a packet carrying a specific marker/byte sequence hits <em>any</em> open port, the driver quietly reroutes it to the backdoor's hidden listening port. This <strong>port-knocking covert channel</strong> lets operators reach the implant without exposing a dedicated listening port to scans or netflow.</p>
+    <p>Because WIN_DRV's rootkit suppresses the very telemetry an analyst would pivot on, the durable hunt surface is the <strong>delivery and load behavior that precedes the rootkit installing</strong>: the Print Spooler / print-processor load chain, the scheduled-task → DLL side-load lineage, the <strong>kernel driver written to disk and the kernel-mode service install</strong> (including BYOVD-style unsigned/vulnerable driver loads), and any pre-rootkit listening-port / WebSocket / UDP beacon artifacts. Atomic IOCs (hashes, driver filenames) are useful but perishable; the load-chain behavior is the high-leverage break.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> Catch WIN_DRV <strong>before the kernel driver maps</strong> — once the rootkit is live it hides itself. Hunt <strong>Q1</strong> (driver <code>.sys</code> written to disk from a non-standard path), <strong>Q2</strong> (new kernel-mode <code>ServiceInstalled</code> / driver load, BYOVD angle), and <strong>Q4</strong> (Print Spooler / print-processor load → <code>svchost</code> for WIN_PLUS). Treat the scheduled-task → DLL side-load lineage (<strong>Q3</strong>) and anomalous listening-port / WebSocket beacons (<strong>Q5/Q6</strong>) as corroboration. Driver/rootkit telemetry has gaps (see §15) — promote the disk-write and service-install hunts, don't wait for network signal.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>ESET — SprySOCKS Windows variants (Jun 16, 2026)</td><td>Two new Windows ports WIN_DRV / WIN_PLUS; kernel-driver rootkit; port-knock traffic diversion; retained Linux C2 protocol/encryption; 30+ commands; FishMonger / I-Soon attribution</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Press (vendor-sourced)</td><td>The Hacker News — coverage of ESET report</td><td>Driver filenames (RawWNPF / DriverLoader <code>.dat</code>), WIN_DRV sample hash, Print Spooler entry (WIN_PLUS), DLL side-load + sched-task (WIN_DRV), TCP/UDP/WebSocket C2</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Press</td><td>Infosecurity Magazine / Dark Reading / SC World</td><td>Corroborate kernel-driver rootkit + covert channel; targeting of government bodies in Honduras, Taiwan, Thailand, Pakistan (telemetry 2023-2024)</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> behavior-anchored — the rootkit hides files/procs/registry/network, so post-install telemetry is unreliable; hunt the <strong>pre-rootkit load chain</strong> (driver disk-write, kernel-mode service install, Print Spooler / print-processor load, scheduled-task → DLL side-load) which the rootkit cannot retroactively erase from EDR. Atomic IOCs (sample hash, <code>.dat</code> driver names) are included for blocklisting but treated as perishable. Network hunts (listening ports, WebSocket/UDP beacons) are weakened by the port-knock diversion and are framed as corroboration, with the gap flagged honestly in §15.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> FishMonger lands a Windows host and deploys SprySOCKS — either <strong>WIN_PLUS</strong> (Print Spooler print-processor loader injecting <code>svchost.exe</code>) or the stealthier <strong>WIN_DRV</strong> (scheduled-task-triggered DLL side-load that drops and loads an encrypted kernel driver acting as a rootkit, then opens a port-knock covert channel for hardcoded TCP/UDP/WebSocket C2 and runs 30+ espionage commands).</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Initial foothold</td><td>FishMonger access (exploited service / valid accounts)</td><td><code>ProcessRollup2</code>; logon</td><td>N4; out of scope</td></tr>
+        <tr><td>2a · WIN_PLUS load</td><td>Print Spooler print-processor loader → inject <code>svchost.exe</code></td><td><code>ProcessRollup2</code>; module load</td><td><strong>Q4</strong>; N1</td></tr>
+        <tr><td>2b · WIN_DRV load</td><td>Scheduled task → DLL side-load chain</td><td><code>ScheduledTaskRegistered</code>; <code>ProcessRollup2</code></td><td><strong>Q3</strong>; N2</td></tr>
+        <tr><td>3 · Driver drop</td><td>Encrypted kernel driver <code>.sys</code>/<code>.dat</code> written to disk</td><td><code>PeFileWritten</code>; <code>FileCreateInfo</code></td><td><strong>Q1</strong>; N3</td></tr>
+        <tr><td>4 · Rootkit install</td><td>Kernel-mode service install / driver load (BYOVD-style)</td><td><code>ServiceInstalled</code>; <code>DriverLoad</code></td><td><strong>Q2</strong>; N3</td></tr>
+        <tr><td>5 · Covert C2</td><td>Port-knock packet marker reroutes traffic to hidden port</td><td><code>NetworkListenIP4</code>; netflow</td><td><strong>Q5</strong>; N5</td></tr>
+        <tr><td>6 · Operate</td><td>30+ commands; SOCKS proxy; WebSocket/UDP beacons; file ops</td><td><code>NetworkConnectIP4</code>; <code>ProcessRollup2</code></td><td><strong>Q6 / Q7 / Q8</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">WIN_DRV's rootkit hides files/processes/registry/network and diverts traffic, so listening-port and host-artifact IOCs are perishable and may be suppressed on a compromised host. Hashes and <code>.dat</code> driver names rotate. The load-chain behavior (driver disk-write, kernel-mode service install, Print Spooler load, sched-task → DLL side-load) is the durable surface. Copy-ready blocks in §10.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior</td><td class="mono">Kernel driver / encrypted .sys|.dat written to disk from non-standard path</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Pre-rootkit — flagship</td></tr>
+        <tr><td>Behavior</td><td class="mono">New kernel-mode service install / unsigned-vulnerable driver load (BYOVD)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Rootkit install</td></tr>
+        <tr><td>Behavior</td><td class="mono">Print Spooler (spoolsv.exe) print-processor loader → svchost injection</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>WIN_PLUS entry</td></tr>
+        <tr><td>Behavior</td><td class="mono">Scheduled task triggering a DLL side-load chain</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>WIN_DRV entry</td></tr>
+        <tr><td>Behavior</td><td class="mono">Port-knock: traffic rerouted to hidden port on packet marker; TCP/UDP/WebSocket C2</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Covert channel</td></tr>
+        <tr><td>SHA256</td><td class="mono">68aec5085599e8a272767f50da66c83a6582e4e16ed97c209f65f81538b0c028</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>WIN_DRV sample (perishable)</td></tr>
+        <tr><td>Filename</td><td class="mono">KW1B5206BDC1743FP.dat (RawWNPF driver); KX1B5206BDC1743DD.dat (DriverLoader)</td><td><span class="badge b-low">low</span></td><td>hunt</td><td>Likely per-build; pattern only</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows servers / endpoints</td><td>Process lineage + module load (svchost / spoolsv)</td><td><span class="badge b-high">Critical</span></td><td>Low — process telemetry</td></tr>
+        <tr><td>Kernel / driver layer</td><td>Driver load + kernel-mode <code>ServiceInstalled</code> events</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-high">High</span> — driver-load telemetry is uneven; rootkit hides post-install</td></tr>
+        <tr><td>Filesystem</td><td><code>PeFileWritten</code> / <code>FileCreateInfo</code> for <code>.sys</code>/<code>.dat</code> writes</td><td><span class="badge b-high">High</span></td><td>Low-Med — catch before rootkit hides files</td></tr>
+        <tr><td>Scheduled tasks</td><td><code>ScheduledTaskRegistered</code></td><td><span class="badge b-med">Medium</span></td><td>Medium — WIN_DRV side-load trigger</td></tr>
+        <tr><td>Egress / listeners</td><td><code>NetworkListenIP4</code> / <code>NetworkConnectIP4</code> + netflow</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-high">High</span> — port-knock diversion + rootkit conn hiding</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Persistence / Priv Esc</td><td>T1543.003 — Create/Modify System Process: Windows Service</td><td>Kernel-mode service install for the driver</td><td>Q2; N3</td></tr>
+        <tr><td>Privilege Esc / Defense Evasion</td><td>T1547.012 — Print Processors</td><td>WIN_PLUS print-processor loader via Spooler</td><td>Q4; N1</td></tr>
+        <tr><td>Defense Evasion</td><td>T1014 — Rootkit</td><td>Kernel driver hides files/procs/registry/network</td><td>Q1, Q2 (pre-install)</td></tr>
+        <tr><td>Defense Evasion</td><td>T1574.002 — DLL Side-Loading</td><td>WIN_DRV sched-task-triggered side-load chain</td><td>Q3; N2</td></tr>
+        <tr><td>Defense Evasion / Priv Esc</td><td>T1068 — Exploitation for Priv Esc (BYOVD)</td><td>Unsigned/vulnerable driver load to reach kernel</td><td>Q2</td></tr>
+        <tr><td>Persistence / Execution</td><td>T1053.005 — Scheduled Task</td><td>Sched task triggers WIN_DRV side-load</td><td>Q3; N2</td></tr>
+        <tr><td>Execution / Defense Evasion</td><td>T1055 — Process Injection</td><td>Print-processor loader injects <code>svchost.exe</code></td><td>Q4</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1205.001 — Traffic Signaling: Port Knocking</td><td>Packet-marker reroute to hidden backdoor port</td><td>Q5; N5</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1095 / T1071 — Non-App-Layer / App-Layer (UDP, WebSocket)</td><td>Hardcoded C2 over TCP/UDP/WebSocket</td><td>Q6, Q7</td></tr>
+        <tr><td>C2 / Lateral</td><td>T1090 — Proxy (SOCKS)</td><td>Built-in SOCKS proxy command</td><td>Q6</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Spooler child / print processor</td><td>Sysmon 1 / Security 4688</td><td><code>spoolsv.exe</code> spawning unusual children or writing a print-processor DLL; injection into <code>svchost.exe</code></td><td>Isolate; capture memory</td></tr>
+        <tr><td>N2 · Sched task → side-load</td><td>Security 4698 / Task Scheduler Op</td><td>New scheduled task launching a signed binary from a path that side-loads an attacker DLL</td><td>Triage; pull task XML + DLL</td></tr>
+        <tr><td>N3 · Kernel driver / service install</td><td>System 7045 / Sysmon 6</td><td>New kernel-mode service or driver load; unsigned / never-before-seen <code>.sys</code> at boot or runtime</td><td>Block; image the host</td></tr>
+        <tr><td>N4 · Initial access</td><td>Security 4624/4672</td><td>Anomalous logons / privileged access preceding the load chain</td><td>Scope; reset creds</td></tr>
+        <tr><td>N5 · Covert listener</td><td>Netflow / firewall</td><td>Unexpected inbound to a host on odd ports; small "knock" packets preceding a session shift</td><td>Block; identify host</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-warn">Enable Windows driver-load + service-install auditing (System 7045) and Sysmon driver events (Event ID 6) fleet-wide before relying on N3 — the rootkit suppresses host-side network and file artifacts after install, so kernel/service events captured at install time are the most reliable native signal.</div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. Because WIN_DRV's rootkit hides post-install artifacts, the highest-yield hunts fire at <strong>load time</strong>: Q1 (driver written to disk) and Q2 (kernel-mode service install / BYOVD). Driver-load and kernel-service telemetry can be uneven across sensor versions and configs — see the coverage map (§15) for honest gaps. Pair the network hunts (Q5-Q7) with netflow; the port-knock diversion blunts pure host-side network signal.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Kernel driver (.sys/.dat) written to disk from non-standard path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a PE / driver file written to a user/temp/ProgramData path (rather than the normal driver store) — the WIN_DRV encrypted driver / DriverLoader drop, caught before the rootkit hides it. <strong>FP:</strong> some installers/AV stage drivers in non-standard paths — exclude known software-distribution writers and signed vendor processes.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: kernel driver / encrypted .sys|.dat written to non-standard path (pre-rootkit)</span>
+<span class="cm">// MITRE: T1014, T1543.003 | CONF: high  FP: med  COST: low</span>
+<span class="cm">// REQUIRES: PeFileWritten / file-write telemetry</span>
+<span class="cm">// FALSE POSITIVES: legit driver installers (exclude signed vendor writers, SCCM/Intune staging)</span>
+#event_simpleName=/PeFileWritten|NewExecutableWritten|FileCreateInfo/
+| TargetFileName=/\.(sys|dat)$/i
+| TargetFileName=/\\(Temp|AppData|ProgramData|Users\\Public|Windows\\Tasks)\\/i
+| TargetFileName!=/\\Windows\\System32\\DriverStore\\/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · New kernel-mode service / driver load (BYOVD angle)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> installation of a kernel-mode service or a driver load referencing a <code>.sys</code> outside the trusted driver store — the WIN_DRV rootkit install (and the BYOVD pattern of loading an unsigned/vulnerable driver to reach kernel). <strong>FP:</strong> legitimate driver/EDR/virtualization installs — baseline known service names + image paths and alert on first-seen.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: kernel-mode service install / driver load from untrusted path (BYOVD / rootkit)</span>
+<span class="cm">// MITRE: T1543.003, T1068, T1014 | CONF: high  FP: med  COST: low</span>
+<span class="cm">// REQUIRES: ServiceInstalled / driver-load telemetry (uneven across sensor versions)</span>
+<span class="cm">// FALSE POSITIVES: vendor driver installs -- baseline service names + signer; alert first-seen</span>
+#event_simpleName=/ServiceInstalled|DriverLoad/
+| ServiceImagePath=/\.sys$/i
+| ServiceImagePath!=/\\Windows\\System32\\(drivers|DriverStore)\\/i
+| table([@timestamp, ComputerName, ServiceDisplayName, ServiceImagePath, ImageFileName, SHA256HashData])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Scheduled task → DLL side-load chain (WIN_DRV)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a scheduled-task registration or a task-launched signed binary executing from a non-standard path (side-load staging directory) — the WIN_DRV trigger. <strong>FP:</strong> legit apps use scheduled tasks + side directories — flag user/temp/ProgramData paths and correlate to Q1 driver writes on the same host.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: scheduled-task-triggered DLL side-load staging (WIN_DRV)</span>
+<span class="cm">// MITRE: T1053.005, T1574.002 | CONF: medium  FP: med  COST: low</span>
+<span class="cm">// REQUIRES: ScheduledTaskRegistered + ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legit task-launched apps -- restrict to user/temp paths; correlate Q1</span>
+#event_simpleName=/ScheduledTaskRegistered|ProcessRollup2|SyntheticProcessRollup2/
+| (ScheduledTaskName=/.+/ or ParentBaseFileName=/^(svchost|taskeng|taskhostw)\.exe$/i)
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| ImageFileName=/\.exe$/i
+| table([@timestamp, ComputerName, UserName, ScheduledTaskName, ParentBaseFileName, ImageFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Print Spooler print-processor loader → svchost injection (WIN_PLUS)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>spoolsv.exe</code> spawning unexpected children or writing a print-processor DLL, and anomalous <code>svchost.exe</code> children consistent with injection — the WIN_PLUS load path. <strong>FP:</strong> printer drivers legitimately extend the Spooler — exclude signed printer-vendor processes and known print-processor paths.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Print Spooler print-processor loader / svchost injection (WIN_PLUS)</span>
+<span class="cm">// MITRE: T1547.012, T1055 | CONF: medium  FP: med  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (+ module load if available)</span>
+<span class="cm">// FALSE POSITIVES: legit printer drivers extend Spooler -- exclude signed vendor procs</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^spoolsv\.exe$/i
+| FileName!=/^(spoolsv|splwow64|rundll32)\.exe$/i
+| ImageFileName!=/\\Windows\\System32\\spool\\/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Anomalous listening port / hidden-port covert channel</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a non-system / user-path binary opening a TCP listener — a pre-rootkit window onto the backdoor's hidden port before the driver diverts/hides it. <strong>FP:</strong> high — many apps listen; restrict to user/temp-path images and unexpected ports, and correlate to Q1-Q4 on the same host. Note: WIN_DRV's port-knock diversion means the listener may never appear in host telemetry post-install — treat absence as inconclusive, not clean.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: anomalous TCP listener from user-path binary (hidden-port covert channel)</span>
+<span class="cm">// MITRE: T1205.001, T1014 | CONF: medium  FP: high  COST: med</span>
+<span class="cm">// REQUIRES: NetworkListenIP4</span>
+<span class="cm">// FALSE POSITIVES: many apps listen -- restrict to user/temp images; correlate Q1-Q4</span>
+#event_simpleName=NetworkListenIP4
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| ImageFileName!=/\\Windows\\System32\\/i
+| table([@timestamp, ComputerName, ImageFileName, LocalAddressIP4, LocalPort, Protocol_decimal])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · WebSocket / hardcoded-C2 beacon from svchost or user-path binary</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> outbound connections from an injected <code>svchost.exe</code> or a user-path binary to non-RFC1918 addresses (WebSocket / TCP C2 to the hardcoded server). <strong>FP:</strong> high — <code>svchost</code> talks to many endpoints; baseline normal <code>svchost</code> egress and correlate to Q4 injection / Q1-Q2 install. Replace the C2 placeholder once atomic infra is published.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: WebSocket / hardcoded-C2 beacon from injected svchost or user-path binary</span>
+<span class="cm">// MITRE: T1071, T1090 | CONF: medium  FP: high  COST: med</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: svchost has broad egress -- baseline + correlate Q4 injection</span>
+#event_simpleName=NetworkConnectIP4
+| (ImageFileName=/\\svchost\.exe$/i or ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i)
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|169\.254\.)/
+| table([@timestamp, ComputerName, ImageFileName, RemoteAddressIP4, RemotePort, Protocol_decimal])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · UDP beacon to fixed external endpoint (non-DNS)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> UDP egress (<code>Protocol_decimal=17</code>) to a fixed external endpoint on a non-standard port from a non-browser, non-DNS process — the SprySOCKS UDP C2 channel. <strong>FP:</strong> high — VoIP/QUIC/game traffic — exclude 53/123/443 and known media apps; aggregate to spot a stable beacon to one host.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: UDP C2 beacon to fixed external endpoint (non-DNS)</span>
+<span class="cm">// MITRE: T1095 | CONF: medium  FP: high  COST: med</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 with Protocol_decimal</span>
+<span class="cm">// FALSE POSITIVES: VoIP/QUIC/games -- exclude 53/123/443 + media apps; look for stable beacon</span>
+#event_simpleName=NetworkConnectIP4
+| Protocol_decimal=17
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|169\.254\.|224\.|239\.)/
+| RemotePort!=53 | RemotePort!=123 | RemotePort!=443
+| groupBy([ComputerName, ImageFileName, RemoteAddressIP4, RemotePort], function=count(as=beacons))
+| beacons &gt;= 5
+| table([ComputerName, ImageFileName, RemoteAddressIP4, RemotePort, beacons])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · SprySOCKS reconnaissance command burst (30+ command set)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> an injected <code>svchost.exe</code> or user-path binary spawning a burst of recon/management LOLBins (the 30+ command set: sysinfo, process/service enum, file ops) — hands-on-keyboard operation. <strong>FP:</strong> medium — admin/monitoring tooling does this — require an unusual parent (injected svchost / user-path) and a tight time burst; correlate to Q4.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: SprySOCKS recon/command burst under injected svchost or user-path parent</span>
+<span class="cm">// MITRE: T1059, T1057, T1007 | CONF: medium  FP: med  COST: med</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: admin/monitoring tooling -- require injected/user-path parent + burst</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(svchost|spoolsv)\.exe$/i
+| FileName=/^(whoami|net|net1|ipconfig|systeminfo|tasklist|sc|reg|netstat|query)\.exe$/i
+| groupBy([ComputerName, ParentBaseFileName], function=count(as=cmds))
+| cmds &gt;= 4
+| table([ComputerName, ParentBaseFileName, cmds])</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>SprySOCKS — driver dropped to non-standard path</td><td>File write of <code>.sys</code>/<code>.dat</code> to <code>Temp/AppData/ProgramData/Public</code></td><td>Signed vendor installers; SCCM/Intune staging (allow-list)</td><td>Endpoint Security → Custom IOA → File Creation, Detect+Block</td></tr>
+        <tr><td>SprySOCKS — kernel-mode service install</td><td><code>ServiceImagePath</code> ends <code>.sys</code> outside DriverStore</td><td>Vetted driver/EDR/virtualization services</td><td>Custom IOA → (Service/Process Creation), Detect</td></tr>
+        <tr><td>SprySOCKS — spoolsv anomalous child</td><td>Parent <code>spoolsv.exe</code> → unexpected child / non-spool path</td><td>Signed printer-vendor processes</td><td>Custom IOA → Process Creation, Detect</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1/Q2 (driver drop + kernel-mode service install) are the strongest promotions — they fire before WIN_DRV's rootkit can hide itself. Q4 (Spooler anomaly) covers WIN_PLUS. Network hunts (Q5-Q7) stay tuned hunts: the port-knock diversion and connection-hiding rootkit weaken pure host-side network detection. Use Falcon's built-in suspicious-driver / vulnerable-driver prevention alongside these.</div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for detection. The rootkit hides post-install artifacts and C2 infra rotates — load-chain behavior is the durable surface. Add per-incident atoms during triage.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,68aec5085599e8a272767f50da66c83a6582e4e16ed97c209f65f81538b0c028,prevent,critical,2026-12-17,SprySOCKS WIN_DRV sample,campaign:SprySOCKS-FishMonger
+domain,REPLACE_WITH_C2_DOMAIN,detect,high,2026-09-17,SprySOCKS hardcoded C2,campaign:SprySOCKS-FishMonger
+ipv4,REPLACE_WITH_C2_IP,detect,high,2026-09-17,SprySOCKS C2 (TCP/UDP/WebSocket),campaign:SprySOCKS-FishMonger</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">Kernel driver / encrypted .sys|.dat written to Temp/AppData/ProgramData/Public (pre-rootkit)
+New kernel-mode service install or driver load with ServiceImagePath outside System32\drivers|DriverStore (BYOVD)
+spoolsv.exe spawning unexpected children / writing a print-processor DLL -> svchost.exe injection (WIN_PLUS)
+Scheduled task launching a signed binary from a user/temp path that side-loads an attacker DLL (WIN_DRV)
+Non-system user-path binary opening a TCP listener; covert hidden port reached via packet-marker port knock
+Hardcoded C2 over TCP/UDP/WebSocket; stable UDP beacon to a fixed external endpoint on a non-standard port
+Recon/command burst (whoami/net/sc/reg/netstat/systeminfo) under injected svchost/spoolsv parent</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling / Atoms</span><span class="igc">SprySOCKS / FishMonger</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">SprySOCKS WIN_DRV   # stealthier; kernel-driver rootkit + port-knock traffic diversion
+SprySOCKS WIN_PLUS  # Print Spooler print-processor loader -> svchost injection
+Actor: FishMonger (China-nexus; linked to I-Soon contractor)
+SHA256 (WIN_DRV): 68aec5085599e8a272767f50da66c83a6582e4e16ed97c209f65f81538b0c028
+Driver (RawWNPF):    KW1B5206BDC1743FP.dat   # filename likely per-build; treat as pattern
+DriverLoader:        KX1B5206BDC1743DD.dat   # encrypted kernel driver loader
+C2 channels: TCP / UDP / WebSocket (hardcoded config per sample); built-in SOCKS proxy; 30+ commands</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Driver / ASR / Audit Checklist</span><span class="igc">harden &amp; verify</span></div>
+        <button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy checklist</button>
+<pre class="code" id="grab-ctrl">Enable Microsoft Vulnerable Driver Blocklist (HVCI / WDAC) -- blocks BYOVD driver loads
+WDAC / Smart App Control: default-deny unsigned kernel drivers fleet-wide
+Audit System 7045 (service install) + Sysmon Event ID 6 (driver load) -- collect at install time
+Disable Print Spooler on servers that do not print (CVE-class + WIN_PLUS print-processor abuse)
+GPO: restrict print-processor and printer-driver install to admins (PointAndPrint hardening)
+Promote Q1/Q2 to Detect+Block; enable Falcon suspicious/vulnerable-driver prevention
+Egress: baseline svchost; flag UDP/WebSocket beacons to fixed external endpoints</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Check</th><th>Pass Criteria</th></tr></thead>
+      <tbody>
+        <tr><td>Telemetry ready</td><td>Driver-load + <code>ServiceInstalled</code> + <code>PeFileWritten</code> + System 7045 / Sysmon 6 flowing</td><td>Events visible in last 24h on a sample of servers</td></tr>
+        <tr><td>Benign baseline</td><td>Catalogue sanctioned driver installers, printer-vendor Spooler extensions, task-launched apps</td><td>Allow-list captured; Q1/Q2/Q4 FP volume acceptable</td></tr>
+        <tr><td>Positive tests</td><td>Lab: write a benign <code>.sys</code> to <code>ProgramData</code> (Q1); install a benign test driver service (Q2); benign <code>spoolsv</code> child (Q4)</td><td>Each query returns the seeded event</td></tr>
+        <tr><td>Promotion</td><td>Promote Q1/Q2 to Detect+Block IOAs; enable vulnerable-driver blocklist; keep Q5-Q7 as hunts</td><td>IOAs enabled; HVCI/blocklist on; netflow correlation in place</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>Block the path to kernel, shrink the Spooler surface, and capture install-time telemetry before the rootkit hides.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Block the path to kernel</div>
+      <ul>
+        <li><strong>Enable the Microsoft Vulnerable Driver Blocklist + HVCI/Memory Integrity</strong> — <em>M1050 / M1038</em>. Breaks BYOVD-style loads WIN_DRV relies on to reach kernel.</li>
+        <li><strong>Promote Q1/Q2 (driver drop + kernel-mode service install) to Detect+Block</strong> — <em>M1040</em>. Catch WIN_DRV before the rootkit maps.</li>
+        <li><strong>Disable Print Spooler on servers that don't print</strong> — <em>M1042</em>. Removes the WIN_PLUS print-processor entry point.</li>
+        <li><strong>Enable Falcon suspicious/vulnerable-driver prevention</strong> — <em>M1040</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain &amp; observe (pilot first)</div>
+      <ul>
+        <li><strong>WDAC / Smart App Control: default-deny unsigned kernel drivers</strong> — <em>M1038</em>. Pilot in audit mode first.</li>
+        <li><strong>Restrict print-processor / printer-driver install to admins (PointAndPrint GPO)</strong> — <em>M1018 / M1026</em>.</li>
+        <li><strong>Audit and constrain scheduled-task creation; alert on tasks launching from user/temp paths</strong> — <em>M1028 / M1047</em>.</li>
+        <li><strong>Egress control: baseline <code>svchost</code>; flag UDP/WebSocket beacons to fixed external endpoints</strong> — <em>M1037</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce nation-state footprint</div>
+      <ul>
+        <li><strong>Application allowlisting; default-deny user-path execution on servers</strong> — <em>M1038</em>. Cuts DLL side-load staging.</li>
+        <li><strong>Network segmentation + east-west monitoring to limit covert C2 reach</strong> — <em>M1030</em>.</li>
+        <li><strong>Fleet-wide driver-load + service-install + scheduled-task telemetry into the SIEM, retained for retro-hunt</strong> — <em>M1047</em>. The only reliable view of a host once the rootkit is live.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h4>1 · Enable Microsoft Vulnerable Driver Blocklist (Windows 11 / Server 2022+)</h4>
+<pre class="code">REM Verify / enable HVCI + Vulnerable Driver Blocklist (run as admin; reboot to apply)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+REM Confirm after reboot:
+powershell -c "(Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning"</pre>
+    <h4>2 · Disable Print Spooler on non-print servers (removes WIN_PLUS entry)</h4>
+<pre class="code">Stop-Service -Name Spooler -Force
+Set-Service -Name Spooler -StartupType Disabled
+# Hardening for hosts that MUST print: restrict driver/print-processor install to admins
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /v RestrictDriverInstallationToAdministrators /t REG_DWORD /d 1 /f</pre>
+    <h4>3 · Hunt: kernel drivers loaded from non-standard paths (local sweep)</h4>
+<pre class="code"># List loaded drivers whose path is outside the trusted driver store
+Get-CimInstance Win32_SystemDriver |
+  Where-Object { $_.PathName -and $_.PathName -notmatch 'System32\\(drivers|DriverStore)' } |
+  Select-Object Name, State, PathName, StartMode | Format-Table -Auto
+# Recently written .sys/.dat outside System32 (catch the drop before the rootkit hides it)
+Get-ChildItem C:\Users,C:\ProgramData,C:\Windows\Temp -Recurse -Include *.sys,*.dat -EA SilentlyContinue |
+  Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-14) } | Select FullName, LastWriteTime</pre>
+    <div class="callout callout-warn">Test playbook 1 (HVCI) on a pilot ring — incompatible legacy drivers can block boot. Playbook 3's local sweep is unreliable on a host where WIN_DRV's rootkit is already active (it hides files/drivers) — run it against suspected-but-not-yet-rootkitted hosts and prefer EDR install-time events.</div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the host; capture memory and a disk image before reboot (rootkit hides live artifacts; offline analysis sees the driver); preserve EDR install-time events</td><td>SOC L2</td><td>Containment timestamp; Q1/Q2 events; memory + disk image</td></tr>
+        <tr><td>Triage</td><td>Identify variant (WIN_DRV driver/sched-task side-load vs WIN_PLUS Spooler); locate dropped <code>.sys</code>/<code>.dat</code> and service; map any covert listener and C2; assess scope of FishMonger access</td><td>IR</td><td>Driver path + service; process tree; C2 list</td></tr>
+        <tr><td>Eradicate</td><td>Remove the kernel driver + service and scheduled task / print-processor; block C2; rotate credentials exposed on the host; hunt laterally for the same load chain</td><td>IR</td><td>Removal log; cred reset; lateral sweep</td></tr>
+        <tr><td>Recover</td><td>Reimage — kernel rootkit + nation-state hands-on access warrants a clean rebuild; restore from verified-clean backup; re-baseline</td><td>IR + IT</td><td>Rebuild ticket</td></tr>
+        <tr><td>Harden</td><td>Vulnerable-driver blocklist + HVCI; disable Spooler where unused; promote Q1/Q2; enable driver/service/task auditing fleet-wide</td><td>Detection Eng</td><td>IOA enabled; blocklist + auditing on</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1014 / T1543.003</td><td>Driver dropped to non-standard path</td><td>Q1</td><td>IOA-1</td><td><span class="badge b-low">Good</span> pre-rootkit</td></tr>
+        <tr><td>T1543.003 / T1068</td><td>Kernel-mode service install (BYOVD)</td><td>Q2</td><td>IOA-2</td><td><span class="badge b-med">Partial</span> driver-load telemetry uneven</td></tr>
+        <tr><td>T1053.005 / T1574.002</td><td>Sched task → DLL side-load (WIN_DRV)</td><td>Q3</td><td>—</td><td><span class="badge b-med">Partial</span> correlate to Q1</td></tr>
+        <tr><td>T1547.012 / T1055</td><td>Spooler print-processor → svchost (WIN_PLUS)</td><td>Q4</td><td>IOA-3</td><td><span class="badge b-med">Partial</span> + N1</td></tr>
+        <tr><td>T1205.001 / T1014</td><td>Port-knock hidden-port covert channel</td><td>Q5</td><td>—</td><td><span class="badge b-high">GAP</span> rootkit hides listener + diverts traffic</td></tr>
+        <tr><td>T1071 / T1095 / T1090</td><td>WebSocket / UDP / SOCKS C2</td><td>Q6, Q7</td><td>—</td><td><span class="badge b-high">GAP</span> diversion + conn-hiding; needs netflow</td></tr>
+        <tr><td>T1059 / T1057 / T1007</td><td>30+ command recon burst</td><td>Q8</td><td>—</td><td><span class="badge b-med">Partial</span> hands-on-keyboard only</td></tr>
+        <tr><td>T1014 (post-install)</td><td>Live host inspection once rootkit active</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> offline image / install-time events only</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Honest gaps:</strong> WIN_DRV's kernel rootkit hides files, processes, registry keys, and network connections, and the <strong>port-knock traffic diversion</strong> reroutes C2 from any open port to a hidden one — so the network hunts (Q5-Q7) and any post-install host inspection are <strong>structurally weakened</strong> and should be treated as corroboration, not primary detection. Driver-load / kernel-service telemetry (Q2) is uneven across sensor versions and config. The reliable detection window is <strong>install time</strong> (Q1 driver write, Q2 service install) and <strong>offline forensic imaging</strong>. <strong>Validation gates:</strong> see §11 — confirm driver/service/file telemetry is flowing, baseline benign driver/printer/task activity, lab-test Q1/Q2/Q4 with seeded benign events, then promote Q1/Q2 and enable the vulnerable-driver blocklist before relying on the network hunts.</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — SprySOCKS Windows (WIN_DRV / WIN_PLUS, FishMonger kernel-rootkit backdoor)
+SEVERITY:     High (China-nexus espionage; kernel rootkit + covert port-knock C2)
+SCOPE:        Windows servers/endpoints; driver + service + scheduled-task + Spooler telemetry; egress
+HYPOTHESIS:   FishMonger deploys SprySOCKS via Print Spooler (WIN_PLUS: print-processor -> svchost inject)
+              or sched-task DLL side-load (WIN_DRV) that drops + loads an encrypted kernel driver acting
+              as a rootkit, opening a port-knock covert channel for TCP/UDP/WebSocket C2 (30+ commands).
+QUERIES RUN:  Q1 driver .sys|.dat drop (IOA) | Q2 kernel-mode service install / BYOVD (IOA) |
+              Q3 sched-task DLL side-load | Q4 Spooler print-processor -> svchost (IOA) |
+              Q5 anomalous TCP listener | Q6 WebSocket/C2 beacon | Q7 UDP beacon | Q8 recon command burst
+              + Native N1-N5 (Spooler child, sched task, driver/service install, logons, covert listener)
+DO FIRST:     Q1/Q2 + vulnerable-driver blocklist -- catch WIN_DRV BEFORE the rootkit hides itself
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Rootkit hides files/procs/registry/network; port-knock diverts C2 -- network hunts (Q5-Q7)
+              are corroboration only; reliable window is install-time events + offline forensic imaging
+ACTIONS:      Promote Q1/Q2; HVCI + vulnerable-driver blocklist; disable Spooler where unused;
+              WDAC default-deny unsigned drivers; audit driver/service/task installs fleet-wide
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-06-17</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-17</span><span>Initial pack from ESET's June 16, 2026 disclosure of two Windows SprySOCKS variants (WIN_DRV / WIN_PLUS) attributed to FishMonger (China-nexus, linked to I-Soon). Documents the kernel-driver rootkit (hides files/processes/registry/network) and port-knock traffic diversion, WIN_PLUS Print Spooler print-processor load path, WIN_DRV sched-task DLL side-load + encrypted driver drop, and retained Linux C2 protocol over TCP/UDP/WebSocket with 30+ commands. 8 CQL hunts (driver drop, kernel-mode service install/BYOVD, sched-task side-load, Spooler injection, anomalous listener, WebSocket/UDP beacons, recon burst), 5 native hunts, 3 IOA candidates. Coverage map flags the rootkit/port-knock telemetry gaps honestly — install-time + offline imaging are the reliable windows.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://thehackernews.com/2026/06/china-linked-sprysocks-backdoor-expands.html" target="_blank">The Hacker News — China-linked SprySOCKS expands to Windows</a></td><td>Variant names, driver filenames/hash, Spooler + sched-task load, TCP/UDP/WebSocket C2, 30+ commands</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://www.infosecurity-magazine.com/news/sprysocks-backdoor-windows/" target="_blank">Infosecurity Magazine — SprySOCKS backdoor (Windows)</a></td><td>Kernel-driver rootkit, covert channel, targeting</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://www.darkreading.com/threat-intelligence/sprysocks-windows-variant-kernel-drivers" target="_blank">Dark Reading — SprySOCKS Windows variant kernel drivers</a></td><td>Kernel driver / rootkit behavior, traffic diversion</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://www.scworld.com/brief/sprysocks-backdoor-expands-to-windows-with-new-variants" target="_blank">SC World — SprySOCKS expands to Windows</a></td><td>Corroboration of variants + FishMonger / I-Soon attribution</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://attack.mitre.org/techniques/T1205/001/" target="_blank">MITRE ATT&amp;CK T1205.001 — Traffic Signaling: Port Knocking</a></td><td>Covert-channel technique mapping</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://attack.mitre.org/techniques/T1547/012/" target="_blank">MITRE ATT&amp;CK T1547.012 — Print Processors</a></td><td>WIN_PLUS Spooler load mapping</td><td>2026-06-17</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · SprySOCKS Windows (WIN_DRV / WIN_PLUS · FishMonger) · Generated 2026-06-17 · Defensive use only — no offensive code. WIN_DRV's kernel rootkit hides files/processes/registry/network and uses a port-knock covert channel — the reliable detection window is install-time (driver drop Q1, kernel-mode service install Q2) and offline forensic imaging; network hunts are corroboration. Validate field names in your tenant before promoting any query.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>

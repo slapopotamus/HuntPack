@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNC5221 / VerdantBamboo — Brickstorm + Plenet + AgentPSD in Microsoft 365 — HuntPack v0.1</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --text: #e6edf3; --text-muted: #8b949e; --accent: #d2a8ff; --accent-dim: rgba(210,168,255,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #1d1430 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">UNC5221 · VerdantBamboo<br>Brickstorm in M365</div>
+    <div class="version">v0.1 · 2026-06-17</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Audit-Log Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>UNC5221 / VerdantBamboo — Brickstorm + Plenet + AgentPSD in Microsoft 365</h1>
+  <div class="subtitle">A long-dwell Chinese espionage campaign (June 2026 reporting) that lived inside victim <strong>Microsoft 365 / Entra ID</strong> environments for roughly <strong>18 months</strong>. UNC5221 plants its signature <strong>Brickstorm</strong> backdoor on internet-facing edge/appliance devices that don't run EDR, proxies through them to defeat Conditional Access, then deploys two newer families — <strong>Plenet</strong> (.NET cross-platform backdoor) and <strong>AgentPSD</strong> (Python reverse-shell backup) — and also compromises the victim's <strong>MSP</strong> for onward access. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">UNC5221 (VerdantBamboo) · Brickstorm / Plenet / AgentPSD</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">NATION-STATE · ACTIVE ITW</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Espionage · M365/cloud persistence · edge backdoor · MSP supply chain</div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">Edge-device 0-day → stolen creds → M365; ~18-month dwell</div></div>
+    <div class="meta-item"><div class="mk">C2</div><div class="mv">Brickstorm WebSocket proxy; Plenet switchable C2; AgentPSD fallback domain</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-17</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (multi-source vendor reporting, June 2026)</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>UNC5221 (tracked as <strong>VerdantBamboo</strong>) is a Chinese espionage actor active since at least 2023, known for exploiting <strong>zero-days in internet-facing edge/appliance devices</strong> for initial access and then <strong>living in the cloud / Microsoft 365</strong> for long-term collection. In the June 2026 campaign the actor maintained access to victim <strong>M365 / Entra ID</strong> tenants for roughly <strong>18 months before detection</strong>, and additionally compromised the victim's <strong>managed service provider (MSP)</strong> to regain entry after partial remediation.</p>
+    <p>The hallmark tool is <strong>Brickstorm</strong> — a stealthy Go/Rust backdoor historically planted on devices that <strong>do not run EDR</strong> (SSL-VPNs, NAS, storage-sync appliances, retired email-archive servers). Brickstorm speaks <strong>WebSocket C2</strong> and uses proxying to blend into legitimate traffic and to <strong>defeat Conditional Access</strong> from a trusted-looking source. Two newer families round out the arsenal: <strong>Plenet</strong> (a.k.a. Grimbolt), a cross-platform <strong>.NET backdoor</strong> with remote command execution, file management, interactive shell, and <strong>switchable C2 infrastructure</strong>; and <strong>AgentPSD</strong>, a lightweight <strong>Python reverse shell</strong> kept as a backup persistence mechanism on a separate domain.</p>
+    <p>Because the most durable access lives in <strong>M365/Entra audit telemetry</strong> and on <strong>EDR-less edge devices</strong>, this hunt deliberately balances <strong>native audit-log hunts</strong> (§7 — Entra/UAL anomalous OAuth consent, new service principals, mailbox/Graph collection, impossible travel, long-lived token reuse, MSP/delegated-admin anomalies) with a smaller set of <strong>endpoint CQL hunts</strong> (§8) for the parts that touch managed Windows/Linux hosts (Plenet .NET execution, AgentPSD python reverse shell, edge-adjacent egress, beaconing, persistence).</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> The crown-jewel persistence is in the <strong>cloud control plane</strong>, not on the endpoint. Hunt <strong>N1–N3</strong> first (rogue OAuth app consent, new service principals / app registrations, mailbox &amp; Graph collection) and <strong>N5</strong> (MSP / delegated-admin anomalies) — these surface the 18-month dwell. Brickstorm on EDR-less edge devices is a documented <strong>detection GAP</strong>: you cannot rely on Falcon to see it — pivot from <strong>edge-adjacent host egress (Q3)</strong> and out-of-band appliance log review. Rotating credentials without evicting the cloud foothold and the MSP path will not remove this actor.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · News / vendor</td><td>BleepingComputer — Chinese APT new malware to keep access</td><td>Brickstorm (Go/Rust, WebSocket C2, proxy); Plenet/Grimbolt (.NET, switchable C2); AgentPSD (Python reverse shell, fallback domain); edge/NAS/MSP placement; CA evasion via proxy</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · News</td><td>IBTimes — hid inside M365 ~18 months with secret malware arsenal</td><td>~18-month dwell inside M365; arsenal of three families; espionage motive</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · News</td><td>Abijita — Brickstorm backdoor to access M365 environments</td><td>Brickstorm as the access-maintenance tool into M365; edge-device origin</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Historical</td><td>UNC5221 / Brickstorm prior reporting (edge 0-days, 2023+)</td><td>Pattern: edge-device 0-day → cloud/M365 espionage; Brickstorm on EDR-less appliances</td><td><span class="badge b-med">partial</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> cloud-first (the durable persistence is M365/Entra control-plane access, not on-host) — §7 native hunts carry the most weight. Atomic IOCs (hashes/domains) are sparse in public reporting and the actor rotates C2, so the pack anchors on <strong>behavior</strong>: anomalous OAuth/service-principal creation, long-lived token reuse, proxy-sourced auth, Plenet .NET / AgentPSD python execution, edge-adjacent egress. Brickstorm-on-edge is explicitly logged as a GAP (no EDR coverage) — handled via egress pivots and out-of-band appliance review rather than pretending endpoint telemetry exists.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> UNC5221 exploited an internet-facing edge/appliance device to plant Brickstorm, proxied through it to harvest and reuse credentials/tokens against M365, established cloud persistence via rogue OAuth apps / service principals, collected mail and data over Graph, dropped Plenet and AgentPSD on reachable hosts as backups, and pivoted to the MSP for resilient re-entry.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Initial access</td><td>0-day on internet-facing edge/appliance (SSL-VPN, storage-sync, NAS)</td><td>Appliance logs (out-of-band)</td><td>N6; <strong>Q3</strong> (edge-adjacent)</td></tr>
+        <tr><td>2 · Brickstorm implant</td><td>Go/Rust backdoor on EDR-less device; WebSocket C2 + proxy</td><td>Netflow; appliance logs</td><td><strong>Q3</strong>; N6 · <span class="badge b-high">GAP</span></td></tr>
+        <tr><td>3 · Cloud auth abuse</td><td>Proxied/stolen-cred logon to M365; CA evasion</td><td>Entra sign-in; UAL</td><td><strong>N1, N4</strong></td></tr>
+        <tr><td>4 · Cloud persistence</td><td>Rogue OAuth consent; new service principal / app registration</td><td>Entra audit; UAL</td><td><strong>N1, N2</strong></td></tr>
+        <tr><td>5 · Collection</td><td>Mailbox / eDiscovery / Graph API mass read &amp; export</td><td>UAL MailItemsAccessed; Graph</td><td><strong>N3</strong></td></tr>
+        <tr><td>6 · Endpoint backups</td><td>Plenet (.NET) + AgentPSD (python reverse shell) on reachable hosts</td><td><code>ProcessRollup2</code></td><td><strong>Q1, Q2, Q5</strong></td></tr>
+        <tr><td>7 · MSP pivot</td><td>BSD Brickstorm on MSP infra; delegated-admin abuse</td><td>UAL/partner; appliance</td><td><strong>N5</strong>; N6</td></tr>
+        <tr><td>8 · C2 / beacon</td><td>WebSocket beaconing; Plenet C2 switching; AgentPSD fallback domain</td><td><code>NetworkConnectIP4</code>; DNS</td><td><strong>Q4</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">Public atomic IOCs (hashes / C2 domains) are sparse and the actor rotates infrastructure — use the IOC-Management CSV in §10 with <code>REPLACE_WITH_…</code> placeholders and populate from the vendor GitHub IOC list during triage. The durable surface is the cloud-control-plane and execution behaviors below.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>Behavior (cloud)</td><td class="mono">Rogue OAuth app consent / new service principal granting Graph Mail.Read, full_access_as_app</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>Cloud persistence — flagship</td></tr>
+        <tr><td>Behavior (cloud)</td><td class="mono">Long-lived token reuse / proxied sign-in evading Conditional Access</td><td><span class="badge b-high">high</span></td><td>hunt</td><td>Brickstorm proxy auth</td></tr>
+        <tr><td>Behavior (cloud)</td><td class="mono">Mass MailItemsAccessed / New-ComplianceSearch / Graph bulk export</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Collection</td></tr>
+        <tr><td>Malware</td><td class="mono">Plenet / Grimbolt — cross-platform .NET backdoor (switchable C2)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Endpoint backup</td></tr>
+        <tr><td>Malware</td><td class="mono">AgentPSD — Python reverse shell (fallback persistence, separate domain)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Endpoint backup</td></tr>
+        <tr><td>Malware</td><td class="mono">Brickstorm — Go/Rust backdoor, WebSocket C2, proxy (edge/NAS/BSD/MSP)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Edge — EDR-less GAP</td></tr>
+        <tr><td>Network</td><td class="mono">WebSocket beaconing from edge-adjacent hosts; AgentPSD fallback C2 domain</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>C2</td></tr>
+        <tr><td>Indicator</td><td class="mono">REPLACE_WITH_SHA256 / REPLACE_WITH_C2 (populate from vendor GitHub IOCs)</td><td><span class="badge b-low">low</span></td><td>enrich</td><td>Perishable / rotating</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>M365 / Entra ID control plane</td><td>Unified Audit Log + Entra sign-in/audit + Graph activity</td><td><span class="badge b-high">Critical</span></td><td>Medium — UAL/Graph audit must be ON &amp; retained</td></tr>
+        <tr><td>Exchange Online mailboxes</td><td>MailItemsAccessed, eDiscovery / ComplianceSearch audit</td><td><span class="badge b-high">Critical</span></td><td>Medium — mailbox auditing must be enabled</td></tr>
+        <tr><td>Internet-facing edge / appliances</td><td>Appliance/syslog + netflow (no EDR)</td><td><span class="badge b-high">High</span></td><td><span class="badge b-high">GAP</span> — Brickstorm runs where Falcon cannot</td></tr>
+        <tr><td>Managed Windows/Linux hosts</td><td>Process lineage + module + network (Falcon)</td><td><span class="badge b-med">High</span></td><td>Low — standard EDR telemetry</td></tr>
+        <tr><td>MSP / delegated admin (GDAP)</td><td>Partner/UAL delegated-admin activity</td><td><span class="badge b-high">High</span></td><td>High — cross-tenant visibility often thin</td></tr>
+        <tr><td>Egress (C2 / WebSocket)</td><td>Proxy / DNS / netflow</td><td><span class="badge b-med">Medium</span></td><td>Medium — proxied / TLS-blended</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1190 — Exploit public-facing application</td><td>0-day on internet-facing edge/appliance</td><td>N6; Q3</td></tr>
+        <tr><td>Persistence (cloud)</td><td>T1098.001 / T1136.003 — Additional cloud credentials / create cloud account</td><td>Rogue OAuth app / new service principal</td><td>N1, N2</td></tr>
+        <tr><td>Persistence (endpoint)</td><td>T1543 / T1053 — Service / scheduled task</td><td>Plenet / AgentPSD persistence on hosts</td><td>Q5</td></tr>
+        <tr><td>Defense Evasion</td><td>T1550.001 / T1090 — App access token / proxy</td><td>Token reuse + Brickstorm proxy evading CA</td><td>N4, Q3</td></tr>
+        <tr><td>Credential Access</td><td>T1528 — Steal application access token</td><td>Long-lived token harvest/reuse</td><td>N4</td></tr>
+        <tr><td>Collection</td><td>T1114 / T1530 — Email &amp; cloud data collection</td><td>MailItemsAccessed / Graph bulk export</td><td>N3</td></tr>
+        <tr><td>Execution</td><td>T1059.006 / T1106 — Python / native API</td><td>AgentPSD python reverse shell; Plenet .NET</td><td>Q1, Q2</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1071.001 / T1573 — Web (WebSocket) / encrypted C2</td><td>Brickstorm WebSocket; Plenet switchable C2</td><td>Q4</td></tr>
+        <tr><td>Initial Access (supply chain)</td><td>T1199 — Trusted relationship (MSP)</td><td>MSP / delegated-admin abuse for re-entry</td><td>N5</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (Entra ID / M365 UAL — KQL starters)</h2></div>
+  <div class="section-body">
+    <div class="callout callout-info">This is the highest-value section for this threat — the 18-month dwell lives in the <strong>cloud control plane</strong>. Run these as KQL in Microsoft Sentinel / Defender Advanced Hunting (or as UAL <code>Search-UnifiedAuditLog</code> queries). Confirm Unified Audit Log, mailbox auditing, and Graph activity logs are enabled and retained &ge; 1 year before trusting an absence of hits.</div>
+
+    <h3>N1 · Anomalous OAuth app consent</h3>
+    <p>Newly granted consent to apps requesting high-privilege Graph scopes (<code>Mail.Read</code>, <code>Mail.ReadWrite</code>, <code>full_access_as_app</code>, <code>Directory.Read.All</code>) — the classic cloud-persistence move.</p>
+<pre class="code">AuditLogs
+| where OperationName in ("Consent to application","Add app role assignment grant to user","Add delegated permission grant")
+| extend props = TargetResources
+| where tostring(props) has_any ("Mail.Read","Mail.ReadWrite","full_access_as_app","Directory.Read.All","Files.Read.All")
+| project TimeGenerated, OperationName, InitiatedBy, TargetResources, Result</pre>
+
+    <h3>N2 · New service principal / app registration</h3>
+    <p>Service principals or app registrations created then immediately granted credentials (secret/cert) — UNC5221 establishes app-only access that survives password resets.</p>
+<pre class="code">AuditLogs
+| where OperationName in ("Add service principal","Add application","Add application credentials",
+    "Update application - Certificates and secrets management","Add service principal credentials")
+| project TimeGenerated, OperationName, InitiatedBy, TargetResources, AdditionalDetails
+| order by TimeGenerated asc</pre>
+
+    <h3>N3 · Mailbox / eDiscovery / Graph bulk collection</h3>
+    <p>Mass mailbox reads, new compliance searches, or app-driven bulk Graph mail export — the espionage collection step.</p>
+<pre class="code">OfficeActivity
+| where Operation in ("MailItemsAccessed","New-ComplianceSearch","New-ComplianceSearchAction",
+    "SearchCreated","Add-MailboxPermission")
+| where ClientAppId != "" or AppId != ""
+| summarize Mailboxes = dcount(MailboxOwnerUPN), Events = count() by ClientAppId, Operation, bin(TimeGenerated, 1h)
+| where Mailboxes > 25 or Events > 500</pre>
+
+    <h3>N4 · Long-lived token reuse / impossible travel / proxied sign-in</h3>
+    <p>Token reuse across distant geographies, or sign-ins from hosting/proxy ASNs that nonetheless satisfy Conditional Access (Brickstorm proxy blending). Flag refresh-token age and non-interactive sign-ins from new ASNs.</p>
+<pre class="code">SigninLogs
+| where ResultType == 0
+| extend ASN = tostring(parse_json(tostring(AutonomousSystemNumber)))
+| summarize Locations = make_set(Location), ASNs = make_set(ASN), Apps = make_set(AppDisplayName)
+    by UserPrincipalName, bin(TimeGenerated, 1h)
+| where array_length(Locations) > 1
+| where ASNs has_any ("hosting","datacenter")  // tune to known proxy/VPS ASNs</pre>
+    <div class="callout callout-warn">Pair N4 with NonInteractiveUserSignInLogs to catch refresh-token reuse that never produces an interactive prompt — the actor's preferred long-dwell path.</div>
+
+    <h3>N5 · MSP / delegated-admin (GDAP) access anomalies</h3>
+    <p>Partner / delegated-admin actions from unusual times, ASNs, or against privileged objects — the MSP pivot used for resilient re-entry.</p>
+<pre class="code">AuditLogs
+| where InitiatedBy has "partner" or AdditionalDetails has "DelegatedAdmin" or LoggedByService == "Partner"
+| where OperationName has_any ("Add member to role","Reset password","Update application","Add service principal")
+| project TimeGenerated, OperationName, InitiatedBy, TargetResources, AdditionalDetails</pre>
+
+    <h3>N6 · Out-of-band edge / appliance review (no EDR)</h3>
+    <p>Not a SIEM query — a runbook item. Pull SSL-VPN / NAS / storage-sync / email-archive appliance logs and netflow out of band; hunt for unexpected outbound WebSocket sessions, new listening services, and persistence on devices Falcon cannot see. This is the only reliable path to Brickstorm.</p>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">These cover the endpoint-observable parts only (Plenet/.NET, AgentPSD/python, edge-adjacent egress, beaconing, persistence). Brickstorm on EDR-less edge/appliances will NOT appear here — see §7 N6 and the coverage GAP in §15. Field names validated against the Falcon event reference; process hunts match <code>SyntheticProcessRollup2</code>.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · AgentPSD — python reverse shell spawning cmd/powershell</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>python.exe</code>/<code>python3</code> spawning a shell (cmd/powershell/bash) — the AgentPSD reverse-shell pattern. <strong>FP:</strong> dev tooling, build agents, and DevOps automation legitimately spawn shells from python — exclude known build/CI hosts and developer endpoints.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: AgentPSD python reverse shell -> shell child</span>
+<span class="cm">// MITRE: T1059.006, T1059.001 | CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: Falcon process telemetry (managed hosts)</span>
+<span class="cm">// FALSE POSITIVES: dev/CI hosts, IT automation; exclude known build agents</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^python(3|\d\.\d+)?(\.exe)?$/i
+| FileName=/^(cmd|powershell|pwsh|bash|sh)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Plenet — suspicious .NET backdoor execution</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a .NET assembly or <code>dotnet.exe</code> running from a user/temp/public path (Plenet is cross-platform .NET), or a non-standard binary loading the CLR from those paths. <strong>FP:</strong> some legitimate .NET apps run from AppData (installers/updaters) — flag user/temp/public + unsigned context and correlate to Q4 egress.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Plenet/.NET backdoor from user/temp/public path</span>
+<span class="cm">// MITRE: T1059, T1106 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: Falcon process telemetry</span>
+<span class="cm">// FALSE POSITIVES: AppData updaters/installers; flag unsigned + correlate Q4</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| (FileName=/^dotnet(\.exe)?$/i or CommandLine=/(System\.Net\.WebSockets|ClientWebSocket|Assembly\.Load|\.dll["' ]+-)/i)
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Suspicious outbound from edge-adjacent / appliance-proximate hosts</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> managed hosts in DMZ / edge subnets making unexpected outbound connections (proxy pivot from a Brickstorm-implanted appliance toward the cloud). <strong>FP:</strong> medium — you must scope to your real edge/DMZ subnets; baseline normal egress first. This is a proxy/pivot pivot, not direct Brickstorm visibility.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: edge-adjacent host unexpected outbound (Brickstorm proxy pivot)</span>
+<span class="cm">// MITRE: T1090, T1071.001 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// REQUIRES: Falcon network telemetry; edit DMZ/edge subnet regex below</span>
+<span class="cm">// FALSE POSITIVES: legit edge mgmt traffic; baseline before alerting</span>
+#event_simpleName=NetworkConnectIP4
+| LocalAddressIP4=/^10\.(0|1)\./
+| RemotePort=/^(443|80|8443|53)$/
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| table([@timestamp, ComputerName, ImageFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · C2 beaconing / Plenet C2 switching — periodic egress</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a non-browser user/temp-path binary making repeated outbound connections to a small set of remote IPs (WebSocket beacon / Plenet C2 switching shows as a few rotating destinations). <strong>FP:</strong> medium — updaters and telemetry agents beacon too; exclude signed system/browser paths and known SaaS endpoints.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: beaconing from user-path binary (WebSocket C2 / Plenet switching)</span>
+<span class="cm">// MITRE: T1071.001, T1573 | CONF: medium  FP: medium  COST: med</span>
+<span class="cm">// REQUIRES: Falcon network telemetry</span>
+<span class="cm">// FALSE POSITIVES: updaters/telemetry agents; exclude signed system paths</span>
+#event_simpleName=NetworkConnectIP4
+| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| ImageFileName!=/\\(chrome|msedge|firefox|brave|teams|onedrive)\.exe$/i
+| groupBy([ComputerName, ImageFileName, RemoteAddressIP4], function=count(as=hits))
+| hits &gt;= 12
+| table([ComputerName, ImageFileName, RemoteAddressIP4, hits])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Endpoint persistence — service / scheduled task from user path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF MED-HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a newly registered service or scheduled task whose image lives in a user/temp/public path — Plenet/AgentPSD backup persistence. <strong>FP:</strong> low — few legitimate services run from those paths.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: service/scheduled task persistence from user path</span>
+<span class="cm">// MITRE: T1543, T1053 | CONF: med-high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: Falcon service/scheduled-task telemetry</span>
+#event_simpleName=/ServiceInstalled|ScheduledTaskRegistered/
+| (ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+   or CommandLine=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+   or CommandLine=/(python|dotnet)/i)
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine])</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · python.exe outbound network — AgentPSD egress</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>python.exe</code> making outbound connections (AgentPSD reverse shell calling home to its fallback domain). <strong>FP:</strong> medium — python services/agents make outbound calls; exclude known data-science/automation hosts and correlate to Q1.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: python outbound (AgentPSD reverse-shell call-home)</span>
+<span class="cm">// MITRE: T1059.006, T1071.001 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: Falcon network telemetry; correlate to Q1 on same host</span>
+<span class="cm">// FALSE POSITIVES: data-science / automation hosts; exclude &amp; correlate Q1</span>
+#event_simpleName=NetworkConnectIP4
+| ImageFileName=/\\python(3|\d\.\d+)?\.exe$/i
+| RemotePort!=/^(53)$/
+| table([@timestamp, ComputerName, ImageFileName, RemoteAddressIP4, RemotePort])</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>UNC5221 — python reverse shell (AgentPSD)</td><td>Parent <code>python(3).exe</code>; Child <code>cmd/powershell/bash/sh</code></td><td>CI/build agents; sanctioned IT automation (allow-list by host/grouping tag)</td><td>Endpoint Security → Custom IOA → Process Creation, Detect</td></tr>
+        <tr><td>UNC5221 — service/task from user path</td><td>ServiceInstalled / ScheduledTaskRegistered with image in <code>Temp/AppData/ProgramData/Users\Public</code></td><td>Vetted user-path agents (rare)</td><td>Custom IOA → Process Creation, Detect+Block</td></tr>
+        <tr><td>UNC5221 — Plenet .NET from user path</td><td><code>dotnet.exe</code> or CLR-loading binary from user/temp/public path</td><td>AppData updaters/installers (allow-list)</td><td>Custom IOA → Process Creation, Detect</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Endpoint IOAs only catch the backup families (Plenet/AgentPSD). The primary persistence is in M365 — there is no Falcon IOA for rogue OAuth/service-principal abuse; that is governed by Entra/Conditional-Access policy (see §12) and hunted in §7 (N1–N5).</div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">Atomic IOCs are sparse/rotating — use placeholders and populate from the vendor GitHub IOC list during triage. The durable surface is the cloud-control-plane and execution behaviors.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,REPLACE_WITH_PLENET_SHA256,detect,critical,2026-12-17,Plenet .NET backdoor,campaign:UNC5221
+sha256,REPLACE_WITH_AGENTPSD_SHA256,detect,high,2026-12-17,AgentPSD python reverse shell,campaign:UNC5221
+sha256,REPLACE_WITH_BRICKSTORM_SHA256,detect,critical,2026-12-17,Brickstorm backdoor,campaign:UNC5221
+domain,REPLACE_WITH_BRICKSTORM_C2,detect,high,2026-09-17,Brickstorm WebSocket C2,campaign:UNC5221
+domain,REPLACE_WITH_AGENTPSD_FALLBACK_C2,detect,high,2026-09-17,AgentPSD fallback C2,campaign:UNC5221
+ipv4,REPLACE_WITH_C2_IP,hunt,medium,2026-09-17,Rotating C2 host,campaign:UNC5221</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Entra / M365 Hunt Checklist</span><span class="igc">cloud control plane</span></div>
+        <button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-cloud',this)" style="margin:0 0 6px;">Copy checklist</button>
+<pre class="code" id="grab-cloud"># Run in Sentinel / Defender Advanced Hunting / Search-UnifiedAuditLog
+N1 OAuth consent to apps requesting Mail.Read / full_access_as_app / Directory.Read.All
+N2 New service principal or app registration + immediate secret/cert add
+N3 Mass MailItemsAccessed / New-ComplianceSearch / app-driven Graph bulk export
+N4 Token reuse across geographies; non-interactive sign-in from hosting/proxy ASN evading CA
+N5 Partner / delegated-admin (GDAP) actions on privileged objects from unusual ASN/time
+N6 (out-of-band) edge/NAS/SSL-VPN/email-archive appliance logs: outbound WebSocket, new services
+# Verify UAL + mailbox auditing + Graph activity logs enabled and retained &gt;= 1 year</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">Rogue OAuth app / new service principal granted high-privilege Graph scopes
+Long-lived token / refresh-token reuse; proxied sign-in that satisfies Conditional Access
+python.exe spawning cmd/powershell/bash (AgentPSD reverse shell)
+dotnet/.NET assembly executing from Temp/AppData/ProgramData/Users\Public (Plenet)
+Service or scheduled task registered with image in a user/temp/public path
+Non-browser user-path binary beaconing to a small rotating set of remote IPs (WebSocket C2)
+Edge/DMZ managed host making unexpected outbound (Brickstorm proxy pivot)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling / Arsenal</span><span class="igc">UNC5221 / VerdantBamboo</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">UNC5221 / VerdantBamboo  # Chinese espionage, active since 2023, edge-0day -> cloud/M365
+Brickstorm   # Go/Rust backdoor, WebSocket C2 + proxy; EDR-less edge/NAS/BSD/MSP placement
+Plenet / Grimbolt  # cross-platform .NET backdoor: shell, RCE, file mgmt, switchable C2
+AgentPSD     # lightweight Python reverse shell; backup persistence, separate fallback domain
+Access path: edge-device 0-day -> stolen creds/tokens -> M365 persistence -> MSP pivot
+Dwell: ~18 months inside M365 before detection</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / Conditional Access Audit</span><span class="igc">defense-in-depth</span></div>
+        <button class="btn-copy" data-label="Copy controls" onclick="copyBlock('grab-ctrl',this)" style="margin:0 0 6px;">Copy controls</button>
+<pre class="code" id="grab-ctrl">Restrict user OAuth consent; require admin consent for high-privilege Graph scopes
+Audit ALL existing service principals / app registrations for unexpected credentials
+Phishing-resistant MFA; revoke + reissue refresh tokens; cut token lifetimes
+Conditional Access: block legacy auth; require compliant device / managed-network for admin
+GDAP least-privilege for MSP; review + time-box delegated-admin; alert on partner actions
+Patch + out-of-band review of internet-facing edge/appliances (no EDR) -> Brickstorm GAP
+WDAC/app control: default-deny execution from Temp/AppData/Users\Public</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Check</th><th>Pass Criterion</th></tr></thead>
+      <tbody>
+        <tr><td>Telemetry ready</td><td>UAL + mailbox auditing + Graph activity + Entra sign-in logs ON and retained</td><td>&ge; 1 year retention; logs queryable in SIEM</td></tr>
+        <tr><td>Telemetry ready (endpoint)</td><td>Falcon process + network + service/task telemetry on managed hosts</td><td>Coverage gaps mapped; edge devices flagged as GAP</td></tr>
+        <tr><td>Benign baseline</td><td>Enumerate sanctioned OAuth apps, service principals, CI/build hosts, AppData updaters</td><td>Allow-lists built before promoting N1/N2/Q1/Q2</td></tr>
+        <tr><td>Positive test</td><td>Lab: benign python→cmd (Q1); benign user-path service (Q5); test consent grant (N1)</td><td>Each query fires on the benign analog</td></tr>
+        <tr><td>Promotion</td><td>Promote Q5 (low FP) + service-principal/consent alerting; keep Q1–Q4/Q6 as tuned hunts</td><td>Alerts wired with documented exclusions</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>The durable foothold is in the cloud. Prioritize evicting cloud persistence and closing the OAuth/token surface over endpoint controls.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Evict cloud persistence</div>
+      <ul>
+        <li><strong>Audit &amp; remove rogue OAuth apps and service principals; revoke their credentials</strong> — <em>M1018 / M1047</em>. The flagship eviction step.</li>
+        <li><strong>Revoke and reissue all refresh tokens; shorten token lifetimes</strong> — <em>M1026</em>. Kills long-lived token reuse (N4).</li>
+        <li><strong>Restrict user consent; require admin approval for high-privilege Graph scopes</strong> — <em>M1018</em>.</li>
+        <li><strong>Phishing-resistant MFA for all admins; block legacy auth via Conditional Access</strong> — <em>M1032 / M1036</em>.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Close the access surface (pilot first)</div>
+      <ul>
+        <li><strong>GDAP least-privilege + time-boxed delegated admin for the MSP; alert on partner actions</strong> — <em>M1018</em>. Closes the MSP pivot (N5).</li>
+        <li><strong>Conditional Access: require compliant device / managed network for privileged roles</strong> — <em>M1035</em>. Blunts proxy-blended sign-in.</li>
+        <li><strong>WDAC/app control: default-deny execution from <code>Temp/AppData/Users\Public</code></strong> — <em>M1038</em>. Blocks Plenet/AgentPSD staging.</li>
+        <li><strong>Out-of-band patch &amp; review of internet-facing edge/appliances</strong> — <em>M1051</em>. The only path at the Brickstorm GAP.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce the long-dwell surface</div>
+      <ul>
+        <li><strong>Continuous app-registration / service-principal governance &amp; anomaly alerting</strong> — <em>M1047</em>.</li>
+        <li><strong>EDR/visibility for appliance-class devices where supported; segment edge from cloud-admin paths</strong> — <em>M1030</em>.</li>
+        <li><strong>Mailbox + Graph data-access monitoring with bulk-export thresholds</strong> — <em>M1047</em>. Surfaces collection earlier than 18 months.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h4>1 · Audit &amp; revoke suspicious service principals (Microsoft Graph PowerShell)</h4>
+<pre class="code">Connect-MgGraph -Scopes "Application.Read.All","AuditLog.Read.All"
+# List service principals with app-only credentials added recently
+Get-MgServicePrincipal -All |
+  Where-Object { $_.KeyCredentials.Count -gt 0 -or $_.PasswordCredentials.Count -gt 0 } |
+  Select-Object DisplayName, AppId, Id |
+  Format-Table
+# After confirming a rogue SP, remove its credentials / disable it:
+# Update-MgServicePrincipal -ServicePrincipalId &lt;id&gt; -AccountEnabled:$false</pre>
+    <h4>2 · Revoke refresh tokens for a compromised / suspect user</h4>
+<pre class="code">Connect-MgGraph -Scopes "User.ReadWrite.All"
+Revoke-MgUserSignInSession -UserId user@contoso.example
+# Forces re-auth and invalidates outstanding refresh tokens (kills token reuse, N4)</pre>
+    <h4>3 · Restrict user OAuth consent (admin consent workflow)</h4>
+<pre class="code"># Entra admin center -&gt; Enterprise applications -&gt; Consent and permissions
+#   User consent settings: "Do not allow user consent"
+#   Enable the admin consent request workflow for vetted approvals.
+# Equivalent policy hardening blocks the rogue-consent persistence path (N1).</pre>
+    <h4>4 · Hunt + isolate an endpoint backdoor host (Falcon)</h4>
+<pre class="code"># Confirm with Q1/Q2/Q5/Q6, then network-contain via Falcon Host Management.
+# Preserve memory + collect the user-path binary before remediation.
+# Block C2 IPs/domains via IOC Management (see CSV in section 10).</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain confirmed endpoint hosts; out-of-band isolate suspect edge/appliances; preserve UAL/Entra logs and memory before any reset</td><td>SOC L2 / IR</td><td>Containment timestamps; N1–N5 events; memory images</td></tr>
+        <tr><td>Triage</td><td>Map the cloud foothold (rogue apps/SPs, token reuse), collection scope (mail/Graph export), endpoint backups (Plenet/AgentPSD), and MSP path; scope all tenants under shared GDAP</td><td>IR</td><td>SP/app inventory; sign-in timeline; export volumes</td></tr>
+        <tr><td>Eradicate</td><td>Remove rogue OAuth apps/SPs + their creds; revoke/reissue all refresh tokens; rotate admin + service creds; remove endpoint malware &amp; persistence; close MSP path</td><td>IR</td><td>Removal log; token-revocation record; cred rotation</td></tr>
+        <tr><td>Recover</td><td>Reimage backdoored hosts; rebuild/patch compromised edge appliances; verify clean before reconnecting; re-baseline CA policy</td><td>IR + IT</td><td>Rebuild tickets; appliance firmware versions</td></tr>
+        <tr><td>Harden</td><td>Restrict consent; admin-consent workflow; phishing-resistant MFA; GDAP least-privilege; WDAC user-path deny; promote endpoint IOAs; enable bulk-export alerting</td><td>Detection Eng</td><td>Policy diffs; IOAs enabled; alerts wired</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-danger">⚠ Do not reset credentials before inventorying cloud persistence and the MSP path — UNC5221 re-enters via app-only tokens and delegated admin that survive password resets. Evict the control-plane foothold and the MSP pivot in the same window.</p>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>Native / IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1098.001 / T1136.003</td><td>Rogue OAuth / service principal</td><td>—</td><td>N1, N2</td><td><span class="badge b-low">Good</span> (cloud audit)</td></tr>
+        <tr><td>T1550.001 / T1528</td><td>Token reuse / proxied auth (CA evasion)</td><td>—</td><td>N4</td><td><span class="badge b-med">Partial</span> needs ASN baseline</td></tr>
+        <tr><td>T1114 / T1530</td><td>Mailbox / Graph bulk collection</td><td>—</td><td>N3</td><td><span class="badge b-med">Partial</span> needs mailbox audit on</td></tr>
+        <tr><td>T1059.006</td><td>AgentPSD python reverse shell</td><td>Q1, Q6</td><td>IOA-1</td><td><span class="badge b-low">Good</span> on managed hosts</td></tr>
+        <tr><td>T1059 / T1106</td><td>Plenet .NET execution</td><td>Q2</td><td>IOA-3</td><td><span class="badge b-med">Partial</span> correlate Q4</td></tr>
+        <tr><td>T1543 / T1053</td><td>Endpoint persistence</td><td>Q5</td><td>IOA-2</td><td><span class="badge b-low">Good</span> on managed hosts</td></tr>
+        <tr><td>T1071.001 / T1573</td><td>WebSocket C2 / Plenet switching</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> beacon heuristic</td></tr>
+        <tr><td>T1199</td><td>MSP / delegated-admin abuse</td><td>—</td><td>N5</td><td><span class="badge b-med">Partial</span> cross-tenant gap</td></tr>
+        <tr><td>T1190 / T1071.001</td><td>Brickstorm on EDR-less edge device</td><td>Q3 (pivot)</td><td>N6 (out-of-band)</td><td><span class="badge b-high">GAP</span> no EDR — appliance review only</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> confirm cloud audit + mailbox + Graph + Entra logs are ON and retained &ge; 1 year (otherwise N1–N5 silently under-report); baseline sanctioned OAuth apps, service principals, CI/build hosts and AppData updaters; lab-test benign analogs for Q1/Q5 and a test consent grant for N1; promote Q5 + consent/service-principal alerting and keep the rest as tuned hunts. The Brickstorm edge GAP cannot be closed with Falcon — it requires out-of-band appliance review (N6).</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — UNC5221 / VerdantBamboo (Brickstorm + Plenet + AgentPSD in M365)
+SEVERITY:     Critical (nation-state espionage; ~18-month M365 dwell; MSP supply-chain pivot)
+SCOPE:        M365 / Entra control plane; Exchange Online; edge/appliances (no EDR); managed hosts; MSP/GDAP
+HYPOTHESIS:   Edge 0-day -&gt; Brickstorm on EDR-less appliance -&gt; proxied/stolen-cred M365 access ->
+              rogue OAuth/service-principal persistence -&gt; mail/Graph collection ->
+              Plenet (.NET) + AgentPSD (python) endpoint backups -&gt; MSP pivot for re-entry.
+QUERIES RUN:  Native N1 OAuth consent | N2 new service principal | N3 mailbox/Graph collection |
+              N4 token reuse / proxied sign-in | N5 MSP/GDAP anomalies | N6 out-of-band appliance review
+              CQL Q1 AgentPSD python->shell | Q2 Plenet .NET | Q3 edge-adjacent egress |
+              Q4 beaconing/C2 switching | Q5 user-path persistence | Q6 python outbound
+DO FIRST:     N1-N3 + N5 — the 18-month dwell lives in the cloud control plane, not the endpoint
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Brickstorm on EDR-less edge devices (no Falcon visibility); cross-tenant MSP visibility;
+              atomic IOCs sparse/rotating (populate from vendor GitHub IOC list)
+ACTIONS:      Remove rogue apps/SPs; revoke+reissue refresh tokens; restrict consent; phishing-resistant MFA;
+              GDAP least-privilege; WDAC user-path deny; promote Q5 + consent/SP alerting; patch edge appliances
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-06-17</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-17</span><span>Initial pack — UNC5221 / VerdantBamboo (Brickstorm + Plenet + AgentPSD in Microsoft 365). Built on the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage map, .ticket). Cloud-first emphasis: 6 native Entra/UAL KQL hunts (N1–N6) for the ~18-month M365 dwell, plus 6 endpoint CQL hunts (Q1–Q6) for Plenet/.NET, AgentPSD/python, edge-adjacent egress, WebSocket beaconing, and user-path persistence. 3 custom IOA candidates. Brickstorm-on-EDR-less-edge documented as a coverage GAP (out-of-band appliance review only). Sourced from June 2026 vendor reporting (BleepingComputer, IBTimes, Abijita).</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.bleepingcomputer.com/news/security/chinese-apt-deploys-new-malware-to-keep-access-to-hacked-networks/" target="_blank">BleepingComputer — Chinese APT deploys new malware to keep access</a></td><td>Brickstorm (Go/Rust, WebSocket, proxy), Plenet/Grimbolt (.NET), AgentPSD (python), edge/NAS/MSP placement, CA evasion</td><td>2026-06-17</td></tr>
+        <tr><td>1</td><td><a href="https://www.ibtimes.sg/chinese-threat-group-hid-inside-microsoft-365-networks-18-months-using-secret-malware-arsenal-87516" target="_blank">IBTimes — Hid inside Microsoft 365 networks 18 months</a></td><td>~18-month M365 dwell; secret malware arsenal; espionage motive</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://www.abijita.com/chinese-espionage-hackers-used-brickstorm-backdoor-to-access-microsoft-365-environments/" target="_blank">Abijita — Brickstorm backdoor to access Microsoft 365</a></td><td>Brickstorm as the M365 access-maintenance tool; edge-device origin</td><td>2026-06-17</td></tr>
+        <tr><td>2</td><td><a href="https://attack.mitre.org/techniques/T1098/001/" target="_blank">MITRE ATT&amp;CK T1098.001 — Additional Cloud Credentials</a></td><td>Cloud-persistence technique mapping (rogue OAuth / service principal)</td><td>2026-06-17</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · UNC5221 / VerdantBamboo (Brickstorm + Plenet + AgentPSD in M365) · Generated 2026-06-17 · Defensive use only — no offensive code. The durable persistence is in the M365/Entra control plane and on EDR-less edge devices — hunt the cloud audit logs (N1–N5) first and review edge appliances out of band (N6). Validate field names before promoting any query.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
