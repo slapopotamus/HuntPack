@@ -204,7 +204,7 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
       <table>
         <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr></thead>
         <tbody>
-          <tr><td>1 · Primary</td><td>SOCRadar Threat Research — FortiBleed report</td><td>Campaign discovery, 30,791 devices, ports, top usernames, methodology, staging server 85.11.187.8:9999, corps.txt</td><td>Yes</td></tr>
+          <tr><td>1 · Primary</td><td>SOCRadar Threat Research — FortiBleed report</td><td>Campaign discovery, 30,791 devices, ports, top usernames, methodology; tooling &amp; victim DB on the actor's exposed server (no atomic IOCs published)</td><td>Yes</td></tr>
           <tr><td>2 · Corroborating</td><td>Undercode Testing analysis</td><td>Attack-chain (scan→stuff→sniff→harvest), FortiGate CLI hardening, detection commands, links CVE-2026-24858 / CVE-2026-35616</td><td>Yes</td></tr>
           <tr><td>2 · Corroborating</td><td>The IT Nerd / Secure.com coverage</td><td>194 countries, US is target #2, banks/telecom/gov victim profile</td><td>Partial</td></tr>
           <tr><td>2 · Context</td><td>BleepingComputer / The Hacker News (FortiClient EMS CVE-2026-35616)</td><td>Pre-auth API access bypass (CVSS 9.1) in FortiClient EMS 7.4.5/7.4.6 — endpoint-push vector</td><td>Partial</td></tr>
@@ -216,7 +216,7 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
         <thead><tr><th>Decision</th><th>Rationale</th><th>Pack Change</th></tr></thead>
         <tbody>
           <tr><td>Split detection into FortiGate-log vs Falcon-EDR halves</td><td>Falcon does not run on the appliance; the actor's core activity is on-device</td><td>Queries flagged by required telemetry source</td></tr>
-          <tr><td>Treat the single concrete network IOC (85.11.187.8) as high-value but perishable</td><td>Staging server is now burned/public; actor will rotate infra</td><td>Short expiry on IP IOC; behavior-based hunts prioritized</td></tr>
+          <tr><td>SOCRadar published <strong>no atomic IOCs</strong> (responsible disclosure)</td><td>Affected orgs confirm exposure via SOCRadar's checker, not an IOC feed; the campaign is credential-driven</td><td>Pack is fully behavior-keyed; atomic IOC slots are <code>REPLACE_WITH_…</code> placeholders to populate per incident</td></tr>
           <tr><td>Include CVE patch posture in hardening, not as the lead</td><td>Campaign is primarily credential-stuffing weak/reused creds, not solely CVE exploitation</td><td>Credential rotation + MFA tiered as Immediate</td></tr>
         </tbody>
       </table>
@@ -241,14 +241,14 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
           <tr><td>7</td><td>Pivot inward with harvested VPN/service creds</td><td>Falcon UserLogon / identity</td><td>VPN-sourced logons to new internal hosts</td></tr>
           <tr><td>8</td><td>Dump domain credentials (NTDS.dit + SYSTEM hive)</td><td>Falcon ProcessRollup2</td><td>ntdsutil / vssadmin / esentutl / Java side-load</td></tr>
           <tr><td>9</td><td>Brute / lateral to MSSQL &amp; other services</td><td>Falcon UserLogonFailed2</td><td>Network-logon failure bursts to servers</td></tr>
-          <tr><td>10</td><td>Exfil to attacker infrastructure</td><td>Falcon NetworkConnectIP4 / DnsRequest</td><td>Outbound to staging IP / anomalous egress</td></tr>
+          <tr><td>10</td><td>Exfil to attacker infrastructure</td><td>Falcon NetworkConnectIP4 / DnsRequest</td><td>Outbound to known-bad IP / anomalous egress</td></tr>
         </tbody>
       </table>
       <h3>Hypotheses (ordered by fidelity)</h3>
       <table>
         <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry</th><th>Conf</th></tr></thead>
         <tbody>
-          <tr><td>H1</td><td>Host beaconing to known staging IP 85.11.187.8</td><td>T1071 / T1567</td><td>NetworkConnectIP4</td><td><span class="badge b-high">High</span></td></tr>
+          <tr><td>H1</td><td>Host beaconing to a confirmed known-bad IP (populate per incident — no atomic IOC published)</td><td>T1071 / T1567</td><td>NetworkConnectIP4</td><td><span class="badge b-med">Med</span></td></tr>
           <tr><td>H2</td><td>NTDS.dit / SYSTEM hive extraction on a DC or member server</td><td>T1003.003</td><td>ProcessRollup2</td><td><span class="badge b-high">High</span></td></tr>
           <tr><td>H3</td><td>Successful FortiGate login after failure burst from same source IP</td><td>T1110.004 / T1078</td><td>FortiGate syslog</td><td><span class="badge b-high">High</span></td></tr>
           <tr><td>H4</td><td>FortiGate admin/built-in system account login from external IP</td><td>T1078 / T1133</td><td>FortiGate syslog</td><td><span class="badge b-med">Medium</span></td></tr>
@@ -266,13 +266,12 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
   <div class="section" id="s4">
     <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
     <div class="section-body">
-      <span class="callout callout-warn">IOC set is intentionally thin. The campaign is credential-driven, not malware-driven, so behavior beats atomic indicators. The one concrete network IOC (the staging server) is now public and will be rotated — treat it as high-value but short-lived.</span>
+      <span class="callout callout-warn"><strong>No atomic IOCs were published for this campaign.</strong> SOCRadar handled FortiBleed as responsible disclosure and released no IPs, domains, or hashes — confirm exposure with their <a href="https://socradar.io/free-tools/fortibleed">FortiBleed exposure checker</a>, not an IOC feed. The campaign is credential-driven, so this pack is behavior-keyed; the atomic rows below are <code>REPLACE_WITH_…</code> placeholders to populate from your own incident.</span>
       <table>
         <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
         <tbody>
-          <tr><td>IPv4</td><td><code>85.11.187.8</code></td><td>High</td><td>detect</td><td>Operator staging / credential-DB server (port 9999)</td></tr>
-          <tr><td>Port</td><td><code>9999/tcp</code></td><td>Medium</td><td>hunt</td><td>Service port on staging server</td></tr>
-          <tr><td>Filename</td><td><code>corps.txt</code></td><td>Low</td><td>pivot</td><td>Attacker credential database file (forensic artifact)</td></tr>
+          <tr><td>IPv4</td><td><code>REPLACE_WITH_KNOWN_BAD_IP</code></td><td>—</td><td>detect</td><td>Placeholder — no attacker IP published; populate from your own incident/CTI before enabling Q1</td></tr>
+          <tr><td>Domain</td><td><code>REPLACE_WITH_ROTATED_C2</code></td><td>—</td><td>detect</td><td>Placeholder — no C2 domain published; populate per incident</td></tr>
           <tr><td>Targeted ports</td><td><code>443, 4443, 8443, 10443</code></td><td>Medium</td><td>hunt</td><td>FortiGate SSL-VPN deployment variants swept inbound</td></tr>
           <tr><td>Username pattern</td><td><code>admin</code>, <code>fgts*</code>, <code>fort*</code>, <code>Tech*</code>, <code>telm*</code>, <code>supp*</code></td><td>Medium</td><td>hunt</td><td>Generic admin + built-in Fortinet system accounts most-hit</td></tr>
           <tr><td>Behavior</td><td>Post-auth packet sniffer on firewall</td><td>Medium</td><td>hunt</td><td>On-device credential capture (T1040)</td></tr>
@@ -363,19 +362,19 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
       <!-- Q1 -->
       <div class="query-card">
         <div class="qc-header">
-          <span class="qc-title">Q1 · Beacon to FortiBleed staging IP</span>
-          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <span class="qc-title">Q1 · Beacon to a known-bad / attacker IP (parameterized)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF N/A — TEMPLATE</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
           <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
         </div>
         <div class="qc-body">
-          <p><strong>Looks for:</strong> any host connecting outbound to the known operator staging server. <strong>Accomplishes:</strong> a fast, high-confidence IOC sweep for inward-pivot exfil or C2.</p>
-<pre class="cql" id="cql1"><span class="cm">// HUNT: Beacon to FortiBleed staging IP</span>
+          <p><strong>Looks for:</strong> any host beaconing to a confirmed known-bad IP. <strong>Note:</strong> SOCRadar published <em>no</em> attacker IP for FortiBleed — this is a reusable known-bad-egress template. Replace <code>REPLACE_WITH_KNOWN_BAD_IP</code> with an IP from your own incident or CTI before running.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Beacon to a known-bad / attacker IP (parameterized template)</span>
 <span class="cm">// MITRE: T1071, T1567</span>
-<span class="cm">// CONF: high   FP: low   COST: low</span>
-<span class="cm">// REQUIRES: NetworkConnectIP4 telemetry</span>
-<span class="cm">// FALSE POSITIVES: none expected (specific attacker IP); IP may be rotated/reused over time</span>
+<span class="cm">// CONF: high once a true known-bad IP is set   FP: low   COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 telemetry + a confirmed known-bad IP (none published for FortiBleed)</span>
+<span class="cm">// FALSE POSITIVES: none once a real IOC is set; do NOT run with the placeholder</span>
 #event_simpleName=NetworkConnectIP4
-| RemoteAddressIP4="85.11.187.8"
+| RemoteAddressIP4="REPLACE_WITH_KNOWN_BAD_IP"
 | groupBy([ComputerName, aid, RemoteAddressIP4, RemotePort], function=[count(as=conns), min(@timestamp, as=first), max(@timestamp, as=last)])
 | sort(conns, order=desc)</pre>
         </div>
@@ -608,7 +607,7 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
         <tbody>
           <tr><td>NTDS / Registry Hive Dump</td><td>Process <code>ntdsutil|esentutl|vssadmin</code> or CmdLine <code>ntds.dit</code> / <code>reg save *\SYSTEM</code></td><td>Backup service accounts; dedicated DR hosts</td><td>Falcon → Endpoint Security → Custom IOA → Process Creation</td></tr>
           <tr><td>Java Side-Load from User Path</td><td><code>java|javaw.exe</code> ImageFileName under <code>\Users\|\Temp\|\ProgramData\</code></td><td>Approved per-user Java app install paths</td><td>Custom IOA → Process Creation (image path regex)</td></tr>
-          <tr><td>Staging-IP Egress</td><td>NetworkConnect RemoteAddressIP4 = <code>85.11.187.8</code></td><td>None (atomic IOC) — also add to IOC management</td><td>Falcon → IOC Management (domain/IP) + network IOA</td></tr>
+          <tr><td>Known-Bad IP Egress</td><td>NetworkConnect RemoteAddressIP4 = <code>REPLACE_WITH_KNOWN_BAD_IP</code></td><td>Placeholder — no FortiBleed IP published; populate per incident before promoting</td><td>Falcon → IOC Management (domain/IP) + network IOA</td></tr>
         </tbody>
       </table>
       <span class="callout callout-info">Q3–Q5/Q7 detect appliance behavior and should run as <strong>Scheduled Searches / NG-SIEM correlation rules</strong> over the FortiGate repo, alerting the SOC — not as endpoint IOAs.</span>
@@ -626,21 +625,22 @@ code { background: var(--panel-2); border: 1px solid var(--border); border-radiu
           <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
           <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
 <pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
-ipv4,85.11.187.8,detect,critical,2026-12-18,FortiBleed operator staging / credential-DB server (port 9999),campaign:FortiBleed
+ipv4,REPLACE_WITH_KNOWN_BAD_IP,detect,critical,2026-12-18,Placeholder — no attacker IP published for FortiBleed; populate per incident,campaign:FortiBleed
 domain,REPLACE_WITH_ROTATED_C2,detect,high,2026-12-18,FortiBleed rotated staging infrastructure,campaign:FortiBleed</pre>
         </div>
 
         <div class="ioc-grab">
           <div class="igh"><span class="igt">Network &amp; Host Atomic IOCs</span><span class="igc">block / hunt</span></div>
           <button class="btn-copy" data-label="Copy IOCs" onclick="copyBlock('grab-atomic',this)" style="margin:0 0 6px;">Copy IOCs</button>
-<pre class="code" id="grab-atomic"># IP / port (perishable — public, expect rotation)
-85.11.187.8          # staging / credential-DB server
-9999/tcp             # staging service port
+<pre class="code" id="grab-atomic"># No atomic IOCs were published for FortiBleed (SOCRadar responsible disclosure).
+# Confirm exposure via the SOCRadar checker, not an IOC feed:
+#   https://socradar.io/free-tools/fortibleed
+#
+# Populate from your own incident / CTI before use:
+REPLACE_WITH_KNOWN_BAD_IP     # confirmed attacker / C2 IP
+REPLACE_WITH_ROTATED_C2       # confirmed C2 domain
 
-# Forensic artifact (triage pivot, not a block)
-corps.txt            # attacker credential database file
-
-# FortiGate SSL-VPN ports swept inbound
+# FortiGate SSL-VPN ports swept inbound (context, not a block list)
 443  4443  8443  10443</pre>
         </div>
 
@@ -665,10 +665,11 @@ corps.txt            # attacker credential database file
   "campaign": "FortiBleed",
   "generated": "2026-06-18",
   "source": "SOCRadar Threat Research (2026-06-16)",
+  "atomic_iocs_published": false,
+  "note": "SOCRadar published no IPs/domains/hashes (responsible disclosure); confirm exposure via https://socradar.io/free-tools/fortibleed. Placeholders below are populate-per-incident.",
   "indicators": [
-    { "type": "ipv4", "value": "85.11.187.8", "confidence": "high", "action": "detect", "context": "Operator staging / credential-DB server (port 9999)", "expiry": "2026-12-18" },
-    { "type": "port", "value": "9999/tcp", "confidence": "medium", "action": "hunt", "context": "Service port on staging server", "expiry": "2026-09-18" },
-    { "type": "filename", "value": "corps.txt", "confidence": "low", "action": "pivot", "context": "Attacker credential database file", "expiry": "2026-09-18" },
+    { "type": "ipv4", "value": "REPLACE_WITH_KNOWN_BAD_IP", "confidence": "n/a", "action": "detect", "context": "Placeholder — no attacker IP published; populate per incident", "expiry": "2026-12-18" },
+    { "type": "domain", "value": "REPLACE_WITH_ROTATED_C2", "confidence": "n/a", "action": "detect", "context": "Placeholder — no C2 domain published; populate per incident", "expiry": "2026-12-18" },
     { "type": "targeted_ports", "value": ["443","4443","8443","10443"], "confidence": "medium", "action": "hunt", "context": "FortiGate SSL-VPN variants swept inbound", "expiry": "2026-09-18" },
     { "type": "username_pattern", "value": ["admin","fgts*","fort*","fortinet*","Tech*","telm*","supp*"], "confidence": "medium", "action": "hunt", "context": "Generic admin + built-in Fortinet system accounts most compromised", "expiry": "2026-09-18" }
   ],
@@ -707,7 +708,7 @@ corps.txt            # attacker credential database file
           <li><strong>Pull the management interface off the public internet</strong> — restrict admin access via <code>trusted-host</code> / local-in-policy to a management VLAN or jump host. <span class="badge b-info">M1035</span> · CIS FortiGate Benchmark (admin access)</li>
           <li><strong>Enforce MFA on all VPN and admin accounts</strong> (FortiToken / FIDO2). Makes a stolen password insufficient. <span class="badge b-info">M1032</span></li>
           <li><strong>Set login-attempt limits + block time</strong> on SSL-VPN to blunt stuffing. <span class="badge b-info">M1036</span></li>
-          <li><strong>Block egress to <code>85.11.187.8</code></strong> at the perimeter and add to IOC management. <span class="badge b-info">M1037</span></li>
+          <li><strong>Block egress to any confirmed known-bad IP</strong> from your own triage and add to IOC management (SOCRadar published none — derive per incident). <span class="badge b-info">M1037</span></li>
         </ul>
       </div>
       <div class="tier-blk tier-near">
@@ -802,8 +803,8 @@ get vpn ssl settings | grep -E "login-attempt-limit|login-block-time|client-cert
 show system admin           # confirm trusthost entries
 diagnose sys session list | grep admin    # no unexpected admin sessions
 
-# CQL: confirm no further egress to the staging IP after blocking (run in LogScale)
-#event_simpleName=NetworkConnectIP4 | RemoteAddressIP4="85.11.187.8" | groupBy([ComputerName], function=count())
+# CQL: confirm no further egress to a confirmed known-bad IP after blocking (run in LogScale)
+#event_simpleName=NetworkConnectIP4 | RemoteAddressIP4="REPLACE_WITH_KNOWN_BAD_IP" | groupBy([ComputerName], function=count())
 
 # CQL: confirm credential-dumping behavior is absent post-remediation
 #event_simpleName=ProcessRollup2 | CommandLine=/ntds\.dit/i | head(20)</pre>
@@ -816,7 +817,7 @@ diagnose sys session list | grep admin    # no unexpected admin sessions
     <div class="section-body">
       <div class="phase-hdr">Phase 1 — Isolate</div>
       <ul>
-        <li>Block egress to <code>85.11.187.8</code> at the perimeter; add to IOC management. <em>(Owner: NetSec · Evidence: firewall/IOC change ticket)</em></li>
+        <li>Block egress to any confirmed known-bad IP from triage at the perimeter; add to IOC management. <em>(Owner: NetSec · Evidence: firewall/IOC change ticket)</em></li>
         <li>Disable the SSL-VPN portal on any FortiGate appearing in the dataset until rebuilt. <em>(Owner: NetSec)</em></li>
         <li>Network-contain (Falcon RTR) any endpoint hit by Q1/Q2/Q8. <em>(Owner: SOC)</em></li>
       </ul>
@@ -831,7 +832,7 @@ diagnose sys session list | grep admin    # no unexpected admin sessions
       <ul>
         <li>Re-enable SSL-VPN only with MFA + client-cert and management off the public internet. <em>(Owner: NetSec)</em></li>
         <li>Enable FortiGate syslog → LogScale and stand up Q3–Q7 as Scheduled Searches before reopening access. <em>(Owner: Detection Eng)</em></li>
-        <li>Monitor for 30 days: re-run Q1–Q9 daily; confirm no recurrence of staging-IP egress or stuffing bursts. <em>(Owner: SOC · Evidence: clean daily hunt results)</em></li>
+        <li>Monitor for 30 days: re-run Q1–Q9 daily; confirm no recurrence of known-bad-IP egress or stuffing bursts. <em>(Owner: SOC · Evidence: clean daily hunt results)</em></li>
       </ul>
     </div>
   </div>
@@ -866,7 +867,7 @@ diagnose sys session list | grep admin    # no unexpected admin sessions
 Scope:        Internet-exposed FortiGate (SSL-VPN/mgmt) + Falcon-instrumented Windows hosts
 Hypothesis:   External actor credential-stuffs exposed FortiGate, achieves verified logins,
               sniffs/exfils on-device, then pivots inward to dump domain creds and move laterally.
-Queries run:  Q1 staging-IP egress | Q2 NTDS dump | Q3 login-after-fail | Q4 ext admin login
+Queries run:  Q1 known-bad-IP egress | Q2 NTDS dump | Q3 login-after-fail | Q4 ext admin login
               Q5 stuffing bursts | Q6 Java side-load | Q7 config/sniffer | Q8 internal brute
               Q9 rare remote logon
 Data sources: FortiGate syslog (LogScale #repo=fortinet) + Falcon ProcessRollup2 /
@@ -902,7 +903,7 @@ Version:      v0.1 (2026-06-18)</pre>
       <table>
         <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead>
         <tbody>
-          <tr><td>1</td><td><a href="https://socradar.io/blog/fortibleed-fortinet-firewalls-compromised/">SOCRadar — FortiBleed: How 30,000 Fortinet Firewalls Exposed Corporate Networks Quietly</a></td><td>Campaign facts, scale, ports, usernames, methodology, staging IOC</td><td>2026-06-18</td></tr>
+          <tr><td>1</td><td><a href="https://socradar.io/blog/fortibleed-fortinet-firewalls-compromised/">SOCRadar — FortiBleed: How 30,000 Fortinet Firewalls Exposed Corporate Networks Quietly</a></td><td>Campaign facts, scale, ports, usernames, methodology (no atomic IOCs published)</td><td>2026-06-18</td></tr>
           <tr><td>2</td><td><a href="https://undercodetesting.com/fortibleed-uncovered-how-30000-fortinet-firewalls-became-a-global-credential-harvesting-machine-video/">Undercode Testing — FortiBleed Uncovered</a></td><td>Attack chain, FortiGate CLI hardening, detection commands, CVE links</td><td>2026-06-18</td></tr>
           <tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/new-fortinet-forticlient-ems-flaw-cve-2026-35616-exploited-in-attacks/">BleepingComputer — FortiClient EMS CVE-2026-35616</a></td><td>Endpoint-push vector context</td><td>2026-06-18</td></tr>
           <tr><td>2</td><td><a href="https://www.tenable.com/blog/cve-2024-21762-critical-fortinet-fortios-out-of-bound-write-ssl-vpn-vulnerability">Tenable — CVE-2024-21762 SSL-VPN RCE</a></td><td>Alternate-access CVE / patch posture</td><td>2026-06-18</td></tr>
