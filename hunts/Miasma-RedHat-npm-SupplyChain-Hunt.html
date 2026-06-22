@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miasma (Shai-Hulud variant) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Miasma (Shai-Hulud variant): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Miasma-RedHat-npm-SupplyChain-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Miasma (Shai-Hulud variant) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Miasma (Shai-Hulud variant): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Miasma-RedHat-npm-SupplyChain-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f778ba;                       /* supply-chain / package = pink */
+  --accent-dim: rgba(247,120,186,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1020 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.ioc-grab .igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 0; overflow: hidden; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">HUNTPACK</div>
+    <div class="pack-name">Miasma — Red Hat npm Supply-Chain Worm</div>
+    <div class="version">v0.1 · 2026-06-21</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>Miasma — Red Hat npm Supply-Chain Credential Worm</h1>
+    <div class="subtitle">Shai-Hulud-family self-propagating npm worm · "Phantom Gyp" install-time execution via weaponized binding.gyp · multi-cloud secret theft (GitHub / npm / AWS / Azure / GCP / Vault / Kubernetes)</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">Miasma (Shai-Hulud variant)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE WORM</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Supply-chain / package worm</div></div>
+      <div class="meta-item"><div class="mk">Initial Access</div><div class="mv">npm install (preinstall + binding.gyp)</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-21</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (7 vendor sources)</div></div>
+    </div>
+  </div>
+
+  <!-- ===================== 1 EXEC SUMMARY ===================== -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>Miasma</strong> ("The Spreading Blight") is a self-propagating npm supply-chain worm in the Shai-Hulud lineage. On <strong>1 June 2026</strong> it backdoored <strong>32 packages</strong> (~96 versions) in the <code>@redhat-cloud-services</code> npm scope — roughly <strong>116,991 weekly downloads</strong> — after an attacker hijacked a Red Hat maintainer's GitHub account and pushed orphan commits carrying valid OIDC/SLSA provenance. By <strong>5 June</strong>, <strong>57+ packages</strong> and <strong>300+ malicious versions</strong> had been identified across the wider npm ecosystem.</p>
+      <p>The worm runs <strong>at install time</strong>, before any application code, through two mechanisms: a classic <code>preinstall</code> hook (<code>"preinstall": "node index.js"</code>) and — in the second wave — <strong>"Phantom Gyp"</strong>: a weaponized <code>binding.gyp</code> whose <code>sources</code> array embeds a node-gyp command-substitution that silently runs <code>index.js</code> during native-module compilation, bypassing detections that only watch npm lifecycle hooks. The dropper (a ~4&nbsp;MB Caesar-cipher/AES-128-GCM/obfuscator.io payload) downloads a legitimate <strong>Bun v1.3.13</strong> binary to <code>/tmp/b-&lt;random&gt;/bun</code> and harvests credentials for GitHub, npm, AWS, Azure, GCP, HashiCorp Vault and Kubernetes from environment variables, cloud metadata services (IMDSv2 <code>169.254.169.254</code>, ECS <code>169.254.170.2</code>, Vault <code>127.0.0.1:8200</code>) and on-disk secret files. When it finds publish-capable npm tokens it <strong>re-publishes infected packages</strong> to propagate. It also plants AI-coding-agent persistence (<code>~/.claude/settings.json</code> SessionStart hooks, <code>.vscode/tasks.json</code> <code>folderOpen</code> tasks) that fire a harvester when a repo is opened in Claude Code / Cursor / VS Code / Gemini CLI, and crossed into PyPI (37 malicious wheels / 19 packages using <code>.pth</code> startup hooks).</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> This worm executes <em>during dependency install in CI/CD and dev workstations</em> — not at app runtime. The single highest-value detection is <strong>node / npm / node-gyp spawning a shell, <code>bun</code>, or a child that touches cloud-metadata IPs or <code>~/.npmrc</code>/<code>~/.aws</code>/kube/Vault paths during an install</strong>. Treat any host that installed an affected <code>@redhat-cloud-services</code> version since 1 June 2026 as <strong>credential-compromised</strong>: rotate all npm, GitHub, and cloud tokens reachable from that host/runner.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 2 SOURCE REVIEW ===================== -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">1</span></td><td>Microsoft Security Blog (02 Jun 2026)</td><td>Per-package SHA256s; preinstall chain <code>node→shell→bun→payload</code>; IMDS/ECS/Vault/K8s harvest; GitHub dead-drop repos described "Miasma: The Spreading Blight"; <code>.github/setup.js</code> injection; runner-memory OIDC token scrape; sudoers write at <code>/mnt/runner</code>.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td>Mend.io (MSC-2026-6085)</td><td>"Phantom Gyp" binding.gyp signature; loader + binding.gyp SHA256; bun-v1.3.13 download URL; AES IVs; full metadata-endpoint + env-var literal list; manifest-mismatch detection signal.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td>Harness.io</td><td>32 packages / 96 versions; orphan-commit + OIDC/SLSA abuse; "every infection gets its own encryption" (hash evasion); <code>gh auth token</code> harvest.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td>Phoenix.security</td><td>Decrypted helper/main payload SHA256; AI-agent hook paths (Claude/VS Code/Cursor/Gemini); 73 Microsoft repos auto-disabled in 105s; PyPI Hades wave (37 wheels / 19 pkgs / .pth).</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td>Upwind.io</td><td>Concrete affected versions (chrome/frontend-components/types/rule-components/rbac-client); <code>.github/setup.js</code>; spoofed User-Agents.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td>The Hacker News</td><td>"Miasma: The Spreading Blight" first seen 29 May 2026; api.anthropic.com spoof channel; VS Code <code>runOn: folderOpen</code>; TeamPCP open-sourced Shai-Hulud tooling (attribution caveat).</td><td>partial</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td>Unit 42 (npm supply-chain monitoring)</td><td>Ecosystem context: install-script abuse trend, second-wave package count (57+ / 300+ versions).</td><td>partial</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Provenance note:</strong> <code>api.anthropic.com/v1/api</code> appears as a <em>spoofed / dormant</em> exfil channel (Microsoft: <code>noop:true</code>, disabled). It is a <strong>legitimate Anthropic host</strong> — do <em>not</em> blocklist it. It is carried only as an enrich/context indicator. GitHub, npm registry, Sigstore, and cloud-metadata endpoints are all legitimate services abused as living-off-the-land exfil; detection is behavioral, not domain-blocking.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 3 HUNT BRIEF & CHAIN ===================== -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt hypotheses (fidelity-ordered)</h3>
+      <ol>
+        <li><strong>H1 (high):</strong> A <code>node</code>/<code>npm</code>/<code>node-gyp</code> process spawns <code>bun</code> (or a binary under <code>/tmp/b-*</code>, <code>/var/folders/*/b-*</code>) during dependency install — the Miasma runtime drop. <em>T1059 / T1195.002</em></li>
+        <li><strong>H2 (high):</strong> A package-manager install tree makes outbound connections to cloud metadata IPs (<code>169.254.169.254</code>, <code>169.254.170.2</code>) or to local Vault (<code>127.0.0.1:8200</code>) — credential harvest during install. <em>T1552.005 / T1552.001</em></li>
+        <li><strong>H3 (high):</strong> <code>binding.gyp</code> written/seen on disk whose contents embed a node-gyp command-substitution (<code>&lt;!(node …)</code>) — the Phantom Gyp signature. <em>T1195.002</em></li>
+        <li><strong>H4 (med):</strong> An install-time child process reads <code>~/.npmrc</code>, <code>~/.aws/credentials</code>, <code>kubeconfig</code>, <code>~/.config/gcloud</code>, SSH keys, or <code>~/.claude.json</code>. <em>T1552.001</em></li>
+        <li><strong>H5 (med):</strong> Creation/modification of AI-agent persistence: <code>~/.claude/settings.json</code> (SessionStart hook) or <code>.vscode/tasks.json</code> (<code>folderOpen</code>) shortly after a clone/install. <em>T1546</em></li>
+        <li><strong>H6 (med):</strong> An install-time process runs <code>gh auth token</code>, <code>npm whoami</code>/<code>npm token</code>, or queries <code>registry.npmjs.org/-/npm/v1/tokens</code> — token theft / republish staging. <em>T1552.004 / T1195.002</em></li>
+        <li><strong>H7 (med):</strong> Sudoers tamper on a CI runner: write to <code>/mnt/runner</code> or a sudoers file containing <code>NOPASSWD:ALL</code> for <code>runner</code>. <em>T1548.003</em></li>
+        <li><strong>H8 (low):</strong> EDR-fingerprinting file reads (<code>/opt/CrowdStrike</code>, <code>/Library/CS/falcon</code>, <code>/opt/sentinelone</code>) by an install-time child. <em>T1518.001</em></li>
+      </ol>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Maintainer GitHub account hijack; orphan commit republished with OIDC/SLSA provenance</td><td>(off-endpoint) npm/GitHub audit</td><td>npm dist-tag/publish events; new versions of pinned deps</td></tr>
+          <tr><td>2</td><td><code>npm install</code> resolves an infected version; <code>preinstall</code> or <code>binding.gyp</code> fires <code>node index.js</code></td><td>ProcessRollup2</td><td>node-gyp / npm parent → node/sh child at install (Q1, Q3)</td></tr>
+          <tr><td>3</td><td>Dropper de-obfuscates, downloads Bun v1.3.13 → <code>/tmp/b-&lt;rand&gt;/bun</code></td><td>ProcessRollup2 / NetworkConnectIP4</td><td>bun spawned from node; download from oven-sh/bun release (Q1, Q2)</td></tr>
+          <tr><td>4</td><td>Harvest env vars + IMDS/ECS/Vault/K8s + on-disk secrets</td><td>NetworkConnectIP4 / FileOpen</td><td>install tree → 169.254.169.254 / 127.0.0.1:8200; secret-file reads (Q4, Q5)</td></tr>
+          <tr><td>5</td><td>Token theft: <code>gh auth token</code>, npm token endpoints</td><td>ProcessRollup2</td><td>gh/npm token commands under install (Q6)</td></tr>
+          <tr><td>6</td><td>Exfil via GitHub dead-drop repo "Miasma: The Spreading Blight" / <code>.github/setup.js</code></td><td>NetworkConnectIP4 (api.github.com)</td><td>anomalous repo creation; correlate with cred-access hosts</td></tr>
+          <tr><td>7</td><td>Propagate: republish infected packages using stolen publish tokens</td><td>(off-endpoint) npm audit</td><td>unexpected publish from CI identity</td></tr>
+          <tr><td>8</td><td>Persistence: AI-agent hooks; sudoers write on runner</td><td>FileWritten / ProcessRollup2</td><td>~/.claude/settings.json, tasks.json, /mnt/runner (Q5, Q7)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== 4 IOC TABLE ===================== -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p class="callout callout-info">Every atomic IOC below traces to a cited Tier-1 source (§18). Per-infection re-encryption means file hashes are <em>low-durability</em> — favor the behavioral indicators (Phantom Gyp signature, bun-from-node, metadata-IP touches). Package versions and the binding.gyp/loader hashes are the most reliable atomic anchors.</p>
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context / Source</th></tr></thead>
+        <tbody>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/chrome</code> 2.3.1 / 2.3.2 / 2.3.4</td><td>high</td><td>hunt</td><td>Infected v1 wave (Upwind, MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/frontend-components</code> 7.7.2 / 7.7.3 / 7.7.5</td><td>high</td><td>hunt</td><td>Infected (Upwind, MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/types</code> 3.6.1 / 3.6.2 / 3.6.4</td><td>high</td><td>hunt</td><td>Infected (Upwind, MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/rbac-client</code> 9.0.3 / 9.0.4 / 9.0.6</td><td>high</td><td>hunt</td><td>Infected (Upwind, MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/rule-components</code> 4.7.2 / 4.7.3</td><td>high</td><td>hunt</td><td>Infected (Upwind)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/remediations-client</code> 4.0.4 / 4.0.5 / 4.0.7</td><td>high</td><td>hunt</td><td>Infected (MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/insights-client</code> 4.0.4 / 4.0.5 / 4.0.7</td><td>high</td><td>hunt</td><td>Infected (MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/host-inventory-client</code> 5.0.3 / 5.0.4 / 5.0.6</td><td>high</td><td>hunt</td><td>Infected (MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/javascript-clients-shared</code> 2.0.8 / 2.0.9 / 2.0.11</td><td>high</td><td>hunt</td><td>Infected (MS)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/notifications</code> 6.9.3</td><td>high</td><td>hunt</td><td>Infected (MS hash list)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/frontend-components-config-utilities</code> 4.11.3</td><td>high</td><td>hunt</td><td>Infected (Phoenix)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@redhat-cloud-services/tsc-transform-imports</code> 1.2.2 / 1.2.4</td><td>high</td><td>hunt</td><td>Infected (Phoenix, Harness)</td></tr>
+          <tr><td>npm pkg/ver</td><td><code>@vapi-ai/server-sdk</code>, <code>ai-sdk-ollama</code></td><td>high</td><td>hunt</td><td>Second wave, 3-4 Jun (Mend)</td></tr>
+          <tr><td>SHA256 (binding.gyp)</td><td><code>ef641e956f91d501b748085996303c96a64d67f63bfeef0dda175e5aa19cca90</code></td><td>high</td><td>detect</td><td>Phantom Gyp file, 157 B (Mend)</td></tr>
+          <tr><td>SHA256 (loader)</td><td><code>c2a60face766f69f82c972375f35f8ebaa45d6c464176974e631d9a78d6bea0a</code></td><td>high</td><td>detect</td><td>Stage-1 loader, 1 Jun wave (Mend); MD5 <code>8cd0b0fbd4232face584c66d9754bf1e</code></td></tr>
+          <tr><td>SHA256 (payload)</td><td><code>396cac9e457ec54ff6d3f6311cb5cc1da8054d019ce3ffa1de5741506c7a4ea4</code></td><td>high</td><td>detect</td><td>remediations-client (MS)</td></tr>
+          <tr><td>SHA256 (payload)</td><td><code>d8d170af3de17bb9b217c52aaaffdf9395f35ef015a57ef676e406c121e5e223</code></td><td>high</td><td>detect</td><td>advisor-components 3.8.2 (MS)</td></tr>
+          <tr><td>SHA256 (payload)</td><td><code>f0641e053e81f0d01fa46db35a83e0a34494886503086866d956d14e81fd3e1c</code></td><td>high</td><td>detect</td><td>hcc-kessel-mcp 0.3.4 (MS)</td></tr>
+          <tr><td>SHA256 (payload)</td><td><code>d5a97614d5319ce9c8e01fa0b4eb06fb5b9e54fa13b23d718174a1546444123b</code></td><td>high</td><td>detect</td><td>frontend-components-testing 1.2.4 (MS)</td></tr>
+          <tr><td>SHA256 (payload)</td><td><code>f88258e21592084a2f93a572ade8f9b91c0cd0e242f5cf6121ed7bad0f7bdd1f</code></td><td>high</td><td>detect</td><td>notifications 6.9.3 (MS)</td></tr>
+          <tr><td>SHA256 (payload)</td><td><code>25e121e3b7d300c0d0075b33e5eca39a3e6a659fb9cfee52b70ef71686628f1b</code></td><td>high</td><td>detect</td><td>chrome 2.3.4 (MS)</td></tr>
+          <tr><td>SHA256 (decrypted)</td><td><code>ac2a2208e1726e008be6c73dc0872d9bba163319259dff1b62055ac933ca46b6</code></td><td>med</td><td>hunt</td><td>Decrypted Bun helper (Phoenix)</td></tr>
+          <tr><td>SHA256 (decrypted)</td><td><code>0dc06ecdaa63fe24859cfd955053c23245c536e4733480239d14bebf12688e35</code></td><td>med</td><td>hunt</td><td>Decrypted main payload (Phoenix)</td></tr>
+          <tr><td>Behavioral str</td><td><code>"sources": ["&lt;!(node index.js &gt; /dev/null 2&gt;&amp;1 &amp;&amp; echo stub.c)"]</code></td><td>high</td><td>detect</td><td>Phantom Gyp signature in binding.gyp (Mend)</td></tr>
+          <tr><td>Behavioral str</td><td><code>"preinstall": "node index.js"</code></td><td>high</td><td>hunt</td><td>v1-wave preinstall hook (multiple)</td></tr>
+          <tr><td>String marker</td><td><code>Miasma: The Spreading Blight</code></td><td>high</td><td>hunt</td><td>Dead-drop GitHub repo description (MS, Mend, Harness)</td></tr>
+          <tr><td>String marker</td><td><code>IfYouInvalidateThisTokenItWillNukeTheComputerOfTheOwner</code></td><td>high</td><td>hunt</td><td>Honeytoken/tripwire literal (MS, Mend, Upwind)</td></tr>
+          <tr><td>File path</td><td><code>/tmp/b-&lt;rand&gt;/bun</code> · <code>/var/folders/&lt;…&gt;/b-&lt;rand&gt;/bun</code> · <code>bun.exe</code></td><td>high</td><td>hunt</td><td>Dropped Bun runtime (Mend)</td></tr>
+          <tr><td>File path</td><td><code>/tmp/p&lt;base36&gt;.js</code></td><td>med</td><td>hunt</td><td>Temp payload file (Mend)</td></tr>
+          <tr><td>URL</td><td><code>github.com/oven-sh/bun/releases/download/bun-v1.3.13/bun-&lt;os&gt;-&lt;arch&gt;.zip</code></td><td>high</td><td>enrich</td><td>Legit Bun release abused as delivery (Mend)</td></tr>
+          <tr><td>IP</td><td><code>169.254.169.254</code> · <code>169.254.170.2</code></td><td>med</td><td>hunt</td><td>AWS IMDSv2 / ECS metadata harvest (Mend)</td></tr>
+          <tr><td>IP:port</td><td><code>127.0.0.1:8200</code></td><td>med</td><td>hunt</td><td>HashiCorp Vault probe (MS, Mend)</td></tr>
+          <tr><td>User-Agent</td><td><code>python-requests/2.31.0</code> · <code>google-api-nodejs-client/7.0.0</code></td><td>med</td><td>enrich</td><td>Spoofed UA on exfil (MS, Upwind)</td></tr>
+          <tr><td>Domain (spoof)</td><td><code>api.anthropic.com/v1/api</code></td><td>low</td><td>enrich</td><td>Dormant <code>noop:true</code> channel — legit host, do NOT block (MS)</td></tr>
+          <tr><td>Advisory</td><td><code>MSC-2026-6085</code></td><td>high</td><td>enrich</td><td>Mend.io tracking ID</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== 5 AFFECTED SURFACE ===================== -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+        <tbody>
+          <tr><td>CI/CD build runners (GitHub Actions / GitLab / Jenkins) running <code>npm install</code></td><td>ProcessRollup2, NetworkConnectIP4, FileOpen on Linux runner sensors</td><td><span class="badge b-crit">Critical</span></td><td>High — ephemeral runners often lack a sensor</td></tr>
+          <tr><td>Developer workstations (macOS/Linux/Windows) installing Node deps</td><td>ProcessRollup2, NetworkConnectIP4, FileWritten</td><td><span class="badge b-high">High</span></td><td>Med — covered if Falcon deployed to dev fleet</td></tr>
+          <tr><td>npm registry identity / publish tokens</td><td>npm audit logs (off-endpoint)</td><td><span class="badge b-high">High</span></td><td>High — not Falcon telemetry; needs npm-side audit</td></tr>
+          <tr><td>Cloud control planes (AWS/Azure/GCP) reachable from build creds</td><td>CloudTrail / Azure AD / GCP audit (off-endpoint)</td><td><span class="badge b-high">High</span></td><td>High — correlate post-harvest cloud API use</td></tr>
+          <tr><td>AI coding agents (Claude Code / Cursor / VS Code / Gemini)</td><td>FileWritten on settings.json / tasks.json, ProcessRollup2</td><td><span class="badge b-med">Medium</span></td><td>Med — config-write detection is endpoint-visible</td></tr>
+          <tr><td>Kubernetes service-account tokens / Vault</td><td>NetworkConnectIP4 to 127.0.0.1:8200, FileOpen on SA token paths</td><td><span class="badge b-med">Medium</span></td><td>Med</td></tr>
+          <tr><td>PyPI / Python dev hosts (Hades wave)</td><td>FileWritten on <code>*.pth</code> in site-packages, ProcessRollup2</td><td><span class="badge b-med">Medium</span></td><td>Med</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== 6 ATT&CK ===================== -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+        <tbody>
+          <tr><td>Initial Access</td><td>T1195.002 — Compromise Software Supply Chain</td><td>Infected <code>@redhat-cloud-services</code> versions republished to npm</td><td>Q1, Q3 / H-pin deps</td></tr>
+          <tr><td>Execution</td><td>T1059.007 / T1059.004 — JS / Unix Shell</td><td><code>preinstall</code> + binding.gyp run <code>node index.js</code> → shell → bun</td><td>Q1, Q3</td></tr>
+          <tr><td>Execution</td><td>T1059 — Command &amp; Scripting (node-gyp substitution)</td><td>Phantom Gyp <code>&lt;!(node …)</code> in sources array</td><td>Q3</td></tr>
+          <tr><td>Credential Access</td><td>T1552.005 — Cloud Instance Metadata API</td><td>Install tree hits IMDSv2 / ECS metadata</td><td>Q2, Q4</td></tr>
+          <tr><td>Credential Access</td><td>T1552.001 — Credentials in Files</td><td>Reads <code>~/.npmrc</code>, <code>~/.aws</code>, kubeconfig, SSH, GCP creds</td><td>Q4</td></tr>
+          <tr><td>Credential Access</td><td>T1552.004 — Private Keys / T1528 — Steal App Token</td><td><code>gh auth token</code>, npm token endpoints, OIDC scrape</td><td>Q6</td></tr>
+          <tr><td>Persistence</td><td>T1546 — Event-Triggered Execution</td><td>AI-agent SessionStart / folderOpen hooks; PyPI <code>.pth</code></td><td>Q5</td></tr>
+          <tr><td>Privilege Escalation</td><td>T1548.003 — Sudo &amp; Sudo Caching</td><td>Sudoers write <code>runner ALL=(ALL) NOPASSWD:ALL</code> at <code>/mnt/runner</code></td><td>Q7</td></tr>
+          <tr><td>Defense Evasion</td><td>T1518.001 — Security Software Discovery</td><td>Reads <code>/opt/CrowdStrike</code>, <code>/Library/CS/falcon</code>, etc.</td><td>Q8</td></tr>
+          <tr><td>Exfiltration</td><td>T1567 — Exfil Over Web Service</td><td>GitHub dead-drop repos / GraphQL commit; spoofed UA</td><td>Native §7</td></tr>
+          <tr><td>Impact / Propagation</td><td>T1080 — Taint Shared Content</td><td>Republish infected packages via stolen tokens</td><td>npm audit §7</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== 7 NATIVE HUNTS ===================== -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (non-CQL)</h2></div>
+    <div class="section-body">
+      <h3>npm registry / package side</h3>
+      <ul>
+        <li>Audit your lockfiles (<code>package-lock.json</code>, <code>yarn.lock</code>, <code>pnpm-lock.yaml</code>) for any resolved <code>@redhat-cloud-services/*</code> version published on/after <strong>1 Jun 2026</strong>; cross-check against §4.</li>
+        <li>npm org: review <strong>publish events and token creation</strong> for the past 30 days; revoke all granular + legacy automation tokens and require 2FA/trusted-publishing.</li>
+        <li>Grep extracted node_modules for the Phantom Gyp signature and markers: <code>&lt;!(node index.js</code>, <code>Miasma: The Spreading Blight</code>, <code>IfYouInvalidateThisTokenItWillNukeTheComputerOfTheOwner</code>.</li>
+        <li>Flag any <code>binding.gyp</code> whose <code>sources</code> array contains a <code>&lt;!(...)</code> command-substitution invoking <code>node</code>/<code>sh</code> — legitimate gyp sources are file names, not commands.</li>
+      </ul>
+      <h3>GitHub / SCM side</h3>
+      <ul>
+        <li>Search org for newly created repos with description <code>Miasma: The Spreading Blight</code> or files at <code>results/&lt;timestamp&gt;-&lt;counter&gt;.json</code> / <code>.github/setup.js</code> / injected <code>codeql.yml</code> on branches prefixed <code>oidc-</code> or <code>chore/add-codeql-static-analysis</code>.</li>
+        <li>Review Actions runs that used <code>id-token: write</code> in the window; rotate any OIDC-derived cloud roles.</li>
+      </ul>
+      <h3>Cloud control plane</h3>
+      <ul>
+        <li>AWS CloudTrail: <code>GetCallerIdentity</code> / Secrets Manager / SSM calls from a build identity immediately after an npm install, especially from new IPs/UA <code>python-requests/2.31.0</code>.</li>
+        <li>Azure sign-in logs / GCP audit: token use originating from CI egress IPs shortly after package install.</li>
+      </ul>
+      <p class="callout callout-info">These are off-endpoint checks the EDR cannot see. Run them in parallel with the CQL hunts (§8) and treat any correlated hit as confirmed compromise.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 8 CQL QUERIES ===================== -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+      </div>
+
+      <!-- Q1 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · node/npm/node-gyp spawns bun at install time</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>bun</code> binary (or a binary under a <code>/tmp/b-*</code> drop path) whose parent is a Node/npm/node-gyp process — the core Miasma runtime drop. Highest-fidelity signal in the pack.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Miasma runtime drop — bun spawned by node/npm/node-gyp</span>
+<span class="cm">// MITRE: T1195.002, T1059.007 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (Linux/macOS/Windows)</span>
+<span class="cm">// FALSE POSITIVES: legitimate Bun-based projects that run bun from node tooling</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/(\/|\\)(bun|bun\.exe)$/i
+| ParentBaseFileName=/^(node|npm|npx|node-gyp|sh|bash|zsh)$/i
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · Install tree reaches cloud metadata / Vault</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Node/bun/package-manager process connecting to IMDS (<code>169.254.169.254</code>), ECS metadata (<code>169.254.170.2</code>), or local Vault (<code>127.0.0.1:8200</code>) — credential harvest during install. <strong>FP:</strong> SDKs and IaC tooling legitimately read IMDS on cloud hosts; scope to install context and exclude known IaC service accounts.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Miasma credential harvest — metadata/Vault from install runtime</span>
+<span class="cm">// MITRE: T1552.005, T1552.001 | CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: cloud SDKs / IaC agents legitimately querying IMDS</span>
+<span class="cm">// TUNING: exclude approved IaC hosts (terraform/ansible runners) by aid or ComputerName</span>
+#event_simpleName=NetworkConnectIP4
+| ContextBaseFileName=/^(node|bun|npm|node-gyp|python|python3)$/i
+| in(RemoteAddressIP4, values=["169.254.169.254","169.254.170.2","127.0.0.1"])
+| (RemoteAddressIP4!="127.0.0.1" OR RemotePort=8200)
+| table([ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · Phantom Gyp — node-gyp drives node/sh during build</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> <code>node-gyp</code> (or a gyp build) spawning a <code>node index.js</code> / shell child — the install-time effect of a weaponized <code>binding.gyp</code> command-substitution. <strong>FP:</strong> native modules with legitimate gyp build steps; pivot on the child reading secrets (Q4) or spawning bun (Q1) to confirm.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Phantom Gyp — node-gyp build executes node/shell child (binding.gyp abuse)</span>
+<span class="cm">// MITRE: T1195.002, T1059 | CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legit native-module compiles that invoke node during gyp</span>
+<span class="cm">// TUNING: combine with Q1/Q2 hit on same aid; exclude known native-build images</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(node-gyp|gyp|node)$/i
+| CommandLine=/(index\.js|\bsh\b|\bbash\b|-e\s+|child_process)/i
+| ImageFileName=/(\/|\\)(node|sh|bash|zsh|bun)$/i
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · Install-time process reads secret files</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Node/bun/python child touching <code>~/.npmrc</code>, <code>~/.aws/credentials</code>, kubeconfig, <code>~/.config/gcloud</code>, SSH keys, or <code>~/.claude.json</code>. <strong>FP:</strong> CLIs legitimately read their own config; scope to install-tree parents and high-value secret paths.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Miasma secret-file access by install-time runtime</span>
+<span class="cm">// MITRE: T1552.001 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: FileOpenInfo / FileOpen (file-access telemetry enabled)</span>
+<span class="cm">// FALSE POSITIVES: legit CLI config reads (aws/gcloud/kubectl)</span>
+<span class="cm">// TUNING: require ContextBaseFileName in node/bun set AND a high-value path</span>
+#event_simpleName=/FileOpen|FileOpenInfo/
+| ContextBaseFileName=/^(node|bun|npm|python|python3)$/i
+| TargetFileName=/(\.npmrc|\.aws(\/|\\)credentials|kubeconfig|gcloud(\/|\\)|\.ssh(\/|\\)id_|\.claude\.json|VAULT_TOKEN)/i
+| table([ComputerName, UserName, ContextBaseFileName, TargetFileName, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · AI-agent persistence hook written</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Node/bun process writing <code>~/.claude/settings.json</code>, <code>.vscode/tasks.json</code>, or a PyPI <code>.pth</code> in site-packages — the AI-agent / Python startup persistence. <strong>FP:</strong> legitimate editor/agent config saves; scope writer to the install-runtime set and alert on first-write by a node/bun child.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Miasma persistence — AI-agent hook / .pth written by install runtime</span>
+<span class="cm">// MITRE: T1546 | CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: FileWritten / NewExecutableWritten</span>
+<span class="cm">// FALSE POSITIVES: user-driven editor/agent config saves</span>
+<span class="cm">// TUNING: require writer ContextBaseFileName in node/bun/npm; exclude IDE binaries</span>
+#event_simpleName=/FileWritten|NewScriptWritten/
+| ContextBaseFileName=/^(node|bun|npm|python|python3)$/i
+| TargetFileName=/(\.claude(\/|\\)settings\.json|\.vscode(\/|\\)tasks\.json|site-packages(\/|\\).*\.pth)$/i
+| table([ComputerName, UserName, ContextBaseFileName, TargetFileName, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · Token theft — gh / npm token commands at install</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> <code>gh auth token</code>, <code>npm token</code>, or <code>npm whoami</code> executed under a package-install parent — publish-token staging for propagation. <strong>FP:</strong> CI pipelines legitimately call <code>gh auth</code>/<code>npm whoami</code>; key on these running as a <em>child of an install</em> rather than top-level pipeline steps.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Miasma token theft / republish staging</span>
+<span class="cm">// MITRE: T1552.004, T1528, T1195.002 | CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (command line visibility)</span>
+<span class="cm">// FALSE POSITIVES: CI steps that legitimately run gh/npm auth</span>
+<span class="cm">// TUNING: require ParentBaseFileName in node/npm/node-gyp/sh install context</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(node|npm|npx|node-gyp|bun|sh|bash)$/i
+| CommandLine=/(gh\s+auth\s+token|npm\s+token|npm\s+whoami|registry\.npmjs\.org\/-\/npm\/v1\/tokens)/i
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · Sudoers tamper on CI runner</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a process writing a sudoers entry granting <code>runner</code> <code>NOPASSWD:ALL</code>, or any write to <code>/mnt/runner</code> — Miasma's runner privilege escalation.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Miasma privilege escalation — sudoers NOPASSWD write on runner</span>
+<span class="cm">// MITRE: T1548.003 | CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 OR FileWritten</span>
+<span class="cm">// FALSE POSITIVES: rare; legit sudoers automation should be allowlisted</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(NOPASSWD:\s*ALL|(\/|\\)mnt(\/|\\)runner|(\/|\\)etc(\/|\\)sudoers)/i
+| CommandLine=/(echo|tee|sed|cat|printf|mount)/i
+| table([ComputerName, UserName, ImageFileName, CommandLine, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q8 · EDR/security-software discovery by install runtime</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Node/bun child enumerating EDR install paths (<code>/opt/CrowdStrike</code>, <code>/Library/CS/falcon</code>, <code>/opt/sentinelone</code>, <code>/opt/carbonblack</code>) — Miasma's environment fingerprinting. <strong>FP:</strong> inventory/asset agents read these paths; scope to node/bun parentage during install.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: Miasma security-software discovery</span>
+<span class="cm">// MITRE: T1518.001 | CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: FileOpen/FileOpenInfo OR ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: inventory/asset agents enumerating security tooling</span>
+<span class="cm">// TUNING: require ContextBaseFileName node/bun and exclude asset-mgmt agents</span>
+#event_simpleName=/FileOpen|FileOpenInfo/
+| ContextBaseFileName=/^(node|bun|python|python3)$/i
+| TargetFileName=/(\/opt\/CrowdStrike|\/Library\/CS\/falcon|\/opt\/sentinelone|\/opt\/carbonblack)/i
+| table([ComputerName, UserName, ContextBaseFileName, TargetFileName, aid], limit=200)</pre>
+        </div>
+      </div>
+
+      <p class="callout callout-info"><strong>Tuning order:</strong> Q1 and Q7 are near-zero-FP — promote first. Q2/Q3 fire on credential harvest and Phantom Gyp; pair them on the same <code>aid</code> for a high-confidence install-time compromise. Q4/Q5/Q6/Q8 are hunt-grade pivots — investigate hits, don't alert blindly.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 9 IOA RECS ===================== -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA Name</th><th>Pattern</th><th>Exclusions</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Miasma — Bun dropped by Node tooling</td><td>Process create: image <code>bun</code>/<code>bun.exe</code> with parent <code>node|npm|node-gyp|npx</code> (from Q1)</td><td>Allowlist repos that legitimately ship Bun in their build</td><td><span class="badge b-crit">Block / Detect-Critical</span></td></tr>
+          <tr><td>Miasma — Sudoers NOPASSWD on runner</td><td>Command line matches <code>NOPASSWD:\s*ALL</code> targeting <code>runner</code> or write to <code>/mnt/runner</code> (Q7)</td><td>Allowlist sanctioned sudoers automation</td><td><span class="badge b-crit">Block</span></td></tr>
+          <tr><td>Miasma — Install runtime hits IMDS/Vault</td><td>Network connect from <code>node|bun</code> to <code>169.254.169.254</code>/<code>169.254.170.2</code>/<code>127.0.0.1:8200</code> (Q2)</td><td>Exclude approved IaC runner aids</td><td><span class="badge b-high">Detect-High</span></td></tr>
+          <tr><td>Miasma — AI-agent hook write by node/bun</td><td>File write to <code>.claude/settings.json</code> or <code>.vscode/tasks.json</code> by <code>node|bun</code> (Q5)</td><td>Exclude IDE/agent self-writes</td><td><span class="badge b-high">Detect-High</span></td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn">Promote Q1 and Q7 to <strong>blocking</strong> Custom IOAs on CI runner host groups first (lowest FP, highest impact). Run Q2/Q5 as Detect-only for 1–2 weeks to baseline before any block.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 10 IOC APPENDIX ===================== -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p>One-click blocks for Falcon IOC Management and your detection backlog. Hashes are sourced (§4/§18) but <strong>low-durability</strong> (per-infection re-encryption) — prefer the behavioral signatures.</p>
+      <div class="ioc-grab-grid">
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,ef641e956f91d501b748085996303c96a64d67f63bfeef0dda175e5aa19cca90,detect,critical,2026-12-21,Miasma Phantom Gyp binding.gyp,campaign:Miasma
+sha256,c2a60face766f69f82c972375f35f8ebaa45d6c464176974e631d9a78d6bea0a,detect,critical,2026-12-21,Miasma stage-1 loader,campaign:Miasma
+sha256,396cac9e457ec54ff6d3f6311cb5cc1da8054d019ce3ffa1de5741506c7a4ea4,detect,high,2026-12-21,Miasma payload remediations-client,campaign:Miasma
+sha256,d8d170af3de17bb9b217c52aaaffdf9395f35ef015a57ef676e406c121e5e223,detect,high,2026-12-21,Miasma payload advisor-components,campaign:Miasma
+sha256,f0641e053e81f0d01fa46db35a83e0a34494886503086866d956d14e81fd3e1c,detect,high,2026-12-21,Miasma payload hcc-kessel-mcp,campaign:Miasma
+sha256,d5a97614d5319ce9c8e01fa0b4eb06fb5b9e54fa13b23d718174a1546444123b,detect,high,2026-12-21,Miasma payload fe-components-testing,campaign:Miasma
+sha256,f88258e21592084a2f93a572ade8f9b91c0cd0e242f5cf6121ed7bad0f7bdd1f,detect,high,2026-12-21,Miasma payload notifications,campaign:Miasma
+sha256,25e121e3b7d300c0d0075b33e5eca39a3e6a659fb9cfee52b70ef71686628f1b,detect,high,2026-12-21,Miasma payload chrome,campaign:Miasma
+md5,8cd0b0fbd4232face584c66d9754bf1e,detect,high,2026-12-21,Miasma stage-1 loader (MD5),campaign:Miasma</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">grep / IOA / SIEM</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behav"># Phantom Gyp — weaponized binding.gyp sources array
+"sources": ["&lt;!(node index.js &gt; /dev/null 2&gt;&amp;1 &amp;&amp; echo stub.c)"]
+# v1-wave preinstall hook
+"preinstall": "node index.js"
+# Dead-drop / tripwire string markers
+Miasma: The Spreading Blight
+IfYouInvalidateThisTokenItWillNukeTheComputerOfTheOwner
+# Dropped Bun runtime paths
+/tmp/b-&lt;rand&gt;/bun
+/var/folders/&lt;...&gt;/b-&lt;rand&gt;/bun
+bun.exe
+/tmp/p&lt;base36&gt;.js
+# Behavioral chains
+node|npm|node-gyp  -&gt;  bun (or /tmp/b-*/bun)
+node|bun  -&gt;  169.254.169.254 | 169.254.170.2 | 127.0.0.1:8200
+node|bun  writes  ~/.claude/settings.json | .vscode/tasks.json | site-packages/*.pth</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Affected npm Versions</span><span class="igc">lockfile audit</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-pkgs',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-pkgs"># @redhat-cloud-services scope — published on/after 2026-06-01
+@redhat-cloud-services/chrome@2.3.1 @2.3.2 @2.3.4
+@redhat-cloud-services/frontend-components@7.7.2 @7.7.3 @7.7.5
+@redhat-cloud-services/types@3.6.1 @3.6.2 @3.6.4
+@redhat-cloud-services/rbac-client@9.0.3 @9.0.4 @9.0.6
+@redhat-cloud-services/rule-components@4.7.2 @4.7.3
+@redhat-cloud-services/remediations-client@4.0.4 @4.0.5 @4.0.7
+@redhat-cloud-services/insights-client@4.0.4 @4.0.5 @4.0.7
+@redhat-cloud-services/host-inventory-client@5.0.3 @5.0.4 @5.0.6
+@redhat-cloud-services/javascript-clients-shared@2.0.8 @2.0.9 @2.0.11
+@redhat-cloud-services/notifications@6.9.3
+@redhat-cloud-services/frontend-components-config-utilities@4.11.3
+@redhat-cloud-services/tsc-transform-imports@1.2.2 @1.2.4
+# Second wave (2026-06-03/04)
+@vapi-ai/server-sdk
+ai-sdk-ollama
+# Action: pin to last-known-good PRE-2026-06-01 version; rotate all reachable secrets</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Enrich-only / Do-NOT-Block</span><span class="igc">context, not blocklist</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-enrich',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-enrich"># Legitimate services abused as LOLBin exfil/delivery — DO NOT blocklist
+api.anthropic.com/v1/api        # dormant noop:true spoof channel (legit Anthropic host)
+github.com/oven-sh/bun/releases/download/bun-v1.3.13/   # legit Bun release abused
+registry.npmjs.org/-/npm/v1/tokens   # token-theft endpoint (legit registry)
+fulcio.sigstore.dev / rekor.sigstore.dev   # provenance abuse (legit)
+# Spoofed User-Agents (enrich/correlate only)
+python-requests/2.31.0
+google-api-nodejs-client/7.0.0
+# Mend advisory: MSC-2026-6085</pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 11 VALIDATION GATES ===================== -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>ProcessRollup2 + NetworkConnectIP4 present on CI runner &amp; dev host groups; FileOpen/FileWritten enabled for Q4/Q5/Q8</td><td>&gt; 95% of in-scope hosts reporting in last 24h</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q1–Q3 over 7 days; catalogue legit Bun projects &amp; IaC IMDS readers</td><td>Allowlist authored; residual hits investigable by hand</td></tr>
+          <tr><td>Positive test</td><td>In an isolated lab runner, create a benign <code>binding.gyp</code> with a <code>&lt;!(node …)</code> source and a node→bun spawn</td><td>Q1 and Q3 both fire; correlate on same aid</td></tr>
+          <tr><td>Cred-access test</td><td>Lab: node process curls <code>169.254.169.254</code> + reads a dummy <code>~/.npmrc</code></td><td>Q2 and Q4 fire</td></tr>
+          <tr><td>Promotion</td><td>FP rate of Q1/Q7 over baseline window</td><td>&lt; 1 FP / 1k installs → promote to blocking IOA</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== 12 HARDENING ===================== -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+    <div class="section-body">
+
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <ul>
+          <li><strong>Disable install scripts in CI</strong> — set <code>npm ci --ignore-scripts</code> / <code>npm config set ignore-scripts true</code> for build pipelines. Kills both the preinstall hook <em>and</em> node-gyp execution for pure-JS deps. <span class="badge b-info">M1042</span></li>
+          <li><strong>Pin &amp; freeze</strong> — pin every <code>@redhat-cloud-services/*</code> dep to a known-good PRE-2026-06-01 version; commit lockfiles; enable <code>npm audit signatures</code> / provenance verification. <span class="badge b-info">M1051</span></li>
+          <li><strong>Rotate now</strong> — for any host/runner that installed an affected version since 1 Jun: revoke &amp; reissue npm tokens, GitHub PATs/Actions OIDC roles, and all cloud creds reachable from that identity. <span class="badge b-info">M1027</span></li>
+          <li><strong>Block IMDS from build runtimes</strong> — enforce IMDSv2 hop-limit=1 and deny container/build access to <code>169.254.169.254</code> where not required. <span class="badge b-info">M1037</span></li>
+        </ul>
+      </div>
+
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1–4 weeks)</div>
+        <ul>
+          <li><strong>Egress-restrict CI</strong> — allowlist build-runner egress to the registry + artifact stores only; deny arbitrary GitHub-release downloads (blocks the Bun fetch). <span class="badge b-info">M1037</span></li>
+          <li><strong>Trusted publishing / OIDC</strong> — migrate npm publishing to OIDC trusted publishing with required reviewers; remove long-lived automation tokens. <span class="badge b-info">M1026 / M1032</span></li>
+          <li><strong>AI-agent hook hygiene</strong> — treat <code>~/.claude/settings.json</code> and <code>.vscode/tasks.json</code> as sensitive; FIM them and block repo-supplied <code>folderOpen</code>/SessionStart auto-run. <span class="badge b-info">M1040</span></li>
+          <li><strong>Short-lived runner identities</strong> — ephemeral, least-privilege runners; no standing cloud roles attached to build hosts. <span class="badge b-info">M1018</span></li>
+        </ul>
+      </div>
+
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1–3 months)</div>
+        <ul>
+          <li><strong>Internal registry / vetting proxy</strong> — proxy all npm/PyPI through an internal mirror with version-allowlisting, install-script policy, and provenance gates. <span class="badge b-info">M1016</span></li>
+          <li><strong>Build isolation</strong> — run installs in network-segmented, no-secret-mounted sandboxes; inject secrets only at deploy, never at <code>npm install</code>. <span class="badge b-info">M1030</span></li>
+          <li><strong>SBOM + continuous provenance</strong> — generate SBOMs per build and alert on dependency drift / unsigned republish. <span class="badge b-info">M1051</span></li>
+        </ul>
+      </div>
+      <p class="callout callout-info">MITRE mitigations cited as the <em>why</em>; the <em>what</em> is anchored to npm/OpenSSF Secure Supply Chain guidance, CIS Software Supply Chain Security, and cloud-provider IMDSv2 hardening (AWS/Azure/GCP) — see §13 for deployable form.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 13 PLAYBOOKS ===================== -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+
+      <h3>1 · Harden CI installs (disable scripts + pin)</h3>
+<pre class="code"># .npmrc committed at repo root (and in CI image)
+ignore-scripts=true
+audit-signatures=true
+# CI install step
+npm ci --ignore-scripts
+# When a dep genuinely needs a native build, run it explicitly + reviewed:
+#   npm rebuild &lt;allowlisted-pkg&gt;</pre>
+
+      <h3>2 · Audit lockfiles for affected versions (run on every repo)</h3>
+<pre class="code">#!/usr/bin/env bash
+# Flag any resolved @redhat-cloud-services version present in lockfiles.
+set -euo pipefail
+grep -REn '@redhat-cloud-services/' \
+  --include='package-lock.json' --include='yarn.lock' --include='pnpm-lock.yaml' . \
+  | grep -Ei 'chrome@2\.3\.|frontend-components@7\.7\.|types@3\.6\.|rbac-client@9\.0\.|rule-components@4\.7\.|remediations-client@4\.0\.|insights-client@4\.0\.|host-inventory-client@5\.0\.|notifications@6\.9\.3|config-utilities@4\.11\.3|tsc-transform-imports@1\.2\.' \
+  && echo "[!] Affected Miasma version(s) found — pin to pre-2026-06-01 and rotate secrets" \
+  || echo "[ok] No known-affected versions in lockfiles"</pre>
+
+      <h3>3 · Scan extracted node_modules for Phantom Gyp / markers</h3>
+<pre class="code">#!/usr/bin/env bash
+# Detect weaponized binding.gyp and dead-drop markers in installed trees.
+set -euo pipefail
+ROOT="${1:-.}"
+grep -REn --include='binding.gyp' '&lt;!\(.*node ' "$ROOT" \
+  && echo "[!] Phantom Gyp command-substitution in binding.gyp"
+grep -REn -e 'Miasma: The Spreading Blight' \
+          -e 'IfYouInvalidateThisTokenItWillNukeTheComputerOfTheOwner' \
+          -e '"preinstall": *"node index.js"' "$ROOT" \
+  && echo "[!] Miasma marker found" || echo "[ok] clean"</pre>
+
+      <h3>4 · Enforce IMDSv2 hop-limit on AWS build hosts</h3>
+<pre class="code"># Require IMDSv2 and block container hop to metadata (run per instance / in launch template)
+aws ec2 modify-instance-metadata-options \
+  --instance-id i-EXAMPLE \
+  --http-tokens required \
+  --http-put-response-hop-limit 1 \
+  --http-endpoint enabled</pre>
+    </div>
+  </div>
+
+  <!-- ===================== 14 CONTAINMENT ===================== -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Isolate</strong></td><td>Network-contain (Falcon RTR) any host with a Q1/Q2/Q3 hit. Freeze the affected CI pipeline; quarantine build caches and dropped <code>/tmp/b-*/bun</code>.</td><td>SOC / Platform</td><td>Detection hits, dropped binaries, lockfiles</td></tr>
+          <tr><td><strong>Eradicate</strong></td><td>Revoke ALL credentials reachable from affected hosts (npm tokens, GitHub PAT/OIDC roles, AWS/Azure/GCP keys, Vault, kube SA tokens). Delete dead-drop GitHub repos. Remove AI-agent hooks &amp; sudoers writes. Pin deps pre-2026-06-01; rebuild images clean.</td><td>IAM / Cloud / Dev</td><td>Rotation tickets, repo deletions, diff of hooks</td></tr>
+          <tr><td><strong>Recover</strong></td><td>Re-issue least-privilege tokens via trusted publishing; restore pipelines with <code>--ignore-scripts</code> + egress allowlist; re-enable runners only after FIM baseline clean.</td><td>Platform / SecEng</td><td>Clean rebuild logs, new token inventory</td></tr>
+          <tr><td><strong>Verify</strong></td><td>Re-run Q1–Q8 over 72h; confirm no metadata/Vault touches from install runtimes; audit npm publish events for unexpected republish.</td><td>SOC</td><td>Zero-hit confirmation, npm audit export</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-danger">Assume <strong>full credential compromise</strong> for any identity reachable from a host that installed an affected version since 1 Jun 2026. Token rotation is non-optional — the worm's entire purpose is exfil + republish, so stolen publish tokens enable re-propagation even after you clean the endpoint.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 15 COVERAGE MAP ===================== -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1195.002 / T1059</td><td>Install-time exec (preinstall + Phantom Gyp) → bun</td><td>Q1, Q3</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1552.005 / .001</td><td>Metadata / Vault / secret-file harvest</td><td>Q2, Q4</td><td>Partial</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1546</td><td>AI-agent / .pth persistence</td><td>Q5</td><td>Yes</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1552.004 / T1528</td><td>gh/npm token theft</td><td>Q6</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1548.003</td><td>Sudoers NOPASSWD on runner</td><td>Q7</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1518.001</td><td>EDR fingerprinting</td><td>Q8</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1567 / T1080</td><td>GitHub dead-drop exfil &amp; package republish</td><td>—</td><td>No</td><td><span class="badge b-high">GAP — off-endpoint</span></td></tr>
+        </tbody>
+      </table>
+      <p><strong>Known gaps:</strong> Exfil-over-GitHub and package republish are <em>not</em> endpoint-visible — covered only by the native npm/GitHub/cloud audit hunts in §7. Ephemeral CI runners without a Falcon sensor are the largest blind spot; prioritize sensor coverage on build infrastructure. Q4/Q5/Q8 depend on file-access telemetry being enabled in the prevention policy. <strong>Validation:</strong> all gates in §11 must pass before promoting Q1/Q7 to blocking IOAs.</p>
+    </div>
+  </div>
+
+  <!-- ===================== 16 TICKET ===================== -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code" id="ticket-blk">TITLE:      Miasma — Red Hat npm Supply-Chain Credential Worm (Shai-Hulud variant)
+SEVERITY:   Critical — active self-propagating worm, multi-cloud credential theft
+SCOPE:      CI/CD runners + dev hosts running npm install; npm/GitHub/cloud identities
+HYPOTHESIS: Install-time exec (preinstall + Phantom Gyp binding.gyp) drops bun and
+            harvests GitHub/npm/AWS/Azure/GCP/Vault/K8s secrets, then republishes
+            infected packages to propagate.
+QUERIES:    Q1 bun-from-node (high)  · Q2 metadata/Vault (high) · Q3 Phantom Gyp (high)
+            Q4 secret-file reads     · Q5 AI-agent hooks       · Q6 token theft
+            Q7 sudoers NOPASSWD (high) · Q8 EDR discovery
+DO FIRST:   Run Q1 + Q7 across CI runner + dev host groups (lowest FP). Pair Q2+Q3 on
+            same aid for confirmed install-time compromise.
+FINDINGS:   &lt;record aid / ComputerName / package version / dropped bun path&gt;
+GAPS:       Exfil-over-GitHub + republish = off-endpoint (see §7). Sensorless ephemeral
+            runners = blind spot. Q4/Q5/Q8 need file-access telemetry.
+ACTIONS:    Isolate hit hosts; rotate ALL reachable npm/GitHub/cloud tokens; pin deps
+            pre-2026-06-01; npm ci --ignore-scripts; restrict CI egress + IMDSv2.
+OWNER:      HuntPack
+VERSION:    v0.1 · 2026-06-21</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 17 CHANGELOG ===================== -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-21</span><span>Initial Miasma HuntPack — 8 CQL hunts, 4 IOA recs, sourced IOC appendix (per-package SHA256 + Phantom Gyp signature), tiered hardening, containment runbook. All atomic IOCs traced to Tier-1 vendor sources (MS, Mend MSC-2026-6085, Harness, Phoenix, Upwind).</span></div>
+    </div>
+  </div>
+
+  <!-- ===================== 18 REFERENCES ===================== -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://www.microsoft.com/en-us/security/blog/2026/06/02/preinstall-persistence-inside-red-hat-npm-miasma-credential-stealing-campaign/">Microsoft Security Blog — Preinstall Persistence: Red Hat npm Miasma</a></td><td>Per-package SHA256, exec chain, harvest mechanics, dead-drop, sudoers</td><td>2026-06-21</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://www.mend.io/blog/redhat-cloud-services-packages-drop-multi-cloud-credential-stealer/">Mend.io — Multi-Cloud Credential Stealer (MSC-2026-6085)</a></td><td>Phantom Gyp signature, loader/binding.gyp SHA256, bun URL, metadata endpoints</td><td>2026-06-21</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://www.harness.io/blog/shai-hulud-miasma-inside-the-compromise-of-red-hats-packages">Harness.io — Inside the Compromise of Red Hat's Packages</a></td><td>Scope (32/96), OIDC/SLSA abuse, hash-evasion, gh token harvest</td><td>2026-06-21</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://phoenix.security/miasma-redhat-cloud-services-npm-supply-chain-shai-hulud-variant/">Phoenix.security — Miasma Shai-Hulud Variant</a></td><td>Decrypted payload SHA256, AI-agent hook paths, PyPI Hades wave, 73-repo auto-disable</td><td>2026-06-21</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://www.upwind.io/feed/miasma-npm-supply-chain-worm-redhat-credential-harvest">Upwind.io — Miasma npm Worm / Red Hat Credential Harvest</a></td><td>Affected versions, .github/setup.js, spoofed User-Agents</td><td>2026-06-21</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td><a href="https://thehackernews.com/2026/06/miasma-supply-chain-attack-compromises.html">The Hacker News — Miasma Supply-Chain Attack</a></td><td>Timeline, AI-agent triggers, attribution (TeamPCP), spoof channel</td><td>2026-06-21</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td><a href="https://unit42.paloaltonetworks.com/monitoring-npm-supply-chain-attacks/">Unit 42 — Monitoring npm Supply-Chain Attacks</a></td><td>Ecosystem context, second-wave package counts</td><td>2026-06-21</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Generated 2026-06-21 · HuntPack v0.1 · Defensive hunt/detection/hardening content only.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
