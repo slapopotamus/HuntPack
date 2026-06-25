@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mistic Backdoor — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Mistic Backdoor: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Mistic-Backdoor-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mistic Backdoor — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Mistic Backdoor: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Mistic-Backdoor-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --accent:#02c39a;            /* Network / C2 / backdoor theme — teal */
+    --accent-dim:#028a6e;
+    --bg:#0d1117; --bg2:#161b22; --bg3:#1c2330;
+    --border:#30363d; --border2:#3d4654;
+    --fg:#e6edf3; --fg-dim:#9da7b3; --fg-faint:#6e7681;
+    --red:#f85149; --amber:#d29922; --green:#3fb950; --blue:#58a6ff; --purple:#d2a8ff;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:15px;line-height:1.6}
+  a{color:var(--accent)}
+  code{font-family:var(--mono);background:var(--bg3);padding:1px 5px;border-radius:4px;font-size:.86em;color:#cdd9e5}
+
+  /* ---- Sidebar TOC ---- */
+  #sidebar{position: fixed;top:0;left: 0;width:268px;height:100vh;overflow-y:auto;
+    background:var(--bg2);border-right:1px solid var(--border);padding:18px 14px 40px;
+    transition:transform .2s ease;z-index:50}
+  #sidebar.toc-collapsed{transform:translateX(-268px)}
+  #sidebar h1{font-size:15px;margin:0 0 2px;color:var(--accent)}
+  #sidebar .ver{font-size:11px;color:var(--fg-faint);margin-bottom:14px}
+  #sidebar nav a{display:block;color:var(--fg-dim);text-decoration:none;font-size:12.5px;
+    padding:5px 9px;border-radius:6px;border-left:2px solid transparent;margin-bottom:1px}
+  #sidebar nav a:hover{background:var(--bg3);color:var(--fg)}
+  #sidebar nav a.active{background:var(--bg3);color:var(--accent);border-left-color:var(--accent)}
+  #toc-toggle{position:fixed;top:14px;left:282px;z-index:60;background:var(--bg2);
+    color:var(--accent);border:1px solid var(--border);border-radius:8px;cursor:pointer;
+    font-size:17px;width:38px;height:38px;line-height:1;transition:left .2s ease}
+  body.toc-collapsed #toc-toggle{left:14px}
+
+  #main{margin-left:268px;padding:34px 40px 90px;max-width:1080px;transition:margin-left .2s ease}
+  body.toc-collapsed #main{margin-left:0}
+
+  header.pack{border-bottom:1px solid var(--border);padding-bottom:20px;margin-bottom:8px}
+  header.pack h1{margin:0 0 6px;font-size:27px;letter-spacing:-.3px}
+  header.pack h1 .pill{font-size:12px;vertical-align:middle;background:var(--accent);color:#04241c;
+    padding:3px 9px;border-radius:20px;margin-left:8px;font-weight:700}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px;color:var(--fg-dim);margin-top:10px}
+  .meta b{color:var(--fg)}
+
+  .section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+    padding:22px 24px;margin:20px 0;scroll-margin-top:18px}
+  .section h2{margin:0 0 14px;font-size:19px;color:var(--accent);
+    border-bottom:1px solid var(--border);padding-bottom:9px;display:flex;align-items:center;gap:9px}
+  .section h2 .n{font-size:12px;color:var(--fg-faint);font-weight:600;
+    border:1px solid var(--border2);border-radius:6px;padding:1px 7px}
+  .section h3{font-size:15px;margin:20px 0 8px;color:var(--fg)}
+
+  p{margin:9px 0}
+  ul,ol{margin:9px 0;padding-left:22px}
+  li{margin:4px 0}
+
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg3);color:var(--fg);font-weight:600}
+  tr:nth-child(even) td{background:#12171f}
+
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .t-high{background:rgba(63,185,80,.16);color:var(--green)}
+  .t-med{background:rgba(210,153,34,.16);color:var(--amber)}
+  .t-low{background:rgba(110,118,129,.18);color:var(--fg-dim)}
+  .t-crit{background:rgba(248,81,73,.16);color:var(--red)}
+
+  pre{background:#0a0e14;border:1px solid var(--border);border-radius:9px;
+    padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;
+    line-height:1.55;color:#cdd9e5;margin:0}
+  pre .cm{color:#6e7681;font-style:italic}
+
+  .card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+  .card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+    padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border)}
+  .card .hd .ti{font-weight:700;font-size:14.5px;color:var(--fg)}
+  .card .hd .sub{font-size:11.5px;color:var(--fg-dim);margin-top:3px}
+  .card .ratings{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .card .body{padding:14px 16px}
+  .btnrow{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  button{font-family:inherit}
+  .btn{background:var(--accent);color:#04241c;border:none;border-radius:7px;padding:7px 13px;
+    font-size:12.5px;font-weight:700;cursor:pointer}
+  .btn:hover{background:var(--accent-dim);color:#fff}
+  .btn.alt{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  .btn.alt:hover{background:rgba(2,195,154,.12);color:var(--accent)}
+
+  .region-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:11px 15px;margin:6px 0 18px}
+  .region-bar label{font-size:12.5px;color:var(--fg-dim);font-weight:600}
+  select{background:var(--bg);color:var(--fg);border:1px solid var(--border2);
+    border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit}
+
+  .ioc-grab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;margin-top:12px}
+  .ioc-grab{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 15px}
+  .ioc-grab .gh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .ioc-grab .gh .lbl{font-weight:700;font-size:13px;color:var(--accent)}
+  .ioc-grab pre{font-size:11.5px;max-height:200px;overflow:auto}
+
+  .gate{display:flex;gap:11px;align-items:flex-start;padding:11px 14px;border:1px solid var(--border);
+    border-radius:9px;margin:9px 0;background:var(--bg3)}
+  .gate .gn{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#04241c;
+    font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+
+  .cov-yes{color:var(--green);font-weight:700}
+  .cov-part{color:var(--amber);font-weight:700}
+  .cov-gap{color:var(--red);font-weight:700}
+
+  .ticket{background:#0a0e14;border:1px solid var(--border2);border-left:3px solid var(--accent);
+    border-radius:9px;padding:16px 18px;font-family:var(--mono);font-size:12.5px;color:#cdd9e5;white-space:pre-wrap}
+
+  .callout{border-left:3px solid var(--accent);background:var(--bg3);padding:11px 15px;border-radius:0 9px 9px 0;margin:13px 0}
+  .callout.warn{border-left-color:var(--amber)}
+  .callout.danger{border-left-color:var(--red)}
+
+  footer{color:var(--fg-faint);font-size:12px;text-align:center;padding:30px 0 10px;border-top:1px solid var(--border);margin-top:30px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);
+    color:#04241c;font-weight:700;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;
+    pointer-events:none;transition:opacity .2s;z-index:99}
+  .toast.show{opacity:1}
+  @media(max-width:820px){#sidebar{transform:translateX(-268px)}#main{margin-left:0}#toc-toggle{left:14px}}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Toggle contents">&#9776;</button>
+
+<aside id="sidebar">
+  <h1>Mistic Backdoor</h1>
+  <div class="ver">HuntPack v0.1 · 2026-06-25</div>
+  <nav id="toc">
+    <a href="#s-exec">1 · Executive Summary</a>
+    <a href="#s-sources">2 · Source Review</a>
+    <a href="#s-brief">3 · Hunt Brief &amp; Attack Chain</a>
+    <a href="#s-ioc">4 · Consolidated IOC Table</a>
+    <a href="#s-surface">5 · Affected Surface &amp; Telemetry</a>
+    <a href="#s-attack">6 · ATT&amp;CK Mapping</a>
+    <a href="#s-native">7 · Native Audit-Log Hunts</a>
+    <a href="#s-cql">8 · CQL Hunt Queries</a>
+    <a href="#s-ioa">9 · Custom IOA Recommendations</a>
+    <a href="#s-appendix">10 · Machine-Readable IOC Appendix</a>
+    <a href="#s-gates">11 · Detection Validation Gates</a>
+    <a href="#s-harden">12 · Hardening — Tiered</a>
+    <a href="#s-playbook">13 · Deployable Playbooks</a>
+    <a href="#s-contain">14 · Containment Runbook</a>
+    <a href="#s-coverage">15 · Detection Coverage Map</a>
+    <a href="#s-ticket">16 · Hunt Summary Ticket</a>
+    <a href="#s-changelog">17 · Changelog</a>
+    <a href="#s-refs">18 · References</a>
+  </nav>
+</aside>
+
+<main id="main">
+<header class="pack">
+  <h1>Mistic Backdoor <span class="pill">HUNTPACK</span></h1>
+  <div>Stealthy Windows backdoor masquerading as Microsoft endpoint-security tooling, deployed by ransomware initial-access broker <b>Woodgnat / KongTuke</b>.</div>
+  <div class="meta">
+    <span><b>Aliases:</b> Backdoor.Mistic · MLTBackdoor (Zscaler)</span>
+    <span><b>Actor:</b> Woodgnat / KongTuke (IAB)</span>
+    <span><b>First seen:</b> April 2026</span>
+    <span><b>Version:</b> v0.1 — 2026-06-25</span>
+    <span><b>Theme:</b> Network / C2 / backdoor (teal)</span>
+    <span><b>Classification:</b> Defensive — hunt / detect / harden</span>
+  </div>
+</header>
+
+<!-- 1 -->
+<div class="section" id="s-exec">
+  <h2><span class="n">01</span> Executive Summary</h2>
+  <p><b>Mistic</b> (Symantec: <code>Backdoor.Mistic</code>; Zscaler: <code>MLTBackdoor</code>) is a stealthy, in-memory Windows backdoor active since <b>April 2026</b>, attributed to the financially-motivated initial-access broker <b>Woodgnat</b> (a.k.a. <b>KongTuke</b>). The broker sells footholds to ransomware affiliates including Qilin, Akira, Rhysida, Black Basta, Interlock and 8Base, so a Mistic hit is an early-stage warning of impending ransomware.</p>
+  <p>Mistic's signature move is <b>masquerading as Microsoft endpoint-security software</b> (MITRE <b>T1036.005</b>). A legitimate signed Microsoft binary, <code>MpExtMs.exe</code>, is abused via <b>DLL side-loading</b> (<b>T1574.002</b>) to load a malicious loader <code>version.dll</code>, which hooks <code>GetModuleFileNameW</code> and <code>LoadLibraryW</code> to redirect execution into <code>EndpointDlp.dll</code> — a filename chosen to imitate Microsoft endpoint DLP tooling. The backdoor runs <b>entirely in memory</b> (no payload on disk), supports remote code execution, file transfer, Beacon Object File (BOF) loading, and a self-delete kill switch.</p>
+  <p>A companion <b>.NET credential-stealer DLL (<code>f.dll</code>)</b> displays a <b>fake login screen</b> to harvest user passwords. A privilege-escalation helper <code>n.dll</code> is also deployed. Delivery is via <b>ClickFix / FileFix / CrashFix</b> social-engineering lures leading to an MSI installer.</p>
+  <div class="callout danger"><b>Why this pack leans on behavior, not just hashes.</b> The atomic IOCs below are real and source-cited (Symantec Threat Hunter Team), but Mistic is in-memory, polymorphic at the MSI/DLL layer, and rotates C2 fast. The durable detections are <b>behavioral</b>: a Microsoft-named binary side-loading from an unusual path, <code>version.dll</code> loaded outside System32, a fake-login DLL spawned from a non-browser parent, and beaconing to freshly-registered <code>.top</code>/<code>updater-*</code> infrastructure.</div>
+</div>
+
+<!-- 2 -->
+<div class="section" id="s-sources">
+  <h2><span class="n">02</span> Source Review &amp; Web Hunter Notes</h2>
+  <table>
+    <thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag t-high">1</span></td><td>Symantec / security.com — Threat Hunter Team, "Backdoor.Mistic / ModeloRAT"</td><td>Primary analysis. Full IOC set (9 SHA256, 4 IPs, 25 domains, delivery URL), side-load chain, persistence detail (Run keys masquerading as AnyDesk/Splashtop/Comms, Startup shortcuts, VBScript, scheduled tasks), broker→ransomware linkage.</td><td>yes</td></tr>
+      <tr><td><span class="tag t-high">1</span></td><td>BleepingComputer — "Stealthy Mistic backdoor linked to ransomware access broker KongTuke"</td><td>Corroborates side-load chain (<code>MpExtMs.exe</code>→<code>version.dll</code>→<code>EndpointDlp.dll</code>), in-memory execution, BOF loading, ClickFix/FileFix/CrashFix delivery, fake-login .NET DLL.</td><td>yes</td></tr>
+      <tr><td><span class="tag t-med">2</span></td><td>CyberSecurityNews — "Mistic Backdoor Blends With Microsoft Endpoint Security" (seed source)</td><td>Confirms masquerade theme, function-hooking loader, targeted sectors (insurance, education, IT, professional services).</td><td>yes</td></tr>
+      <tr><td><span class="tag t-med">2</span></td><td>CSO Online · GBHackers · Cyberpress</td><td>Independent restatements; confirm Woodgnat ClickFix/FileFix/CrashFix lure delivery and IAB business model.</td><td>partial</td></tr>
+    </tbody>
+  </table>
+  <p class="meta"><b>Provenance note:</b> every atomic IOC in §4 / §10 traces to the Symantec Threat Hunter Team publication and is corroborated by BleepingComputer. No IOCs were synthesized.</p>
+</div>
+
+<!-- 3 -->
+<div class="section" id="s-brief">
+  <h2><span class="n">03</span> Hunt Brief &amp; Attack Chain</h2>
+  <table>
+    <thead><tr><th>#</th><th>Stage</th><th>Behavior</th><th>Telemetry</th><th>Hunt angle</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Delivery</td><td>ClickFix / FileFix / CrashFix lure → user runs a pasted command / fake "fix" → MSI download (<code>thomphon.com/update.msi</code>).</td><td>ProcessRollup2, DnsRequest, NetworkConnectIP4</td><td><code>msiexec</code> spawned from browser/Explorer with a remote http(s) MSI argument.</td></tr>
+      <tr><td>2</td><td>Install</td><td>MSI drops side-load set into a writable dir; legitimate <code>MpExtMs.exe</code> staged alongside malicious <code>version.dll</code>.</td><td>PeFileWritten, ProcessRollup2</td><td>MS-signed binary running outside <code>\Windows\</code> / <code>\Program Files\</code>.</td></tr>
+      <tr><td>3</td><td>Defense Evasion</td><td>DLL side-loading: <code>version.dll</code> loader hooks <code>GetModuleFileNameW</code>/<code>LoadLibraryW</code>, loads <code>EndpointDlp.dll</code> (masquerades as MS endpoint DLP).</td><td>ProcessRollup2, PeFileWritten, ImageHash</td><td><code>version.dll</code> / <code>EndpointDlp.dll</code> present outside System32; MS-named binary in user-writable path.</td></tr>
+      <tr><td>4</td><td>Execution / C2</td><td>Mistic runs in memory: RCE, file up/download, BOF loading, configurable C2 check-in. Beacons to rotating <code>.top</code> / <code>updater-*</code> / <code>upd-domain-*</code> infra.</td><td>NetworkConnectIP4, DnsRequest</td><td>MS-named process making outbound connections; DNS to known/look-alike C2.</td></tr>
+      <tr><td>5</td><td>Credential Access</td><td>.NET <code>f.dll</code> displays a <b>fake login screen</b> to capture passwords.</td><td>ProcessRollup2, PeFileWritten</td><td>.NET host (<code>rundll32</code>/<code>regsvr32</code>/sideloaded EXE) loading <code>f.dll</code>; fake-lockscreen DLL written.</td></tr>
+      <tr><td>6</td><td>Persistence</td><td>Run-key entries masquerading as <b>AnyDesk / Splashtop / Comms</b>; Startup-folder shortcuts; VBScript launchers; scheduled tasks.</td><td>AsepValueUpdate, RegGenericValueUpdate, ProcessRollup2</td><td>Run-key values naming RMM tools but pointing at non-standard paths / DLLs.</td></tr>
+      <tr><td>7</td><td>Impact (downstream)</td><td>Access sold to ransomware affiliates (Qilin/Akira/Rhysida/Black Basta/Interlock/8Base).</td><td>—</td><td>Treat any Mistic hit as pre-ransomware; escalate.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 4 -->
+<div class="section" id="s-ioc">
+  <h2><span class="n">04</span> Consolidated IOC Table</h2>
+  <p class="meta">All values sourced from Symantec Threat Hunter Team (corroborated by BleepingComputer). Defang where shown; live values neutralized with <code>[.]</code>.</p>
+  <h3>File hashes (SHA256)</h3>
+  <table>
+    <thead><tr><th>SHA256</th><th>Component</th><th>Conf</th></tr></thead>
+    <tbody>
+      <tr><td><code>1e41c7bfaa6aa3b93b6cc024274a10e33f3e12fe7c98c1db387ef8927f9d1984</code></td><td>EndpointDlp.dll (Mistic)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>afd5f1ed45a9867daf3bc64152cef460a06b164c8183e490db39146d4749a82c</code></td><td>EndpointDlp.dll (Mistic)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>db972979d508e75fe730d3b72c2701470fbdaeaf8ebdd674744754fa44438ca5</code></td><td>EndpointDlp.dll (Mistic)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>fb3630822b70bacb56aa4cec29b5a0e3e9acb3920809e70310a4003385a6d34a</code></td><td>EndpointDlp.dll (Mistic)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>59e3c4cb06331b4f2d78a9a0592f3747e573bd01c5a7650c26361d1e25520712</code></td><td>version.dll (loader)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>34d798a6c55e57ed0932b6499f4fbcb5454bdfca903307be101a0594b0ac07bc</code></td><td>f.dll (.NET fake-login credential stealer)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>8c935feec4bd05d5d918df308be417532fb42608fb989a08eab183e0ae699235</code></td><td>n.dll (likely privilege escalation)</td><td><span class="tag t-med">med</span></td></tr>
+      <tr><td><code>3f797a639bc855bc6d5471f327924b62d10900ddec49b970eca6604142bbb4be</code></td><td>aeff97fe.msi (dropper)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td><code>f591275a8f014b29e567529d67c54eb7bb4473db1c38737d6bfd5b3d52c9344e</code></td><td>48b47c0.msi (dropper)</td><td><span class="tag t-high">high</span></td></tr>
+    </tbody>
+  </table>
+  <h3>Network — C2 IPs &amp; delivery URL</h3>
+  <table>
+    <thead><tr><th>Type</th><th>Value</th><th>Conf</th></tr></thead>
+    <tbody>
+      <tr><td>IP</td><td><code>142.93.242[.]144</code></td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td>IP</td><td><code>144.31.53[.]78</code></td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td>IP</td><td><code>198.13.159[.]44</code></td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td>IP</td><td><code>199.91.221[.]42</code></td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td>URL</td><td><code>hxxp://thomphon[.]com/update.msi</code></td><td><span class="tag t-high">high</span></td></tr>
+    </tbody>
+  </table>
+  <h3>C2 / infrastructure domains (25)</h3>
+  <table>
+    <thead><tr><th colspan="3">Domains</th></tr></thead>
+    <tbody>
+      <tr><td><code>authorized-logins[.]net</code></td><td><code>b6w9m2z5x8q1v3k[.]top</code></td><td><code>carrolc[.]com</code></td></tr>
+      <tr><td><code>cj06y9v4xab[.]com</code></td><td><code>cwrtwright[.]com</code></td><td><code>defs.updater-worelos[.]com</code></td></tr>
+      <tr><td><code>ftps.upd-domain-goloro[.]com</code></td><td><code>grande-luna[.]top</code></td><td><code>human-check[.]top</code></td></tr>
+      <tr><td><code>mail.authorized-logins[.]net</code></td><td><code>mailes.upd-domain-goloro[.]com</code></td><td><code>mails.updater-worelos[.]com</code></td></tr>
+      <tr><td><code>mueleer[.]com</code></td><td><code>nano.upscale-kolo[.]com</code></td><td><code>oeannon[.]com</code></td></tr>
+      <tr><td><code>php.authorized-logins[.]net</code></td><td><code>rotoa-upda-lo[.]com</code></td><td><code>sql-updater-service[.]com</code></td></tr>
+      <tr><td><code>sss.authorized-logins[.]net</code></td><td><code>thomphon[.]com</code></td><td><code>upd-domain-goloro[.]com</code></td></tr>
+      <tr><td><code>update.update-fall[.]com</code></td><td><code>updater-worelos[.]com</code></td><td><code>upscale-kolo[.]com</code></td></tr>
+      <tr><td><code>w3xasv14culvnqj[.]top</code></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 5 -->
+<div class="section" id="s-surface">
+  <h2><span class="n">05</span> Affected Surface &amp; Telemetry Matrix</h2>
+  <table>
+    <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead>
+    <tbody>
+      <tr><td>Windows endpoints (workstations / servers)</td><td>ProcessRollup2, PeFileWritten, ImageHash</td><td><span class="tag t-crit">critical</span></td><td>Low — Falcon sensor coverage assumed.</td></tr>
+      <tr><td>Endpoint network egress</td><td>NetworkConnectIP4, DnsRequest</td><td><span class="tag t-high">high</span></td><td>Medium — fast C2 rotation; IOC value perishable.</td></tr>
+      <tr><td>Registry / ASEP persistence</td><td>AsepValueUpdate, RegGenericValueUpdate</td><td><span class="tag t-high">high</span></td><td>Low.</td></tr>
+      <tr><td>Identity / interactive logon (post fake-login theft)</td><td>UserLogon, UserLogonFailed2</td><td><span class="tag t-med">medium</span></td><td>Medium — credential reuse may look legitimate.</td></tr>
+      <tr><td>Scheduled tasks / Startup folder</td><td>ProcessRollup2 (schtasks), PeFileWritten</td><td><span class="tag t-med">medium</span></td><td>Medium — task registration telemetry varies by sensor config.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 6 -->
+<div class="section" id="s-attack">
+  <h2><span class="n">06</span> ATT&amp;CK Mapping</h2>
+  <table>
+    <thead><tr><th>Tactic</th><th>Technique</th><th>ID</th><th>Observed behavior</th></tr></thead>
+    <tbody>
+      <tr><td>Initial Access</td><td>Phishing / User Execution (ClickFix/FileFix/CrashFix)</td><td>T1566 / T1204</td><td>Social-engineering lure tricks user into running pasted command → MSI download.</td></tr>
+      <tr><td>Execution</td><td>Msiexec / Command &amp; Scripting</td><td>T1218.007 / T1059</td><td><code>msiexec</code> installs side-load set; VBScript launchers.</td></tr>
+      <tr><td>Defense Evasion</td><td>DLL Side-Loading</td><td>T1574.002</td><td><code>MpExtMs.exe</code> side-loads malicious <code>version.dll</code> → <code>EndpointDlp.dll</code>.</td></tr>
+      <tr><td>Defense Evasion</td><td>Masquerading: Match Legitimate Name</td><td>T1036.005</td><td>Binaries named after Microsoft endpoint-security tooling; Run keys named after AnyDesk/Splashtop.</td></tr>
+      <tr><td>Defense Evasion</td><td>Hijack Execution Flow / API Hooking</td><td>T1574 / T1056.004</td><td>Loader hooks <code>GetModuleFileNameW</code> &amp; <code>LoadLibraryW</code>; in-memory execution, no disk payload.</td></tr>
+      <tr><td>Persistence</td><td>Registry Run Keys / Startup Folder</td><td>T1547.001</td><td>Run-key + Startup-folder entries impersonating RMM software.</td></tr>
+      <tr><td>Persistence</td><td>Scheduled Task</td><td>T1053.005</td><td>Scheduled-task launchers for the side-load set.</td></tr>
+      <tr><td>Credential Access</td><td>Input Capture: Credential API / GUI fake-login</td><td>T1056 / T1056.002</td><td>.NET <code>f.dll</code> displays a fake login screen to harvest passwords.</td></tr>
+      <tr><td>Privilege Escalation</td><td>(helper) <code>n.dll</code></td><td>TA0004</td><td>Likely privilege-escalation component deployed alongside backdoor.</td></tr>
+      <tr><td>Command &amp; Control</td><td>Application Layer Protocol</td><td>T1071</td><td>Configurable C2 check-in to rotating domains/IPs; BOF loading.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 7 -->
+<div class="section" id="s-native">
+  <h2><span class="n">07</span> Native Audit-Log Hunts (non-CQL)</h2>
+  <ul>
+    <li><b>Sysmon Event ID 7 (Image Loaded)</b> — flag <code>version.dll</code> or <code>EndpointDlp.dll</code> loaded by an image outside <code>C:\Windows\System32\</code> or signed by a non-Microsoft (or absent) signer.</li>
+    <li><b>Windows Security 4688 (Process Creation)</b> — <code>MpExtMs.exe</code> with a parent-image path or working directory outside <code>\Windows\</code> / <code>\Program Files\</code>.</li>
+    <li><b>Windows Security 4657 / Sysmon 13 (Registry)</b> — new <code>...\CurrentVersion\Run</code> values whose name references AnyDesk / Splashtop / "Comms" but whose data points at a DLL, script, or user-writable path.</li>
+    <li><b>Startup folder</b> — new <code>.lnk</code> / <code>.vbs</code> in <code>%AppData%\Microsoft\Windows\Start Menu\Programs\Startup</code>.</li>
+    <li><b>MSI install log / 4688</b> — <code>msiexec</code> invoked with a remote <code>http://</code> / <code>https://</code> package argument, parented by a browser or Explorer.</li>
+    <li><b>Scheduled Tasks (4698)</b> — new task whose action launches a sideloaded EXE or <code>rundll32</code>/<code>regsvr32</code> against the drop directory.</li>
+  </ul>
+</div>
+
+<!-- 8 -->
+<div class="section" id="s-cql">
+  <h2><span class="n">08</span> CrowdStrike LogScale CQL Hunt Queries</h2>
+
+  <div class="region-bar">
+    <label for="cloud-region">Falcon cloud region:</label>
+    <select id="cloud-region" onchange="onRegionChange()">
+      <option value="https://falcon.crowdstrike.com">US-1</option>
+      <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+      <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+      <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+      <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+    </select>
+    <span style="font-size:12px;color:var(--fg-faint)">drives every "Open in Falcon" below</span>
+  </div>
+
+  <!-- Q1 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q1 — Microsoft-named binary side-loading from a user-writable path</div>
+        <div class="sub">Core detection. MpExtMs.exe / version.dll / EndpointDlp.dll running outside Windows/Program Files.</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-low">FP low</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1574.002 / T1036.005</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: MS-named side-load binary running outside trusted dirs</span>
+<span class="cm">// MITRE: T1574.002, T1036.005</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: portable/dev copies of MpExtMs.exe (rare)</span>
+#event_simpleName=ProcessRollup2
+| ImageFileName=/\\(MpExtMs|version|EndpointDlp)\./i
+| ImageFileName!=/\\(Windows|Program Files( \(x86\))?)\\/i
+| table([aid, ComputerName, UserName, FileName, ImageFileName, CommandLine, SHA256HashData, ParentBaseFileName])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q2 — Known Mistic hashes on disk or in process</div>
+        <div class="sub">Atomic hash sweep across process + PE-write telemetry (perishable but high-fidelity).</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-low">FP low</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1574.002</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: Mistic / loader / credential-stealer SHA256 sweep</span>
+<span class="cm">// MITRE: T1574.002, T1056.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2, PeFileWritten</span>
+<span class="cm">// FALSE POSITIVES: none expected for these hashes</span>
+#event_simpleName=/ProcessRollup2|PeFileWritten/
+| SHA256HashData=/^(1e41c7bfaa6aa3b93b6cc024274a10e33f3e12fe7c98c1db387ef8927f9d1984|afd5f1ed45a9867daf3bc64152cef460a06b164c8183e490db39146d4749a82c|db972979d508e75fe730d3b72c2701470fbdaeaf8ebdd674744754fa44438ca5|fb3630822b70bacb56aa4cec29b5a0e3e9acb3920809e70310a4003385a6d34a|59e3c4cb06331b4f2d78a9a0592f3747e573bd01c5a7650c26361d1e25520712|34d798a6c55e57ed0932b6499f4fbcb5454bdfca903307be101a0594b0ac07bc|8c935feec4bd05d5d918df308be417532fb42608fb989a08eab183e0ae699235|3f797a639bc855bc6d5471f327924b62d10900ddec49b970eca6604142bbb4be|f591275a8f014b29e567529d67c54eb7bb4473db1c38737d6bfd5b3d52c9344e)$/i
+| table([aid, ComputerName, FileName, ImageFileName, SHA256HashData, CommandLine])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q3 — version.dll / EndpointDlp.dll written outside System32</div>
+        <div class="sub">Catches the side-load staging step regardless of hash rotation.</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-med">FP medium</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1574.002</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: side-load DLL staged in a non-System32 directory</span>
+<span class="cm">// MITRE: T1574.002</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: PeFileWritten</span>
+<span class="cm">// FALSE POSITIVES: legit apps ship their own version.dll (installers, games)</span>
+<span class="cm">// TUNING: exclude trusted vendor install dirs and your software-deploy staging paths</span>
+#event_simpleName=PeFileWritten
+| TargetFileName=/\\(version|EndpointDlp)\.dll$/i
+| TargetFileName!=/\\(Windows|Program Files( \(x86\))?)\\/i
+| TargetFileName!=/\\(Trusted Vendor|SoftwareDeploy)\\/i
+| table([aid, ComputerName, UserName, TargetFileName, ContextBaseFileName, SHA256HashData])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q4 — Endpoint beaconing to known Mistic C2 IPs</div>
+        <div class="sub">Network sweep against the four Symantec C2 IPs.</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-low">FP low</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1071</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: outbound connection to Mistic C2 IPs</span>
+<span class="cm">// MITRE: T1071</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: none expected (dedicated C2)</span>
+#event_simpleName=NetworkConnectIP4
+| RemoteAddressIP4=/^(142\.93\.242\.144|144\.31\.53\.78|198\.13\.159\.44|199\.91\.221\.42)$/
+| table([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, ContextProcessId])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q5 — DNS to Mistic C2 / look-alike infrastructure</div>
+        <div class="sub">Resolves the 25 known domains plus the updater-* / upd-domain-* naming pattern.</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-med">FP medium</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1071</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: DNS lookup of Mistic C2 / updater-themed look-alike domains</span>
+<span class="cm">// MITRE: T1071</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest</span>
+<span class="cm">// FALSE POSITIVES: the broad updater-*/upd-domain-* regex may catch benign vendors</span>
+<span class="cm">// TUNING: keep the literal-domain arm always-on; gate the pattern arm to alert-only review</span>
+#event_simpleName=DnsRequest
+| DomainName=/(authorized-logins\.net|updater-worelos\.com|upd-domain-goloro\.com|upscale-kolo\.com|update-fall\.com|sql-updater-service\.com|rotoa-upda-lo\.com|thomphon\.com|mueleer\.com|oeannon\.com|carrolc\.com|cwrtwright\.com|grande-luna\.top|human-check\.top|b6w9m2z5x8q1v3k\.top|w3xasv14culvnqj\.top|cj06y9v4xab\.com)$/i
+| table([aid, ComputerName, ContextBaseFileName, DomainName, ContextProcessId])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q6 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q6 — Microsoft-named process making outbound network connections</div>
+        <div class="sub">Behavioral: MpExtMs.exe / endpoint-DLP-named host beaconing — hash-independent.</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-med">FP medium</span><span class="tag t-med">COST medium</span><span class="tag t-crit">T1574.002 / T1071</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: MS-endpoint-named process initiating egress (side-load beacon)</span>
+<span class="cm">// MITRE: T1574.002, T1071</span>
+<span class="cm">// CONF: high  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: genuine Defender components phone home to MS-owned ranges</span>
+<span class="cm">// TUNING: exclude Microsoft-owned destination ASNs / RFC1918 internal updaters</span>
+#event_simpleName=NetworkConnectIP4
+| ContextBaseFileName=/^(MpExtMs\.exe|EndpointDlp\.dll|version\.dll)$/i
+| RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/
+| table([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, ContextProcessId])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q7 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q7 — msiexec installing a remote MSI from a browser/Explorer parent</div>
+        <div class="sub">Catches the ClickFix → remote-MSI delivery step.</div>
+        <div class="ratings"><span class="tag t-med">CONF medium</span><span class="tag t-med">FP medium</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1218.007 / T1204</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: msiexec launching a remote http(s) package via browser/Explorer</span>
+<span class="cm">// MITRE: T1218.007, T1204</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legit web-delivered installers / software portals</span>
+<span class="cm">// TUNING: allowlist sanctioned software-portal domains in the CommandLine arm</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^msiexec\.exe$/i
+| CommandLine=/https?:\/\//i
+| ParentBaseFileName=/^(chrome|msedge|firefox|brave|explorer|powershell|cmd|mshta|wscript)\.exe$/i
+| table([aid, ComputerName, UserName, ParentBaseFileName, CommandLine])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q8 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q8 — Run-key persistence masquerading as RMM software</div>
+        <div class="sub">ASEP value naming AnyDesk/Splashtop/Comms but pointing at a DLL/script/odd path.</div>
+        <div class="ratings"><span class="tag t-med">CONF medium</span><span class="tag t-med">FP medium</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1547.001 / T1036.005</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: Run-key value impersonating RMM tools, odd target</span>
+<span class="cm">// MITRE: T1547.001, T1036.005</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: AsepValueUpdate</span>
+<span class="cm">// FALSE POSITIVES: genuine AnyDesk/Splashtop installs (point at vendor Program Files)</span>
+<span class="cm">// TUNING: exclude RegStringValue paths under the real vendor Program Files dirs</span>
+#event_simpleName=AsepValueUpdate
+| RegValueName=/(AnyDesk|Splashtop|Comms)/i
+| RegStringValue=/(\.dll|\.vbs|\.js|\\Users\\|\\AppData\\|\\ProgramData\\|rundll32|regsvr32)/i
+| RegStringValue!=/\\Program Files( \(x86\))?\\(AnyDesk|Splashtop)\\/i
+| table([aid, ComputerName, RegObjectName, RegValueName, RegStringValue])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q9 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q9 — Fake-login credential stealer DLL (f.dll) written / loaded</div>
+        <div class="sub">.NET fake-lockscreen DLL staged or executed via rundll32/regsvr32.</div>
+        <div class="ratings"><span class="tag t-high">CONF high</span><span class="tag t-low">FP low</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1056.002</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: fake-login credential-stealer DLL staged or invoked</span>
+<span class="cm">// MITRE: T1056.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: PeFileWritten, ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: a stray user file literally named f.dll (rare); hash arm removes doubt</span>
+#event_simpleName=/PeFileWritten|ProcessRollup2/
+| SHA256HashData=/^34d798a6c55e57ed0932b6499f4fbcb5454bdfca903307be101a0594b0ac07bc$/i
+| table([aid, ComputerName, UserName, FileName, TargetFileName, ImageFileName, CommandLine, SHA256HashData])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q10 -->
+  <div class="card">
+    <div class="hd">
+      <div><div class="ti">Q10 — VBScript / WScript launcher in user-writable path</div>
+        <div class="sub">Persistence/exec via VBScript launchers from AppData/Startup.</div>
+        <div class="ratings"><span class="tag t-med">CONF medium</span><span class="tag t-med">FP medium</span><span class="tag t-low">COST low</span><span class="tag t-crit">T1059.005</span></div>
+      </div></div>
+    <div class="body">
+<pre class="cql"><span class="cm">// HUNT: wscript/cscript running a .vbs from a user-writable dir</span>
+<span class="cm">// MITRE: T1059.005, T1547.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legit logon/maintenance scripts in user profiles</span>
+<span class="cm">// TUNING: allowlist known IT script paths / signed admin tooling</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^(wscript|cscript)\.exe$/i
+| CommandLine=/\.vbs/i
+| CommandLine=/\\(Users|AppData|ProgramData)\\/i
+| table([aid, ComputerName, UserName, ParentBaseFileName, CommandLine])</pre>
+      <div class="btnrow">
+        <button class="btn" onclick="copyQuery(this)">Copy CQL</button>
+        <button class="btn alt" onclick="openFalcon(this)">Open in Falcon &#8599;</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 9 -->
+<div class="section" id="s-ioa">
+  <h2><span class="n">09</span> CrowdStrike Custom IOA Recommendations</h2>
+  <table>
+    <thead><tr><th>IOA</th><th>Basis (query)</th><th>Action</th><th>Sev</th></tr></thead>
+    <tbody>
+      <tr><td>MS-named binary executing outside trusted dirs</td><td>Q1</td><td>Detect → Block (process create, ImageFileName regex + path exclusion)</td><td><span class="tag t-crit">critical</span></td></tr>
+      <tr><td>Side-load DLL written outside System32</td><td>Q3</td><td>Detect (file write IOA)</td><td><span class="tag t-high">high</span></td></tr>
+      <tr><td>Beacon to known Mistic C2 IPs</td><td>Q4</td><td>Custom IOC (IP) — block + alert</td><td><span class="tag t-crit">critical</span></td></tr>
+      <tr><td>Fake-login DLL hash (f.dll)</td><td>Q9</td><td>Custom IOC (SHA256) — block</td><td><span class="tag t-crit">critical</span></td></tr>
+      <tr><td>RMM-named Run key with DLL/script target</td><td>Q8</td><td>Detect (registry IOA)</td><td><span class="tag t-high">high</span></td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><b>Alert package (Q1 / Q4 — IOA candidates).</b> Scheduled Search <code>DETECT — Mistic Side-Load (Woodgnat)</code>. Email subject: <code>[CRITICAL] Detection: Mistic Backdoor — MS-named binary side-loading / C2 beacon</code>. L1 triage: (1) confirm <code>ImageFileName</code> path is non-standard; (2) pull <code>SHA256HashData</code>, compare to §4; (3) check host for outbound to §4 IPs/domains; (4) look for <code>f.dll</code> fake-login DLL and RMM-named Run keys; (5) network-contain host; (6) escalate as <b>pre-ransomware</b> — actor sells to Qilin/Akira/Rhysida/Black Basta/Interlock/8Base.</div>
+</div>
+
+<!-- 10 -->
+<div class="section" id="s-appendix">
+  <h2><span class="n">10</span> Machine-Readable IOC Appendix</h2>
+  <p>Grouped quick-copy grid (defanged where networked). Source: Symantec Threat Hunter Team.</p>
+  <div class="ioc-grab-grid">
+    <div class="ioc-grab">
+      <div class="gh"><span class="lbl">SHA256 (9)</span><button class="btn" onclick="copyBlock(this)">Copy</button></div>
+<pre>1e41c7bfaa6aa3b93b6cc024274a10e33f3e12fe7c98c1db387ef8927f9d1984
+afd5f1ed45a9867daf3bc64152cef460a06b164c8183e490db39146d4749a82c
+db972979d508e75fe730d3b72c2701470fbdaeaf8ebdd674744754fa44438ca5
+fb3630822b70bacb56aa4cec29b5a0e3e9acb3920809e70310a4003385a6d34a
+59e3c4cb06331b4f2d78a9a0592f3747e573bd01c5a7650c26361d1e25520712
+34d798a6c55e57ed0932b6499f4fbcb5454bdfca903307be101a0594b0ac07bc
+8c935feec4bd05d5d918df308be417532fb42608fb989a08eab183e0ae699235
+3f797a639bc855bc6d5471f327924b62d10900ddec49b970eca6604142bbb4be
+f591275a8f014b29e567529d67c54eb7bb4473db1c38737d6bfd5b3d52c9344e</pre>
+    </div>
+    <div class="ioc-grab">
+      <div class="gh"><span class="lbl">C2 IPs (4)</span><button class="btn" onclick="copyBlock(this)">Copy</button></div>
+<pre>142.93.242.144
+144.31.53.78
+198.13.159.44
+199.91.221.42</pre>
+    </div>
+    <div class="ioc-grab">
+      <div class="gh"><span class="lbl">Domains (25)</span><button class="btn" onclick="copyBlock(this)">Copy</button></div>
+<pre>authorized-logins.net
+b6w9m2z5x8q1v3k.top
+carrolc.com
+cj06y9v4xab.com
+cwrtwright.com
+defs.updater-worelos.com
+ftps.upd-domain-goloro.com
+grande-luna.top
+human-check.top
+mail.authorized-logins.net
+mailes.upd-domain-goloro.com
+mails.updater-worelos.com
+mueleer.com
+nano.upscale-kolo.com
+oeannon.com
+php.authorized-logins.net
+rotoa-upda-lo.com
+sql-updater-service.com
+sss.authorized-logins.net
+thomphon.com
+upd-domain-goloro.com
+update.update-fall.com
+updater-worelos.com
+upscale-kolo.com
+w3xasv14culvnqj.top</pre>
+    </div>
+    <div class="ioc-grab">
+      <div class="gh"><span class="lbl">Filenames / delivery URL</span><button class="btn" onclick="copyBlock(this)">Copy</button></div>
+<pre>MpExtMs.exe   (legit MS binary, abused)
+version.dll   (loader)
+EndpointDlp.dll (Mistic)
+f.dll         (.NET fake-login stealer)
+n.dll         (privesc helper)
+aeff97fe.msi  (dropper)
+48b47c0.msi   (dropper)
+http://thomphon.com/update.msi</pre>
+    </div>
+  </div>
+</div>
+
+<!-- 11 -->
+<div class="section" id="s-gates">
+  <h2><span class="n">11</span> Detection Validation Gates</h2>
+  <div class="gate"><div class="gn">1</div><div><b>Field validation.</b> All CQL fields are stock Falcon data-model fields (ProcessRollup2 / PeFileWritten / NetworkConnectIP4 / DnsRequest / AsepValueUpdate). Lint passes clean — no tenant-specific fields used.</div></div>
+  <div class="gate"><div class="gn">2</div><div><b>Path-exclusion tuning.</b> Q3/Q6/Q8/Q10 carry <code>// TUNING</code> exclusions. Before enabling alerting, populate your real trusted-vendor / software-deploy / RMM Program Files paths.</div></div>
+  <div class="gate"><div class="gn">3</div><div><b>IOC perishability.</b> Q2/Q4/Q5 atomic IOCs rotate fast. Re-validate against current threat intel before relying on them; keep behavioral Q1/Q3/Q6 always-on.</div></div>
+  <div class="gate"><div class="gn">4</div><div><b>Benign-baseline check.</b> Run Q6 (MS-named egress) and Q7 (remote msiexec) in audit-only for 1 ring first; confirm genuine Defender update traffic and sanctioned web-installers are excluded before promoting to alert.</div></div>
+  <div class="gate"><div class="gn">5</div><div><b>Escalation gate.</b> Any Q1/Q2/Q4/Q9 hit = treat as confirmed compromise and <b>pre-ransomware</b>; isolate host and escalate immediately.</div></div>
+</div>
+
+<!-- 12 -->
+<div class="section" id="s-harden">
+  <h2><span class="n">12</span> Hardening — Tiered &amp; Deployable</h2>
+  <h3>Immediate (this week)</h3>
+  <ul>
+    <li><b>Block known IOCs</b> — push the §4 SHA256/IP set to Falcon Custom IOC (block). MITRE M1040. <span class="tag t-low">no user impact</span></li>
+    <li><b>ASR: block executable creation from email/web + Office child processes</b> — closes the ClickFix→MSI delivery lane. MITRE M1042 / Microsoft ASR rules.</li>
+    <li><b>Disable web-delivered MSI from user context</b> — GPO <code>DisableMSI</code> set to 1 for non-admins / AlwaysInstallElevated set to 0. Counters Q7 pattern. MITRE M1038.</li>
+  </ul>
+  <h3>Near term (1–4 weeks)</h3>
+  <ul>
+    <li><b>WDAC / AppLocker DLL rules</b> — block DLL load from user-writable paths; defeats side-loading (Q1/Q3). MITRE M1038. <span class="tag t-med">pilot on a ring</span></li>
+    <li><b>Strip local-admin from standard users</b> — limits <code>n.dll</code> privesc and persistence. MITRE M1026.</li>
+    <li><b>Restrict / inventory RMM tools (AnyDesk, Splashtop)</b> — block unsanctioned RMM so masquerading Run keys stand out. MITRE M1042.</li>
+  </ul>
+  <h3>Strategic (1–3 months)</h3>
+  <ul>
+    <li><b>Phishing-resistant MFA (FIDO2)</b> — neutralizes the fake-login credential theft (<code>f.dll</code>); stolen passwords alone become useless. MITRE M1032.</li>
+    <li><b>User-execution hardening / ClickFix awareness + clipboard-paste-to-run controls</b> — reduce social-engineering success. MITRE M1017.</li>
+    <li><b>Application allow-listing (WDAC enforced mode)</b> — only signed, approved binaries run. MITRE M1038.</li>
+  </ul>
+</div>
+
+<!-- 13 -->
+<div class="section" id="s-playbook">
+  <h2><span class="n">13</span> Deployable Playbooks</h2>
+  <h3>A — Block known Mistic IOCs (PowerShell, Falcon Custom IOC API)</h3>
+<pre><span class="cm"># Push Mistic SHA256 hashes as BLOCK IOCs (requires FalconPy + API creds in env)</span>
+$hashes = @(
+ "1e41c7bfaa6aa3b93b6cc024274a10e33f3e12fe7c98c1db387ef8927f9d1984",
+ "afd5f1ed45a9867daf3bc64152cef460a06b164c8183e490db39146d4749a82c",
+ "59e3c4cb06331b4f2d78a9a0592f3747e573bd01c5a7650c26361d1e25520712",
+ "34d798a6c55e57ed0932b6499f4fbcb5454bdfca903307be101a0594b0ac07bc"
+)
+foreach ($h in $hashes) {
+  Write-Host "Submit BLOCK IOC: $h (Mistic Backdoor / Woodgnat)"
+  <span class="cm"># falcon iocs create --type sha256 --value $h --action prevent --platform windows</span>
+}</pre>
+  <h3>B — Block DLL side-loading from user-writable paths (AppLocker DLL rule, GPO)</h3>
+<pre><span class="cm"># Enforce AppLocker DLL rules: deny DLL load from user-writable dirs.</span>
+<span class="cm"># gpedit: App Control Policies &gt; AppLocker &gt; DLL Rules &gt; Deny</span>
+<span class="cm"># Deny path rules (Everyone):</span>
+%OSDRIVE%\Users\*\AppData\*\*.dll
+%OSDRIVE%\Users\*\Downloads\*\*.dll
+%OSDRIVE%\ProgramData\*\*.dll
+<span class="cm"># Then enable enforcement for the DLL rule collection and gpupdate /force.</span></pre>
+  <h3>C — Enable the key ASR rules (PowerShell)</h3>
+<pre><span class="cm"># Block executable content from email &amp; webmail, and Office spawning child procs</span>
+Add-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550 -AttackSurfaceReductionRules_Actions Enabled
+Add-MpPreference -AttackSurfaceReductionRules_Ids D4F940AB-401B-4EFC-AADC-AD5F3C50688A -AttackSurfaceReductionRules_Actions Enabled
+<span class="cm"># Block process creations from PSExec/WMI, and obfuscated scripts</span>
+Add-MpPreference -AttackSurfaceReductionRules_Ids D1E49AAC-8F56-4280-B9BA-993A6D77406C -AttackSurfaceReductionRules_Actions Enabled</pre>
+</div>
+
+<!-- 14 -->
+<div class="section" id="s-contain">
+  <h2><span class="n">14</span> Containment Runbook</h2>
+  <ol>
+    <li><b>Isolate</b> — network-contain any host hitting Q1/Q2/Q4/Q9 via Falcon RTR / host containment. Do not power off (in-memory payload — preserve volatile evidence first if forensics needed).</li>
+    <li><b>Identify</b> — RTR: enumerate the side-load dir, capture <code>MpExtMs.exe</code> + <code>version.dll</code> + <code>EndpointDlp.dll</code> + <code>f.dll</code>/<code>n.dll</code>; dump Run keys, Startup folder, scheduled tasks; list active network connections.</li>
+    <li><b>Eradicate</b> — kill the side-loaded process, delete the side-load set and any <code>.msi</code> droppers, remove RMM-named Run keys / Startup shortcuts / VBScript launchers / scheduled tasks.</li>
+    <li><b>Credential reset</b> — assume passwords entered on the fake-login screen are compromised; force-reset all users who interactively logged onto the host; revoke sessions/tokens.</li>
+    <li><b>Eradicate persistence broadly</b> — hunt §4 hashes/IPs/domains fleet-wide (Q2/Q4/Q5); the IAB may hold multiple footholds.</li>
+    <li><b>Recover</b> — rebuild confirmed-compromised hosts from known-good image; re-enable after IOC sweep is clean.</li>
+    <li><b>Escalate</b> — treat as pre-ransomware: notify IR lead, raise monitoring on crown-jewel assets, watch for lateral movement and Qilin/Akira/Rhysida/Black Basta/Interlock/8Base tooling.</li>
+  </ol>
+</div>
+
+<!-- 15 -->
+<div class="section" id="s-coverage">
+  <h2><span class="n">15</span> Detection Coverage Map</h2>
+  <table>
+    <thead><tr><th>Attack stage</th><th>Technique</th><th>Coverage</th><th>Query</th></tr></thead>
+    <tbody>
+      <tr><td>Delivery (ClickFix → remote MSI)</td><td>T1204 / T1218.007</td><td><span class="cov-part">PARTIAL</span></td><td>Q7</td></tr>
+      <tr><td>Side-load staging</td><td>T1574.002</td><td><span class="cov-yes">COVERED</span></td><td>Q1, Q3</td></tr>
+      <tr><td>Masquerading as MS tooling</td><td>T1036.005</td><td><span class="cov-yes">COVERED</span></td><td>Q1, Q8</td></tr>
+      <tr><td>In-memory execution / API hooking</td><td>T1574 / T1056.004</td><td><span class="cov-gap">GAP</span></td><td>— behavioral only (no disk artifact); rely on Q1/Q6</td></tr>
+      <tr><td>C2 (IP / domain)</td><td>T1071</td><td><span class="cov-yes">COVERED</span></td><td>Q4, Q5, Q6</td></tr>
+      <tr><td>Credential access (fake login)</td><td>T1056.002</td><td><span class="cov-yes">COVERED</span></td><td>Q9</td></tr>
+      <tr><td>Persistence (Run key / Startup / VBScript / task)</td><td>T1547.001 / T1053.005 / T1059.005</td><td><span class="cov-yes">COVERED</span></td><td>Q8, Q10</td></tr>
+      <tr><td>Privilege escalation (n.dll)</td><td>TA0004</td><td><span class="cov-part">PARTIAL</span></td><td>Q2 (hash only — mechanism undisclosed)</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><b>Known gaps:</b> the in-memory execution / BOF-loading stage leaves no disk artifact — there is no atomic query for it; detection there depends on catching the side-load (Q1/Q3) and the resulting egress (Q6). The <code>n.dll</code> privesc mechanism is undisclosed, so only the hash (Q2) covers it.</div>
+</div>
+
+<!-- 16 -->
+<div class="section" id="s-ticket">
+  <h2><span class="n">16</span> Hunt Summary Ticket</h2>
+<div class="ticket">TITLE:    Hunt — Mistic Backdoor (Backdoor.Mistic / MLTBackdoor) — Woodgnat/KongTuke IAB
+VERSION:  v0.1 — 2026-06-25
+SEVERITY: CRITICAL (pre-ransomware; access broker for Qilin/Akira/Rhysida/Black Basta/Interlock/8Base)
+AUTHOR:   HuntPack
+
+SUMMARY:
+  In-memory Windows backdoor masquerading as Microsoft endpoint-security tooling.
+  MpExtMs.exe side-loads version.dll (hooks GetModuleFileNameW/LoadLibraryW) ->
+  EndpointDlp.dll (Mistic). Companion .NET f.dll shows a fake login screen to steal
+  credentials; n.dll = privesc. Delivery via ClickFix/FileFix/CrashFix -> MSI.
+
+SCOPE:    Windows endpoints (insurance, education, IT, professional services seen targeted)
+QUERIES:  10 CQL (Q1-Q10) — 6 high-conf, 4 medium. Behavioral core: Q1/Q3/Q6.
+IOCs:     9 SHA256, 4 C2 IPs, 25 domains, 1 delivery URL — Symantec Threat Hunter Team.
+
+ACTIONS:
+  [ ] Push §4 hashes/IPs to Falcon Custom IOC (block)
+  [ ] Enable Q1/Q3 always-on; audit-tune Q6/Q7 on one ring
+  [ ] Hunt fleet-wide for §4 hashes/domains (Q2/Q4/Q5)
+  [ ] Force credential reset for users on any confirmed host (fake-login theft)
+  [ ] Escalate any hit as pre-ransomware
+</div>
+</div>
+
+<!-- 17 -->
+<div class="section" id="s-changelog">
+  <h2><span class="n">17</span> Changelog</h2>
+  <table>
+    <thead><tr><th>Version</th><th>Date</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>v0.1</td><td>2026-06-25</td><td>Initial HuntPack. Built from Symantec / BleepingComputer / CyberSecurityNews reporting. 10 CQL queries, full IOC set, tiered hardening, containment runbook, coverage map.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 18 -->
+<div class="section" id="s-refs">
+  <h2><span class="n">18</span> References</h2>
+  <ul>
+    <li>Symantec / security.com — Threat Hunter Team: "Backdoor.Mistic: New Backdoor May be Linked to Ransomware Access Broker / ModeloRAT" — <code>security.com/blog-post/new-mistic-backdoor-modelorat</code> (primary IOC source)</li>
+    <li>BleepingComputer — "Stealthy Mistic backdoor linked to ransomware access broker KongTuke"</li>
+    <li>CyberSecurityNews — "Mistic Backdoor Blends With Microsoft Endpoint Security Tooling to Evade Detection" (seed)</li>
+    <li>CSO Online — "Be on the lookout for Mistic, a new backdoor used by ransomware broker"</li>
+    <li>GBHackers / Cyberpress — Woodgnat ClickFix/FileFix/CrashFix delivery</li>
+    <li>MITRE ATT&amp;CK — T1574.002, T1036.005, T1056.002, T1547.001, T1071, T1218.007, T1204</li>
+  </ul>
+</div>
+
+<footer>HuntPack — Mistic Backdoor · Defensive hunt &amp; hardening pack · Generated 2026-06-25 · Author: HuntPack</footer>
+</main>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+function toggleToc(){document.body.classList.toggle('toc-collapsed');document.getElementById('sidebar').classList.toggle('toc-collapsed');}
+function toast(m){var t=document.getElementById('toast');t.textContent=m||'Copied';t.classList.add('show');setTimeout(function(){t.classList.remove('show');},1200);}
+function queryText(card){var pre=card.querySelector('pre.cql').cloneNode(true);pre.querySelectorAll('span.cm').forEach(function(s){s.remove();});return pre.textContent.replace(/\n{3,}/g,'\n\n').trim();}
+function copyQuery(btn){var card=btn.closest('.card');var txt=card.querySelector('pre.cql').textContent;navigator.clipboard.writeText(txt.trim()).then(function(){toast('CQL copied');});}
+function openFalcon(btn){var card=btn.closest('.card');var root=document.getElementById('cloud-region').value;var q=queryText(card);var url=root.replace(/\/$/,'')+'/investigate/search?query='+encodeURIComponent(q);window.open(url,'_blank');}
+function onRegionChange(){toast('Region: '+document.getElementById('cloud-region').selectedOptions[0].text);}
+function copyBlock(btn){var pre=btn.closest('.ioc-grab').querySelector('pre');navigator.clipboard.writeText(pre.textContent.trim()).then(function(){toast('Copied');});}
+/* scrollspy */
+var links=[].slice.call(document.querySelectorAll('#toc a'));
+var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+function spy(){var y=window.scrollY+120,cur=-1;for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].offsetTop<y+1)cur=i;}
+links.forEach(function(a){a.classList.remove('active');});if(cur>-1)links[cur].classList.add('active');}
+window.addEventListener('scroll',spy);window.addEventListener('load',spy);
+</script>
+</body>
+</html>
