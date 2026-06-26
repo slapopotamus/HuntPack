@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phexia Stealer (macOS ClickFix) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the Phexia Stealer macOS ClickFix campaign: dig-TXT dead-drop C2, LaunchAgent persistence, MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Phexia-Stealer-macOS-ClickFix-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Phexia Stealer (macOS ClickFix) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the Phexia Stealer macOS ClickFix campaign: dead-drop C2, LaunchAgent persistence, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Phexia-Stealer-macOS-ClickFix-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #d2a8ff;
+  --accent-dim: rgba(210,168,255,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1a3a 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(210,168,255,0.1); color: #d2a8ff; border-color: rgba(210,168,255,0.5); }
+.btn-falcon:hover { background: rgba(210,168,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #d2a8ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #d2a8ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(210,168,255,0.09); border: 1px solid rgba(210,168,255,0.3); color: #d2a8ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">Phexia Stealer — macOS ClickFix Infostealer + RAT</div>
+    <div class="version">v0.1 · 2026-06-26</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>Phexia Stealer — macOS ClickFix Infostealer + RAT</h1>
+    <div class="subtitle">Fake-CAPTCHA "ClickFix" lure → pasted Terminal command → dig-TXT dead-drop C2 → osascript/JXA implant with LaunchAgent persistence, credential theft, and reverse-shell tasking</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">Phexia Stealer (macOS)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE CAMPAIGN</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">macOS Infostealer + RAT</div></div>
+      <div class="meta-item"><div class="mk">Delivery</div><div class="mv">ClickFix · social engineering</div></div>
+      <div class="meta-item"><div class="mk">Attribution</div><div class="mv">Suspected APT28 (unconfirmed)</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-26</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (behavioral + atomic)</div></div>
+    </div>
+  </div>
+
+  <!-- 1 Executive Summary -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>Phexia Stealer</strong> is a macOS infostealer-plus-RAT distributed through <strong>ClickFix</strong> social engineering: a fraudulent bot-verification / fake-CAPTCHA page silently places a downloader command on the victim's clipboard and instructs them to paste and run it in <strong>Terminal</strong>. Reporting on the broader June 2026 ClickFix wave pairs Phexia with <strong>HellsUchecker</strong>, an EtherHiding-delivered backdoor that executes files retrieved from C2 and reports results back.</p>
+      <p><strong>Signature chain:</strong> the pasted command runs a <code>bash</code> one-liner that uses <code>dig</code> to fetch a <strong>DNS TXT record (a dead-drop resolver)</strong> from a public resolver, pipes the result to <code>curl</code>, and executes it as JavaScript via <code>osascript</code> (JXA). This <strong>fileless bootstrap</strong> lets the operator change behavior by editing a DNS record — nothing on disk changes. The implant then installs a <strong>LaunchAgent</strong> (e.g. <code>~/Library/LaunchAgents/com.components.&lt;rand&gt;.plist</code> with a matching script under <code>~/Library/</code>), loads it with <code>launchctl load</code> (<code>RunAtLoad</code>), and <strong>polls C2 every 60 seconds</strong> for new <code>osascript</code> tasks.</p>
+      <p><strong>Capabilities:</strong> host fingerprinting (<code>ioreg … IOPlatformExpertDevice</code>, <code>whoami</code>/<code>id -un</code>), <strong>local password harvesting</strong> via a spoofed "System Preferences" dialog validated with <code>dscl . authonly</code> and stored to <code>~/.passphrase</code>, <code>tccutil reset All</code> to coax privacy prompts, and theft of <strong>browser data, extensions, cookies/history, crypto wallets, password managers, Keychain, and Telegram session data</strong>. C2 domains are rotated and discovered via a Telegram bot; infrastructure is hosted on vdsina VPS.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> The strongest, version-independent detection is the <strong>ClickFix bootstrap shape</strong> — <code>Terminal/bash</code> spawning <code>dig</code> (TXT lookup) and <code>curl</code> piped into <code>osascript</code> — and the <strong>LaunchAgent + 60-second osascript polling</strong> that follows. Pair behavioral hunts (Q1–Q4) with an atomic sweep for the published C2 domains/IP (Q5). Falcon for macOS gives full process/network/DNS visibility here, so coverage is good.</p>
+    </div>
+  </div>
+
+  <!-- 2 Source Review -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Source</th><th>Tier</th><th>Pulled</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>The Hacker News — ClickFix expands (June 2026)</td><td><span class="badge b-info">Reporting</span></td><td>Phexia + HellsUchecker named; ClickFix delivery, EtherHiding</td><td>Campaign context</td></tr>
+          <tr><td>Cookie Engineer — macOS Phexia campaign deep-dive</td><td><span class="badge b-purple">Research</span></td><td>Full chain + atomic IOCs (domains, IP, LaunchAgent, osascript)</td><td>Primary technical + indicator source</td></tr>
+          <tr><td>Netskope — macOS ClickFix AppleScript stealer + RAT</td><td><span class="badge b-purple">Research</span></td><td>ClickFix clipboard lure, AppleScript stealer, persistent RAT</td><td>Corroborating chain detail</td></tr>
+          <tr><td>Microsoft Security — macOS ClickFix utilities lure</td><td><span class="badge b-info">Vendor</span></td><td>Fake macOS-utility CAPTCHA lures deliver infostealers</td><td>Delivery corroboration</td></tr>
+          <tr><td>Objective-See — Mac malware roundup</td><td><span class="badge b-med">Secondary</span></td><td>macOS infostealer landscape context</td><td>Background</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Provenance note:</strong> every atomic IOC in §4/§10 (C2 domains <code>x2db.cx</code>, <code>a5db.ch</code>, <code>a6b6.biz</code>, <code>kfcnevkusno.one</code>, <code>goldenticketsshop.com</code>; IP <code>146.103.98.59</code>; Telegram bot <code>t.me/neverfakebot</code>; LaunchAgent path pattern) is taken from the cited Cookie Engineer / Netskope research — none are fabricated. The LaunchAgent label string is sample-specific (random per campaign) — match on the <code>com.components.*</code> / <code>~/Library/</code> pattern, not the exact characters.</p>
+    </div>
+  </div>
+
+  <!-- 3 Hunt Brief & Chain -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt hypotheses</h3>
+      <ul>
+        <li><strong>H1:</strong> A macOS host runs the ClickFix bootstrap — <code>bash</code>/<code>Terminal</code> spawning <code>dig</code> (TXT lookup) and/or <code>curl</code> piped into <code>osascript</code>/<code>osacompile</code>.</li>
+        <li><strong>H2:</strong> A new LaunchAgent plist appears under <code>~/Library/LaunchAgents/</code> (pattern <code>com.components.*</code> / <code>com.launch.*</code>) and is loaded via <code>launchctl load</code> with a script body under <code>~/Library/</code>.</li>
+        <li><strong>H3:</strong> Credential-access tradecraft fires — <code>dscl . authonly</code>, <code>osascript</code> dialog spoofing "System Preferences", <code>tccutil reset All</code>, writes to <code>~/.passphrase</code>.</li>
+        <li><strong>H4:</strong> An <code>osascript</code>/<code>curl</code> process beacons on a ~60-second cadence to rotating domains (dead-drop / Telegram-sourced C2).</li>
+        <li><strong>H5:</strong> Any host resolves or connects to the published Phexia C2 domains or IP <code>146.103.98.59</code>.</li>
+      </ul>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>#</th><th>Step</th><th>Observable</th><th>ATT&amp;CK</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>ClickFix fake-CAPTCHA places command on clipboard; user pastes into Terminal</td><td><code>Terminal</code> → <code>bash -c</code> with copied one-liner</td><td>T1204.004 / T1059.004</td></tr>
+          <tr><td>2</td><td>dig TXT dead-drop resolver → curl → osascript (fileless bootstrap)</td><td><code>dig … TXT</code>, <code>curl</code> piped to <code>osascript</code></td><td>T1071.004 / T1059.002</td></tr>
+          <tr><td>3</td><td>LaunchAgent persistence + launchctl load (RunAtLoad)</td><td>New <code>~/Library/LaunchAgents/com.components.*.plist</code></td><td>T1543.001</td></tr>
+          <tr><td>4</td><td>Host profiling</td><td><code>ioreg … IOPlatformExpertDevice</code>, <code>whoami</code>, <code>id -un</code></td><td>T1082 / T1033</td></tr>
+          <tr><td>5</td><td>Password harvest via spoofed dialog + dscl validation</td><td><code>osascript</code> dialog, <code>dscl . authonly</code>, <code>~/.passphrase</code></td><td>T1056.002 / T1555</td></tr>
+          <tr><td>6</td><td>60s C2 polling, task download &amp; execute</td><td><code>curl</code> to <code>/api.php</code>/<code>/get.php</code>; recurring osascript</td><td>T1071.001 / T1041</td></tr>
+          <tr><td>7</td><td>Steal browser/wallet/Keychain/Telegram data; exfil</td><td>Access to browser profiles, wallets, Keychain</td><td>T1555 / T1539 / T1217</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 IOC Table -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">Atomic indicators below are from cited research (Cookie Engineer / Netskope). C2 domains rotate — treat the list as a seed and pivot on the dead-drop / Telegram-sourced infrastructure. Validate before blocking shared hosting.</p>
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>Domain</td><td><code>goldenticketsshop.com</code></td><td><span class="badge b-low">high</span></td><td>block</td><td>Dead-drop / C2 (Q5)</td></tr>
+          <tr><td>Domain</td><td><code>x2db.cx</code>, <code>a5db.ch</code>, <code>a6b6.biz</code>, <code>kfcnevkusno.one</code></td><td><span class="badge b-low">high</span></td><td>block</td><td>Rotating C2 (Q5)</td></tr>
+          <tr><td>IPv4</td><td><code>146.103.98.59</code></td><td><span class="badge b-med">medium</span></td><td>block</td><td>vdsina VPS C2 host (validate — shared)</td></tr>
+          <tr><td>Telegram</td><td><code>t.me/neverfakebot</code></td><td><span class="badge b-low">high</span></td><td>enrich</td><td>Domain-distribution bot (operator)</td></tr>
+          <tr><td>File path</td><td><code>~/Library/LaunchAgents/com.components.*.plist</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Persistence (pattern; Q2)</td></tr>
+          <tr><td>File path</td><td><code>~/.passphrase</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Harvested password store (Q3, §7)</td></tr>
+          <tr><td>Behavior</td><td><code>dig … TXT</code> → <code>curl</code> → <code>osascript</code> chain</td><td><span class="badge b-low">high</span></td><td>detect</td><td>ClickFix bootstrap (Q1)</td></tr>
+          <tr><td>Behavior</td><td><code>dscl . authonly</code> + spoofed "System Preferences" dialog</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Credential access (Q3)</td></tr>
+          <tr><td>URI</td><td><code>/api.php?connect&amp;username=</code>, <code>/get.php?txid=</code>, <code>/api.php?check</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>C2 endpoints (proxy logs)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 Affected Surface -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <p><strong>Affected:</strong> macOS endpoints (Intel &amp; Apple Silicon) where a user can be socially engineered into pasting a command into Terminal. No vulnerability is exploited — delivery is 100% social engineering, so any current macOS version is in scope. Falcon for macOS provides process, file, network, and DNS telemetry for the full chain.</p>
+      <table>
+        <thead><tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr></thead>
+        <tbody>
+          <tr><td>macOS process tree</td><td>Falcon ProcessRollup2 / SyntheticProcessRollup2 (macOS)</td><td><span class="badge b-high">Critical</span></td><td>Requires Falcon sensor on Macs</td></tr>
+          <tr><td>LaunchAgent / file writes</td><td>Falcon file-write telemetry (TargetFileName under <code>~/Library/LaunchAgents</code>)</td><td><span class="badge b-high">Critical</span></td><td>Confirm macOS file-write events enabled in policy</td></tr>
+          <tr><td>DNS resolution</td><td>Falcon DnsRequest (DomainName, TXT lookups to dead-drop)</td><td><span class="badge b-high">Critical</span></td><td>TXT-record content not captured — match domain</td></tr>
+          <tr><td>Network egress</td><td>Falcon NetworkConnectIP4 (60s C2 beacon, vdsina IP)</td><td><span class="badge b-med">High</span></td><td>HTTPS payload opaque; rely on dest + cadence</td></tr>
+          <tr><td>Keychain / browser stores</td><td>File access to browser profiles, Keychain, wallet paths</td><td><span class="badge b-med">High</span></td><td>Read access can be noisy; correlate with chain</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6 ATT&CK Mapping -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Query / Control</th></tr></thead>
+        <tbody>
+          <tr><td>Execution</td><td>T1204.004 — User Execution: Malicious Copy &amp; Paste</td><td>ClickFix clipboard → Terminal paste</td><td>Q1, §12 awareness</td></tr>
+          <tr><td>Execution</td><td>T1059.002 / T1059.004 — AppleScript / Unix Shell</td><td><code>osascript</code> JXA + <code>bash</code> one-liner</td><td>Q1, Q4</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1071.004 — DNS (dead-drop resolver)</td><td><code>dig</code> TXT lookup drives behavior</td><td>Q1, Q5</td></tr>
+          <tr><td>Persistence</td><td>T1543.001 — Launch Agent</td><td><code>~/Library/LaunchAgents/com.components.*</code> + launchctl</td><td>Q2</td></tr>
+          <tr><td>Discovery</td><td>T1082 / T1033 — System / Owner discovery</td><td><code>ioreg</code>, <code>whoami</code>, <code>id -un</code></td><td>Q3</td></tr>
+          <tr><td>Credential Access</td><td>T1056.002 / T1555 — GUI input capture / credential stores</td><td>Spoofed dialog + <code>dscl authonly</code>; Keychain theft</td><td>Q3, §7</td></tr>
+          <tr><td>Collection / Exfil</td><td>T1539 / T1217 / T1041 — Cookies / Browser data / C2 exfil</td><td>Browser, wallet, Telegram data over C2</td><td>Q4, Q5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 Native Hunts -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+      <p>macOS-native checks that complement the Falcon CQL in §8 — useful for live triage on a suspect Mac (run with care, read-only first).</p>
+      <h3>Persistence &amp; artifacts (macOS shell)</h3>
+      <pre class="code"># Suspicious LaunchAgents (Phexia pattern: com.components.* / random label)
+ls -la ~/Library/LaunchAgents/ /Library/LaunchAgents/
+grep -rEl "osascript|curl|base64|dig .*TXT" ~/Library/LaunchAgents/ 2&gt;/dev/null
+# Harvested password store written by the implant
+ls -la ~/.passphrase 2&gt;/dev/null
+# Loaded agents referencing the home dir
+launchctl list | grep -Ei "components|launch\."</pre>
+      <h3>Unified log — bootstrap &amp; beacon (macOS)</h3>
+      <pre class="code"># dig TXT dead-drop + osascript execution in the last day
+log show --last 1d --predicate 'process == "dig" OR process == "osascript" OR process == "curl"' 2&gt;/dev/null \
+  | grep -Ei "TXT|api.php|get.php|osascript"
+# tccutil reset abuse (privacy-prompt coaxing)
+log show --last 1d --predicate 'process == "tccutil"' 2&gt;/dev/null</pre>
+      <p class="callout callout-info">Treat a LaunchAgent that shells out to <code>osascript</code>/<code>curl</code>, plus the presence of <code>~/.passphrase</code>, as confirmed Phexia infection — proceed to §14 containment and capture the plist + script before removal.</p>
+    </div>
+  </div>
+
+  <!-- 8 CQL Queries -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+      </div>
+
+      <!-- Q1 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · ClickFix bootstrap — dig TXT / curl piped into osascript</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the fileless bootstrap — a shell/Terminal-descended process running <code>dig</code> for a TXT record and/or <code>curl</code> output executed by <code>osascript</code>. <strong>FP:</strong> very low; <code>curl|osascript</code> and ad-hoc TXT lookups are rare on user endpoints. Review every hit.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Phexia ClickFix bootstrap — dig TXT dead-drop + curl-to-osascript (macOS)</span>
+<span class="cm">// MITRE: T1059.002, T1071.004, T1204.004 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: rare; some admin tooling pipes curl output — review CommandLine</span>
+<span class="cm">// TUNING: keep ParentBaseFileName scoped to shells/Terminal; widen if launched by an app bundle</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| CommandLine=/(dig\s+.*\s+txt|dig\s+@?[\d.]+.*txt|curl\s.{0,160}(osascript|osacompile)|osascript\s.{0,120}(do shell script|IOPlatformExpertDevice))/i
+| groupBy([ComputerName, ParentBaseFileName, ImageFileName, CommandLine], function=([count(aid, as=hits), collect([UserName])]))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · LaunchAgent persistence written under ~/Library/LaunchAgents</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a new LaunchAgent plist (Phexia pattern <code>com.components.*</code>) written to <code>~/Library/LaunchAgents/</code>, especially by a shell/osascript process. <strong>FP:</strong> legitimate apps install LaunchAgents; exclude known vendor labels and signed installers, and prioritize plists written by <code>bash</code>/<code>osascript</code>/<code>curl</code>.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Phexia LaunchAgent persistence write (macOS)</span>
+<span class="cm">// MITRE: T1543.001 | CONF: high  FP: medium  COST: low | REQUIRES: file-write telemetry (macOS)</span>
+<span class="cm">// FALSE POSITIVES: legit app LaunchAgents; allowlist signed vendor bundle IDs</span>
+<span class="cm">// TUNING: prioritize ContextBaseFileName in (bash, sh, osascript, curl); exclude known good labels</span>
+#event_simpleName=/NewExecutableWritten|FileCreateInfo|NewScriptWritten|MachOFileWritten/
+| event_platform=Mac
+| TargetFileName=/\/Library\/LaunchAgents\/.*\.plist$/i
+| TargetFileName=/(com\.components\.|com\.launch\.)/i
+| groupBy([ComputerName, ContextBaseFileName, TargetFileName], function=([count(aid, as=writes), collect([UserName])]))
+| sort(writes, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · macOS credential-access tradecraft (dscl / spoofed dialog / tccutil)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the credential-harvest stage — <code>dscl . authonly</code> (local password validation), <code>osascript</code> displaying a "System Preferences"/password dialog, or <code>tccutil reset All</code>. <strong>FP:</strong> low under a shell/osascript parent; <code>dscl authonly</code> is rarely used by normal users.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Phexia credential access — dscl authonly / spoofed password dialog / tccutil reset (macOS)</span>
+<span class="cm">// MITRE: T1056.002, T1555, T1548 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: rare; some MDM tooling uses dscl — allowlist by ImageFileName/parent</span>
+<span class="cm">// TUNING: combine with Q1/Q2 host hits to confirm full chain</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| CommandLine=/(dscl\s+\.\s+(-)?authonly|tccutil\s+reset\s+All|osascript.{0,120}(System Preferences|password|passphrase)|ioreg\s+-rd1\s+-c\s+IOPlatformExpertDevice)/i
+| groupBy([ComputerName, ParentBaseFileName, ImageFileName, CommandLine], function=([count(aid, as=hits), collect([UserName])]))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · Recurring osascript/curl C2 beacon (~60s cadence)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> repeated <code>curl</code>/<code>osascript</code> executions consistent with the 60-second task-polling loop. <strong>FP:</strong> automation/polling tools also recur; raise the <code>execs</code> threshold and correlate with Q1/Q2/Q3 on the same host.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Phexia 60s C2 polling loop — recurring curl/osascript (macOS)</span>
+<span class="cm">// MITRE: T1071.001, T1041 | CONF: medium  FP: medium  COST: medium | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: legit polling daemons; correlate with persistence + bootstrap hits</span>
+<span class="cm">// TUNING: adjust the execs threshold (default &gt;= 10/host/hour) to your baseline</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| ImageFileName=/\/(curl|osascript)$/i
+| CommandLine=/(api\.php|get\.php|txid=|connect&amp;username=|--connect-timeout\s+5)/i
+| groupBy([ComputerName, ImageFileName], function=([count(aid, as=execs), collect([CommandLine])]))
+| execs&gt;=10
+| sort(execs, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · Atomic sweep — published C2 domains &amp; IP</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any host resolving or connecting to the published Phexia C2 domains or the vdsina IP. <strong>FP:</strong> low for the domains; validate the IP (shared hosting) before blocking estate-wide.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Phexia atomic C2 sweep — domains + vdsina IP (macOS/all)</span>
+<span class="cm">// MITRE: T1071 | CONF: high  FP: low  COST: low | REQUIRES: DnsRequest / NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: low; IP is shared VPS — confirm before broad block</span>
+<span class="cm">// TUNING: extend the domain list as new dead-drop / Telegram-sourced domains surface</span>
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| DomainName=/(goldenticketsshop\.com|x2db\.cx|a5db\.ch|a6b6\.biz|kfcnevkusno\.one)$/i OR RemoteAddressIP4=/^146\.103\.98\.59$/
+| groupBy([ComputerName, DomainName, RemoteAddressIP4], function=([count(aid, as=hits), collect([ContextBaseFileName])]))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <p class="callout callout-info"><strong>Field-name note:</strong> queries use standard Falcon fields (<code>#event_simpleName</code>, <code>event_platform</code>, <code>ParentBaseFileName</code>, <code>ImageFileName</code>, <code>CommandLine</code>, <code>TargetFileName</code>, <code>ContextBaseFileName</code>, <code>DomainName</code>, <code>RemoteAddressIP4</code>, <code>ComputerName</code>, <code>aid</code>, <code>UserName</code>). Confirm the macOS file-write <code>#event_simpleName</code> values available in your tenant for Q2 (the path/label filters carry the precision).</p>
+    </div>
+  </div>
+
+  <!-- 9 Custom IOA Recs -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Deployment</th></tr></thead>
+        <tbody>
+          <tr><td>macOS-ClickFix-Curl-Osascript</td><td>Shell/Terminal → <code>curl</code> output piped to <code>osascript</code>, or <code>dig … TXT</code> bootstrap (process-create IOA, macOS)</td><td>Sanctioned admin scripts that pipe curl</td><td>Host group: all Macs; Action: Detect → Prevent</td></tr>
+          <tr><td>macOS-Phexia-LaunchAgent</td><td>LaunchAgent plist written under <code>~/Library/LaunchAgents</code> by <code>bash</code>/<code>osascript</code>/<code>curl</code></td><td>Signed vendor installers / MDM</td><td>Host group: Macs; Action: Detect</td></tr>
+          <tr><td>macOS-Cred-Dialog-Dscl</td><td><code>osascript</code> password dialog + <code>dscl . authonly</code> within the same process tree</td><td>MDM enrollment flows</td><td>Host group: Macs; Action: Prevent (high fidelity)</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Phexia uses only built-in macOS binaries (living-off-the-land), so scope IOAs by <strong>behavioral chaining</strong> (parent shell → curl/osascript → persistence/credential step) rather than by file hash. Start in Detect; promote the credential-dialog IOA to Prevent first.</p>
+    </div>
+  </div>
+
+  <!-- 10 IOC Appendix -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">Atomic indicators are from cited research and ready to import; the IP is shared VPS infrastructure — set it to detect/validate rather than hard block. Domains rotate; keep the list updated from the dead-drop / Telegram source.</p>
+      <div class="ioc-grab-grid">
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,goldenticketsshop.com,block,high,2026-09-26,Phexia macOS C2 / dead-drop,campaign:phexia-clickfix
+domain,x2db.cx,block,high,2026-09-26,Phexia macOS rotating C2,campaign:phexia-clickfix
+domain,a5db.ch,block,high,2026-09-26,Phexia macOS rotating C2,campaign:phexia-clickfix
+domain,a6b6.biz,block,high,2026-09-26,Phexia macOS rotating C2,campaign:phexia-clickfix
+domain,kfcnevkusno.one,block,high,2026-09-26,Phexia macOS rotating C2,campaign:phexia-clickfix
+ipv4,146.103.98.59,detect,medium,2026-09-26,Phexia vdsina VPS C2 (validate-shared),campaign:phexia-clickfix</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Host Artifacts</span><span class="igc">macOS paths</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-paths',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-paths">PERSIST  ~/Library/LaunchAgents/com.components.*.plist   -&gt; LaunchAgent (label com.launch.*)
+SCRIPT   ~/Library/&lt;campaign-id&gt;                          -&gt; second-stage osascript body
+CREDS    ~/.passphrase                                   -&gt; harvested local password
+C2URI    /api.php?check  /get.php?txid=  /api.php?connect&amp;username=
+TG       t.me/neverfakebot                               -&gt; operator domain-distribution bot</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">ship as-is</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh">BEHAVIOR: shell -&gt; dig TXT dead-drop -&gt; curl piped to osascript          -&gt; detect (Q1)
+BEHAVIOR: LaunchAgent com.components.* written under ~/Library           -&gt; detect (Q2)
+BEHAVIOR: dscl . authonly + spoofed System Preferences dialog            -&gt; detect (Q3)
+BEHAVIOR: tccutil reset All by a shell/osascript descendant              -&gt; detect (Q3)
+BEHAVIOR: recurring curl/osascript to /api.php /get.php (~60s)            -&gt; hunt   (Q4)
+BEHAVIOR: resolve/connect to published Phexia domains or 146.103.98.59   -&gt; block  (Q5)</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Triage One-Liners</span><span class="igc">read-only first</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-triage',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-triage">CHECK  ls -la ~/Library/LaunchAgents/ | grep -Ei "components|launch\."
+CHECK  test -f ~/.passphrase &amp;&amp; echo "PHEXIA passphrase store present"
+CHECK  launchctl list | grep -Ei "components|launch\."
+LOG    log show --last 1d --predicate 'process == "osascript"' | grep -Ei "api.php|txid"
+KILL   (after capture) launchctl unload ~/Library/LaunchAgents/com.components.*.plist</pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 Validation Gates -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>Falcon for macOS reporting ProcessRollup2, file-write, DnsRequest, NetworkConnect on all Macs</td><td>All Macs visible in last 24h with macOS events</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q2/Q4 over 7–14 days; catalog legitimate LaunchAgents and recurring curl/osascript daemons</td><td>Documented allowlist before alerting</td></tr>
+          <tr><td>Positive test</td><td>In a lab Mac, run a benign <code>dig example.com TXT</code> then <code>echo 'log "x"' | osascript</code>; write a dummy <code>~/Library/LaunchAgents/com.components.test.plist</code></td><td>Q1 and Q2 fire</td></tr>
+          <tr><td>Atomic sweep</td><td>Run Q5 across the estate for the published domains/IP</td><td>Zero hits in a clean estate; any hit = investigate</td></tr>
+          <tr><td>Promotion</td><td>Credential-dialog IOA (Q3 pattern) → Prevent; ClickFix bootstrap IOA → Detect then Prevent</td><td>Signed off by detection owner</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12 Hardening -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (0–72h)</div>
+        <ul>
+          <li><strong>Block the published C2 domains/IP</strong> at DNS/proxy and import the §10 IOCs (domains block, IP detect-and-validate).</li>
+          <li><strong>Hunt now</strong> with Q1–Q5 over the last 14 days; for any host with a LaunchAgent + <code>~/.passphrase</code> hit, isolate and run §14.</li>
+          <li><strong>User awareness flash:</strong> warn that "paste this command into Terminal to verify you're human" is an attack — never paste commands from a web page (MITRE M1017 User Training; counters T1204.004).</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (this week)</div>
+        <ul>
+          <li>Deploy the §9 IOAs (ClickFix bootstrap, LaunchAgent, credential-dialog) in Detect across all Macs; promote the credential-dialog IOA to Prevent.</li>
+          <li>Restrict / monitor <strong>Terminal and osascript</strong> for non-developer user populations; alert on <code>osascript</code> spawned by browsers or from clipboard-paste workflows.</li>
+          <li>Enforce that browser password managers / Keychain require re-auth; rotate credentials for any user who ran the lure (M1027).</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic</div>
+        <ul>
+          <li>Deploy macOS configuration profiles that limit LaunchAgent creation to managed/MDM scopes and flag user-writable LaunchAgents (M1028).</li>
+          <li>Egress controls / DNS filtering so dead-drop TXT lookups to attacker domains and beacon traffic are blocked and logged (M1037 Filter Network Traffic).</li>
+          <li>Roll out phishing-resistant MFA so harvested local/web passwords have limited reuse value (M1032).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 Playbooks -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h3>1 · Sweep Macs for Phexia persistence (Falcon RTR / MDM script, read-only)</h3>
+<pre class="code">#!/bin/bash
+# Run per-user context. Read-only enumeration — capture before remediation.
+for ua in /Users/*; do
+  la="$ua/Library/LaunchAgents"
+  [ -d "$la" ] &amp;&amp; grep -rEl "osascript|curl|base64|dig .*[Tt][Xx][Tt]" "$la" 2&gt;/dev/null
+  [ -f "$ua/.passphrase" ] &amp;&amp; echo "PHEXIA passphrase store: $ua/.passphrase"
+done</pre>
+      <h3>2 · Remove persistence after evidence capture</h3>
+<pre class="code"># Capture first (copy plist + script to evidence), THEN unload &amp; remove:
+plist=~/Library/LaunchAgents/com.components.&lt;rand&gt;.plist
+launchctl unload "$plist" 2&gt;/dev/null
+# move (do not delete) to quarantine for analysis:
+mkdir -p ~/phexia-quarantine &amp;&amp; mv "$plist" ~/phexia-quarantine/ 2&gt;/dev/null
+rm -f ~/.passphrase 2&gt;/dev/null</pre>
+      <h3>3 · Block C2 at the network edge</h3>
+<pre class="code"># DNS/proxy denylist (import via your control plane):
+goldenticketsshop.com
+x2db.cx
+a5db.ch
+a6b6.biz
+kfcnevkusno.one
+# Detect-and-validate (shared VPS): 146.103.98.59</pre>
+      <p class="callout callout-info">Because Phexia rotates domains via a Telegram bot, treat the domain list as a moving target — block what's known, but rely on the §8 behavioral queries to catch new infrastructure.</p>
+    </div>
+  </div>
+
+  <!-- 14 Containment -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Network-contain the Mac via Falcon RTR; block the §10 C2 at DNS/proxy</td><td>SOC</td><td>Containment timestamp, host ID</td></tr>
+          <tr><td>Capture</td><td>Preserve the LaunchAgent plist, the <code>~/Library/&lt;id&gt;</code> script, and <code>~/.passphrase</code> before removal; pull the osascript/curl process tree</td><td>IR</td><td>Plist + script + process tree</td></tr>
+          <tr><td>Eradicate</td><td>Unload + quarantine the LaunchAgent; remove dropped scripts and <code>~/.passphrase</code>; confirm no second persistence</td><td>IR + Endpoint</td><td>Removed artifact list</td></tr>
+          <tr><td>Credentials</td><td>Rotate the user's local password + every credential the stealer could reach: browser-saved, Keychain, crypto wallets, Telegram session, password-manager vault</td><td>IAM + user</td><td>Rotation records, wallet review</td></tr>
+          <tr><td>Recover &amp; monitor</td><td>Re-image if RAT tasking ran hands-on; keep Q1–Q5 + IOAs enabled; watch for re-infection from new domains</td><td>SOC + Endpoint</td><td>Post-recovery hunt results</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 Coverage Map -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1204.004 / T1059</td><td>ClickFix paste → bash/osascript bootstrap</td><td>Q1</td><td>macOS-ClickFix-Curl-Osascript</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1071.004</td><td>dig TXT dead-drop resolver</td><td>Q1, Q5</td><td>macOS-ClickFix-Curl-Osascript</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1543.001</td><td>LaunchAgent persistence</td><td>Q2</td><td>macOS-Phexia-LaunchAgent</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1056.002 / T1555</td><td>Spoofed dialog + dscl + Keychain theft</td><td>Q3</td><td>macOS-Cred-Dialog-Dscl</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1071.001 / T1041</td><td>60s C2 polling + exfil</td><td>Q4, Q5</td><td>IOC import</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1539 / T1217</td><td>Browser/cookie/wallet collection</td><td>Q3 (chain) · §7</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Coverage note:</strong> collection of specific browser/wallet/Keychain files is read-activity that is noisy in isolation — this pack catches it via the surrounding chain (bootstrap → persistence → credential dialog → beacon) rather than alerting on every file read. C2 exfil over HTTPS is opaque, so detection leans on destination + cadence (Q4/Q5). Falcon-for-macOS coverage of process/file/DNS makes the early chain high-fidelity.</p>
+    </div>
+  </div>
+
+  <!-- 16 Hunt Ticket -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE      : Phexia Stealer — macOS ClickFix Infostealer + RAT
+SEVERITY   : High — active campaign (June 2026), credential + wallet theft, persistent RAT
+SCOPE      : macOS endpoints (any version) — social-engineering delivery, no CVE
+HYPOTHESIS : ClickFix paste -> dig TXT dead-drop -> curl|osascript -> LaunchAgent -> 60s C2 -> creds/exfil
+QUERIES    : Q1 bootstrap | Q2 LaunchAgent | Q3 cred access | Q4 C2 beacon | Q5 atomic domain/IP sweep
+DO FIRST   : Block C2 domains; import IOCs; hunt Q1-Q5 14d; isolate hosts with LaunchAgent + ~/.passphrase
+FINDINGS   : &lt;fill from hunt&gt;
+GAPS       : HTTPS exfil opaque; browser/wallet reads caught via chain, not standalone
+ACTIONS    : Block C2, deploy IOAs (sect 9), rotate creds/wallets/Keychain, user-awareness on ClickFix
+OWNER      : HuntPack
+VERSION    : v0.1 · 2026-06-26</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 Changelog -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-26</span><span>Initial HuntPack for the Phexia Stealer macOS ClickFix campaign (with HellsUchecker context). 5 CQL hunt queries (ClickFix bootstrap, LaunchAgent persistence, credential-access tradecraft, 60s C2 beacon, atomic domain/IP sweep), macOS-native triage hunts, custom IOA recommendations, tiered hardening, playbooks, and containment. Ships cited atomic IOCs (5 C2 domains, vdsina IP, LaunchAgent + <code>~/.passphrase</code> artifacts) — all traced to the Cookie Engineer / Netskope research; none fabricated.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 References -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://thehackernews.com/2026/06/clickfix-campaigns-expand-malware.html">The Hacker News — ClickFix campaigns expand (June 2026)</a></td><td>Phexia + HellsUchecker naming, ClickFix/EtherHiding</td><td>2026-06-26</td></tr>
+          <tr><td><span class="badge b-purple">Research</span></td><td><a href="https://cookie.engineer/weblog/articles/malware-insights-macos-phexia-campaign.html">Cookie Engineer — macOS Phexia campaign</a></td><td>Full chain + atomic IOCs (domains, IP, LaunchAgent, osascript)</td><td>2026-06-26</td></tr>
+          <tr><td><span class="badge b-purple">Research</span></td><td><a href="https://www.netskope.com/blog/macos-clickfix-lures-deploy-applescript-stealer-persistent-rat">Netskope — macOS ClickFix AppleScript stealer + RAT</a></td><td>ClickFix lure, AppleScript stealer, persistent RAT</td><td>2026-06-26</td></tr>
+          <tr><td><span class="badge b-info">Vendor</span></td><td><a href="https://www.microsoft.com/en-us/security/blog/2026/05/06/clickfix-campaign-uses-fake-macos-utilities-lures-deliver-infostealers/">Microsoft Security — macOS ClickFix utilities lure</a></td><td>Delivery corroboration</td><td>2026-06-26</td></tr>
+          <tr><td><span class="badge b-med">Secondary</span></td><td><a href="https://objective-see.org/blog/blog_0x84.html">Objective-See — Mac malware roundup</a></td><td>macOS infostealer landscape context</td><td>2026-06-26</td></tr>
+          <tr><td><span class="badge b-info">Framework</span></td><td><a href="https://attack.mitre.org/techniques/T1543/001/">MITRE ATT&amp;CK — T1543.001 Launch Agent</a></td><td>Persistence technique + mitigations</td><td>2026-06-26</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
