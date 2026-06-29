@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">UNC5221 · VerdantBamboo<br>Brickstorm in M365</div>
-    <div class="version">v0.1 · 2026-06-17</div>
+    <div class="version">v0.2 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -150,7 +150,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
     <div class="meta-item"><div class="mk">Type</div><div class="mv">Espionage · M365/cloud persistence · edge backdoor · MSP supply chain</div></div>
     <div class="meta-item"><div class="mk">Access</div><div class="mv">Edge-device 0-day → stolen creds → M365; ~18-month dwell</div></div>
     <div class="meta-item"><div class="mk">C2</div><div class="mv">Brickstorm WebSocket proxy; Plenet switchable C2; AgentPSD fallback domain</div></div>
-    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-06-17</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.2 · 2026-06-29</div></div>
     <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
     <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (multi-source vendor reporting, June 2026)</div></div>
   </div>
@@ -379,9 +379,9 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// FALSE POSITIVES: legit edge mgmt traffic; baseline before alerting</span>
 #event_simpleName=NetworkConnectIP4
 | LocalAddressIP4=/^10\.(0|1)\./
-| RemotePort=/^(443|80|8443|53)$/
-| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
-| table([@timestamp, ComputerName, ImageFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort])</pre>
+| in(RemotePort, values=[443, 80, 8443, 53])
+| ContextImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| table([@timestamp, ComputerName, ContextImageFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort])</pre>
       </div>
     </div>
 
@@ -398,11 +398,11 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// REQUIRES: Falcon network telemetry</span>
 <span class="cm">// FALSE POSITIVES: updaters/telemetry agents; exclude signed system paths</span>
 #event_simpleName=NetworkConnectIP4
-| ImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
-| ImageFileName!=/\\(chrome|msedge|firefox|brave|teams|onedrive)\.exe$/i
-| groupBy([ComputerName, ImageFileName, RemoteAddressIP4], function=count(as=hits))
+| ContextImageFileName=/\\(Temp|AppData|ProgramData|Users\\Public)\\/i
+| ContextImageFileName!=/\\(chrome|msedge|firefox|brave|teams|onedrive)\.exe$/i
+| groupBy([ComputerName, ContextImageFileName, RemoteAddressIP4], function=count(as=hits))
 | hits &gt;= 12
-| table([ComputerName, ImageFileName, RemoteAddressIP4, hits])</pre>
+| table([ComputerName, ContextImageFileName, RemoteAddressIP4, hits])</pre>
       </div>
     </div>
 
@@ -438,9 +438,9 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// REQUIRES: Falcon network telemetry; correlate to Q1 on same host</span>
 <span class="cm">// FALSE POSITIVES: data-science / automation hosts; exclude &amp; correlate Q1</span>
 #event_simpleName=NetworkConnectIP4
-| ImageFileName=/\\python(3|\d\.\d+)?\.exe$/i
-| RemotePort!=/^(53)$/
-| table([@timestamp, ComputerName, ImageFileName, RemoteAddressIP4, RemotePort])</pre>
+| ContextImageFileName=/\\python(3|\d\.\d+)?\.exe$/i
+| RemotePort != 53
+| table([@timestamp, ComputerName, ContextImageFileName, RemoteAddressIP4, RemotePort])</pre>
       </div>
     </div>
   </div>
@@ -676,6 +676,7 @@ VERSION:      v0.1 - 2026-06-17</pre>
 <div class="section" id="s17">
   <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
   <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): ImageFileName→ContextImageFileName on network events (Q3, Q4, Q6) and regex-on-numeric RemotePort fixes (Q3, Q6).</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-17</span><span>Initial pack — UNC5221 / VerdantBamboo (Brickstorm + Plenet + AgentPSD in Microsoft 365). Built on the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage map, .ticket). Cloud-first emphasis: 6 native Entra/UAL KQL hunts (N1–N6) for the ~18-month M365 dwell, plus 6 endpoint CQL hunts (Q1–Q6) for Plenet/.NET, AgentPSD/python, edge-adjacent egress, WebSocket beaconing, and user-path persistence. 3 custom IOA candidates. Brickstorm-on-EDR-less-edge documented as a coverage GAP (out-of-band appliance review only). Sourced from June 2026 vendor reporting (BleepingComputer, IBTimes, Abijita).</span></div>
   </div>
 </div>
