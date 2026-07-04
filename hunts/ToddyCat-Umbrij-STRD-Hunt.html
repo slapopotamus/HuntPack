@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToddyCat Umbrij / STRD — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for ToddyCat's Umbrij OAuth-token backdoor (Shadow Token via Remote Debug): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/ToddyCat-Umbrij-STRD-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ToddyCat Umbrij / STRD — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for ToddyCat's Umbrij OAuth-token backdoor (Shadow Token via Remote Debug): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/ToddyCat-Umbrij-STRD-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f85149;
+  --accent-dim: rgba(248,81,73,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1410 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; white-space: pre; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.ioc-grab .igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 4px; background: var(--accent-dim); }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">ToddyCat — Umbrij / STRD OAuth-Token Backdoor</div>
+    <div class="version">v0.1 · 2026-07-04</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>ToddyCat — Umbrij .NET Backdoor &amp; the Shadow Token via Remote Debug (STRD) Technique</h1>
+    <div class="subtitle">Asia-nexus espionage actor stealing Gmail / Google Workspace mail by driving a headless browser's remote-debugging port to mint OAuth tokens · analysed by Kaspersky Securelist, July 2026</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">ToddyCat / Umbrij (STRD)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE APT</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Nation-state backdoor / OAuth token theft</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Post-compromise (on-host tool)</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-07-04</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (vendor-attributed)</div></div>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>Umbrij</strong> is a <strong>.NET DLL backdoor</strong> (ConfuserEx-obfuscated) attributed by Kaspersky to <strong>ToddyCat</strong>, an Asia-nexus espionage actor known for targeting high-profile government and defence entities across Europe and Asia. Umbrij is purpose-built for one thing: <strong>surreptitiously reading a victim's Gmail / Google Workspace mailbox</strong> without ever needing the account password.</p>
+      <p>The novel tradecraft — which Kaspersky names <strong>Shadow Token via Remote Debug (STRD)</strong> — works by copying the victim's live browser profile, then launching Chrome/Edge in <code>--headless</code> mode with a <code>--remote-debugging-port</code>. Umbrij drives that debug port through <strong>PuppeteerSharp</strong> (the .NET Chrome DevTools Protocol library) to visit a Google OAuth URL for a legitimate <strong>Google Workspace migration client_id</strong> (GWMMO <code>279448736670</code>, or GWSMO <code>1095133494869</code> with the <code>-sync</code> switch). Because the copied profile is still signed in, Google issues an <strong>authorization code</strong> with no password prompt; Umbrij exchanges it for an access token and reads mail via the Google API (scopes include <code>https://mail.google.com/</code>, <code>gmail.insert</code>, <code>gmail.labels</code>, <code>drive</code>, and <code>admin.directory.user</code>).</p>
+      <p>Umbrij is delivered by <strong>DLL side-loading</strong>: legitimate signed hosts (<code>GoogleDesktop.exe</code>, <code>BDSubWiz.exe</code>, <code>VSTestVideoRecorder.exe</code>) are dropped to user-writable staging paths (<code>C:\Users\Public</code>, <code>C:\Windows\Vss</code>, <code>C:\Windows\Temp</code>) alongside a malicious companion DLL (<code>GoogleServices.DLL</code>, <code>log.dll</code>, or the VideoRecorderEngine DLL). The launcher accepts switches such as <code>-regex</code> (find a target user by email substring), <code>-browser</code>, <code>-debugport</code>, <code>-sync</code>, and <code>-deepsearch</code>. Persistence is a scheduled task masquerading as <code>KasperskyEndpointSecurityEDRAvp</code>.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> The highest-value, lowest-FP angles are a browser launched with <strong>both</strong> <code>--remote-debugging-port</code> and <code>--headless</code> (especially with <code>--user-data-dir</code> pointing at a <code>BackupFiles</code> copy), the three DLL-sideload host binaries running from <code>Public</code>/<code>Vss</code>/<code>Temp</code>, the Kaspersky-published Umbrij hashes, and the <code>KasperskyEndpointSecurityEDRAvp</code> scheduled task. Enforce Chrome policy <code>DeveloperToolsAvailability=2</code> to break the remote-debug primitive outright.</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Fwd</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-low">1 · Vendor</span></td><td>Kaspersky Securelist — "How the ToddyCat APT group gains access to Gmail accounts" (2026-07-02)</td><td>Primary technical analysis: Umbrij .NET backdoor, STRD technique, PuppeteerSharp/CDP remote-debug flow, OAuth client_ids &amp; scopes, DLL-sideload trios, MD5 hashes, scheduled-task persistence, Chrome-policy mitigation</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">2 · Press</span></td><td>The Hacker News — "ToddyCat-Linked Umbrij Malware Abuses OAuth to Access Gmail via Google API" (2026-07-02)</td><td>Corroborates STRD, PuppeteerSharp usage, session-riding (no password needed), migration-tool client_id abuse</td><td>partial</td></tr>
+          <tr><td><span class="badge b-info">2 · Press</span></td><td>GBHackers / CyberPress — ToddyCat "Shadow Token" &amp; ConfuserEx tooling</td><td>Confirm ConfuserEx obfuscation, headless remote-debug port, automated Gmail compromise</td><td>partial</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Every atomic IOC below (MD5 hashes, host/DLL filenames, install paths, OAuth client_ids, scheduled-task name) traces to the Kaspersky Securelist indicator set. The OAuth client_ids and Google scopes are behavioural constants of the technique; the sideloaded filenames and staging paths are durable, while the debug-port number (e.g. <code>11111</code>) is arbitrary and should be treated as illustrative, not a fixed indicator.</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt hypotheses (fidelity-ordered)</h3>
+      <ol>
+        <li><strong>H1 (high):</strong> A browser was launched with <strong>both</strong> <code>--remote-debugging-port</code> and <code>--headless</code> — the core STRD primitive. <em>Covers T1550.001 / T1528.</em></li>
+        <li><strong>H2 (high):</strong> A headless remote-debug browser used <code>--user-data-dir</code> pointing at a copied profile (<code>BackupFiles</code>). <em>STRD profile-clone tell.</em></li>
+        <li><strong>H3 (high):</strong> One of the three DLL-sideload host binaries executed from <code>C:\Users\Public</code>, <code>C:\Windows\Vss</code>, or <code>C:\Windows\Temp</code>. <em>Covers T1574.001.</em></li>
+        <li><strong>H4 (high):</strong> A file matching a Kaspersky-published Umbrij / sideloaded-DLL hash executed or was written. <em>Atomic.</em></li>
+        <li><strong>H5 (high):</strong> A scheduled task named <code>KasperskyEndpointSecurityEDRAvp</code> was registered. <em>Covers T1053.005 masquerade.</em></li>
+        <li><strong>H6 (high):</strong> An Umbrij launcher ran with STRD switches (<code>-regex</code> + <code>-deepsearch</code> / <code>-debugport</code> / <code>-browser</code>). <em>Command-line tell.</em></li>
+        <li><strong>H7 (medium):</strong> A non-browser parent spawned a headless remote-debug browser. <em>Catches renamed/unknown host binaries.</em></li>
+        <li><strong>H8 (medium):</strong> A sideload host binary or headless browser resolved <code>accounts.google.com</code> for the OAuth code exchange. <em>Covers T1114 / T1071.001.</em></li>
+      </ol>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Delivery</td><td>DLL side-load: signed host (GoogleDesktop/BDSubWiz/VSTestVideoRecorder) + malicious DLL dropped to Public/Vss/Temp</td><td>ProcessRollup2, PeFileWritten</td><td>Q3, Q4</td></tr>
+          <tr><td>2 · Execution</td><td>Umbrij launcher runs with -regex / -browser / -debugport / -deepsearch to pick a target user</td><td>ProcessRollup2</td><td>Q6</td></tr>
+          <tr><td>3 · Profile clone</td><td>Copies live Chrome/Edge profile (Login Data, Local State, Web Data) into a BackupFiles dir</td><td>FileCreateInfo / PeFileWritten</td><td>Q2 (via user-data-dir), native hunts</td></tr>
+          <tr><td>4 · STRD</td><td>Launches browser --headless --remote-debugging-port; PuppeteerSharp drives CDP to Google OAuth URL</td><td>ProcessRollup2</td><td>Q1, Q2, Q7</td></tr>
+          <tr><td>5 · Token mint</td><td>Rides signed-in session → authorization code for GWMMO/GWSMO client_id → access token</td><td>DnsRequest, NetworkConnectIP4</td><td>Q8</td></tr>
+          <tr><td>6 · Collection</td><td>Reads mailbox via Google API (mail.google.com, gmail.insert, drive scopes)</td><td>NetworkConnectIP4 (API egress)</td><td>Q8, native hunts</td></tr>
+          <tr><td>7 · Persistence</td><td>Scheduled task masquerading as KasperskyEndpointSecurityEDRAvp</td><td>ScheduledTaskRegistered</td><td>Q5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">All values published by Kaspersky Securelist. Hashes and sideloaded filenames are durable; the debug-port number is arbitrary (illustrative <code>11111</code>). Validate against your own retention window before bulk-blocking, and note the host binaries are legitimate signed files abused only when they run from user-writable staging paths.</p>
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>md5</td><td>1AB58838E5790EFB22F2D35AB98C0B7D</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. a)</td></tr>
+          <tr><td>md5</td><td>A7D7D6C4C3F227F7117261C63B9E23A9</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. a)</td></tr>
+          <tr><td>md5</td><td>3D3A621F852C42D97FD7260681E42508</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. a)</td></tr>
+          <tr><td>md5</td><td>3432DD9AC0DF80EF86EB80BD080F839B</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. a)</td></tr>
+          <tr><td>md5</td><td>22AAEB4946BA6D2F2E27FEB7DBB295DE</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. b)</td></tr>
+          <tr><td>md5</td><td>F61FBFB7AA1CD5DC8F70B055B51563E2</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. b)</td></tr>
+          <tr><td>md5</td><td>F169D6D172DFB775895A5E2B1540C854</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Umbrij (ver. c)</td></tr>
+          <tr><td>md5</td><td>9F5F2F0FB0A7F5AA9F16B9A7B6DAD89F</td><td><span class="badge b-low">high</span></td><td>detect</td><td>GoogleServices.DLL (sideloaded)</td></tr>
+          <tr><td>md5</td><td>28CB7B261F4EB97E8A4B3B0D32F8DEF1</td><td><span class="badge b-low">high</span></td><td>detect</td><td>log.dll (sideloaded)</td></tr>
+          <tr><td>md5</td><td>BAE82A15D1DBFB024617B9B56A8E5F66</td><td><span class="badge b-low">high</span></td><td>detect</td><td>VideoRecorderEngine.dll (sideloaded)</td></tr>
+          <tr><td>filename</td><td>GoogleDesktop.exe / BDSubWiz.exe / VSTestVideoRecorder.exe (from Public/Vss/Temp)</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>DLL-sideload host binaries</td></tr>
+          <tr><td>path</td><td>C:\Users\Public\ , C:\Windows\Vss\ , C:\Windows\Temp\</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>staging / execution paths</td></tr>
+          <tr><td>task</td><td>KasperskyEndpointSecurityEDRAvp</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>scheduled-task persistence (masquerade)</td></tr>
+          <tr><td>oauth</td><td>client_id 279448736670 (GWMMO) / 1095133494869 (GWSMO)</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Workspace migration app abused for token mint</td></tr>
+          <tr><td>behavior</td><td>browser --headless --remote-debugging-port (STRD)</td><td><span class="badge b-low">high</span></td><td>detect</td><td>core technique primitive</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+        <tbody>
+          <tr><td>Windows endpoints (Chrome/Edge + .NET present)</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-low">Low</span> — default Falcon coverage</td></tr>
+          <tr><td>File writes (profile clone / sideloaded DLL)</td><td>PeFileWritten / FileCreateInfo</td><td><span class="badge b-high">High</span></td><td><span class="badge b-low">Low</span></td></tr>
+          <tr><td>Scheduled tasks</td><td>ScheduledTaskRegistered</td><td><span class="badge b-high">High</span></td><td><span class="badge b-low">Low</span></td></tr>
+          <tr><td>DNS / egress (OAuth code exchange, Google API)</td><td>DnsRequest, NetworkConnectIP4</td><td><span class="badge b-med">Med</span></td><td><span class="badge b-high">High</span> — accounts.google.com is ubiquitous; only useful scoped to a suspicious parent</td></tr>
+          <tr><td>Google Workspace (identity side)</td><td>Workspace Admin login/token audit logs</td><td><span class="badge b-med">Med</span></td><td><span class="badge b-high">High</span> — not in Falcon EDR; needs Workspace telemetry (§7)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>Defense Evasion</td><td>T1574.001 DLL Side-Loading</td><td>Signed host (GoogleDesktop/BDSubWiz/VSTestVideoRecorder) loads malicious companion DLL</td><td>Q3, Q4</td></tr>
+          <tr><td>Defense Evasion</td><td>T1036.005 Masquerading: Match Legitimate Name</td><td>Scheduled task named KasperskyEndpointSecurityEDRAvp; migration-app client_id reuse</td><td>Q5</td></tr>
+          <tr><td>Credential Access</td><td>T1528 Steal Application Access Token</td><td>OAuth authorization code minted from a signed-in session</td><td>Q1, Q2, Q7</td></tr>
+          <tr><td>Defense Evasion / Lateral</td><td>T1550.001 Use Alternate Auth Material: App Access Token</td><td>Rides existing Gmail session; no password needed</td><td>Q1, Q8</td></tr>
+          <tr><td>Privilege Escalation</td><td>T1134.003 Make and Impersonate Token</td><td>Runs browser in a targeted user's context (-user / -regex)</td><td>Q6</td></tr>
+          <tr><td>Persistence</td><td>T1053.005 Scheduled Task</td><td>KasperskyEndpointSecurityEDRAvp task</td><td>Q5</td></tr>
+          <tr><td>Collection</td><td>T1114 Email Collection</td><td>Reads mailbox via Google API (mail.google.com / gmail scopes)</td><td>Q8, native hunts</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1071.001 Web Protocols</td><td>OAuth code exchange + Google API over HTTPS</td><td>Q8</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (non-CQL)</h2></div>
+    <div class="section-body">
+      <ul>
+        <li><strong>Google Workspace Admin — Token audit:</strong> In the Admin console, review OAuth token grants and app activity for the migration apps <em>Google Workspace Migration for Microsoft Outlook</em> (client_id <code>279448736670</code>) and <em>Google Workspace Sync for Microsoft Outlook</em> (<code>1095133494869</code>). Legitimate use is rare and admin-driven; unexpected grants tied to a workstation IP are the identity-side tell.</li>
+        <li><strong>Google Workspace — Login audit:</strong> Hunt for API access to Gmail from a <code>localhost</code> redirect flow or new device/session immediately after an endpoint alert; users can self-audit at <code>myaccount.google.com/connections</code>.</li>
+        <li><strong>Chrome/Edge policy state:</strong> Confirm <code>DeveloperToolsAvailability</code> is enforced (value <code>2</code> = disabled) via GPO/MDM reporting; any host where it is unset is exposed to STRD.</li>
+        <li><strong>Scheduled task inventory:</strong> Sweep for a task literally named <code>KasperskyEndpointSecurityEDRAvp</code> on hosts that do <em>not</em> run Kaspersky (the name is a masquerade).</li>
+        <li><strong>File-system sweep:</strong> Look for a <code>BackupFiles</code> directory under <code>%LOCALAPPDATA%\Google\Chrome</code> or <code>%LOCALAPPDATA%\Microsoft\Edge</code> — Umbrij's copied-profile staging folder.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · Browser headless + remote-debugging port (STRD core)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Chromium-based browser launched with <strong>both</strong> <code>--remote-debugging-port</code> and <code>--headless</code> — the STRD primitive Umbrij needs to drive the DevTools protocol. Very rare on user workstations.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Headless browser with a remote-debugging port (STRD)</span>
+<span class="cm">// MITRE: T1528, T1550.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: rare — some automated testing/CI harnesses; scope out known runners</span>
+<span class="cm">// TUNING: exclude sanctioned QA/automation hosts and puppeteer-based CI agents</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(chrome|msedge|brave|chromium)\.exe$/i
+| CommandLine=/--remote-debugging-port/i
+| CommandLine=/--headless/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · Remote-debug browser pointed at a cloned profile (BackupFiles)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a remote-debug browser whose <code>--user-data-dir</code> points at a copied-profile <code>BackupFiles</code> folder — Umbrij clones the live profile so the debug session inherits the signed-in Google cookies. Near-zero FP.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: STRD browser using a cloned profile (BackupFiles user-data-dir)</span>
+<span class="cm">// MITRE: T1528, T1550.001, T1539</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(chrome|msedge|brave|chromium)\.exe$/i
+| CommandLine=/--remote-debugging-port/i
+| CommandLine=/--user-data-dir=.{0,120}BackupFiles/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · DLL-sideload host binaries from user-writable staging paths</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the three signed host binaries Umbrij abuses running from <code>C:\Users\Public</code>, <code>C:\Windows\Vss</code>, or <code>C:\Windows\Temp</code> — legitimate files in illegitimate locations.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Umbrij DLL-sideload host binaries from staging paths</span>
+<span class="cm">// MITRE: T1574.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: none expected — these binaries do not normally live in Public/Vss/Temp</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(GoogleDesktop|BDSubWiz|VSTestVideoRecorder|bds)\.exe$/i
+| FilePath=/\\(Users\\Public|Windows\\Vss|Windows\\Temp)\\/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, FilePath, CommandLine, ParentBaseFileName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · Kaspersky-published Umbrij / sideloaded-DLL hashes</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> execution or write of any Kaspersky-listed Umbrij or sideloaded-DLL MD5. Atomic — promote straight to a Custom IOC block (see §10).</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Umbrij / sideloaded-DLL known-bad MD5 hashes (Kaspersky)</span>
+<span class="cm">// MITRE: T1574.001, T1528</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 / PeFileWritten</span>
+#event_simpleName=/ProcessRollup2|PeFileWritten|NewExecutableWritten/
+| in(MD5HashData, values=["1AB58838E5790EFB22F2D35AB98C0B7D", "A7D7D6C4C3F227F7117261C63B9E23A9", "3D3A621F852C42D97FD7260681E42508", "3432DD9AC0DF80EF86EB80BD080F839B", "22AAEB4946BA6D2F2E27FEB7DBB295DE", "F61FBFB7AA1CD5DC8F70B055B51563E2", "F169D6D172DFB775895A5E2B1540C854", "9F5F2F0FB0A7F5AA9F16B9A7B6DAD89F", "28CB7B261F4EB97E8A4B3B0D32F8DEF1", "BAE82A15D1DBFB024617B9B56A8E5F66"])
+| table([@timestamp, aid, ComputerName, UserName, FileName, FilePath, MD5HashData])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · Scheduled task masquerading as KasperskyEndpointSecurityEDRAvp</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> registration of a scheduled task named <code>KasperskyEndpointSecurityEDRAvp</code> — Umbrij's persistence masquerade. On any host without a genuine Kaspersky install this is a strong signal.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Umbrij scheduled-task persistence (Kaspersky EDR masquerade)</span>
+<span class="cm">// MITRE: T1053.005, T1036.005</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ScheduledTaskRegistered</span>
+<span class="cm">// TUNING: on genuine Kaspersky fleets, confirm the task's backing executable path is legitimate</span>
+#event_simpleName=/ScheduledTaskRegistered/
+| TaskName=/KasperskyEndpointSecurityEDRAvp/i
+| table([@timestamp, aid, ComputerName, UserName, TaskName, TaskExecutable])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · Umbrij launcher command-line switches</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a process invoked with the distinctive Umbrij switch pairing — a <code>-regex</code> user selector alongside <code>-deepsearch</code>, <code>-debugport</code>, or <code>-browser</code>. <strong>FP:</strong> generic <code>-regex</code> exists in other tools; the pairing with browser/debug switches is what makes this specific.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Umbrij launcher switches (-regex + -deepsearch/-debugport/-browser)</span>
+<span class="cm">// MITRE: T1134.003, T1528</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: unrelated CLI tools that accept a -regex flag</span>
+<span class="cm">// TUNING: require the -regex + browser/debug pairing (below); exclude sanctioned admin scripts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/\s-regex\s/i
+| CommandLine=/\s-(deepsearch|debugport|browser|sync)\b/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, FilePath, CommandLine, ParentBaseFileName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · Non-browser parent spawns a headless remote-debug browser</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a headless remote-debug browser whose parent is <strong>not</strong> a normal browser/updater — catches Umbrij even under a renamed host binary. <strong>FP:</strong> automation frameworks (node.exe, python.exe) legitimately launch headless Chrome — exclude sanctioned CI/QA parents.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Headless remote-debug browser launched by a non-browser parent</span>
+<span class="cm">// MITRE: T1528, T1574.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: node/python automation harnesses driving Puppeteer/Playwright</span>
+<span class="cm">// TUNING: exclude approved automation parents and CI runner hosts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(chrome|msedge|brave|chromium)\.exe$/i
+| CommandLine=/--remote-debugging-port/i
+| ParentBaseFileName!=/^(chrome|msedge|brave|chromium|explorer|GoogleUpdate|MicrosoftEdgeUpdate|services)\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q8 · OAuth code-exchange DNS from a sideload host / headless browser</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> DNS to <code>accounts.google.com</code> / <code>oauth2.googleapis.com</code> initiated by one of the sideload host binaries (not the real browser) — the token-mint egress. <strong>FP:</strong> these domains are ubiquitous, so this query is scoped by <code>ContextBaseFileName</code> to the abused hosts; broaden only during active IR.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: OAuth token-mint DNS from an Umbrij sideload host binary</span>
+<span class="cm">// MITRE: T1114, T1071.001, T1550.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: DnsRequest</span>
+<span class="cm">// FALSE POSITIVES: accounts.google.com is common — scoping to the host binaries keeps it tight</span>
+<span class="cm">// TUNING: during IR, drop the ContextBaseFileName filter to see all OAuth egress on a suspect host</span>
+#event_simpleName=DnsRequest
+| DomainName=/^(accounts\.google\.com|oauth2\.googleapis\.com)$/i
+| ContextBaseFileName=/^(GoogleDesktop|BDSubWiz|VSTestVideoRecorder|bds)\.exe$/i
+| table([@timestamp, aid, ComputerName, DomainName, ContextBaseFileName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q9 · Chromium browser executing from a staging path</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Chrome/Edge binary running from <code>Public</code>/<code>Vss</code>/<code>Temp</code> rather than Program Files — a portable browser Umbrij can drop to guarantee a debuggable instance. Distinctive path → very low FP.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: Chromium browser running from a user-writable staging path</span>
+<span class="cm">// MITRE: T1528, T1574.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(chrome|msedge|brave|chromium)\.exe$/i
+| FilePath=/\\(Users\\Public|Windows\\Vss|Windows\\Temp)\\/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, FilePath, CommandLine])</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA Name</th><th>Pattern</th><th>Action</th><th>Exclusions</th></tr></thead>
+        <tbody>
+          <tr><td>STRD — Headless Remote-Debug Browser</td><td>Chromium image with <code>--remote-debugging-port</code> + <code>--headless</code> (Q1)</td><td>Detect (high)</td><td>Sanctioned QA/CI automation hosts</td></tr>
+          <tr><td>Umbrij — Sideload Host in Staging Path</td><td>GoogleDesktop/BDSubWiz/VSTestVideoRecorder from Public/Vss/Temp (Q3)</td><td>Detect → Block (after baseline)</td><td>None expected — abnormal location</td></tr>
+          <tr><td>Umbrij — EDR-Masquerade Task</td><td>ScheduledTaskRegistered TaskName KasperskyEndpointSecurityEDRAvp (Q5)</td><td>Detect (high)</td><td>Genuine Kaspersky fleets — verify backing path</td></tr>
+          <tr><td>Umbrij — Launcher Switches</td><td><code>-regex</code> + <code>-deepsearch/-debugport/-browser</code> (Q6)</td><td>Detect (medium)</td><td>Sanctioned admin scripts using -regex</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Promotion path: validate the high-CONF/low-FP queries (Q1, Q3, Q5) against 7–14 days of baseline, confirm zero benign hits, then promote to Custom IOAs in <em>detect</em> mode; escalate Q3 to <em>block</em> once clean. Q4 hashes → Custom IOC Management (block).</p>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p>One-click blocks for SOC tooling. Hashes are Kaspersky-published; swap expirations to fit your policy. Note the host EXEs are legitimate signed binaries — hunt on location/behaviour, do not blanket-block by name.</p>
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+md5,1AB58838E5790EFB22F2D35AB98C0B7D,prevent,critical,2026-12-31,Umbrij ver.a,actor:ToddyCat;tool:Umbrij
+md5,A7D7D6C4C3F227F7117261C63B9E23A9,prevent,critical,2026-12-31,Umbrij ver.a,actor:ToddyCat;tool:Umbrij
+md5,3D3A621F852C42D97FD7260681E42508,prevent,critical,2026-12-31,Umbrij ver.a,actor:ToddyCat;tool:Umbrij
+md5,3432DD9AC0DF80EF86EB80BD080F839B,prevent,critical,2026-12-31,Umbrij ver.a,actor:ToddyCat;tool:Umbrij
+md5,22AAEB4946BA6D2F2E27FEB7DBB295DE,prevent,critical,2026-12-31,Umbrij ver.b,actor:ToddyCat;tool:Umbrij
+md5,F61FBFB7AA1CD5DC8F70B055B51563E2,prevent,critical,2026-12-31,Umbrij ver.b,actor:ToddyCat;tool:Umbrij
+md5,F169D6D172DFB775895A5E2B1540C854,prevent,critical,2026-12-31,Umbrij ver.c,actor:ToddyCat;tool:Umbrij
+md5,9F5F2F0FB0A7F5AA9F16B9A7B6DAD89F,prevent,critical,2026-12-31,GoogleServices.DLL sideload,actor:ToddyCat;tool:Umbrij
+md5,28CB7B261F4EB97E8A4B3B0D32F8DEF1,prevent,critical,2026-12-31,log.dll sideload,actor:ToddyCat;tool:Umbrij
+md5,BAE82A15D1DBFB024617B9B56A8E5F66,prevent,critical,2026-12-31,VideoRecorderEngine.dll sideload,actor:ToddyCat;tool:Umbrij</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt logic</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh">[ Umbrij / STRD behaviors ]
+- Browser launched with --headless AND --remote-debugging-port
+- --user-data-dir pointing at a *\BackupFiles\* cloned profile
+- GoogleDesktop.exe / BDSubWiz.exe / VSTestVideoRecorder.exe / bds.exe
+  running from C:\Users\Public, C:\Windows\Vss, or C:\Windows\Temp
+- Sideloaded DLL: GoogleServices.DLL / log.dll / VideoRecorderEngine.dll
+- Launcher switches: -regex + -deepsearch / -debugport / -browser / -sync
+- Scheduled task named KasperskyEndpointSecurityEDRAvp
+- OAuth code exchange for client_id 279448736670 or 1095133494869
+- Non-browser parent spawning a headless remote-debug Chrome/Edge</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">attribution</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-named',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-named">Actor:   ToddyCat (Asia-nexus espionage APT)
+Implant: Umbrij (.NET DLL, ConfuserEx-obfuscated)
+         Verdicts: HEUR:Trojan-PSW.MSIL.Umbrij.gen
+                   HEUR:Trojan.MSIL.Agent.gen
+Technique: STRD - Shadow Token via Remote Debug
+Library:  PuppeteerSharp (Chrome DevTools Protocol)
+OAuth:    GWMMO client_id 279448736670
+          GWSMO client_id 1095133494869 (-sync)
+Scopes:   mail.google.com, gmail.insert, gmail.labels,
+          drive, admin.directory.user</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Workspace / Policy Audit</span><span class="igc">prevent checklist</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit">[ ] Chrome/Edge policy DeveloperToolsAvailability = 2 (disabled) enforced
+[ ] Workspace: restrict/deny GWMMO (279448736670) &amp; GWSMO (1095133494869)
+[ ] Workspace: review OAuth token grants + localhost-redirect API access
+[ ] Scheduled-task sweep for KasperskyEndpointSecurityEDRAvp
+[ ] WDAC/AppLocker blocks EXEs under C:\Users\Public, \Windows\Vss, \Windows\Temp
+[ ] ASR: block credential stealing / LSASS + audit DLL side-loading hosts
+[ ] Users audit third-party access at myaccount.google.com/connections</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <ul>
+        <li><strong>Telemetry ready:</strong> Confirm ProcessRollup2, ScheduledTaskRegistered, PeFileWritten, and DnsRequest are flowing from in-scope Windows hosts running Chrome/Edge.</li>
+        <li><strong>Benign baseline:</strong> Run Q1 and Q7 (headless remote-debug) over 7–14 days; record any sanctioned Puppeteer/Playwright CI or QA hosts, and exclude those parents before alerting.</li>
+        <li><strong>Positive test:</strong> In a lab, launch <code>chrome.exe --headless --remote-debugging-port=9222 --user-data-dir=C:\Temp\BackupFiles</code> and confirm Q1 and Q2 fire; register a task named <code>KasperskyEndpointSecurityEDRAvp</code> and confirm Q5 fires.</li>
+        <li><strong>Promotion:</strong> Only promote Q1/Q3/Q5 to detect/block after zero benign hits across the baseline window.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week — low risk)</div>
+        <ul>
+          <li><strong>Enforce Chrome/Edge <code>DeveloperToolsAvailability = 2</code></strong> via GPO/MDM — disables DevTools and the remote-debugging primitive STRD depends on. <em>(MITRE M1042 Disable or Remove Feature.)</em></li>
+          <li><strong>Restrict the Workspace migration apps</strong> (GWMMO <code>279448736670</code>, GWSMO <code>1095133494869</code>) to trusted admins in Google Admin console API controls, or block them outright if unused. <em>(M1018 User Account Management.)</em></li>
+          <li><strong>Sweep + alert on the <code>KasperskyEndpointSecurityEDRAvp</code> task</strong> across the fleet. <em>(M1047 Audit.)</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1–4 weeks — pilot first)</div>
+        <ul>
+          <li><strong>WDAC/AppLocker:</strong> block execution of binaries under <code>C:\Users\Public</code>, <code>C:\Windows\Vss</code>, and <code>C:\Windows\Temp</code> (deny-by-path). <em>(M1038 Execution Prevention.)</em></li>
+          <li><strong>Audit DLL side-loading hosts:</strong> alert when GoogleDesktop/BDSubWiz/VSTestVideoRecorder load a DLL from a non-standard directory. <em>(M1052 User Account Control / M1038.)</em></li>
+          <li><strong>Enforce phishing-resistant MFA and re-auth for OAuth grants</strong> in Google Workspace so a stolen cookie alone cannot mint high-scope tokens. <em>(M1032 Multi-factor Authentication.)</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1–3 months — architectural)</div>
+        <ul>
+          <li><strong>Context-aware access / device trust</strong> in Workspace so API sessions from unmanaged or anomalous device contexts are denied. <em>(M1035 Limit Access to Resource Over Network.)</em></li>
+          <li><strong>Application allow-listing</strong> for OAuth apps (block unverified/unneeded third-party and migration apps org-wide). <em>(M1018.)</em></li>
+          <li><strong>Least-privilege on admin scopes</strong> — restrict <code>admin.directory.user</code> and Drive-wide scopes to a minimal, monitored admin set. <em>(M1026 Privileged Account Management.)</em></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h4>P1 · Enforce Chrome DeveloperToolsAvailability = 2 (disable DevTools / remote debug)</h4>
+<pre class="code"># HKLM policy (applies to all users; Edge uses ...\Policies\Microsoft\Edge)
+New-Item -Path 'HKLM:\SOFTWARE\Policies\Google\Chrome' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Google\Chrome' `
+  -Name 'DeveloperToolsAvailability' -Type DWord -Value 2
+New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' `
+  -Name 'DeveloperToolsAvailability' -Type DWord -Value 2
+# Verify:
+Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Google\Chrome' -Name DeveloperToolsAvailability</pre>
+      <h4>P2 · Hunt the KasperskyEndpointSecurityEDRAvp scheduled task</h4>
+<pre class="code">$t = Get-ScheduledTask -TaskName 'KasperskyEndpointSecurityEDRAvp' -ErrorAction SilentlyContinue
+if ($t) {
+  $a = $t.Actions | Select-Object Execute, Arguments
+  [pscustomobject]@{ Host=$env:COMPUTERNAME; Found=$true; Exec=$a.Execute; Args=$a.Arguments }
+} else {
+  [pscustomobject]@{ Host=$env:COMPUTERNAME; Found=$false }
+}</pre>
+      <h4>P3 · Flag Chromium binaries / EXEs running from staging paths</h4>
+<pre class="code">$dirs = 'C:\Users\Public','C:\Windows\Vss','C:\Windows\Temp'
+foreach ($d in $dirs) {
+  if (Test-Path $d) {
+    Get-ChildItem -Path $d -Filter *.exe -Recurse -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -match '^(chrome|msedge|brave|chromium|GoogleDesktop|BDSubWiz|VSTestVideoRecorder|bds)\.exe$' } |
+      Select-Object FullName, Length, LastWriteTime
+  }
+}</pre>
+      <h4>P4 · Locate cloned-profile BackupFiles staging folders</h4>
+<pre class="code">$roots = @(
+  "$env:LOCALAPPDATA\Google\Chrome",
+  "$env:LOCALAPPDATA\Microsoft\Edge"
+)
+foreach ($r in $roots) {
+  if (Test-Path $r) {
+    Get-ChildItem -Path $r -Directory -Filter 'BackupFiles' -ErrorAction SilentlyContinue |
+      Select-Object FullName, CreationTime
+  }
+}</pre>
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Network-contain the host in Falcon; preserve memory, the <code>BackupFiles</code> profile copy, and the staging directories; do NOT reboot (lose volatile token/CDP state).</td><td>SOC</td><td>RTR capture, process tree, netconns</td></tr>
+          <tr><td>Eradicate</td><td>Remove the <code>KasperskyEndpointSecurityEDRAvp</code> task; delete sideloaded host+DLL pairs and the cloned profile; block Umbrij hashes (Q4).</td><td>IR</td><td>Task diff, deleted-file hashes</td></tr>
+          <tr><td>Identity recovery</td><td>In Google Workspace: revoke the user's OAuth tokens/sessions, force password reset + re-MFA, and revoke the GWMMO/GWSMO grants; review Gmail rules/labels for tampering (gmail.insert scope).</td><td>IR + IdP</td><td>Workspace token-revocation log</td></tr>
+          <tr><td>Hunt-back</td><td>Sweep the fleet with Q1–Q9; pivot on the sideloaded-DLL hashes and any host with a BackupFiles clone or the masquerade task; review Workspace audit for other abused mailboxes.</td><td>Threat Hunt</td><td>Fleet query results, Workspace audit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1528 / T1550.001</td><td>Headless remote-debug browser (STRD)</td><td>Q1, Q2</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1574.001</td><td>DLL-sideload host in staging path</td><td>Q3, Q9</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>Atomic hashes</td><td>Known-bad Umbrij / DLL files</td><td>Q4</td><td>IOC</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1053.005</td><td>EDR-masquerade scheduled task</td><td>Q5</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1134.003</td><td>Umbrij launcher switches</td><td>Q6</td><td>Yes</td><td><span class="badge b-med">Partial</span> (FP-tuned)</td></tr>
+          <tr><td>T1528 (evasion)</td><td>Non-browser parent → headless browser</td><td>Q7</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1114 / T1071.001</td><td>OAuth token-mint egress</td><td>Q8</td><td>—</td><td><span class="badge b-med">Partial</span> (scoped)</td></tr>
+          <tr><td>Profile clone</td><td>Live browser-profile copy</td><td>Q2 (via user-data-dir)</td><td>—</td><td><span class="badge b-med">Partial</span> — full file-copy detection needs FileCreateInfo hunt (§7)</td></tr>
+          <tr><td>Identity side</td><td>Workspace token grant / API read</td><td>—</td><td>—</td><td><span class="badge b-high">Gap</span> — out of EDR scope; covered by Workspace audit (§7)</td></tr>
+        </tbody>
+      </table>
+      <p>Detection is strongest at the STRD primitive (headless + remote-debug), DLL-sideload location, atomic hashes, and the masquerade task — all low-FP. The launcher-switch and non-browser-parent hunts need environment tuning for automation frameworks. The mailbox-read itself happens in Google's cloud and is a gap best covered upstream via Workspace token/login audit (§7).</p>
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE:      ToddyCat Umbrij / STRD OAuth-token backdoor hunt
+SEVERITY:   Critical - active nation-state espionage (mailbox theft)
+SCOPE:      Windows endpoints (Chrome/Edge + .NET); DNS/egress;
+            Google Workspace identity audit
+HYPOTHESIS: ToddyCat ran Umbrij to clone a signed-in browser profile,
+            drive a headless --remote-debugging-port session via
+            PuppeteerSharp, and mint a Google OAuth token to read mail.
+QUERIES:    Q1 headless+debug | Q2 BackupFiles profile | Q3 sideload
+            hosts | Q4 hashes | Q5 EDR-masq task | Q6 launcher switches
+            Q7 non-browser parent | Q8 OAuth egress | Q9 browser in staging
+DO FIRST:   Q1, Q3, Q5 (lowest FP, structural) then Q4, Q2.
+FINDINGS:   &lt;record hosts / hashes / tasks / Workspace grants here&gt;
+GAPS:       Mailbox read in Google cloud; profile file-copy (use §7).
+ACTIONS:    Enforce DeveloperToolsAvailability=2; restrict GWMMO/GWSMO;
+            block Q4 hashes; revoke tokens + re-MFA; isolate + IR
+            confirmed hosts.
+OWNER:      HuntPack
+VERSION:    v0.1 · 2026-07-04</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-04</span><span>Initial HuntPack from Kaspersky Securelist ToddyCat / Umbrij analysis — 9 CQL queries, 4 Custom IOA recs, IOC appendix (7 Umbrij + 3 sideloaded-DLL MD5s, OAuth client_ids, masquerade task), tiered hardening, playbooks, containment runbook.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Vendor</td><td><a href="https://securelist.com/toddycat-apt-umbrij-tool-and-oauth/120251/" target="_blank" rel="noopener">Kaspersky Securelist — How the ToddyCat APT group gains access to Gmail accounts</a></td><td>Umbrij analysis, STRD technique, IOCs, hashes, OAuth client_ids, scheduled-task persistence, Chrome-policy mitigation</td><td>2026-07-04</td></tr>
+          <tr><td>2 · Press</td><td><a href="https://thehackernews.com/2026/07/toddycat-linked-umbrij-malware-abuses.html" target="_blank" rel="noopener">The Hacker News — ToddyCat-Linked Umbrij Malware Abuses OAuth to Access Gmail</a></td><td>Technique corroboration, PuppeteerSharp/CDP, session-riding, migration-app abuse</td><td>2026-07-04</td></tr>
+          <tr><td>2 · Press</td><td><a href="https://gbhackers.com/toddycat-uses-shadow-token/" target="_blank" rel="noopener">GBHackers — ToddyCat Uses Shadow Token via Remote Debug</a></td><td>STRD naming, ConfuserEx, headless remote-debug detail</td><td>2026-07-04</td></tr>
+          <tr><td>Ref</td><td><a href="https://attack.mitre.org/groups/G1022/" target="_blank" rel="noopener">MITRE ATT&amp;CK — ToddyCat (G1022)</a></td><td>Technique mapping, mitigations</td><td>2026-07-04</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
