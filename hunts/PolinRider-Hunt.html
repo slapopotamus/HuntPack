@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolinRider — DPRK Open-Source Supply-Chain Campaign — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the PolinRider North Korea-linked supply-chain campaign (DEV#POPPER + OmniStealer): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/PolinRider-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PolinRider — DPRK Open-Source Supply-Chain Campaign — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the PolinRider North Korea-linked supply-chain campaign (DEV#POPPER + OmniStealer): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/PolinRider-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f85149;                       /* THEME: nation-state / DPRK APT = red */
+  --accent-dim: rgba(248,81,73,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a0f0d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.ioc-grab .igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 0; overflow: hidden; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">PolinRider — DPRK Open-Source Supply-Chain</div>
+    <div class="version">v0.1 · 2026-07-09</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>PolinRider — North Korea-Linked Open-Source Supply-Chain Campaign</h1>
+    <div class="subtitle">108 packages / 162 malicious release artifacts across npm, Packagist, Go modules and Chrome — JS loaders hidden in config files and VS Code folderOpen tasks pull an XOR-encrypted stage-2 from blockchain RPC dead-drops, delivering the DEV#POPPER RAT and OmniStealer.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">PolinRider (Famous Chollima / Contagious Interview cluster)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE DPRK SUPPLY-CHAIN</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Software Supply Chain · Developer Workstation</div></div>
+      <div class="meta-item"><div class="mk">Access Vector</div><div class="mv">Malicious package install / repo clone → auto-run</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-07-09</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (primary Socket research; multi-outlet corroboration)</div></div>
+    </div>
+  </div>
+
+  <!-- 1 EXEC SUMMARY -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>PolinRider</strong> is a North Korea-linked open-source supply-chain campaign tracked by the <strong>Socket Threat Research Team</strong> and attributed to the broader <strong>Famous Chollima / Contagious Interview</strong> activity cluster. Active since <strong>December 2025</strong> and still expanding into <strong>July 2026</strong>, Socket identified <strong>162 malicious release artifacts across 108 packages and extensions</strong> spanning four ecosystems — <strong>npm, Packagist (PHP), Go modules (80 compromised modules), and one Chrome extension</strong>. The operators compromise legitimate maintainer accounts and GitHub repositories, then plant obfuscated JavaScript loaders and publish trojanized versions downstream.</p>
+      <p>The signature tradecraft is <strong>developer-workstation auto-execution</strong>. Malicious JS is appended into legitimate config files — <code>vite.config.js</code>, <code>eslint.config.js</code>, and other <code>*config.js</code> — so it runs the next time the project builds or lints, and injected <strong><code>.vscode/tasks.json</code></strong> entries with <code>"runOn": "folderOpen"</code> auto-execute a fake <strong><code>.woff2</code> font file via Node.js</strong> the moment a developer opens the folder in VS Code. The loader reaches out to <strong>public blockchain RPC infrastructure (TRON, Aptos, BNB Smart Chain)</strong> used as a dead-drop resolver, retrieves an encrypted second stage, <strong>XOR-decrypts it with embedded keys and executes it with <code>eval()</code></strong>. Follow-on payloads are the <strong>DEV#POPPER</strong> RAT (command execution, <code>socket.io</code>-based C2) and the <strong>OmniStealer</strong> information stealer (credential, browser-data and crypto-wallet theft). Operators cover their tracks by <strong>rewriting git history via force pushes with anti-dated commits</strong> and hiding code with whitespace padding beyond the default screen width.</p>
+      <p>This is a <strong>distinct named campaign</strong> from the previously-packaged BeaverTail / Contagious Interview interview-lure activity, though it shares the same DPRK cluster and the "developer as patient-zero" objective. The blast radius is any developer endpoint, CI runner, or container build host that installed an affected package, cloned a poisoned repo, or opened one in VS Code.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> The highest-fidelity catch is a <code>node</code> process <strong>executing a <code>.woff2</code> font file</strong>, or <strong>VS Code (<code>Code</code>/<code>code</code>) spawning <code>node</code>/a shell on folder open</strong>. Pair with a dev-context process resolving a <strong>blockchain RPC domain</strong> and a secondary detached interpreter. Sweep every dev repo and build agent for the PolinRider artifacts (<code>.vscode/tasks.json</code> folderOpen tasks, fake <code>.woff2</code> files, and the named repos/packages in §4/§10), and treat any hit as a credential-compromise event — rotate developer secrets and wallets.</p>
+    </div>
+  </div>
+
+  <!-- 2 SOURCE REVIEW -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Fwd</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">1</span></td><td>Socket Threat Research</td><td>Primary attribution + technical anatomy: 162 artifacts / 108 packages across npm/Packagist/Go/Chrome; config-file + <code>.vscode/tasks.json</code> folderOpen loaders; fake <code>.woff2</code> execution; blockchain-RPC dead-drops (TRON/Aptos/BNB); XOR+<code>eval()</code>; DEV#POPPER + OmniStealer; compromised accounts/repos</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td>The Hacker News</td><td>"North Korean Hackers Publish 108 Malicious Packages and Extensions in PolinRider Campaign" — campaign naming, counts, ecosystem scope</td><td>yes</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td>SecurityWeek</td><td>Corroborates NK developer-targeting supply-chain framing and payload roles</td><td>partial</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td>Developer-Tech / DevOps.com</td><td>Packagist-ecosystem expansion; maintainer-account-takeover mechanics</td><td>partial</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td>Rescana</td><td>Active-exploitation framing across npm/Packagist/Go/Chrome</td><td>partial</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info"><strong>Hunter note:</strong> The abused <em>blockchain RPC endpoints are legitimate public infrastructure</em> (TRON/Aptos/BNB) used as dead-drop resolvers — they are NOT attacker-owned IOCs, so Q3 is a behavioral hunt with expected FPs on genuine web3 developers, not a blocklist. Atomic file hashes and stage-2 C2 IPs for DEV#POPPER / OmniStealer were not broadly published at pack time — <strong>behavioral detection is primary</strong>; the IOC CSV uses <code>REPLACE_WITH</code> placeholders for hashes so no fabricated indicator ships. The named repos/accounts (<code>Xpos587</code>, <code>7span</code>/<code>sevenspan</code>) are sample compromised identities from Socket, not an exhaustive list — pivot on Socket's live tracker for the full package inventory.</p>
+    </div>
+  </div>
+
+  <!-- 3 HUNT BRIEF -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt Hypotheses (fidelity-ordered)</h3>
+      <ol>
+        <li><strong>H1 (high):</strong> A <code>node</code> process executes a <code>.woff2</code> file — a font asset should never be a Node.js entry point. <span class="badge b-low">low FP</span></li>
+        <li><strong>H2 (medium):</strong> VS Code (<code>Code</code>/<code>code</code>) spawns <code>node</code> or a shell immediately on folder open — the <code>runOn:folderOpen</code> task trigger. <span class="badge b-med">med FP</span></li>
+        <li><strong>H3 (medium):</strong> A dev-tool-context process (<code>node</code>/<code>Code</code>/<code>npm</code>) resolves a public blockchain RPC domain (TRON/Aptos/BNB) — loader dead-drop fetch. <span class="badge b-med">med/high FP</span></li>
+        <li><strong>H4 (medium):</strong> A <code>node</code> process spawns a secondary interpreter/shell child — decoded stage-2 execution after <code>eval()</code>. <span class="badge b-med">med FP</span></li>
+        <li><strong>H5 (medium):</strong> A <code>node</code>/editor-context process makes a long-lived outbound connection to a non-RFC1918 raw IP — <code>socket.io</code> DEV#POPPER C2 / OmniStealer exfil. <span class="badge b-med">med FP</span></li>
+        <li><strong>H6 (medium):</strong> PolinRider artifacts on disk — a <code>.vscode/tasks.json</code> with a <code>folderOpen</code> task, a fake <code>.woff2</code>, or the named compromised packages/repos. <span class="badge b-med">med FP</span></li>
+        <li><strong>H7 (medium):</strong> A dev-context process reads a browser credential store or crypto-wallet directory — OmniStealer collection. <span class="badge b-med">med FP</span></li>
+      </ol>
+      <h3>Attack Chain</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Resource Development</td><td>Compromise maintainer accounts/repos; publish 108 trojanized packages across npm/Packagist/Go/Chrome</td><td>n/a (registry-side)</td><td>SCA / repo audit (H6)</td></tr>
+          <tr><td>2 · Initial Access</td><td>Developer installs package / clones poisoned repo / opens it in VS Code</td><td>FileWrite / ProcessRollup2</td><td>Artifact sweep (H6)</td></tr>
+          <tr><td>3 · Execution</td><td>Loader in <code>*config.js</code> runs on build/lint; <code>.vscode/tasks.json</code> <code>folderOpen</code> runs fake <code>.woff2</code> via node</td><td>ProcessRollup2</td><td>node runs .woff2 (H1); Code spawns node (H2)</td></tr>
+          <tr><td>4 · C2 / Ingress</td><td>Loader fetches encrypted stage-2 from blockchain RPC dead-drop (TRON/Aptos/BNB)</td><td>DnsRequest / NetworkConnectIP4</td><td>RPC dead-drop (H3)</td></tr>
+          <tr><td>5 · Defense Evasion</td><td>XOR-decrypt embedded payload; <code>eval()</code> execute; whitespace-padding obfuscation</td><td>ProcessRollup2</td><td>node spawns child interpreter (H4)</td></tr>
+          <tr><td>6 · Command &amp; Control</td><td>DEV#POPPER RAT: command exec over <code>socket.io</code> C2</td><td>NetworkConnectIP4</td><td>node raw-IP egress (H5)</td></tr>
+          <tr><td>7 · Collection / Credential Access</td><td>OmniStealer harvests credentials, browser data, crypto wallets</td><td>FileWrite / file access</td><td>Wallet/browser store read (H7)</td></tr>
+          <tr><td>8 · Defense Evasion</td><td>Git history rewrite via force push with anti-dated commits</td><td>n/a (VCS-side)</td><td>Repo forensics / branch-protection audit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 IOC TABLE -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>GitHub account</td><td><code>Xpos587</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Compromised/operator identity (Socket)</td></tr>
+          <tr><td>Repo</td><td><code>Xpos587/git2md</code>, <code>Xpos587/markfetch</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Poisoned repos with injected JS loaders</td></tr>
+          <tr><td>Repo</td><td><code>Artiffusion-Inc/mirofish</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Poisoned repo (Socket)</td></tr>
+          <tr><td>Packagist / org</td><td><code>sevenspan</code> namespace · GitHub org <code>7span</code> · <code>7span/react-list</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Compromised Packagist namespace / repo</td></tr>
+          <tr><td>File (loader host)</td><td><code>vite.config.js</code>, <code>eslint.config.js</code>, other <code>*config.js</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Obfuscated JS appended into legit config</td></tr>
+          <tr><td>File (auto-run)</td><td><code>.vscode/tasks.json</code> with <code>"runOn": "folderOpen"</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Auto-executes payload on folder open</td></tr>
+          <tr><td>File (payload)</td><td>Fake <code>.woff2</code> font file executed via Node.js</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Font asset masquerading as JS entry point</td></tr>
+          <tr><td>Behavior</td><td>Loader → public blockchain RPC dead-drop (TRON, Aptos, BNB Smart Chain)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Legit RPC infra abused as C2 resolver</td></tr>
+          <tr><td>Behavior</td><td>XOR-decrypt embedded stage-2 + <code>eval()</code> execution</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Second-stage deobfuscation/exec</td></tr>
+          <tr><td>Malware</td><td>DEV#POPPER (command exec, <code>socket.io</code> C2)</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Stage-2 RAT</td></tr>
+          <tr><td>Malware</td><td>OmniStealer (credential/browser/wallet theft)</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Stage-2 infostealer</td></tr>
+          <tr><td>SHA256</td><td><code>REPLACE_WITH_SHA256</code> (loader / .woff2 / stage-2)</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Populate when vendor hashes publish</td></tr>
+          <tr><td>IPv4 / domain</td><td><code>REPLACE_WITH_STAGE2_C2</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>DEV#POPPER socket.io C2 — not yet public</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 AFFECTED SURFACE -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+        <tbody>
+          <tr><td>Developer endpoints (mac/Win/Linux)</td><td>ProcessRollup2, DnsRequest, NetworkConnectIP4, file-write events</td><td><span class="badge b-high">critical</span></td><td>Low — Falcon sensor coverage typical</td></tr>
+          <tr><td>CI/CD build agents</td><td>ProcessRollup2, NetworkConnectIP4</td><td><span class="badge b-high">critical</span></td><td>High — ephemeral runners may lack sensor</td></tr>
+          <tr><td>Container build hosts</td><td>ProcessRollup2 (container-aware), NetworkConnectIP4</td><td><span class="badge b-med">high</span></td><td>High — short-lived containers</td></tr>
+          <tr><td>Network egress</td><td>DnsRequest, NetworkConnectIP4, proxy logs</td><td><span class="badge b-med">high</span></td><td>Medium — RPC dead-drop rides legit domains</td></tr>
+          <tr><td>Source repos / VCS</td><td>Branch-protection + force-push audit, SCA/SBOM</td><td><span class="badge b-med">high</span></td><td>High — VCS-side, out-of-band tooling</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6 ATT&CK -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+        <tbody>
+          <tr><td>Resource Development</td><td>T1195.002 — Supply Chain Compromise: Software Supply Chain</td><td>108 trojanized packages across npm/Packagist/Go/Chrome</td><td>H6 / SCA + Q6</td></tr>
+          <tr><td>Execution</td><td>T1059.007 — JavaScript</td><td>Loader in config files; fake <code>.woff2</code> run via node</td><td>Q1 / Q2</td></tr>
+          <tr><td>Execution</td><td>T1204.002 — User Execution: Malicious File</td><td>Developer opens poisoned repo / installs package</td><td>Q2 / Q6</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1102 — Web Service (dead-drop resolver)</td><td>Stage-2 fetched from public blockchain RPC</td><td>Q3</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1105 — Ingress Tool Transfer</td><td>Encrypted second-stage download</td><td>Q3 / Q5</td></tr>
+          <tr><td>Defense Evasion</td><td>T1140 — Deobfuscate/Decode Files or Information</td><td>XOR-decrypt embedded payload; whitespace padding</td><td>Q4</td></tr>
+          <tr><td>Defense Evasion</td><td>T1027 — Obfuscated Files or Information</td><td><code>eval()</code> of decoded stage-2; hidden config JS</td><td>Q1 / Q4</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1071.001 — Application Layer Protocol: Web</td><td>DEV#POPPER <code>socket.io</code> C2</td><td>Q5</td></tr>
+          <tr><td>Credential Access</td><td>T1555 — Credentials from Password Stores</td><td>OmniStealer browser credential theft</td><td>Q7</td></tr>
+          <tr><td>Collection / Impact</td><td>T1005 / T1657 — Data from Local System / crypto theft</td><td>OmniStealer wallet + browser-data exfil</td><td>Q7</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 NATIVE HUNTS -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (non-CQL)</h2></div>
+    <div class="section-body">
+      <h4>Repo / project sweep for PolinRider auto-run artifacts (dev endpoints + agents)</h4>
+<pre class="code"># VS Code folderOpen auto-run tasks (the auto-execution trigger)
+grep -rln "folderOpen" --include=tasks.json .
+# Fake font files that are actually JS entry points
+find . -type f -name "*.woff2" -exec sh -c 'head -c 4 "$1" | grep -qv "wOF2" &amp;&amp; echo "SUSPECT: $1"' _ {} \;
+# Malicious JS appended into config files (look for eval / long whitespace-padded lines)
+grep -rEln "eval\(|Buffer\.from\(.*base64|fromCharCode" --include=*config.js .</pre>
+      <h4>Named compromised packages / repos (SCA + git remotes)</h4>
+<pre class="code"># npm / Packagist / Go dependency trees
+npm ls 2&gt;/dev/null | grep -Ei "git2md|markfetch|react-list"
+grep -rEln "Xpos587/(git2md|markfetch)|Artiffusion-Inc/mirofish|7span/react-list|sevenspan/" .
+# Go module cache
+grep -rEln "git2md|markfetch|mirofish" "$(go env GOPATH 2&gt;/dev/null)/pkg/mod" 2&gt;/dev/null</pre>
+      <h4>Blockchain RPC dead-drop egress from dev tooling (proxy/DNS logs)</h4>
+<pre class="code"># In your web-proxy / DNS log platform, look for build/editor hosts resolving:
+#   *.trongrid.io  *.aptoslabs.com  bsc-dataseed*  *.bnbchain.org
+# from a node/Code/npm process context outside your known web3 dev group.</pre>
+      <p class="callout callout-warn"><strong>Note:</strong> Because operators <em>rewrite git history with anti-dated force pushes</em>, a clean-looking commit log does NOT clear a repo — audit branch-protection/force-push events server-side (GitHub audit log) and pivot on the endpoint process/network telemetry (Q1–Q5).</p>
+    </div>
+  </div>
+
+  <!-- 8 CQL -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+      </div>
+
+      <!-- Q1 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · node executing a .woff2 font file</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>node</code> process whose command line references a <code>.woff2</code> file — the PolinRider folderOpen payload. A font asset should never be a Node.js entry point, making this near-zero-FP.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: node executing a .woff2 font file (PolinRider loader)</span>
+<span class="cm">// MITRE: T1059.007, T1027</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: none expected — .woff2 is a font, not a JS entry point</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/(\/|\\)node(\.exe)?$/i
+| CommandLine=/\.woff2(\b|["' ])/i
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, aid])</pre>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · VS Code spawning node / shell on folder open</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the VS Code editor (<code>Code</code>/<code>code</code>) spawning <code>node</code> or a shell — the <code>runOn:folderOpen</code> task trigger. <strong>FP:</strong> VS Code legitimately spawns node for extensions/build tasks; pair with Q1/Q3 on the same host and baseline expected task activity.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: VS Code spawns node/shell on folder open (folderOpen task)</span>
+<span class="cm">// MITRE: T1059.007, T1204.002</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legit VS Code tasks / extensions spawning node</span>
+<span class="cm">// TUNING: correlate with Q1 (.woff2) or Q3 (RPC) on the same aid; baseline dev hosts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^Code( - Insiders)?(\.exe)?$/i
+| ImageFileName=/(\/|\\)(node|sh|bash|zsh|cmd|powershell|osascript)(\.exe)?$/i
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, aid])</pre>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · dev tooling resolving blockchain RPC dead-drop</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>node</code>/editor/<code>npm</code>-context process resolving a public blockchain RPC domain (TRON/Aptos/BNB) — the loader dead-drop fetch. <strong>FP:</strong> genuine web3 developers query these endpoints constantly — this is a <em>behavioral hunt, not a blocklist</em>. Scope to hosts <em>outside</em> your known blockchain/web3 dev group and correlate with Q1/Q2.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: dev-context process resolving blockchain RPC dead-drop</span>
+<span class="cm">// MITRE: T1102, T1105</span>
+<span class="cm">// CONF: medium  FP: high  COST: low | REQUIRES: DnsRequest</span>
+<span class="cm">// FALSE POSITIVES: legitimate web3/crypto developers — RPC infra is public/legit</span>
+<span class="cm">// TUNING: exclude known web3 dev hosts; require a node/Code/npm ContextBaseFileName</span>
+#event_simpleName=DnsRequest
+| DomainName=/(trongrid\.io|aptoslabs\.com|bsc-dataseed|bnbchain\.org|binance\.org)$/i
+| ContextBaseFileName=/^(node|Code|npm|npx|go)(\.exe)?$/i
+| table([ComputerName, UserName, ContextBaseFileName, DomainName, aid])</pre>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · node spawning a secondary interpreter (stage-2 exec)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>node</code> process spawning a shell or a second interpreter — the decoded stage-2 executing after <code>eval()</code>. <strong>FP:</strong> build toolchains legitimately shell out; require a suspicious ancestor (editor/package manager) and correlate with Q1–Q3.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: node spawns secondary shell/interpreter (decoded stage-2)</span>
+<span class="cm">// MITRE: T1059.007, T1140</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: build tools legitimately shelling out (webpack/postinstall)</span>
+<span class="cm">// TUNING: correlate on aid with Q1/Q2/Q3; scope to editor/package-manager ancestry</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^node(\.exe)?$/i
+| ImageFileName=/(\/|\\)(sh|bash|zsh|cmd|powershell|osascript|curl|wget|node)(\.exe)?$/i
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, aid])</pre>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · node/editor outbound to raw external IP (socket.io C2)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>node</code>-context process connecting outbound to a non-RFC1918 raw IP — generalizes the DEV#POPPER <code>socket.io</code> C2 / OmniStealer exfil beyond named IOCs. <strong>FP:</strong> node apps that talk to IP-based SaaS; exclude known egress ranges and focus on install/edit windows.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: node/editor outbound to raw external IP (DEV#POPPER C2 / exfil)</span>
+<span class="cm">// MITRE: T1071.001, T1105</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: node apps beaconing to legitimate IP-based services</span>
+<span class="cm">// TUNING: exclude RFC1918 + known SaaS ranges; correlate with Q1-Q4 on aid</span>
+#event_simpleName=NetworkConnectIP4
+| ContextBaseFileName=/^(node|Code)( - Insiders)?(\.exe)?$/i
+| RemoteAddressIP4!=/^(10\.|127\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/
+| table([ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, aid])</pre>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · PolinRider artifacts written to disk</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> file-system evidence of the loader dropzone — a <code>.vscode/tasks.json</code> or a <code>.woff2</code> written into a project tree. <strong>FP:</strong> legitimate projects ship both; treat as a triage lead, then inspect the file for a <code>folderOpen</code> task / non-font content. <code>⚠ validate in tenant</code> — non-PE file-write telemetry (<code>FileCreateInfo</code>) is not populated in every environment; confirm the event flows before relying on this query.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: PolinRider on-disk artifacts (folderOpen task / fake .woff2)</span>
+<span class="cm">// MITRE: T1195.002, T1204.002</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: FileCreateInfo (validate in tenant)</span>
+<span class="cm">// FALSE POSITIVES: legit .vscode/tasks.json and .woff2 assets — inspect content</span>
+<span class="cm">// TUNING: prioritize tasks.json written by node/Code/git; pair with §7 grep sweep</span>
+#event_simpleName=/FileCreateInfo|NewScriptWritten/
+| TargetFileName=/\.vscode[\/\\]tasks\.json$/i OR TargetFileName=/\.woff2$/i
+| table([ComputerName, UserName, TargetFileName, ContextBaseFileName, aid])</pre>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · OmniStealer reading browser / wallet stores</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>node</code>-context process touching a browser credential store or crypto-wallet directory — OmniStealer collection. <strong>FP:</strong> password managers / legit wallet apps access these paths; require a <code>node</code>/editor context, not the browser itself. <code>⚠ validate in tenant</code> — file-read/write visibility for these paths varies; confirm telemetry.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: node-context process reading browser/wallet credential stores</span>
+<span class="cm">// MITRE: T1555, T1005</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: FileCreateInfo/read (validate in tenant)</span>
+<span class="cm">// FALSE POSITIVES: password managers / legit wallet apps — require node context</span>
+<span class="cm">// TUNING: exclude the browser's own process; alert when ContextBaseFileName is node</span>
+#event_simpleName=/FileCreateInfo|NewScriptWritten/
+| TargetFileName=/(Login Data|Local State|key3\.db|key4\.db|logins\.json)$/i OR TargetFileName=/[\/\\](Ethereum|Electrum|Exodus|Ledger Live|MetaMask)[\/\\]/i
+| ContextBaseFileName=/^(node|Code)( - Insiders)?(\.exe)?$/i
+| table([ComputerName, UserName, ContextBaseFileName, TargetFileName, aid])</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 9 IOA -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA Name</th><th>Pattern</th><th>Action</th><th>Exclusions</th></tr></thead>
+        <tbody>
+          <tr><td>node-executes-woff2</td><td>Process <code>node</code>, CommandLine contains <code>.woff2</code></td><td>Detect (Critical) → Prevent after tuning</td><td>None expected</td></tr>
+          <tr><td>vscode-folderopen-spawn</td><td>Parent <code>Code</code>/<code>code</code> spawning <code>node</code>/shell</td><td>Detect (High)</td><td>Baselined dev hosts with known build tasks</td></tr>
+          <tr><td>node-child-interpreter</td><td>Parent <code>node</code> spawning shell/second interpreter</td><td>Detect (Medium)</td><td>Known build toolchains that shell out</td></tr>
+          <tr><td>node-rpc-deaddrop</td><td>node/Code resolving TRON/Aptos/BNB RPC domain</td><td>Detect (Medium) — Investigate only</td><td>Known web3/crypto dev group</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Promotion path: Q1 is a strong IOA/Prevent candidate (near-zero FP, attacker-specific). Q2 is a good Detect after per-environment baselining. Q3–Q7 remain Investigate-only hunt queries until FP-baselined, and are strongest when correlated on the same <code>aid</code>.</p>
+    </div>
+  </div>
+
+  <!-- 10 IOC APPENDIX -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <div class="ioc-grab-grid">
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,REPLACE_WITH_LOADER_SHA256,prevent,critical,2027-01-09,PolinRider JS loader / fake .woff2,campaign:PolinRider
+sha256,REPLACE_WITH_STAGE2_SHA256,prevent,critical,2027-01-09,DEV#POPPER / OmniStealer stage-2,campaign:PolinRider
+domain,REPLACE_WITH_STAGE2_C2,detect,high,2026-10-09,DEV#POPPER socket.io C2 (populate when public),campaign:PolinRider
+ipv4,REPLACE_WITH_STAGE2_C2_IP,detect,high,2026-10-09,stage-2 C2 IP (populate when public),campaign:PolinRider</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt logic</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh">woff2_exec   := node &lt;something&gt;.woff2         (font run as JS entry point)
+folderopen   := Code -&gt; node|sh   .vscode/tasks.json "runOn":"folderOpen"
+deaddrop     := node|Code -&gt; DNS *.trongrid.io|*.aptoslabs.com|bsc-dataseed*
+stage2_exec  := node -&gt; sh|bash|node   (eval() of XOR-decoded payload)
+c2           := node|Code -&gt; outbound raw non-RFC1918 IP (socket.io)
+collection   := node -&gt; read Login Data|MetaMask|Exodus|Ledger Live</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Named Packages / Repos</span><span class="igc">SCA / repo blocklist</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-pkg',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-pkg"># Sample compromised repos/accounts (Socket — not exhaustive)
+Xpos587/git2md
+Xpos587/markfetch
+Artiffusion-Inc/mirofish
+7span/react-list       (GitHub org: 7span)
+Packagist namespace:   sevenspan
+Operator/compromised account: Xpos587
+# Full live inventory: socket.dev/supply-chain-attacks/polinrider</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Dev-Env Audit Checklist</span><span class="igc">remediation</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit"># 1. Sweep repos/agents for .vscode/tasks.json "folderOpen" tasks + fake .woff2
+# 2. grep *config.js for appended eval()/base64 loaders (whitespace-padded)
+# 3. Set VS Code: "security.workspace.trust.enabled": true (no auto task run)
+# 4. Enforce --ignore-scripts in CI; disable auto-run tasks on untrusted repos
+# 5. Rotate ALL developer secrets reachable from affected hosts:
+#    git/npm tokens, cloud keys, SSH keys, browser-stored creds, crypto wallets
+# 6. Reimage any endpoint that opened a poisoned repo / ran an affected install
+# 7. Audit GitHub org for force-push / anti-dated-commit events; enforce protection</pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 VALIDATION GATES -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass Criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>ProcessRollup2, DnsRequest, NetworkConnectIP4 flowing from dev + CI hosts; confirm file-write events for Q6/Q7</td><td>Event types present in last 24h</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q2 &amp; Q3 over 7d; catalog legit VS Code node-spawns and web3-dev RPC egress</td><td>Known-good list built; exclusions added</td></tr>
+          <tr><td>Positive test</td><td>In a sandbox, run <code>node ./x.woff2</code> and a VS Code <code>folderOpen</code> task spawning node</td><td>Q1 &amp; Q2 fire on the test artifacts</td></tr>
+          <tr><td>Correlation</td><td>Confirm Q1–Q5 can be joined on <code>aid</code> to build a single-host chain</td><td>Multi-signal host list produced</td></tr>
+          <tr><td>Promotion</td><td>Q1 FP-clean for 7d; Q2 baselined</td><td>Promote Q1 to Custom IOA / Prevent</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12 HARDENING -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <ul>
+          <li><strong>Enable VS Code Workspace Trust:</strong> ensure <code>security.workspace.trust.enabled = true</code> (default) and never "Trust" an unknown repo — untrusted folders do not auto-run <code>folderOpen</code> tasks. <em>(M1042 Disable or Remove Feature)</em></li>
+          <li><strong>Disable install scripts in CI:</strong> <code>npm ci --ignore-scripts</code> / <code>pnpm config set enable-pre-post-scripts false</code> on build agents. <em>(M1042)</em></li>
+          <li><strong>Sweep + remove artifacts:</strong> delete PolinRider <code>folderOpen</code> tasks, fake <code>.woff2</code> and named packages/repos (§7/§10). <em>(M1051 Update Software)</em></li>
+          <li><strong>Rotate developer secrets</strong> reachable from any affected host: git/npm tokens, cloud/SSH keys, browser creds, crypto wallets. <em>(M1027 Password Policies / M1032 MFA)</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1–4 weeks)</div>
+        <ul>
+          <li><strong>Egress control for dev/CI:</strong> allowlist package registries + known mirrors; alert on build/editor processes reaching blockchain RPC or raw external IPs. <em>(M1037 Filter Network Traffic)</em></li>
+          <li><strong>VCS branch protection:</strong> block force-push to protected branches, require signed commits + reviews, and monitor the GitHub org audit log for anti-dated-commit / history-rewrite events. <em>(M1018 User Account Management)</em></li>
+          <li><strong>SCA in CI:</strong> fail builds on newly-published / low-reputation dependency versions; quarantine packages under a cooldown. <em>(M1016 Vulnerability Scanning)</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1–3 months)</div>
+        <ul>
+          <li><strong>Private registry / pull-through proxy</strong> (Verdaccio, Artifactory, GitHub Packages) with quarantine on newly-published versions. <em>(M1016)</em></li>
+          <li><strong>Ephemeral, network-segmented build runners</strong> with no standing credentials and per-job secret injection — contains developer-workstation compromise. <em>(M1030 Network Segmentation)</em></li>
+          <li><strong>Developer endpoint segmentation:</strong> isolate build/dev hosts from crown-jewel data; enforce hardware-backed keys so stolen browser/wallet material is non-replayable. <em>(M1032 MFA / M1030)</em></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 PLAYBOOKS -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h4>1 · Enforce VS Code Workspace Trust + disable auto-tasks (settings.json)</h4>
+<pre class="code">// User settings.json — block untrusted-folder auto execution
+{
+  "security.workspace.trust.enabled": true,
+  "security.workspace.trust.untrustedFiles": "prompt",
+  "task.allowAutomaticTasks": "off"
+}
+// Fleet-manage via MDM / GPO by deploying this to each user's settings.json</pre>
+      <h4>2 · Sweep &amp; flag PolinRider artifacts (bash)</h4>
+<pre class="code">#!/usr/bin/env bash
+set -euo pipefail
+ROOT="${1:-$HOME}"
+echo "[*] folderOpen auto-run tasks:"
+grep -rln "folderOpen" --include=tasks.json "$ROOT" || true
+echo "[*] .woff2 files that are NOT real fonts (bad magic):"
+find "$ROOT" -type f -name "*.woff2" -exec sh -c \
+  'head -c 4 "$1" | grep -qv "wOF2" &amp;&amp; echo "  SUSPECT: $1"' _ {} \; 2&gt;/dev/null || true
+echo "[*] eval/base64 loaders appended into config files:"
+grep -rEln "eval\(|Buffer\.from\([^)]*base64|fromCharCode" --include=*config.js "$ROOT" || true
+echo "[*] named compromised repos/packages:"
+grep -rEln "Xpos587/(git2md|markfetch)|Artiffusion-Inc/mirofish|7span/react-list|sevenspan/" "$ROOT" || true</pre>
+      <h4>3 · CI hardening (pipeline YAML fragment)</h4>
+<pre class="code"># Never run lifecycle scripts on untrusted installs
+npm ci --ignore-scripts
+pnpm config set enable-pre-post-scripts false
+yarn config set enableScripts false
+# Deny build-agent egress except to the registry/mirror allowlist</pre>
+      <h4>4 · Falcon RTR triage one-liner (macOS/Linux dev host)</h4>
+<pre class="code">find "$HOME" -maxdepth 6 -path "*/.vscode/tasks.json" -exec grep -l "folderOpen" {} \; 2&gt;/dev/null
+# Windows (PowerShell)
+Get-ChildItem $env:USERPROFILE -Recurse -Filter tasks.json -EA SilentlyContinue |
+  Select-String -Pattern 'folderOpen' | Select-Object Path</pre>
+    </div>
+  </div>
+
+  <!-- 14 CONTAINMENT -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Network-contain (Falcon RTR <code>contain</code>) any host with Q1/Q2 hits or a confirmed folderOpen task; freeze affected CI runners</td><td>SOC / IR</td><td>aid list, contain timestamps</td></tr>
+          <tr><td>Eradicate</td><td>Kill stage-2 node/child process; delete fake <code>.woff2</code>, malicious <code>tasks.json</code>, and appended config-file JS; remove named packages/repos</td><td>IR / DevOps</td><td>Process tree, file list</td></tr>
+          <tr><td>Eradicate</td><td>Rotate ALL secrets reachable from affected hosts (git/npm/cloud/SSH tokens, browser creds, crypto wallets) — assume OmniStealer exfil</td><td>IR / Platform</td><td>Rotation tickets, wallet moves</td></tr>
+          <tr><td>Recover</td><td>Reimage endpoints that opened a poisoned repo / ran an affected install; restore from known-good images</td><td>DevOps / IT</td><td>Reimage records</td></tr>
+          <tr><td>Recover</td><td>Re-enable dev/CI only after Workspace Trust + ignore-scripts + egress control enforced; monitor Q3/Q5 for re-beacon</td><td>SOC</td><td>7-day clean window</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 COVERAGE MAP -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1059.007 / T1027</td><td>node executes .woff2</td><td>Q1</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1204.002</td><td>VS Code folderOpen spawn</td><td>Q2</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1102 / T1105</td><td>blockchain RPC dead-drop</td><td>Q3</td><td>No</td><td><span class="badge b-med">Partial — high FP, hunt only</span></td></tr>
+          <tr><td>T1059.007 / T1140</td><td>stage-2 interpreter spawn</td><td>Q4</td><td>Yes</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1071.001 / T1105</td><td>socket.io C2 / exfil</td><td>Q5</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1195.002 / T1204.002</td><td>on-disk loader artifacts</td><td>Q6</td><td>No</td><td><span class="badge b-med">Partial — file-write telemetry varies</span></td></tr>
+          <tr><td>T1555 / T1005</td><td>browser/wallet theft</td><td>Q7</td><td>No</td><td><span class="badge b-med">Partial — file-access telemetry varies</span></td></tr>
+          <tr><td>Registry-side publish</td><td>Account/repo takeover</td><td>—</td><td>No</td><td><span class="badge b-high">GAP — SCA/VCS audit only</span></td></tr>
+          <tr><td>Stage-2 atomic IOCs</td><td>DEV#POPPER / OmniStealer hashes + C2</td><td>—</td><td>No</td><td><span class="badge b-high">GAP — not yet public</span></td></tr>
+        </tbody>
+      </table>
+      <p>Behavioral coverage of the auto-run→fetch→exec chain is strong at the front (Q1/Q2) and correlative in the middle (Q3–Q5). Gaps are registry/VCS-side takeover (needs SCA/SBOM + GitHub audit) and stage-2 atomic indicators (await published hashes/C2 — see CSV placeholders). Validate §11 gates before promoting Q1 to Prevent.</p>
+    </div>
+  </div>
+
+  <!-- 16 TICKET -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE:      PolinRider (DPRK supply-chain) — dev-workstation auto-run → RAT/stealer hunt
+SEVERITY:   Critical (active DPRK supply-chain; 108 packages, 4 ecosystems)
+SCOPE:      Developer endpoints, CI/CD build agents, container build hosts
+HYPOTHESIS: A poisoned package/repo auto-runs a JS loader (config file /
+            .vscode folderOpen / fake .woff2) that fetches an XOR+eval stage-2
+            (DEV#POPPER + OmniStealer) via blockchain RPC dead-drops.
+QUERIES:    Q1 node runs .woff2 | Q2 Code folderOpen spawn | Q3 RPC dead-drop
+            Q4 node child interpreter | Q5 node raw-IP C2 | Q6 on-disk artifacts
+            Q7 browser/wallet theft
+DO FIRST:   1) Run Q1/Q2 fleet-wide; contain any hits
+            2) Sweep repos/agents for folderOpen tasks + fake .woff2 (§7)
+            3) Enforce VS Code Workspace Trust + --ignore-scripts in CI
+FINDINGS:   &lt;fill: hosts, aids, packages/repos, secrets/wallets exposed&gt;
+GAPS:       Registry/VCS-side takeover; stage-2 atomic hashes + C2 pending
+ACTIONS:    Rotate developer secrets + wallets; reimage affected hosts;
+            audit GitHub org for force-push / anti-dated commits
+OWNER:      &lt;assign SOC/IR lead&gt;
+VERSION:    v0.1 · 2026-07-09 · HuntPack</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 CHANGELOG -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-09</span><span>Initial HuntPack. 7 CQL queries (Q1 IOA/Prevent candidate; Q2 Detect; Q3–Q7 Investigate/correlate), behavioral IOC appendix (no fabricated atomic indicators — hashes/C2 are placeholders pending vendor publication), tiered hardening, deployable playbooks, containment runbook. Built from primary Socket Threat Research reporting with The Hacker News / SecurityWeek corroboration.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 REFERENCES -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://socket.dev/blog/polinrider-north-korea-linked-supply-chain-campaign-expands" target="_blank">Socket — PolinRider: North Korea-Linked Supply Chain Campaign Expands</a></td><td>Primary attribution, anatomy, IOCs, payloads</td><td>2026-07-09</td></tr>
+          <tr><td><span class="badge b-info">1</span></td><td><a href="https://thehackernews.com/2026/07/north-korean-hackers-publish-108.html" target="_blank">The Hacker News — NK Publish 108 Malicious Packages (PolinRider)</a></td><td>Naming, counts, ecosystem scope</td><td>2026-07-09</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td><a href="https://www.securityweek.com/north-korean-hackers-target-open-source-developers-in-supply-chain-attacks/" target="_blank">SecurityWeek — NK Target Open Source Developers</a></td><td>Corroboration of framing + payload roles</td><td>2026-07-09</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td><a href="https://www.developer-tech.com/news/polinrider-supply-chain-attack-expands-packagist-ecosystem/" target="_blank">Developer-Tech — PolinRider expands to Packagist</a></td><td>Packagist expansion, takeover mechanics</td><td>2026-07-09</td></tr>
+          <tr><td><span class="badge b-info">2</span></td><td><a href="https://socket.dev/supply-chain-attacks/polinrider" target="_blank">Socket — PolinRider live tracker</a></td><td>Full live package/artifact inventory</td><td>2026-07-09</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
