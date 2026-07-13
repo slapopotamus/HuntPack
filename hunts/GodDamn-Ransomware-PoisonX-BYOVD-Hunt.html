@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GodDamn Ransomware (PoisonX BYOVD) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for GodDamn ransomware (Hyadina / Beast rebrand) and its Microsoft-signed PoisonX (g11.sys) EDR-killer driver: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/GodDamn-Ransomware-PoisonX-BYOVD-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GodDamn Ransomware (PoisonX BYOVD) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for GodDamn ransomware and its Microsoft-signed PoisonX EDR-killer driver: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/GodDamn-Ransomware-PoisonX-BYOVD-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117; --surface: #1a1300; --surface2: #261d04; --border: #30363d;
+  --text: #e6edf3; --text-muted: #a39873; --accent: #f0a500; --accent-dim: rgba(240,165,0,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b5d2a; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1d00 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(240,165,0,0.26); color: #f0b429; border: 1px solid #f0a500; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); word-break: break-all; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 260px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">GodDamn Ransomware<br>PoisonX BYOVD (Hyadina / Beast)</div>
+    <div class="version">v0.1 · 2026-07-13</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 · Native Hunts</a>
+    <a href="#s7">7 · CQL Queries</a>
+    <a href="#s8">8 · Custom IOA Recs</a>
+    <a href="#s9">9 · IOC Quick-Copy</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 · Hardening</a>
+    <a href="#s11">11 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s12">12 · Coverage &amp; Validation</a>
+    <a href="#s13">13 · Hunt Ticket</a>
+    <a href="#s14">14 · Changelog</a>
+    <a href="#s15">15 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>GodDamn Ransomware — PoisonX BYOVD Hunt &amp; Hardening Pack</h1>
+  <div class="subtitle">Hands-on-keyboard intrusion by the Hyadina RaaS crew (Monster 2022 → Beast 2024 → GodDamn 2026): AnyDesk staged in the user Music folder for unattended remote access → NirSoft + Mimikatz credential sweep → a <strong>Microsoft-signed malicious kernel driver (PoisonX, <code>g11.sys</code>)</strong> that terminates AV/EDR and strips kernel callbacks to blind the sensor → a fake <code>symantec.exe</code> masquerade → PsExec lateral movement → the <code>encrypter-windows-gui-x86.exe</code> locker appending <code>.God8Damn</code>. Disclosed by Symantec 2026-07-09. Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">GodDamn ransomware · actor Hyadina (Beast/Monster rebrand)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE ITW · JUL 2026</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Ransomware · BYOVD EDR-kill · hands-on-keyboard</div></div>
+    <div class="meta-item"><div class="mk">Signature TTP</div><div class="mv">PoisonX g11.sys — Microsoft-signed EDR killer</div></div>
+    <div class="meta-item"><div class="mk">Encryptor</div><div class="mv">encrypter-windows-gui-x86.exe · ext .God8Damn</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-07-13</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><strong>GodDamn</strong> is the newest locker from <strong>Hyadina</strong>, a four-year-old ransomware-as-a-service operation whose earlier iterations shipped as <strong>Monster</strong> (2022) and <strong>Beast</strong> (June 2024). Symantec disclosed the rebrand on <strong>2026-07-09</strong> after an intrusion in which the operators blinded endpoint defenses across at least ten machines inside a single victim before encrypting. The crew avoids CIS-region targets and has been observed hitting US organizations.</p>
+    <p>The headline upgrade is <strong>PoisonX</strong> — a purpose-built malicious kernel driver (<code>g11.sys</code>) that carries a <strong>valid "Microsoft Windows Hardware Compatibility Publisher" signature</strong>, apparently obtained by misrepresenting the driver's function during the signing-submission process. Once loaded it <strong>terminates AV/EDR processes and removes the kernel callbacks</strong> those products rely on for telemetry — a signed-driver BYOVD that leaves the machine effectively blind before the locker runs. The intrusion chain that Symantec reconstructed: <strong>AnyDesk</strong> staged in <code>\Users\&lt;u&gt;\Music\anydesk.exe</code> and configured for unattended access (<code>ad.security.interactive_access=2</code>) with a renamed <code>AnyDesk_D</code> service for persistence; a <strong>NirSoft credential-harvesting toolkit plus Mimikatz</strong> (<code>mimik.exe</code>, staged under <code>\Music\mimik\pass\</code>) sweeping browsers, Credential Manager, VNC, mail and Wi-Fi secrets; a fake <strong><code>symantec.exe</code></strong> masquerade dropped alongside the driver; <strong>PsExec</strong> for lateral movement; then <strong><code>encrypter-windows-gui-x86.exe</code></strong> encrypting and appending <strong><code>.God8Damn</code></strong> (or the victim's name) as the extension.</p>
+    <div class="callout callout-danger">⚠ <strong>Defender priority:</strong> The decisive, low-FP signals are <strong>Q2</strong> (the PoisonX <code>g11.sys</code> driver by name/hash + its kernel-service install), <strong>Q1</strong> (the encryptor by name/hash/user-path), <strong>Q3</strong> (the <code>symantec.exe</code> masquerade in a Music folder) and <strong>Q7</strong> (mass rename to <code>.God8Damn</code>). Because PoisonX <em>kills the sensor</em>, treat any <code>g11.sys</code> load as a break-glass event — the window to catch host telemetry closes the moment it runs. Enable the Microsoft vulnerable-driver blocklist / HVCI and Falcon Tamper Protection up front so the driver never loads.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Vendor research</td><td>Symantec / Security.com — "GodDamn Ransomware: Beast rebrand" deep dive (2026-07-09)</td><td>Full chain + atomic IOCs: AnyDesk / PsExec / PoisonX <code>g11.sys</code> (MS-signed) / <code>symantec.exe</code> / Mimikatz + NirSoft toolkit / <code>encrypter-windows-gui-x86.exe</code>; SHA-256 for each; CSIDL file paths; <code>AnyDeskService</code> + <code>AnyDesk_D</code> persistence; relay IPs; <code>.God8Damn</code> extension; Hyadina/Beast/Monster attribution</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>1 · Vendor news</td><td>The Hacker News — "GodDamn Ransomware Uses PoisonX Driver to Disable Endpoint Defenses"</td><td>PoisonX loads as a validly MS-signed driver; kills AV/EDR processes and tampers with kernel callback records so the sensor goes blind; chain sequence; ATT&amp;CK behaviors</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor press</td><td>Dark Reading — "'GodDamn' Ransomware Uses BYOVD to Smite US Companies"</td><td>Signed-driver BYOVD framing; US targeting; ~10 hosts blinded before encryption; RaaS lineage</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 · Vendor / press</td><td>GBHackers · SecurityAffairs — PsExec + NirSoft toolkit detail</td><td>PsExec lateral movement; NirSoft credential-theft tool list; Mimikatz <code>mimik.exe</code>; timeline (first ITW 2026-05-21; AnyDesk 2026-05-29; encrypt 2026-06-03)</td><td><span class="badge b-low">yes</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Decisions:</strong> GodDamn ships unusually strong <em>atomic</em> IOCs — a published SHA-256 for each stage binary, the signed driver name/hash, fixed CSIDL staging paths, and a distinctive <code>.God8Damn</code> extension — so those are seeded as <code>detect</code>/<code>prevent</code> in §9. The durable behavioral tells are the <strong>signed-driver load of <code>g11.sys</code></strong>, the <strong>Music-folder staging</strong> pattern, and the <strong>kernel-service install of a non-inbox driver</strong>. The four AnyDesk relay IPs are treated as pivot/enrichment only — they overlap legitimate AnyDesk relay infrastructure (see Q8 FP note). Victim/company names from the reporting are intentionally excluded; detections are written around the TTPs.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <p><strong>Working hypothesis:</strong> An operator gains hands-on access, stages <code>anydesk.exe</code> in a user Music folder and configures unattended access + an <code>AnyDesk_D</code> service, sweeps credentials with Mimikatz and a NirSoft toolkit, drops the Microsoft-signed <code>g11.sys</code> (PoisonX) driver and a fake <code>symantec.exe</code> to kill/blind the EDR, moves laterally with PsExec, then runs <code>encrypter-windows-gui-x86.exe</code> to encrypt and append <code>.God8Damn</code>.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Initial access</td><td>Hands-on-keyboard access (vector unconfirmed by Symantec)</td><td>Security 4624 / EDR logon</td><td>N1</td></tr>
+        <tr><td>2 · Remote access</td><td><code>anydesk.exe</code> in <code>\Users\&lt;u&gt;\Music\</code>; unattended config <code>ad.security.interactive_access=2</code>; <code>AnyDeskService</code> / <code>AnyDesk_D</code> persistence</td><td><code>ProcessRollup2</code>, service events</td><td><strong>Q4</strong>, N2</td></tr>
+        <tr><td>3 · Credential access</td><td>Mimikatz (<code>mimik.exe</code>) + NirSoft toolkit staged under <code>\Music\mimik\pass\</code></td><td><code>ProcessRollup2</code>, <code>PeFileWritten</code></td><td><strong>Q5</strong></td></tr>
+        <tr><td>4 · Defense evasion (BYOVD)</td><td>Microsoft-signed <code>g11.sys</code> (PoisonX) loaded as kernel driver → kills AV/EDR, removes kernel callbacks; fake <code>symantec.exe</code> alongside</td><td><code>PeFileWritten</code>, driver/service install, <code>ProcessRollup2</code></td><td><strong>Q2 / Q3</strong></td></tr>
+        <tr><td>5 · Lateral movement</td><td>PsExec to reachable hosts; re-deploys AnyDesk/driver</td><td><code>ProcessRollup2</code></td><td><strong>Q6</strong></td></tr>
+        <tr><td>6 · Impact (encrypt)</td><td><code>encrypter-windows-gui-x86.exe</code> from <code>\Music\</code> / <code>\Downloads\</code>; append <code>.God8Damn</code> (or victim name)</td><td><code>ProcessRollup2</code>, file writes</td><td><strong>Q1 / Q7</strong></td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface &amp; telemetry</h4>
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows endpoints / servers</td><td>Process lineage + command line (<code>ProcessRollup2</code>)</td><td><span class="badge b-high">Critical</span></td><td>Low — standard sensor</td></tr>
+        <tr><td>Kernel driver load surface</td><td>Driver-write / driver-load / kernel-service install events</td><td><span class="badge b-high">Critical</span></td><td>High — telemetry stops once PoisonX blinds the sensor; pre-load prevention (HVCI) is essential</td></tr>
+        <tr><td>File systems (user data, DB, mail stores)</td><td>File create/rename events (<code>TargetFileName</code>)</td><td><span class="badge b-high">High</span></td><td>Medium — high-volume; tune by extension</td></tr>
+        <tr><td>Egress / DNS</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code> to SIEM</td><td><span class="badge b-med">Medium</span></td><td>Medium — AnyDesk relay IPs overlap benign use (pivot only)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <div class="callout callout-warn">Atomic IOCs below are from the Symantec deep dive on a specific GodDamn intrusion set; infrastructure (relay IPs) is perishable and overlaps legitimate AnyDesk relays. The behavioral tells (signed <code>g11.sys</code> driver load, Music-folder staging, <code>.God8Damn</code> rename, kernel-service install) are the durable signal. Copy-ready blocks in §9.</div>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+      <tbody>
+        <tr><td>SHA-256</td><td class="mono">2d91a78e739891c9854c254f5b2a6b84c0e167dfa253466cbccd2cdd1c20145d</td><td><span class="badge b-high">high</span></td><td>prevent</td><td>PoisonX driver <code>g11.sys</code> (MS-signed EDR killer)</td></tr>
+        <tr><td>SHA-256</td><td class="mono">e097f3b445b63b07afacde8d6a67f0be654dd51e228a3610fb0710a1f7e29a69</td><td><span class="badge b-high">high</span></td><td>prevent</td><td>Encryptor <code>encrypter-windows-gui-x86.exe</code></td></tr>
+        <tr><td>SHA-256</td><td class="mono">b29f91a440527fb621d106a2048f6379fff3263c60aeda9c82ff8c1d5ae880a8</td><td><span class="badge b-high">high</span></td><td>prevent</td><td>Fake <code>symantec.exe</code> masquerade tool</td></tr>
+        <tr><td>SHA-256</td><td class="mono">31eb1de7e840a342fd468e558e5ab627bcb4c542a8fe01aec4d5ba01d539a0fc</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Mimikatz (<code>mimik.exe</code>)</td></tr>
+        <tr><td>SHA-256</td><td class="mono">45126297c07c6ef56b51440cd0dc30acf7b3b938e2e9e656334886fe2f81f220</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>AnyDesk build used by the operator (dual-use)</td></tr>
+        <tr><td>SHA-256</td><td class="mono">141b2190f51397dbd0dfde0e3904b264c91b6f81febc823ff0c33da980b69944</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>PsExec build (dual-use — hunt in context)</td></tr>
+        <tr><td>Filename</td><td class="mono">g11.sys</td><td><span class="badge b-high">high</span></td><td>detect</td><td>PoisonX kernel driver in <code>\System32\drivers\</code></td></tr>
+        <tr><td>Extension</td><td class="mono">.God8Damn</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Appended to encrypted files (or victim org name)</td></tr>
+        <tr><td>Path</td><td class="mono">\Users\&lt;u&gt;\Music\ (anydesk.exe, symantec.exe, encrypter…; mimik\pass\)</td><td><span class="badge b-high">high</span></td><td>detect</td><td>Consistent staging directory across the chain</td></tr>
+        <tr><td>Config</td><td class="mono">ad.security.interactive_access=2</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>AnyDesk unattended-access setting (system.conf)</td></tr>
+        <tr><td>Service</td><td class="mono">AnyDeskService · AnyDesk_D</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Persistence service names (AnyDesk_D is non-default)</td></tr>
+        <tr><td>IPv4 (relay)</td><td class="mono">15.235.230.188 · 185.229.191.39 · 141.95.145.210 · 162.19.171.150</td><td><span class="badge b-med">medium</span></td><td>pivot</td><td>AnyDesk relay endpoints observed — overlaps benign AnyDesk; pivot only</td></tr>
+        <tr><td>Actor</td><td class="mono">Hyadina (Monster 2022 · Beast Jun-2024 · GodDamn 2026)</td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>RaaS crew; avoids CIS-region targets</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+      <tbody>
+        <tr><td>Command &amp; Control</td><td>T1219 — Remote Access Software</td><td>AnyDesk in Music folder; unattended access; <code>AnyDesk_D</code> service</td><td>Q4, N2</td></tr>
+        <tr><td>Persistence</td><td>T1543.003 — Windows Service</td><td><code>AnyDeskService</code> / <code>AnyDesk_D</code> auto-start</td><td>Q4</td></tr>
+        <tr><td>Credential Access</td><td>T1003 / T1555.003 — OS Credential Dumping / Creds from Browsers</td><td>Mimikatz + NirSoft (ChromePass, WebBrowserPassView, VNCPassView, …)</td><td>Q5</td></tr>
+        <tr><td>Credential Access</td><td>T1552.001 — Unsecured Credentials in Files</td><td>Cred exports staged under <code>\Music\mimik\pass\</code></td><td>Q5</td></tr>
+        <tr><td>Priv Esc / Defense Evasion</td><td>T1068 — Exploitation for Priv Esc (BYOVD)</td><td>Microsoft-signed <code>g11.sys</code> loaded to reach Ring 0</td><td>Q2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1562.001 — Impair Defenses: Disable/Modify Tools</td><td>PoisonX terminates AV/EDR, removes kernel callbacks</td><td>Q2, Q3</td></tr>
+        <tr><td>Defense Evasion</td><td>T1036.005 — Masquerading: Match Legit Name</td><td>Fake <code>symantec.exe</code> in a Music folder; driver named to blend</td><td>Q3</td></tr>
+        <tr><td>Lateral Movement</td><td>T1570 / T1021.002 — Lateral Tool Transfer / SMB Admin Shares</td><td>PsExec to reachable hosts; redeploys tooling</td><td>Q6</td></tr>
+        <tr><td>Impact</td><td>T1486 — Data Encrypted for Impact</td><td><code>encrypter-windows-gui-x86.exe</code>; append <code>.God8Damn</code></td><td>Q1, Q7</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Hunt</th><th>Source</th><th>Logic</th><th>Response</th></tr></thead>
+      <tbody>
+        <tr><td>N1 · Anomalous remote access</td><td>Windows Security 4624 (Type 10) / AnyDesk logs</td><td>Interactive/remote logon from new geo/ASN followed by tool staging on the same host</td><td>Reset the account; hunt the host for Q2/Q4/Q5</td></tr>
+        <tr><td>N2 · Payload staged in Music</td><td>EDR file-write / Sysmon 11</td><td>Executables (<code>anydesk.exe</code>, <code>symantec.exe</code>, <code>encrypter-…exe</code>) written under <code>\Users\*\Music\</code> and then executed</td><td>Quarantine; pull hash; check §9 SHA-256 list</td></tr>
+        <tr><td>N3 · Non-inbox kernel driver load</td><td>Windows Security 4697 / Sysmon 6 / EDR driver-load</td><td>New <code>.sys</code> in <code>\System32\drivers\</code> installed as a kernel service by a non-standard publisher (esp. "Windows Hardware Compatibility Publisher") right before AV/EDR goes quiet</td><td>Isolate immediately — likely PoisonX; sensor may be blind</td></tr>
+        <tr><td>N4 · EDR/AV telemetry gap</td><td>Falcon sensor health / AV service state</td><td>Sensor stops reporting or AV service stops on a host that showed Q4/Q5 activity — the BYOVD blind-spot tell</td><td>Treat as active intrusion; network-contain and investigate out-of-band</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+    <div class="callout callout-info">Field names validated against the Falcon event reference; process hunts include <code>SyntheticProcessRollup2</code>. <strong>Q6 needs an env edit</strong> (your sanctioned-admin / PsExec allow-list); <strong>Q8 is pivot-only</strong> (relay IPs overlap benign AnyDesk). Because PoisonX blinds the sensor, run Q2/Q3 as scheduled searches and pair with prevention — historical hits may predate a telemetry gap. Sweep 30–90 days.</div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Ransomware encryptor execution (encrypter-windows-gui-x86.exe / hash / user-path)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the GodDamn locker by filename, by published SHA-256, or run from a profile <code>Music</code>/<code>Downloads</code> folder. <strong>Accomplishes:</strong> the highest-fidelity impact signal. <strong>FP:</strong> low — the name/hash are unique to this campaign.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: GodDamn encryptor execution (T1486)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 w/ CommandLine + hashes</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (FileName=/^encrypter-windows-gui-x86\.exe$/i
+   or SHA256HashData=/^e097f3b445b63b07afacde8d6a67f0be654dd51e228a3610fb0710a1f7e29a69$/i
+   or ImageFileName=/\\Users\\[^\\]+\\(Music|Downloads)\\encrypter-windows-gui-x86\.exe$/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, SHA256HashData, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · PoisonX BYOVD driver (g11.sys write + kernel-service install)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the PoisonX driver written to disk by name/hash, or a kernel-mode service being created that points at <code>g11.sys</code>. <strong>Accomplishes:</strong> catches the EDR-kill step before/while it fires — the single most important detection. <strong>FP:</strong> low — a driver named <code>g11.sys</code> installed as a kernel service is not a normal endpoint event.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: GodDamn PoisonX signed-driver BYOVD (T1068 / T1562.001)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: PeFileWritten + ProcessRollup2</span>
+#event_simpleName=/PeFileWritten|ProcessRollup2|SyntheticProcessRollup2/
+| (TargetFileName=/\\g11\.sys$/i
+   or SHA256HashData=/^2d91a78e739891c9854c254f5b2a6b84c0e167dfa253466cbccd2cdd1c20145d$/i
+   or CommandLine=/sc(\.exe)?\s+create.{0,80}g11\.sys|g11\.sys.{0,40}type=\s*kernel|binpath.{0,40}g11\.sys/i)
+| table([@timestamp, aid, ComputerName, UserName, TargetFileName, SHA256HashData, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Fake symantec.exe masquerade (Music-folder EDR-impersonation tool)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a binary named <code>symantec.exe</code> by the campaign hash or running/written under a user <code>Music</code> folder — legitimate Symantec binaries live under <code>Program Files</code>, never <code>\Music\</code>. <strong>Accomplishes:</strong> catches the masquerade dropped alongside PoisonX. <strong>FP:</strong> low.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: GodDamn symantec.exe masquerade (T1036.005)</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten/
+| (SHA256HashData=/^b29f91a440527fb621d106a2048f6379fff3263c60aeda9c82ff8c1d5ae880a8$/i
+   or ImageFileName=/\\Users\\[^\\]+\\Music\\symantec\.exe$/i
+   or TargetFileName=/\\Users\\[^\\]+\\Music\\symantec\.exe$/i)
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · AnyDesk abuse (Music-folder anydesk.exe · unattended config · AnyDesk_D service)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> AnyDesk running from a Music folder, being silently installed/service-set, or a non-default <code>AnyDesk_D</code> service. <strong>Accomplishes:</strong> catches the remote-access + persistence step. <strong>FP:</strong> medium where AnyDesk is sanctioned — allow-list approved AnyDesk hosts and alert on the Music-path / <code>AnyDesk_D</code> variants.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: GodDamn AnyDesk unattended-access abuse (T1219 / T1543.003)</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: exclude AIDs where AnyDesk is an approved RMM; Music-path + AnyDesk_D are the high-signal branches</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|ServiceInstalled|ServiceStarted/
+| (ImageFileName=/\\Users\\[^\\]+\\Music\\anydesk\.exe$/i
+   or CommandLine=/anydesk.{0,40}(--install|--start-service|--set-password|ad\.security\.interactive_access)/i
+   or ServiceName=/^AnyDesk_D$/i
+   or ServiceDisplayName=/AnyDesk_D/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, ServiceName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Credential sweep (Mimikatz + NirSoft toolkit, \Music\mimik\pass\)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Mimikatz (<code>mimik.exe</code> / known hash) and the NirSoft credential-recovery tools, or anything staged under <code>\Music\mimik\pass\</code>. <strong>Accomplishes:</strong> catches the credential-access stage. <strong>FP:</strong> medium — some NirSoft tools are used by admins/IR; the <code>\mimik\pass\</code> path and the Mimikatz hash are the high-confidence branches.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: GodDamn Mimikatz + NirSoft credential sweep (T1003 / T1555.003 / T1552.001)</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// TUNING: allow-list sanctioned IR/admin use of NirSoft; path + Mimikatz hash are decisive</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten/
+| (SHA256HashData=/^31eb1de7e840a342fd468e558e5ab627bcb4c542a8fe01aec4d5ba01d539a0fc$/i
+   or FileName=/^(mimik|mimikatz|WebBrowserPassView|ChromePass|PasswordFox|MessengerPass|VNCPassView|MailPassView|SniffPass|OperaPassView|CredentialsFileView|WirelessKeyView|netpass|PstPassword|netscan)(\.exe)?$/i
+   or ImageFileName=/\\Music\\mimik\\pass\\/i
+   or TargetFileName=/\\Music\\mimik\\pass\\/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, TargetFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · PsExec lateral movement</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> PsExec by the campaign hash, by service binary name (<code>psexesvc</code>), or a remote-target command line spawning <code>cmd</code>/<code>powershell</code> under SYSTEM. <strong>Accomplishes:</strong> catches the lateral-movement stage. <strong>FP:</strong> medium — PsExec is a legitimate admin tool; allow-list sanctioned admin hosts/AIDs.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: GodDamn PsExec lateral movement (T1570 / T1021.002)</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// TUNING: exclude sanctioned admin/jump hosts and IT deployment AIDs</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (SHA256HashData=/^141b2190f51397dbd0dfde0e3904b264c91b6f81febc823ff0c33da980b69944$/i
+   or FileName=/^psexe(c|svc)(\.exe)?$/i
+   or CommandLine=/psexec.{0,60}(-accepteula|-s\b|-d\b).{0,60}(cmd|powershell)/i)
+| groupBy([aid, ComputerName, UserName], function=[count(), collect([FileName, CommandLine], limit=15)])
+| sort(_count, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Mass encryption — rename to .God8Damn</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> files written/renamed with the <code>.God8Damn</code> extension, grouped by host to surface the encryption burst. <strong>Accomplishes:</strong> confirms impact. <strong>FP:</strong> none expected for the extension; COST is medium because file events are high-volume — scope the window. Note the operator sometimes uses the victim org name as the extension, so pair with Q1.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: GodDamn encrypted-file writes (T1486)</span>
+<span class="cm">// CONF: high  FP: low  COST: medium | scope to a tight window for large estates</span>
+#event_simpleName=/PeFileWritten|RansomFileAccessInfo/
+| TargetFileName=/\.God8Damn$/i
+| groupBy([aid, ComputerName], function=[count(as=encrypted_files), min(@timestamp, as=first_seen), max(@timestamp, as=last_seen)])
+| sort(encrypted_files, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · AnyDesk relay egress (pivot / enrichment only)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> outbound connections to the four AnyDesk relay IPs Symantec observed. <strong>Accomplishes:</strong> network-side pivot to correlate with host artifacts. <strong>FP:</strong> <em>high</em> — these overlap legitimate AnyDesk relay infrastructure, so this is <strong>not</strong> a standalone alert. Only escalate a host that also fired Q2/Q3/Q4.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: GodDamn AnyDesk relay egress — PIVOT ONLY (T1219)</span>
+<span class="cm">// CONF: medium  FP: high  COST: low | relay IPs overlap benign AnyDesk</span>
+<span class="cm">// TUNING: pivot only — never alert standalone; escalate only hosts also matching Q2/Q3/Q4</span>
+#event_simpleName=/NetworkConnectIP4/
+| RemoteAddressIP4=/^(15\.235\.230\.188|185\.229\.191\.39|141\.95\.145\.210|162\.19\.171\.150)$/
+| groupBy([aid, ComputerName, RemoteAddressIP4], function=[count(), max(@timestamp, as=last_seen)])
+| sort(_count, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>GodDamn — PoisonX driver</td><td>TargetFileName <code>\g11.sys</code> / SHA-256 match / <code>sc create … g11.sys type= kernel</code></td><td>None expected</td><td>Custom IOA → Process Creation + Falcon Custom IOC (hash <code>prevent</code>); enable vuln-driver blocklist</td></tr>
+        <tr><td>GodDamn — encryptor execution</td><td>FileName <code>encrypter-windows-gui-x86.exe</code> / SHA-256 / image under <code>\Users\*\Music\</code></td><td>None expected</td><td>Custom IOA → Process Creation, critical, Detect+Block</td></tr>
+        <tr><td>GodDamn — symantec.exe masquerade</td><td>Image/Target under <code>\Users\*\Music\symantec.exe</code> / SHA-256</td><td>None — real Symantec runs from Program Files</td><td>Custom IOA → Process Creation, high</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">Q1, Q2 and Q3 are strong Detect+Block promotions (near-zero FP, decisive stages). Q4/Q5/Q6 stay Detect/investigate with allow-lists; Q7 is a high-fidelity confirmation hunt (pair with Falcon's built-in ransomware prevention); Q8 is pivot-only and should never alert on its own.</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks for Falcon IOC Management, behavioral detection, and audit. GodDamn ships real atoms (per-stage hashes, the signed driver, a distinctive extension) — seed them, but keep the signed-driver-load and Music-folder-staging behaviors as the durable layer.</p>
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,2d91a78e739891c9854c254f5b2a6b84c0e167dfa253466cbccd2cdd1c20145d,prevent,critical,2026-12-13,GodDamn PoisonX driver g11.sys (MS-signed EDR killer),campaign:GodDamn
+sha256,e097f3b445b63b07afacde8d6a67f0be654dd51e228a3610fb0710a1f7e29a69,prevent,critical,2026-12-13,GodDamn encryptor encrypter-windows-gui-x86.exe,campaign:GodDamn
+sha256,b29f91a440527fb621d106a2048f6379fff3263c60aeda9c82ff8c1d5ae880a8,prevent,high,2026-12-13,GodDamn fake symantec.exe masquerade,campaign:GodDamn
+sha256,31eb1de7e840a342fd468e558e5ab627bcb4c542a8fe01aec4d5ba01d539a0fc,detect,high,2026-12-13,GodDamn Mimikatz mimik.exe,campaign:GodDamn
+ipv4,15.235.230.188,detect,low,2026-10-11,GodDamn AnyDesk relay (overlaps benign — pivot),campaign:GodDamn
+ipv4,185.229.191.39,detect,low,2026-10-11,GodDamn AnyDesk relay (overlaps benign — pivot),campaign:GodDamn
+ipv4,141.95.145.210,detect,low,2026-10-11,GodDamn AnyDesk relay (overlaps benign — pivot),campaign:GodDamn
+ipv4,162.19.171.150,detect,low,2026-10-11,GodDamn AnyDesk relay (overlaps benign — pivot),campaign:GodDamn</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">kill-chain detection</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">Remote:   anydesk.exe run from \Users\&lt;u&gt;\Music\ ; ad.security.interactive_access=2 ; service AnyDesk_D
+Creds:    mimik.exe + NirSoft toolkit ; exports staged under \Users\&lt;u&gt;\Music\mimik\pass\
+BYOVD:    g11.sys (MS "Windows Hardware Compatibility Publisher"-signed) loaded as kernel service
+          -&gt; terminates AV/EDR processes ; removes kernel callbacks (sensor goes blind)
+Masq:     symantec.exe dropped in \Music\ (real Symantec lives in Program Files)
+Lateral:  PsExec to reachable hosts ; redeploys AnyDesk + driver
+Encrypt:  encrypter-windows-gui-x86.exe from \Music\ or \Downloads\ ; append .God8Damn (or victim name)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling &amp; Artifacts</span><span class="igc">process / file names</span></div>
+        <button class="btn-copy" data-label="Copy tools" onclick="copyBlock('grab-tools',this)" style="margin:0 0 6px;">Copy tools</button>
+<pre class="code" id="grab-tools">g11.sys                          # PoisonX kernel driver (in \System32\drivers\)
+encrypter-windows-gui-x86.exe    # GodDamn locker ; ext .God8Damn
+symantec.exe                     # fake EDR-impersonation tool (in \Music\)
+anydesk.exe                      # unattended remote access (in \Music\) ; svc AnyDeskService / AnyDesk_D
+mimik.exe                        # Mimikatz ; staged under \Music\mimik\pass\
+NirSoft:  WebBrowserPassView, ChromePass, PasswordFox, MessengerPass, VNCPassView,
+          MailPassView, SniffPass, OperaPassView, CredentialsFileView, WirelessKeyView,
+          ExtPassword, PSTPassword, NetPass, Netscan.exe
+D:\ad_data\system.conf           # AnyDesk config artifact ; CSIDL_DRIVE_FIXED\ad_data\</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Actor &amp; Lineage</span><span class="igc">enrich / attribution</span></div>
+        <button class="btn-copy" data-label="Copy actor" onclick="copyBlock('grab-actor',this)" style="margin:0 0 6px;">Copy actor</button>
+<pre class="code" id="grab-actor">RaaS crew:   Hyadina
+Lineage:     Monster (2022) -&gt; Beast (Jun 2024) -&gt; GodDamn (2026)
+Targeting:   US organizations observed ; avoids CIS-region victims
+Timeline:    first ITW 2026-05-21 ; AnyDesk deployed 2026-05-29 ; encryption 2026-06-03 ;
+             Symantec disclosure 2026-07-09 ; ~10 hosts blinded before encryption
+Signature:   Microsoft-signed PoisonX driver (BYOVD) is the crew's distinguishing upgrade</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <p>The whole intrusion pivots on a <strong>signed malicious driver</strong> reaching Ring 0. If PoisonX can't load, the sensor stays alive and every downstream stage is caught. Prioritize driver-load prevention, then close remote-access abuse and constrain user-path execution.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — Stop the driver, block the atoms</div>
+      <ul>
+        <li><strong>Enable the Microsoft vulnerable-driver blocklist + HVCI / Memory Integrity</strong> — <em>M1050 / M1040</em>. The blocklist and hypervisor-protected code integrity stop unauthorized/abused kernel drivers from loading — the single highest-leverage control against PoisonX. (Microsoft "recommended driver block rules"; enable Smart App Control where supported.)</li>
+        <li><strong>Block the published atoms now</strong> — <em>M1031</em>. Import the §9 CSV: driver + encryptor + masquerade SHA-256 as <code>prevent</code>; Mimikatz hash <code>detect</code>. Add <code>g11.sys</code> to the driver blocklist.</li>
+        <li><strong>Enable Falcon Tamper Protection + ransomware prevention; verify sensor-health alerting</strong> — <em>M1040</em>. Alert when a sensor stops reporting (N4) — that gap is the BYOVD tell.</li>
+        <li><strong>Alert on kernel-service installs from non-inbox publishers (4697 / driver-load)</strong> — <em>M1047</em>. Deploy N3/Q2 as detections; a "Windows Hardware Compatibility Publisher" driver installed to <code>\drivers\</code> outside patching is a red flag.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — Constrain execution &amp; remote access (pilot first)</div>
+      <ul>
+        <li><strong>Block execution from user-profile paths (Music, Downloads, Temp) with WDAC/AppLocker or ASR</strong> — <em>M1038</em>. Directly breaks the <code>\Music\</code> staging pattern used by AnyDesk, symantec.exe, the encryptor and Mimikatz (Q1/Q3/Q4/Q5/N2).</li>
+        <li><strong>Inventory &amp; allow-list RMM; block/uninstall unsanctioned AnyDesk; deny unattended-access config</strong> — <em>M1042</em>. Tunes Q4 to high signal and removes the operator's remote-access foothold.</li>
+        <li><strong>Restrict PsExec / SMB admin-share use to sanctioned jump hosts; monitor 5145/service-create SYSTEM spawns</strong> — <em>M1035 / M1026</em>. Feeds Q6 and limits lateral spread.</li>
+        <li><strong>WDAC driver allow-listing (block unsigned + known-abused signed drivers)</strong> — <em>M1050</em>. Defense-in-depth beyond the Microsoft blocklist for the driver-load surface.</li>
+        <li><strong>Immutable / offline backups (3-2-1), tested restores</strong> — <em>M1053</em>. Recovery depends on backups the operator can't reach or encrypt.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — Reduce attack surface</div>
+      <ul>
+        <li><strong>HVCI / Memory Integrity + Credential Guard fleet-wide</strong> — <em>M1050 / M1043</em>. Blocks BYOVD-class Ring-0 access and protects LSASS from the Mimikatz sweep at the root.</li>
+        <li><strong>Phishing-resistant MFA + credential hygiene (no shared local admin; LAPS)</strong> — <em>M1032 / M1027 / M1026</em>. Blunts the credential-theft-to-lateral-movement path.</li>
+        <li><strong>Network segmentation + egress filtering for RMM/remote-access tooling</strong> — <em>M1030 / M1037</em>. Contains AnyDesk/PsExec spread and gives Q8 a cleaner baseline.</li>
+      </ul>
+    </div>
+    <h3>Deployable Playbook — Driver-load prevention &amp; atom block (PowerShell / config)</h3>
+<pre class="code"># 1. Enable HVCI / Memory Integrity (blocks abused kernel drivers). Requires reboot.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+
+# 2. Turn on the Microsoft vulnerable/recommended driver blocklist (Win 11 / Server 2022+).
+#    Settings -&gt; Device security -&gt; Core isolation -&gt; Microsoft Vulnerable Driver Blocklist = On
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
+
+# 3. Detect the PoisonX driver on disk across the fleet (defensive scan; report only).
+Get-ChildItem -Path "$env:SystemRoot\System32\drivers\g11.sys" -ErrorAction SilentlyContinue |
+  Select-Object FullName, Length, @{n='SHA256';e={(Get-FileHash $_.FullName -Algorithm SHA256).Hash}}
+
+# 4. Verify no rogue kernel service points at g11.sys.
+Get-CimInstance Win32_SystemDriver | Where-Object { $_.PathName -match 'g11\.sys' } |
+  Select-Object Name, State, PathName
+
+# 5. Alert if the Falcon/AV service is stopped (BYOVD blind-spot tell — N4).
+Get-Service -Name CSFalconService, WinDefend -ErrorAction SilentlyContinue |
+  Where-Object Status -ne 'Running' | Select-Object Name, Status</pre>
+    <div class="callout callout-warn">⚠ Pilot HVCI on a ring first — some legacy/unsigned drivers may need updating. The Microsoft blocklist is maintained by MS and safe to enable broadly on supported builds. All snippets are read-only except the two registry enables (reboot required).</div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain any host with Q1/Q2/Q3/Q7 hits and any host showing a sensor/AV telemetry gap (N4); cut AnyDesk sessions; block <code>g11.sys</code> at the driver blocklist</td><td>SOC L2</td><td>Containment timestamps; Q2 events; sensor-health log</td></tr>
+        <tr><td>Triage</td><td>Reconstruct AnyDesk stage → credential sweep → PoisonX driver load → EDR kill → PsExec → encrypt timeline; note that host telemetry may be missing after the driver loaded — corroborate from peers and network data; capture <code>g11.sys</code> and the encryptor before cleanup</td><td>IR</td><td>Process timeline; recovered driver/encryptor hashes</td></tr>
+        <tr><td>Eradicate</td><td>Remove the PoisonX driver + kernel service, the fake <code>symantec.exe</code>, AnyDesk (<code>AnyDeskService</code>/<code>AnyDesk_D</code>) and staged NirSoft/Mimikatz; reset <strong>all</strong> credentials that could have been swept (browsers, Windows Credential Manager, VNC, mail, Wi-Fi, domain); hunt other hosts for §9 atoms</td><td>IR</td><td>Cred-reset log; removed artifacts</td></tr>
+        <tr><td>Recover</td><td>Restore from immutable/offline backups; rebuild encrypted and driver-tampered endpoints (assume kernel integrity compromised); verify sensor health before reconnecting</td><td>IR + IT</td><td>Restore evidence; sensor re-registration</td></tr>
+        <tr><td>Harden</td><td>Enable HVCI + Microsoft driver blocklist; block §9 atoms; deploy Q1/Q2/Q3 IOAs Detect+Block; block user-path execution; alert on kernel-service installs and sensor-health gaps</td><td>Detection Eng</td><td>IOC + IOA status; HVCI rollout report</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage Map &amp; Validation</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>Initial access</td><td>Hands-on access (vector unconfirmed)</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> vector not reported by Symantec; native logon review (N1)</td></tr>
+        <tr><td>T1219 / T1543.003</td><td>AnyDesk unattended access + service</td><td>Q4</td><td>—</td><td><span class="badge b-med">Partial</span> needs AnyDesk allow-list</td></tr>
+        <tr><td>T1003 / T1555.003 / T1552.001</td><td>Mimikatz + NirSoft credential sweep</td><td>Q5</td><td>—</td><td><span class="badge b-low">Good</span> hash + <code>\mimik\pass\</code> path decisive</td></tr>
+        <tr><td>T1068 / T1562.001</td><td>PoisonX signed-driver BYOVD (EDR kill)</td><td>Q2</td><td>IOA-1</td><td><span class="badge b-low">Good</span> name + hash + kernel-service — but sensor may blind; back with HVCI</td></tr>
+        <tr><td>T1036.005</td><td>Fake symantec.exe masquerade</td><td>Q3</td><td>IOA-3</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1570 / T1021.002</td><td>PsExec lateral movement</td><td>Q6</td><td>—</td><td><span class="badge b-med">Partial</span> tune admin allow-list</td></tr>
+        <tr><td>T1486</td><td>Encryptor execution + <code>.God8Damn</code></td><td>Q1, Q7</td><td>IOA-2</td><td><span class="badge b-low">Good</span> name + hash + extension</td></tr>
+        <tr><td>C2 / relay</td><td>AnyDesk relay egress</td><td>Q8</td><td>—</td><td><span class="badge b-high">Weak</span> IPs overlap benign AnyDesk — pivot only</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> (1) confirm <code>ProcessRollup2</code> with command line and that file events carry <code>TargetFileName</code> for Q2/Q7; (2) populate AnyDesk-sanctioned AIDs (Q4), IR/admin NirSoft use (Q5) and approved PsExec hosts (Q6) before alerting; (3) because PoisonX can blind the sensor, treat Q2/N3 as break-glass and back them with HVCI/driver-blocklist <em>prevention</em>, not detection alone; (4) lab-test a benign driver install and a sanctioned AnyDesk deploy to confirm Q2/Q4 don't over-fire; (5) promote Q1/Q2/Q3 to Custom IOA Detect+Block; keep Q4/Q5/Q6 Detect with allow-lists; Q8 pivot-only. The per-stage SHA-256s, <code>g11.sys</code> name and <code>.God8Damn</code> extension are tenant-agnostic and safe to deploy as-is.</p>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt — GodDamn Ransomware / PoisonX BYOVD (actor Hyadina, Beast rebrand)
+SEVERITY:     Critical (active ITW; Microsoft-signed EDR-killer driver; ~10 hosts blinded pre-encrypt)
+SCOPE:        Windows endpoints + servers; anywhere AnyDesk/PsExec run or kernel drivers load
+HYPOTHESIS:   Hands-on access -&gt; anydesk.exe staged in \Music\ (unattended, svc AnyDesk_D) -&gt;
+              Mimikatz + NirSoft cred sweep (\Music\mimik\pass\) -&gt; MS-signed g11.sys (PoisonX)
+              kills AV/EDR + removes kernel callbacks -&gt; fake symantec.exe -&gt; PsExec lateral -&gt;
+              encrypter-windows-gui-x86.exe encrypts, appends .God8Damn.
+DISCLOSED:    Symantec 2026-07-09 (first ITW 2026-05-21)
+QUERIES RUN:  Q1 encryptor (IOA) | Q2 PoisonX driver (IOA) | Q3 symantec.exe masq (IOA) |
+              Q4 AnyDesk abuse* | Q5 Mimikatz+NirSoft* | Q6 PsExec* | Q7 .God8Damn rename |
+              Q8 AnyDesk relay (PIVOT ONLY)
+              (* = requires env edit: AnyDesk / NirSoft-IR / PsExec allow-list)
+DO FIRST:     Q2, Q1, Q3 -- escalate any hit; N4 sensor-gap = break-glass; Q7 confirms impact
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Initial-access vector not reported; Q8 relay IPs overlap benign AnyDesk
+ACTIONS:      Enable HVCI + MS driver blocklist; block §9 atoms (driver/encryptor/masq prevent);
+              block user-path exec; alert on kernel-service installs + sensor-health gaps;
+              deploy Q1/Q2/Q3 IOAs Detect+Block; immutable backups
+OWNER:        HuntPack
+VERSION:      v0.1 - 2026-07-13</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-13</span><span>Initial pack built to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Sourced from the Symantec/Security.com "GodDamn: Beast rebrand" deep dive (2026-07-09), The Hacker News (PoisonX driver), Dark Reading (BYOVD/US targeting) and GBHackers/SecurityAffairs (PsExec + NirSoft): full chain (AnyDesk in \Music\ with AnyDesk_D service, Mimikatz + NirSoft credential sweep, Microsoft-signed g11.sys PoisonX driver killing AV/EDR and removing kernel callbacks, fake symantec.exe, PsExec lateral movement, encrypter-windows-gui-x86.exe appending .God8Damn). 8 CQL + 4 native hunts, 3 IOA candidates; per-stage SHA-256s and g11.sys seeded as atomic IOCs, AnyDesk relay IPs marked pivot-only. Hardening leads with HVCI / Microsoft vulnerable-driver blocklist as the primary counter to the signed-driver BYOVD.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.security.com/threat-intelligence/goddamn-ransomware-beast-rebrand" target="_blank">Symantec / Security.com — GodDamn Ransomware: Latest Beast Rebrand Uses Malicious Driver to Disable Defenses</a></td><td>Full chain + atomic IOCs (per-stage SHA-256, g11.sys, symantec.exe, Mimikatz, CSIDL paths, AnyDesk service names + relay IPs, .God8Damn extension), Hyadina/Beast/Monster attribution</td></tr>
+        <tr><td>1</td><td><a href="https://thehackernews.com/2026/07/goddamn-ransomware-uses-poisonx-driver.html" target="_blank">The Hacker News — GodDamn Ransomware Uses PoisonX Driver to Disable Endpoint Defenses</a></td><td>PoisonX signed-driver mechanism (kills AV/EDR, removes kernel callbacks); attack-chain sequence; ATT&amp;CK behaviors; timeline</td></tr>
+        <tr><td>2</td><td><a href="https://www.darkreading.com/cyberattacks-data-breaches/goddamn-ransomware-byovd-smite-companies" target="_blank">Dark Reading — 'GodDamn' Ransomware Uses BYOVD to Smite US Companies</a></td><td>Signed-driver BYOVD framing; US targeting; ~10 hosts blinded before encryption; RaaS lineage</td></tr>
+        <tr><td>2</td><td><a href="https://gbhackers.com/goddamn-ransomware-attack/" target="_blank">GBHackers — GodDamn Ransomware Attack Uses PsExec Lateral Movement and NirSoft Toolkit</a> · <a href="https://securityaffairs.com/195042/malware/goddamn-ransomware-uses-poisonx-to-blind-security-software.html" target="_blank">SecurityAffairs — GodDamn uses PoisonX to blind security software</a></td><td>PsExec lateral movement; NirSoft credential-theft tool list; Mimikatz mimik.exe; timeline corroboration</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 · GodDamn Ransomware / PoisonX BYOVD (actor Hyadina) · Generated 2026-07-13 · Defensive use only — no offensive code. Atomic infrastructure IOCs (AnyDesk relay IPs) are perishable and overlap benign use; the behavioral kill-chain detections, per-stage hashes, signed-driver load and <code>.God8Damn</code> extension are the durable signal. Because PoisonX can blind the sensor, back the driver-load detections with HVCI / the Microsoft vulnerable-driver blocklist as prevention. Validate field names and tune AnyDesk / NirSoft / PsExec allow-lists in your tenant before promoting any query to alerting.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
