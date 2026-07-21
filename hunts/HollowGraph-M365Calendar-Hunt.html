@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HollowGraph (Cavern variant) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for HollowGraph (Cavern variant): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/HollowGraph-M365Calendar-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HollowGraph (Cavern variant) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for HollowGraph (Cavern variant): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/HollowGraph-M365Calendar-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #02c39a;
+  --accent-dim: rgba(2,195,154,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #06231d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.ioc-grab .igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+.ticket .tk-hdr { background: var(--accent-dim); color: var(--accent); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 7px 12px; border-bottom: 1px solid var(--border); }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.footer { color: var(--text-muted); font-size: 11px; text-align: center; margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--border); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">HollowGraph — Microsoft 365 Calendar C2</div>
+    <div class="version">v0.1 · 2026-07-21</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Audit Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>HollowGraph — Microsoft 365 Calendar as Covert C2</h1>
+    <div class="subtitle">A .NET NativeAOT DLL implant that uses a compromised M365 mailbox calendar (via Graph API) as a two-way dead drop, with a DNS AAAA-record credential-refresh channel to cloudlanecdn[.]com. High-confidence code overlap with the Cavern framework; Group-IB does not confidently attribute.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">HollowGraph (Cavern variant)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">TARGETED ESPIONAGE</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">.NET DLL implant · Cloud C2 / Exfil</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Compromised M365 tenant / mailbox</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-07-21</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (1× T1 + 3× T2)</div></div>
+    </div>
+  </div>
+
+  <!-- 1 EXEC SUMMARY -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>HollowGraph</strong> is a .NET NativeAOT-compiled DLL implant reported by Group-IB on 2026-07-20. Its defining trait is that it never talks to attacker infrastructure for tasking or exfil: it drives the Microsoft Graph API against a <strong>compromised Microsoft 365 mailbox calendar</strong>, treating the calendar as a two-way dead drop. Operators plant tasking as a calendar event buried at <code>2050-05-13</code> (24 years out, so the mailbox owner never scrolls to it); the implant reads it with a <code>get</code> command, and exfiltrates stolen files with a <code>send</code> command as encrypted attachments (<code>File{n}.txt</code>) on new far-future events. Payloads use hybrid RSA + AES-256 with separate inbound/outbound key pairs.</p>
+      <p>A second, out-of-band channel refreshes the implant's stolen OAuth credentials (tenantId / clientId / clientSecret / target mailbox) by decoding bytes smuggled inside <strong>IPv6 AAAA records</strong> answered by the attacker domain <code>cloudlanecdn[.]com</code>, then writing them to an on-disk config named <code>logAzure.txt</code> (dressed up as a routine log). Group-IB ties the implant to the <strong>Cavern</strong> framework with high confidence (matching command grammar, the <code>003</code> debug self-command) and notes only a low-confidence overlap with <strong>Lyceum</strong> (an OilRig subgroup); it does not attribute the campaign. Roughly 12 machines were seen infected, about 3 actively communicating, with victim traffic 2026-06-03 to 2026-07-09.</p>
+      <p><strong>Highest-value defensive angle:</strong> because the C2 rides trusted Microsoft cloud services, endpoint network detection alone is weak. The strongest signals are (1) the on-disk artifact <code>logAzure.txt</code>, (2) DNS AAAA lookups to <code>cloudlanecdn[.]com</code> and its <code>*.p</code>/<code>*.q</code> tunnel labels, and (3) M365/Entra audit evidence of an application identity writing far-future calendar events with GUID / "Event ID:" subjects and <code>File{n}.txt</code> attachments.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> Hunt the M365 audit trail and the credential channel, not just the box. Enumerate application registrations holding <code>Calendars.ReadWrite</code> / <code>Mail.Read</code> application permissions, hunt calendar items dated 2050 across all mailboxes, and rotate any tenant/client secrets found in <code>logAzure.txt</code>. The endpoint DNS + config-file hunts here are the tripwire; the M365 audit hunts are the confirmation.</p>
+    </div>
+  </div>
+
+  <!-- 2 SOURCE REVIEW -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web-Hunter Notes</h2></div>
+    <div class="section-body">
+      <p>Four sources fetched and saved verbatim to <code>HollowGraph-M365Calendar-Hunt-sources/</code> at research time. Every atomic indicator in this pack traces to snapshot 01 (Group-IB primary) and is corroborated by the T2 press. The Register carries the narrative but not the atomic IOC appendix.</p>
+      <table>
+        <thead><tr><th>#</th><th>Source</th><th>Tier</th><th>Contributed</th></tr></thead>
+        <tbody>
+          <tr><td>01</td><td>Group-IB — HOLLOWGRAPH blog (primary)</td><td><span class="badge b-low">T1</span></td><td>Domain, 3× SHA256, logAzure.txt, Graph endpoints, get/send/003 grammar, DNS AAAA tunnel format, RSA/AES scheme, Cavern link, Lyceum pivot hash, victim stats</td></tr>
+          <tr><td>02</td><td>The Hacker News</td><td><span class="badge b-med">T2</span></td><td>Corroborates domain, logAzure.txt, File{n}.txt, 2050 dating, get/send, RSA+AES, Cavern Manticore note, 12/3 victims, timeline</td></tr>
+          <tr><td>03</td><td>BleepingComputer</td><td><span class="badge b-med">T2</span></td><td>Corroborates domain, logAzure.txt, AAAA 14-byte payload detail, 22:00–23:00 UTC retrieval window, Event ID:/Boss ID subject split</td></tr>
+          <tr><td>04</td><td>The Register</td><td><span class="badge b-med">T2</span></td><td>Narrative: 2050 dating, Graph calendar C2, 12/3 victims, Israeli targeting, Cavern (high) / Lyceum (low)</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Provenance note: the SHA256 samples and the Lyceum pivot hash are carried from the Group-IB appendix (snapshot 01). No public IPs were published; the C2 is domain-only. Where a campaign artifact is a pattern rather than a literal (File{n}.txt, GUID subjects), it is shipped as a behavioral signature, not an atomic block.</p>
+    </div>
+  </div>
+
+  <!-- 3 HUNT BRIEF & CHAIN -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <p><strong>Hypothesis:</strong> If HollowGraph is active, we should see a .NET DLL host process on an endpoint that (a) drops/reads <code>logAzure.txt</code>, (b) issues bursts of AAAA DNS lookups to <code>cloudlanecdn[.]com</code> subdomains, and — in the M365 tenant — an application identity creating/reading calendar events dated 2050 with GUID / "Event ID:" subjects and <code>File{n}.txt</code> attachments.</p>
+      <table>
+        <thead><tr><th>#</th><th>Stage</th><th>Behavior</th><th>Telemetry</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Foothold</td><td>.NET NativeAOT DLL loaded by a host process (rundll32/regsvr32/custom)</td><td>ProcessRollup2</td></tr>
+          <tr><td>2</td><td>Config staging</td><td>Reads/writes <code>logAzure.txt</code> holding tenantId/clientId/clientSecret + RSA keys</td><td>File-write / ProcessRollup2 CommandLine</td></tr>
+          <tr><td>3</td><td>Credential refresh</td><td>AAAA lookups to <code>*.p</code>/<code>*.q.cloudlanecdn[.]com</code>; decodes 14 bytes per IPv6 answer</td><td>DnsRequest (AAAA)</td></tr>
+          <tr><td>4</td><td>Tasking (get)</td><td>Graph <code>calendarView</code> query for the planted 2050-05-13 event; downloads + RSA-decrypts attachment</td><td>M365 audit / Graph sign-in</td></tr>
+          <tr><td>5</td><td>Collection + Exfil (send)</td><td>Creates far-future events, uploads AES-256 encrypted <code>File{n}.txt</code> attachments; PATCH subject to GUID/Boss ID</td><td>M365 audit (Exchange item create/update)</td></tr>
+          <tr><td>6</td><td>Evasion</td><td>All C2 rides Graph over trusted Microsoft infra; on-disk name mimics a log; events buried at 2050</td><td>Cross-source correlation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 IOC TABLE -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>Domain</td><td>cloudlanecdn[.]com</td><td><span class="badge b-low">high</span></td><td>detect</td><td>DNS AAAA C2 / credential-refresh tunnel</td></tr>
+          <tr><td>SHA256</td><td>75e51774b8f79e5f256eaae639635f911b3e744d4774fd6068dd980255621509</td><td><span class="badge b-low">high</span></td><td>detect</td><td>HollowGraph .NET DLL implant</td></tr>
+          <tr><td>SHA256</td><td>f3f3006f8304788251b153d53b305322b8acab0c66ec816b8d9f101bcc851da3</td><td><span class="badge b-low">high</span></td><td>detect</td><td>HollowGraph .NET DLL implant</td></tr>
+          <tr><td>SHA256</td><td>b3d0f6e4e3be395fd7cf9e8101c89963d77216578cbb117a6ac9bc3564485eff</td><td><span class="badge b-low">high</span></td><td>detect</td><td>HollowGraph .NET DLL implant</td></tr>
+          <tr><td>Filename</td><td>logAzure.txt</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>On-disk config storing creds + RSA keys</td></tr>
+          <tr><td>Attachment</td><td>File{n}.txt</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Encrypted calendar-event attachments (behavioral)</td></tr>
+          <tr><td>Calendar date</td><td>2050-05-13</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Planted far-future tasking / exfil events</td></tr>
+          <tr><td>Event subject</td><td>Event ID: {taskID} / Boss{..}ID{..} / bare GUID</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>get / send / operator-rename subject patterns</td></tr>
+          <tr><td>DNS labels</td><td>*.p.cloudlanecdn[.]com / *.q.cloudlanecdn[.]com</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Length (p) + data (q) tunnel query labels</td></tr>
+          <tr><td>Command grammar</td><td>get / send / 003 (debug)</td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>Cavern-style tasking verbs</td></tr>
+          <tr><td>SHA256</td><td>315bdba98c6fe863d39f6afccc727e17d5aea63bf21259444fa988cae56d61c1</td><td><span class="badge b-high">low</span></td><td>pivot</td><td>Related Lyceum 2025 .NET backdoor — attribution pivot only, do NOT block</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 AFFECTED SURFACE -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Exposure</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr></thead>
+        <tbody>
+          <tr><td>Windows endpoint (.NET runtime)</td><td>DLL implant host, logAzure.txt, DNS channel</td><td>Falcon ProcessRollup2 / DnsRequest</td><td><span class="badge b-crit">Critical</span></td><td>Managed-assembly load has limited telemetry — hunt host process</td></tr>
+          <tr><td>Microsoft 365 / Exchange Online</td><td>Calendar dead drop, exfil attachments</td><td>M365 Unified Audit Log (Exchange item ops)</td><td><span class="badge b-crit">Critical</span></td><td>Requires UAL ingest; RecordType/field names parser-specific</td></tr>
+          <tr><td>Entra ID (Azure AD)</td><td>Stolen client-credential OAuth app driving Graph</td><td>Entra sign-in (service principal) + audit logs</td><td><span class="badge b-high">High</span></td><td>Non-interactive token use easy to miss without SPN sign-in ingest</td></tr>
+          <tr><td>Egress DNS</td><td>AAAA tunnel to cloudlanecdn[.]com</td><td>Falcon DnsRequest / resolver logs</td><td><span class="badge b-high">High</span></td><td>Split-horizon / on-box resolvers may hide the loader process</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6 ATT&CK -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>MITRE ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Query / Control</th></tr></thead>
+        <tbody>
+          <tr><td>Initial Access / Persistence</td><td>T1078.004 Valid Accounts: Cloud Accounts</td><td>Uses stolen M365 client-credential app to reach Graph</td><td>S7-B, S12</td></tr>
+          <tr><td>Execution / Defense Evasion</td><td>T1218.011 Rundll32 / T1218.010 Regsvr32</td><td>.NET DLL hosted by a signed system binary</td><td>Q7</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1102.002 Web Service: Bidirectional</td><td>M365 calendar as two-way dead drop via Graph</td><td>S7-A</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1071.004 Application Layer Protocol: DNS</td><td>AAAA-record channel to cloudlanecdn[.]com</td><td>Q3, Q4</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1573.001/.002 Encrypted Channel (AES / RSA)</td><td>Hybrid RSA + AES-256, split in/out keys</td><td>Q7 (host), S7</td></tr>
+          <tr><td>Defense Evasion</td><td>T1036.005 Masquerading: Match Legit Name</td><td>logAzure.txt log-lookalike; cloudlanecdn "CDN" name</td><td>Q1, Q2</td></tr>
+          <tr><td>Credential Access</td><td>T1552.001 Unsecured Credentials in Files</td><td>tenant/client secret stored in logAzure.txt</td><td>Q1, Q2, S12</td></tr>
+          <tr><td>Collection / Exfiltration</td><td>T1567 Exfiltration Over Web Service</td><td>Stolen files as encrypted File{n}.txt calendar attachments</td><td>S7-A</td></tr>
+          <tr><td>C2 / Ingress</td><td>T1132 Data Encoding</td><td>Config bytes encoded in IPv6 AAAA answers (14B/record)</td><td>Q4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 NATIVE AUDIT HUNTS -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (M365 / Entra / Graph)</h2></div>
+    <div class="section-body">
+      <p>The calendar C2 lives in the Microsoft cloud, not on the wire, so the confirming evidence is in the M365 Unified Audit Log and Entra sign-in/audit logs. These run in Microsoft 365 / Purview / Sentinel (KQL over ingested logs), <strong>not</strong> Falcon CQL. Field names and RecordType values are tenant/parser specific — validate against a sample row before deploying.</p>
+
+      <h3>S7-A · M365 Unified Audit Log — far-future calendar events by an app identity</h3>
+<pre class="code">// Microsoft 365 Unified Audit Log (Purview) / Sentinel — Graph-driven calendar dead drop
+// Anomalous Exchange calendar item create/update by a client-credentials application,
+// with far-future (2050) dates or HollowGraph subject/attachment patterns.
+OfficeActivity
+| where Operation in ("Create", "Update", "Send")
+| where RecordType startswith "Exchange"          // calendar items are Exchange records
+| where isnotempty(ClientAppId)                    // application-driven (non-interactive) write
+| where Item has "2050"                            // planted 2050-05-13 tasking / exfil events
+    or Subject matches regex @"^Event ID:|^Boss.*ID|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"
+    or Item has "File" and Item has ".txt"         // File{n}.txt attachment naming
+| project TimeGenerated, UserId, ClientAppId, ClientIP, Operation, Subject, Item
+| sort by TimeGenerated desc</pre>
+
+      <h3>S7-B · Entra ID — client-credential app grant + non-interactive Graph token use</h3>
+<pre class="code">// (a) An app registration granted broad calendar/mail APPLICATION permissions or a fresh secret
+AuditLogs
+| where OperationName in ("Add app role assignment to service principal",
+                          "Add delegated permission grant",
+                          "Consent to application",
+                          "Add service principal credentials")
+| where Result == "success"
+| project TimeGenerated, OperationName, InitiatedBy, TargetResources
+
+// (b) Service-principal (client-credentials) Graph sign-ins spiking from one IP/ASN
+AADServicePrincipalSignInLogs
+| where isnotempty(AppId)
+| where ResourceDisplayName == "Microsoft Graph"
+| summarize calls = count() by AppId, IPAddress, bin(TimeGenerated, 1h)
+| where calls &gt;= 50                               // tune per tenant baseline</pre>
+
+      <p class="callout callout-info">Pair these with the endpoint hunts in section 8: a host firing Q1/Q3 plus an app identity firing S7-A on the same day is a high-confidence HollowGraph confirmation.</p>
+    </div>
+  </div>
+
+  <!-- 8 CQL QUERIES -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+      </div>
+
+      <!-- Q1 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · logAzure.txt referenced by a process</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any process whose command line references the on-disk config <code>logAzure.txt</code>. <strong>FP:</strong> legitimate tooling rarely uses this exact basename; the discriminator is <code>logAzure.txt</code>, not the substring "azure".</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: HollowGraph on-disk config/log basename logAzure.txt referenced by a process</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2 CommandLine</span>
+<span class="cm">// MITRE: T1552.001 Unsecured Credentials In Files; T1036.005 Masquerading (log-lookalike)</span>
+<span class="cm">// TUNING: exclude backup/log agents that legitimately touch files named *Azure*; require the exact basename and correlate the same aid with Q3/Q4 DNS to cloudlanecdn</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/logAzure\.txt/i
+| groupBy([aid, ComputerName, UserName, FileName, ParentBaseFileName], function=[count(as=Hits), collect([CommandLine], limit=5)], limit=200)
+| sort(Hits, order=desc, limit=100)</pre>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · logAzure.txt written to disk (basename match)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the config file being created on disk, matched by <em>basename</em> via <code>FileName</code> so there is no path slash inside the regex. <strong>FP:</strong> exclude AV quarantine / backup copy paths seen in <code>TargetFileName</code>.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: HollowGraph config file logAzure.txt created on disk (BASENAME match, no path slash in regex)</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: file-write telemetry — validate event availability in tenant</span>
+<span class="cm">// MITRE: T1552.001 Unsecured Credentials In Files</span>
+<span class="cm">// TUNING: match by BASENAME via FileName (^logAzure\.txt$) to avoid a slash inside /.../; exclude backup/quarantine dirs in TargetFileName</span>
+#event_simpleName=/NewExecutableWritten|PeFileWritten|NewScriptWritten/
+| FileName=/^logAzure\.txt$/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, TargetFileName], limit=200)
+| sort(@timestamp, order=desc, limit=100)</pre>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · DNS to cloudlanecdn[.]com C2 domain</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any DNS resolution for the attacker C2 domain or any subdomain. Atomic IOC — a hit is high confidence.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: DNS resolution to HollowGraph C2 domain cloudlanecdn[.]com (and subdomains)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: DnsRequest</span>
+<span class="cm">// MITRE: T1071.004 Application Layer Protocol: DNS; T1568 Dynamic Resolution</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)cloudlanecdn\.com$/i
+| groupBy([aid, ComputerName, DomainName], function=[count(as=Queries), collect([ContextBaseFileName], limit=5)], limit=500)
+| sort(Queries, order=desc, limit=100)</pre>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · DNS AAAA tunnel — *.p / *.q.cloudlanecdn labels</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the credential-refresh tunnel — bursts of AAAA lookups to the <code>*.p</code> (length) and <code>*.q</code> (data) labels under the C2 domain. Volume threshold surfaces the beaconing cadence.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: HollowGraph DNS-tunnel credential refresh — high-volume AAAA lookups to *.p/*.q.cloudlanecdn[.]com</span>
+<span class="cm">// CONF: high  FP: low  COST: medium | REQUIRES: DnsRequest with RequestType (AAAA=28)</span>
+<span class="cm">// MITRE: T1071.004 DNS; T1132 Data Encoding</span>
+#event_simpleName=DnsRequest
+| DomainName=/\.(p|q)\.cloudlanecdn\.com$/i
+| RequestType=28
+| groupBy([aid, ComputerName], function=[count(as=AAAAQueries), count(DomainName, distinct=true, as=UniqueLabels), collect([ContextBaseFileName], limit=5)], limit=500)
+| AAAAQueries &gt;= 20
+| sort(AAAAQueries, order=desc, limit=100)</pre>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · Loader process tied to cloudlanecdn DNS</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> correlates the process making the C2 DNS lookups with its process record, exposing the .NET DLL host. <strong>FP:</strong> enterprise forwarders/proxies can appear as the resolving process — exclude by <code>ContextBaseFileName</code>.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: process making DNS lookups to HollowGraph C2 (ties the loading process to cloudlanecdn traffic)</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: ProcessRollup2 + DnsRequest correlation</span>
+<span class="cm">// MITRE: T1071.004 DNS; T1218.011 Rundll32 (DLL host)</span>
+<span class="cm">// TUNING: exclude enterprise resolvers/proxies as the process; expect rundll32.exe/regsvr32.exe/dotnet.exe or an unusual signed host as the resolver</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|DnsRequest/
+| falconPID:=ContextProcessId
+| falconPID:=TargetProcessId
+| selfJoinFilter(field=[aid, falconPID], where=[{#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/}, {#event_simpleName=DnsRequest DomainName=/cloudlanecdn\.com$/i}])
+| groupBy([aid, ComputerName, falconPID], function=collect([FileName, ImageFileName, CommandLine, DomainName], limit=8), limit=300)</pre>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · HollowGraph implant by SHA256</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> execution/load of any of the three reported HollowGraph DLL hashes. Atomic — any hit is a confirmed sample.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: HollowGraph .NET DLL implant by SHA256 (execution / load)</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 / ImageHash</span>
+<span class="cm">// MITRE: T1204 User Execution; T1218 Signed/System Binary Proxy (DLL host)</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| in(SHA256HashData, values=["75e51774b8f79e5f256eaae639635f911b3e744d4774fd6068dd980255621509", "f3f3006f8304788251b153d53b305322b8acab0c66ec816b8d9f101bcc851da3", "b3d0f6e4e3be395fd7cf9e8101c89963d77216578cbb117a6ac9bc3564485eff"])
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, SHA256HashData, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · Suspicious .NET DLL host resolving external DNS</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a signed DLL-host binary loading a DLL from a user-writable path — the NativeAOT loader shape. <strong>FP:</strong> rundll32/regsvr32 are heavily used legitimately; gate on user-writable path and correlate with Q3/Q4 on the same host.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: suspicious .NET DLL host (rundll32/regsvr32/dllhost/dotnet) loading a DLL from a user-writable path</span>
+<span class="cm">// CONF: medium  FP: high  COST: medium | REQUIRES: ProcessRollup2; managed-assembly-load telemetry is limited — hunt the host process</span>
+<span class="cm">// MITRE: T1218.010 Regsvr32; T1218.011 Rundll32; T1573 Encrypted Channel (RSA/AES)</span>
+<span class="cm">// TUNING: require the DLL path to be user-writable (Users/ProgramData/AppData/Temp/Public) AND the same aid firing Q3/Q4; exclude System32 and Program Files signed hosts</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| in(FileName, values=["rundll32.exe", "regsvr32.exe", "dllhost.exe", "dotnet.exe"], ignoreCase=true)
+| CommandLine=/\.dll/i
+| ImageFileName=/\\(Users|ProgramData|AppData|Temp|Public)\\/i
+| groupBy([aid, ComputerName, UserName, FileName, ImageFileName], function=[count(as=Hits), collect([CommandLine], limit=5)], limit=300)
+| sort(Hits, order=desc, limit=100)</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 9 CUSTOM IOA -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <h3>IOA-1 · DLL host resolving the C2 domain</h3>
+      <p><strong>Rule group:</strong> Covert C2 · <strong>Type:</strong> Network Connection / DNS Request · <strong>Action:</strong> Detect (promote to Block only after FP baseline) · <strong>Severity:</strong> High · <strong>MITRE:</strong> T1071.004.</p>
+      <ul>
+        <li><strong>Domain (PCRE):</strong> <code>(^|\.)cloudlanecdn\.com$</code></li>
+        <li><strong>Exclusions:</strong> none needed — atomic C2 domain.</li>
+        <li><strong>Rationale:</strong> real-time detect of any host touching the DNS channel; complements Q3/Q4 retro hunts.</li>
+      </ul>
+      <h3>IOA-2 · rundll32/regsvr32 loading a DLL from a user-writable path</h3>
+      <p><strong>Rule group:</strong> LOLBIN Abuse · <strong>Type:</strong> Process Creation · <strong>Action:</strong> Detect · <strong>Severity:</strong> Medium · <strong>MITRE:</strong> T1218.010/.011.</p>
+      <ul>
+        <li><strong>Image Filename (PCRE):</strong> <code>.*\\(rundll32|regsvr32)\.exe$</code></li>
+        <li><strong>Command Line (PCRE):</strong> <code>.*\\(Users|ProgramData|AppData|Temp|Public)\\.*\.dll.*</code></li>
+        <li><strong>FP tuning:</strong> heavy legitimate use — keep in Detect; pilot on a canary group before any Block promotion.</li>
+      </ul>
+      <p class="callout callout-warn">Do not promote either IOA to Block until it has run in Detect for 14+ days with a measured FP rate under 5%. IOA-2 in particular has a high legitimate-use baseline.</p>
+    </div>
+  </div>
+
+  <!-- 10 IOC APPENDIX -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p>Quick-copy blocks for import and hunting. Atomic indicators (domain + hashes) trace to the saved Group-IB snapshot; pattern indicators ship as behavioral signatures, not blocks.</p>
+      <div class="ioc-grab-grid">
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,cloudlanecdn[.]com,detect,high,2027-01-21,HollowGraph DNS C2 and credential-refresh tunnel,campaign:HollowGraph
+sha256,75e51774b8f79e5f256eaae639635f911b3e744d4774fd6068dd980255621509,prevent,critical,2027-07-21,HollowGraph .NET NativeAOT DLL implant,campaign:HollowGraph
+sha256,f3f3006f8304788251b153d53b305322b8acab0c66ec816b8d9f101bcc851da3,prevent,critical,2027-07-21,HollowGraph .NET NativeAOT DLL implant,campaign:HollowGraph
+sha256,b3d0f6e4e3be395fd7cf9e8101c89963d77216578cbb117a6ac9bc3564485eff,prevent,critical,2027-07-21,HollowGraph .NET NativeAOT DLL implant,campaign:HollowGraph
+# attribution pivot only (do NOT block) - related Lyceum 2025 .NET backdoor:
+# 315bdba98c6fe863d39f6afccc727e17d5aea63bf21259444fa988cae56d61c1</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt patterns</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behavioral',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behavioral">logAzure.txt            on-disk config storing tenantId/clientId/clientSecret + RSA keys
+File{n}.txt             encrypted calendar-event attachment naming (File0.txt, File1.txt, ...)
+2050-05-13              far-future calendar event date for planted tasking / exfil events
+Subject Event ID: {7-char taskID}   GET / tasking event subject pattern
+Subject Boss{..}ID{..}              SEND / exfil event subject pattern
+Subject bare GUID                   operator-recognition rename pattern
+*.p.cloudlanecdn[.]com  DNS-tunnel length-query labels (AAAA)
+*.q.cloudlanecdn[.]com  DNS-tunnel data-query labels (AAAA, 14 bytes/record)
+command grammar: get / send / 003(debug)   Cavern-style tasking verbs</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">attribution</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-named',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-named">HollowGraph       .NET NativeAOT DLL implant (this campaign)
+Cavern            modular espionage framework - HIGH-confidence code overlap
+Cavern Manticore  Iranian MOIS-linked cluster associated with Cavern (per THN)
+Lyceum / OilRig   Iranian-nexus subgroup - LOW-confidence overlap only, NOT attributed</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">M365 / Entra Audit Checklist</span><span class="igc">cloud hunt</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit">- Enumerate app registrations with Calendars.ReadWrite / Mail.Read / Mail.ReadWrite APPLICATION permissions
+- Review client-secret creation (Add service principal credentials) in the last 90 days
+- Hunt calendar items dated 2050 across all mailboxes (Graph: /users/{id}/calendarView)
+- Revoke + rotate any tenantId/clientId/clientSecret found in logAzure.txt on affected hosts
+- Conditional Access: block non-interactive client-credential flows from unmanaged IPs
+- Alert on app-only Graph calendar writes (Calendars.ReadWrite used by a daemon app)</pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 VALIDATION GATES -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>DnsRequest + ProcessRollup2 flowing; M365 UAL + Entra SPN sign-in ingested</td><td>Non-empty samples in a 1h window for each source</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q5/Q7 read-only for 48h; classify hits</td><td>Legit DLL-host resolvers enumerated and excluded</td></tr>
+          <tr><td>Positive test</td><td>On an isolated host, nslookup a benign <code>*.p.cloudlanecdn.com</code>-shaped label against a lab resolver; write a benign file named logAzure.txt</td><td>Q1/Q2 and Q3/Q4 return the test host within 2 min</td></tr>
+          <tr><td>Promotion</td><td>IOA FP rate measured on canary group</td><td>Under 5% for 14 days before any Block promotion</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn">Validate with benign payloads on isolated/canary endpoints only — never real malware, never production.</p>
+    </div>
+  </div>
+
+  <!-- 12 HARDENING -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <ul>
+          <li>Audit and lock down application permissions: revoke any app registration holding <code>Calendars.ReadWrite</code> / <code>Mail.Read(Write)</code> application scopes that isn't explicitly required. MITRE M1018; CIS M365 Foundations (app registration governance).</li>
+          <li>Rotate any tenant/client secrets that may be exposed; enforce short client-secret lifetimes and prefer certificate credentials. MITRE M1027.</li>
+          <li>Block resolution of <code>cloudlanecdn[.]com</code> at the resolver/proxy and add the 3 SHA256 to Falcon prevent. MITRE M1031.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1–4 weeks)</div>
+        <ul>
+          <li>Conditional Access: block or challenge non-interactive client-credential Graph flows from unmanaged / unexpected IP ranges. MITRE M1032 / M1037.</li>
+          <li>Enable and ingest M365 Unified Audit Log + Entra service-principal sign-in logs into the SIEM if not already. MITRE M1047.</li>
+          <li>App-consent governance: require admin approval for new application permission grants. MITRE M1018.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1–3 months)</div>
+        <ul>
+          <li>Constrain DNS egress to approved resolvers; alert on high-volume AAAA to low-prevalence domains. MITRE M1037.</li>
+          <li>Application control (WDAC / AppLocker) to constrain rundll32/regsvr32 loading DLLs from user-writable paths. MITRE M1038.</li>
+          <li>Least-privilege review of all daemon/app-only identities touching Exchange Online. MITRE M1018.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 PLAYBOOKS -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h3>P1 · Enumerate risky Graph application permissions (Microsoft Graph PowerShell)</h3>
+<pre class="code">Connect-MgGraph -Scopes "Application.Read.All","AuditLog.Read.All"
+$risky = "Calendars.ReadWrite","Mail.Read","Mail.ReadWrite"
+Get-MgServicePrincipal -All | ForEach-Object {
+  $sp = $_
+  Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $sp.Id |
+    Where-Object { $risky -contains $_.AppRoleId } |
+    Select-Object @{n='App';e={$sp.DisplayName}}, AppRoleId, ResourceDisplayName
+}</pre>
+      <h3>P2 · Hunt 2050-dated calendar events across mailboxes (Graph)</h3>
+<pre class="code"># For each in-scope mailbox, pull events in the 2050 window and flag suspicious subjects
+# GET /users/{id}/calendarView?startDateTime=2050-01-01T00:00:00Z&amp;endDateTime=2050-12-31T23:59:59Z
+# Review Subject for: GUID-only, "Event ID:", "Boss..ID..", and any File{n}.txt attachment</pre>
+      <h3>P3 · Sinkhole / block the DNS channel</h3>
+<pre class="code"># Resolver RPZ / proxy block
+# cloudlanecdn.com  CNAME  sinkhole.internal.   ; block + log all *.cloudlanecdn.com
+# Alert on any client that attempted resolution prior to the block taking effect</pre>
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+      <p><strong>Deploying via your RMM:</strong> the snippets above are raw PowerShell / config. Hand them to your RMM deployment tooling for admin checks, error handling, and custom-field writeback for compliance tracking.</p>
+    </div>
+  </div>
+
+  <!-- 14 CONTAINMENT -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Identify</td><td>Run Q1–Q7 + S7 hunts; scope affected hosts and the compromised mailbox/app identity</td><td>SOC</td><td>aid list, app IDs, calendar event IDs</td></tr>
+          <tr><td>Contain</td><td>Network-isolate implicated hosts; disable the abused app registration; block cloudlanecdn[.]com</td><td>IR + Identity</td><td>Isolation + app-disable timestamps</td></tr>
+          <tr><td>Eradicate</td><td>Remove implant DLL + logAzure.txt; rotate tenant/client secrets; delete planted 2050 events</td><td>IR</td><td>File hashes, rotated-secret log</td></tr>
+          <tr><td>Recover</td><td>Restore least-privilege app scopes; re-enable hosts after clean scan</td><td>IT</td><td>Clean-scan reports</td></tr>
+          <tr><td>Lessons</td><td>App-consent governance + AAAA DNS monitoring gaps closed</td><td>Security Eng</td><td>Config change tickets</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 COVERAGE MAP -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1552.001</td><td>logAzure.txt config/creds on disk</td><td>Q1, Q2</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1071.004</td><td>DNS AAAA C2 to cloudlanecdn</td><td>Q3, Q4</td><td>IOA-1</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1218.010/.011</td><td>.NET DLL host / loader</td><td>Q5, Q7</td><td>IOA-2</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>Known samples</td><td>SHA256 execution/load</td><td>Q6</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1102.002</td><td>M365 calendar dead drop (Graph)</td><td>S7-A (audit)</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1078.004</td><td>Client-credential app abuse</td><td>S7-B (audit)</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1573.001/.002</td><td>RSA/AES managed crypto load</td><td>Q7 (proxy)</td><td>—</td><td><span class="badge b-high">GAP</span></td></tr>
+        </tbody>
+      </table>
+      <p>Coverage: 6 of 7 behaviors have at least partial detection. The residual <strong>GAP</strong> is direct observation of managed RSA/AES assembly loading — Falcon has limited managed-assembly-load telemetry, so it is hunted indirectly via the DLL-host process (Q7). Validation gates (section 11) must pass before these are relied on operationally.</p>
+    </div>
+  </div>
+
+  <!-- 16 HUNT TICKET -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+        <div class="tk-hdr">HUNT-TICKET · HollowGraph M365 Calendar C2</div>
+<pre class="code">TITLE:      HollowGraph - .NET DLL implant using M365 calendar dead drop + DNS AAAA C2
+SEVERITY:   Critical (targeted espionage; ~12 hosts, ~3 active)
+SCOPE:      Windows endpoints (.NET) + M365/Entra tenant; egress DNS
+HYPOTHESIS: Implant drops logAzure.txt, beacons AAAA to cloudlanecdn[.]com, and
+            drives Graph calendar events dated 2050 with File{n}.txt attachments.
+QUERIES:    Q1-Q2 logAzure.txt | Q3-Q4 cloudlanecdn DNS/AAAA | Q5 loader tie
+            Q6 SHA256 | Q7 DLL host | S7-A/B M365 + Entra audit
+DO FIRST:   Run Q3 (DNS) fleet-wide and S7-A (2050 calendar events) in the tenant.
+            A host on both = high-confidence confirmation.
+FINDINGS:   (analyst completes - queries must be run in Falcon/M365; not auto-run)
+GAPS:       Direct RSA/AES assembly-load telemetry (hunted via Q7 host proxy)
+ACTIONS:    Block domain + 3 SHA256; audit Graph app permissions; rotate secrets
+OWNER:      SOC / IR / Identity
+VERSION:    v0.1 - 2026-07-21</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 CHANGELOG -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-21</span><span>Initial HuntPack. 7 CQL queries + 2 M365/Entra native audit hunts + 2 Custom IOA recs, built from Group-IB primary and 3 corroborating T2 sources. All atomic IOCs provenance-traced to saved snapshots.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 REFERENCES -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Accessed</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.group-ib.com/blog/hollowgraph-microsoft-365/">Group-IB — HOLLOWGRAPH</a></td><td>Primary IOCs, TTPs, attribution</td><td>2026-07-21</td></tr>
+          <tr><td><span class="badge b-med">T2</span></td><td><a href="https://thehackernews.com/2026/07/hollowgraph-malware-hides-c2-and-stolen.html">The Hacker News</a></td><td>Corroboration, Cavern Manticore note</td><td>2026-07-21</td></tr>
+          <tr><td><span class="badge b-med">T2</span></td><td><a href="https://www.bleepingcomputer.com/news/security/new-hollowgraph-malware-uses-microsoft-graph-for-stealthy-c2-comms/">BleepingComputer</a></td><td>AAAA payload detail, subject split</td><td>2026-07-21</td></tr>
+          <tr><td><span class="badge b-med">T2</span></td><td><a href="https://www.theregister.com/security/2026/07/20/microsoft-365-calendars-become-spy-drop-boxes-in-hollowgraph-campaign/5274982">The Register</a></td><td>Narrative corroboration</td><td>2026-07-21</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">HuntPack · HollowGraph — M365 Calendar C2 · v0.1 · Generated 2026-07-21 · Defensive detection &amp; hardening content only.</div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
