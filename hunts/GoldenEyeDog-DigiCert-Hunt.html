@@ -933,27 +933,54 @@ NOTIFY  the agent with a plain-language reason so they do not seek a workaround<
 #   Local Policies > User Rights Assignment >
 #   "Deny log on through Remote Desktop Services" -> add: Local account
 
+# PowerShell (run elevated). Each reg add is one line on purpose -- a CMD caret (^)
+# continuation does not work in PowerShell, and this block previously mixed the two.
+
 # Require Network Level Authentication
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" ^
-    /v UserAuthentication /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f
 
 # Ensure RDP stays disabled where it is not required
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" ^
-    /v fDenyTSConnections /t REG_DWORD /d 1 /f
+# WARNING: this disables inbound RDP on the host. Confirm out-of-band access
+# (console/iLO/DRAC) before running it on a remote server.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f
+
+# Verify:
+#   reg query "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication
+# Rollback:
+#   reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
 
 # Block autologon abuse - these values should never be set on a managed endpoint
 # Audit: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
 #        AutoAdminLogon, DefaultUserName, DefaultPassword, DefaultDomainName</pre>
 
     <h3>5 · Defender / EDR tamper resistance (RONINGLOADER branch)</h3>
-<pre class="code"># Tamper protection (set via Intune / Defender portal - registry alone is not authoritative)
-Set-MpPreference -DisableTamperProtection $false
+<pre class="code"># PowerShell (run elevated). Each reg add is one line on purpose -- a CMD caret (^)
+# continuation does not work in PowerShell, and this block previously mixed the two.
 
-# Vulnerable driver blocklist + HVCI (blunts the ollama.sys style AV-kill driver)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" ^
-    /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" ^
-    /v Enabled /t REG_DWORD /d 1 /f
+# Tamper Protection is NOT settable from here. When it is on, Set-MpPreference calls
+# that alter protection settings are blocked by design; the old line in this block
+# (Set-MpPreference -DisableTamperProtection $false) was decorative at best and threw
+# access-denied at worst. Set it in Intune / the Defender portal, then confirm locally:
+Get-MpComputerStatus | Select-Object IsTamperProtected, AMRunningMode
+
+# Microsoft Vulnerable Driver Blocklist. Independent of HVCI -- this works on its own
+# and is what actually blunts an ollama.sys-style AV-kill driver.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
+
+# HVCI. The scenario key ALONE does not enable it -- VBS must be enabled as well, or
+# the control silently never activates. All three values are required.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v RequirePlatformSecurityFeatures /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+
+# Prerequisites: UEFI + Secure Boot + virtualization extensions. Reboot required.
+# PILOT FIRST -- incompatible legacy drivers can block boot under HVCI.
+# Verify AFTER reboot (must contain 2 for HVCI):
+#   (Get-CimInstance Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning
+# Rollback:
+#   reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 0 /f
+#   reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 0 /f
+#   (then reboot; if the host will not boot, use Safe Mode or WinRE to revert)
 
 # Alert on any write to the active WDAC policy directory - RONINGLOADER drops its own
 #   C:\Windows\System32\CodeIntegrity\CiPolicies\Active\*.cip</pre>

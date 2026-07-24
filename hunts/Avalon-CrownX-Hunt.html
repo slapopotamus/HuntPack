@@ -627,12 +627,52 @@ C2:         helloxcherry[.]com</pre>
     <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
     <div class="section-body">
       <h4>P1 · AppLocker — deny MSBuild.exe for non-developers</h4>
-<pre class="code"># Deny the trusted dev-utility LOLBin path; deploy to a non-developer OU via GPO.
-# Computer Config > Windows Settings > Security > Application Control Policies > AppLocker > Executable Rules
-New-AppLockerPolicy -RuleType Path -User Everyone `
-  -RuleNamePrefix 'AVALON-MSBuild' `
-  -Optimize -Xml 'Deny: %WINDIR%\Microsoft.NET\Framework*\*\MSBuild.exe'
-# Pilot in Audit mode first; review 14 days of AppLocker 8003/8004 events before Enforce.</pre>
+<pre class="code">&lt;!-- Deny the MSBuild dev-utility LOLBin path. Link to a NON-DEVELOPER OU only. --&gt;
+&lt;!-- Import: Group Policy -&gt; Computer Configuration -&gt; Windows Settings -&gt; Security
+     Settings -&gt; Application Control Policies -&gt; AppLocker -&gt; Executable Rules --&gt;
+&lt;!-- SHIPS AS AuditOnly ON PURPOSE. Run it for at least a week and review EventID
+     8003 before flipping EnforcementMode to "Enabled". --&gt;
+&lt;RuleCollection Type="Exe" EnforcementMode="AuditOnly"&gt;
+  &lt;!-- Microsoft default allow rules -- DO NOT REMOVE. Without them, enforcing this
+       collection blocks every executable on the machine, including your RMM agent. --&gt;
+  &lt;FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Default) All files in Program Files"
+                Description="Allows Everyone to run applications in Program Files."
+                UserOrGroupSid="S-1-1-0" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%PROGRAMFILES%\*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Default) All files in Windows"
+                Description="Allows Everyone to run applications in the Windows folder."
+                UserOrGroupSid="S-1-1-0" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%WINDIR%\*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="fd686d83-a829-4351-8ff4-27c7de5755d2" Name="(Default) All files -- Administrators"
+                Description="Allows local Administrators to run all applications."
+                UserOrGroupSid="S-1-5-32-544" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+
+  &lt;!-- MSBuild ships in several locations. Any developer machine, or any host running a .NET build agent or Visual Studio, will break -- link this to a non-developer OU. --&gt;
+  &lt;FilePathRule Id="4b1e9a30-2c77-4f18-9e64-51a0c2d7b911" Name="Deny MSBuild.exe for standard users"
+                Description="Avalon / CrownX abuse of MSBuild as a trusted compiler LOLBin"
+                UserOrGroupSid="S-1-5-32-545" Action="Deny"&gt;
+    &lt;Conditions&gt;
+      &lt;FilePathCondition Path="%WINDIR%\Microsoft.NET\Framework\*\MSBuild.exe" /&gt;
+      &lt;FilePathCondition Path="%WINDIR%\Microsoft.NET\Framework64\*\MSBuild.exe" /&gt;
+      &lt;FilePathCondition Path="%PROGRAMFILES%\Microsoft Visual Studio\*\MSBuild.exe" /&gt;
+    &lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+&lt;/RuleCollection&gt;</pre>
+<p><b>Prerequisites:</b> the Application Identity service (AppIDSvc) must be
+Running/Automatic, set via GPO -- AppLocker evaluates nothing without it. Pilot OU.
+<b>Reboot required:</b> no (<code>gpupdate /force</code> to refresh policy).</p>
+<p><b>Verify:</b> during the AuditOnly week, review <code>Applications and Services Logs
+&gt; Microsoft &gt; Windows &gt; AppLocker &gt; EXE and DLL</code> for EventID 8003
+(would-have-blocked). Zero unexpected entries means it is safe to set
+<code>EnforcementMode="Enabled"</code>; a real block then logs EventID 8004.</p>
+<p><b>Rollback:</b> set <code>EnforcementMode="NotConfigured"</code> and re-import, or
+unlink the GPO and run <code>gpupdate /force</code>. If a host is already locked out by an
+over-broad policy, boot to Safe Mode (AppLocker does not enforce there) and stop
+AppIDSvc, or delete <code>%WINDIR%\System32\AppLocker\*.AppLocker</code>.</p>
       <h4>P2 · Disable ISO/IMG auto-mount (remove the mount handler)</h4>
 <pre class="code"># Prevent double-click auto-mount of .iso / .img containers.
 # HKCR handler removal (deploy via GPO Preferences / MDM):

@@ -641,18 +641,57 @@ filename,thumbcache_605a.db,detect,high,ThumbcacheService staging archive</pre>
     <h4>Enable LSASS RunAsPPL (blocks Mimikatz)</h4>
 <pre class="code">reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPLBoot /t REG_DWORD /d 1 /f
-:: Reboot required. Verify after reboot:
+# Reboot required. Verify after reboot:
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL</pre>
     <h4>AppLocker deny rule for user-writable staging dir (PowerShell)</h4>
-<pre class="code">New-AppLockerPolicy -RuleType Path -User Everyone `
-  -RuleNamePrefix "Deny-Public-Exec" `
-  -Path "%PUBLIC%\*" -Action Deny |
-  Set-AppLockerPolicy -Merge
-# Audit first, then enforce. Confirm collection tools cannot run from C:\Users\Public.</pre>
+<pre class="code">&lt;!-- Deny execution from C:\Users\Public, where GoSerpent drops its collection tooling. --&gt;
+&lt;!-- Import: Group Policy -&gt; Computer Configuration -&gt; Windows Settings -&gt; Security
+     Settings -&gt; Application Control Policies -&gt; AppLocker -&gt; Executable Rules --&gt;
+&lt;!-- SHIPS AS AuditOnly ON PURPOSE. Run it for at least a week and review EventID
+     8003 before flipping EnforcementMode to "Enabled". --&gt;
+&lt;RuleCollection Type="Exe" EnforcementMode="AuditOnly"&gt;
+  &lt;!-- Microsoft default allow rules -- DO NOT REMOVE. Without them, enforcing this
+       collection blocks every executable on the machine, including your RMM agent. --&gt;
+  &lt;FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Default) All files in Program Files"
+                Description="Allows Everyone to run applications in Program Files."
+                UserOrGroupSid="S-1-1-0" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%PROGRAMFILES%\*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Default) All files in Windows"
+                Description="Allows Everyone to run applications in the Windows folder."
+                UserOrGroupSid="S-1-1-0" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%WINDIR%\*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="fd686d83-a829-4351-8ff4-27c7de5755d2" Name="(Default) All files -- Administrators"
+                Description="Allows local Administrators to run all applications."
+                UserOrGroupSid="S-1-5-32-544" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+
+  &lt;!-- Some installers stage to Users\Public. Audit for a week, then enforce and confirm the collection tooling cannot run from that path. --&gt;
+  &lt;FilePathRule Id="e58a1c94-6d20-47b3-bf09-2a4c8e1d5f77" Name="Deny execution from Users\Public for standard users"
+                Description="GoSerpent drops and runs collection tooling from the Public profile"
+                UserOrGroupSid="S-1-5-32-545" Action="Deny"&gt;
+    &lt;Conditions&gt;
+      &lt;FilePathCondition Path="%SYSTEMDRIVE%\Users\Public\*" /&gt;
+    &lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+&lt;/RuleCollection&gt;</pre>
+<p><b>Prerequisites:</b> the Application Identity service (AppIDSvc) must be
+Running/Automatic, set via GPO -- AppLocker evaluates nothing without it. Pilot OU.
+<b>Reboot required:</b> no (<code>gpupdate /force</code> to refresh policy).</p>
+<p><b>Verify:</b> during the AuditOnly week, review <code>Applications and Services Logs
+&gt; Microsoft &gt; Windows &gt; AppLocker &gt; EXE and DLL</code> for EventID 8003
+(would-have-blocked). Zero unexpected entries means it is safe to set
+<code>EnforcementMode="Enabled"</code>; a real block then logs EventID 8004.</p>
+<p><b>Rollback:</b> set <code>EnforcementMode="NotConfigured"</code> and re-import, or
+unlink the GPO and run <code>gpupdate /force</code>. If a host is already locked out by an
+over-broad policy, boot to Safe Mode (AppLocker does not enforce there) and stop
+AppIDSvc, or delete <code>%WINDIR%\System32\AppLocker\*.AppLocker</code>.</p>
     <h4>Audit SAM hive access (deny non-admin reg save)</h4>
 <pre class="code">auditpol /set /subcategory:"Registry" /success:enable /failure:enable
-:: Then set a SACL on HKLM\SAM for the Everyone principal (read/enumerate)
-:: and alert on Security event 4663 targeting the SAM key.</pre>
+# Then set a SACL on HKLM\SAM for the Everyone principal (read/enumerate)
+# and alert on Security event 4663 targeting the SAM key.</pre>
   </div>
 </div>
 

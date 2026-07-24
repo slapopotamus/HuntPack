@@ -759,20 +759,33 @@ CVE-2023-48788   # FortiClient EMS SQLi RCE
       </div>
       <div class="qc-body">
         <p>Surface: Windows endpoints · Authority: M1040, M1045, M1043</p>
-<pre class="cql" id="pb1"># 1. Enable Microsoft Vulnerable Driver Blocklist (HVCI) — breaks BYOVD
+<pre class="code" id="pb1"># PowerShell, run elevated. PILOT RING FIRST -- steps 1 and 2 both need a reboot and
+# both can break things: HVCI on an incompatible legacy driver can block boot, and
+# RunAsPPL breaks LSASS-hooking SSO agents and legacy AV plugins (look for Event ID 3033).
+
+# 1. Microsoft Vulnerable Driver Blocklist -- breaks BYOVD.
+#    NOTE: this is NOT HVCI. The two are independent; the blocklist works on its own.
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
 
-# 2. Enable LSA Protection (RunAsPPL) — blunts LSASS dumping
+# 2. LSA Protection (RunAsPPL) -- blunts LSASS dumping.
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f
 
-# 3. Enforce Defender tamper protection (manage via Intune/MDE for full enforcement)
-Set-MpPreference -DisableTamperProtection $false
-Set-MpPreference -DisableRealtimeMonitoring $false
+# 3. Defender Tamper Protection is NOT settable from here. When it is on, Set-MpPreference
+#    calls that alter protection settings are blocked by design -- the lines that used to
+#    be here (-DisableTamperProtection / -DisableRealtimeMonitoring) were decorative at
+#    best and threw access-denied at worst. Set it in Intune / the Defender portal, then
+#    confirm locally:
+Get-MpComputerStatus | Select-Object IsTamperProtected, RealTimeProtectionEnabled, AMRunningMode
 
-# 4. Verify
-(Get-MpComputerStatus).IsTamperProtected
+# 4. Verify (after reboot)
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL
-# Reboot required for HVCI + RunAsPPL to take effect</pre>
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable
+
+# Rollback (then reboot):
+#   reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 0 /f
+#   reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 0 /f
+#   If an SSO/AV agent breaks under RunAsPPL, roll that value back first -- it is the
+#   likelier culprit and does not require touching code integrity.</pre>
       </div>
     </div>
 

@@ -965,22 +965,61 @@ sha1,REPLACE_WITH_SHA1,detect,high,2027-01-18,Starland RAT sample,campaign:UAT-1
 
     <h3>1 — Block mshta.exe for standard users (AppLocker deny rule)</h3>
     <pre class="code">&lt;!-- Import: Group Policy -&gt; Windows Settings -&gt; Security Settings -&gt; Application Control Policies -&gt; AppLocker -&gt; Executable Rules --&gt;
-&lt;RuleCollection Type="Exe" EnforcementMode="Enabled"&gt;
+&lt;!-- PREREQUISITE: the Application Identity service (AppIDSvc) must be Running and set to
+     Automatic, or AppLocker does not evaluate any rule. Set it via GPO, not per-host. --&gt;
+&lt;!-- SHIPS AS AuditOnly ON PURPOSE. AppLocker is default-deny: a rule collection that
+     contains ANY rule permits only explicitly allowed files. The three Allow rules below
+     are Microsoft's mandatory defaults and MUST stay, or enforcing this policy blocks
+     every executable on the machine -- including your RMM agent. Run AuditOnly for at
+     least a week, review AppLocker EventID 8003 (would-have-blocked) in
+     Microsoft-Windows-AppLocker/EXE and DLL, then flip to Enabled. --&gt;
+&lt;RuleCollection Type="Exe" EnforcementMode="AuditOnly"&gt;
+
+  &lt;!-- Default allow rules -- do not remove --&gt;
+  &lt;FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Default) All files in Program Files"
+                Description="Allows members of the Everyone group to run applications in Program Files."
+                UserOrGroupSid="S-1-1-0" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%PROGRAMFILES%\*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Default) All files in Windows"
+                Description="Allows members of the Everyone group to run applications in the Windows folder."
+                UserOrGroupSid="S-1-1-0" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%WINDIR%\*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="fd686d83-a829-4351-8ff4-27c7de5755d2" Name="(Default) All files -- Administrators"
+                Description="Allows members of the local Administrators group to run all applications."
+                UserOrGroupSid="S-1-5-32-544" Action="Allow"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="*" /&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+
+  &lt;!-- The UAT-11795 control. Scoped to BUILTIN\Users (S-1-5-32-545), NOT Everyone:
+       AppLocker deny beats allow, so a deny on Everyone would also lock out admins
+       and remove your own recovery path. No &lt;Exceptions&gt; block -- a wildcard
+       FilePublisherCondition matches every signed binary, and mshta.exe is
+       Microsoft-signed, so it would cancel this very rule. --&gt;
   &lt;FilePathRule Id="9f1c2b70-4e0a-4a5e-9d3b-0f2a6c8e1d44"
-                Name="Deny mshta.exe for non-administrators"
+                Name="Deny mshta.exe for standard users"
                 Description="UAT-11795 initial access and Run-key re-persistence path"
-                UserOrGroupSid="S-1-1-0" Action="Deny"&gt;
+                UserOrGroupSid="S-1-5-32-545" Action="Deny"&gt;
     &lt;Conditions&gt;
       &lt;FilePathCondition Path="%WINDIR%\System32\mshta.exe" /&gt;
       &lt;FilePathCondition Path="%WINDIR%\SysWOW64\mshta.exe" /&gt;
     &lt;/Conditions&gt;
-    &lt;Exceptions&gt;
-      &lt;FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*"&gt;
-        &lt;BinaryVersionRange LowSection="*" HighSection="*" /&gt;
-      &lt;/FilePublisherCondition&gt;
-    &lt;/Exceptions&gt;
   &lt;/FilePathRule&gt;
 &lt;/RuleCollection&gt;</pre>
+<p><b>Prerequisites:</b> AppIDSvc Running/Automatic (GPO); a pilot OU; one week of
+AuditOnly data. <b>Reboot required:</b> no, but AppLocker only re-evaluates on policy
+refresh (<code>gpupdate /force</code>).</p>
+<p><b>Verify (after AuditOnly week):</b> in Event Viewer, <code>Applications and Services
+Logs &gt; Microsoft &gt; Windows &gt; AppLocker &gt; EXE and DLL</code>, filter EventID 8003 --
+those are the files that <i>would</i> have been blocked. Zero unexpected entries means it
+is safe to set <code>EnforcementMode="Enabled"</code>. After enforcing, a blocked mshta
+launch logs EventID 8004.</p>
+<p><b>Rollback:</b> set <code>EnforcementMode="NotConfigured"</code> and re-import, or
+unlink the GPO and run <code>gpupdate /force</code>. If a machine is already locked out by
+an over-broad policy, boot to Safe Mode (AppLocker does not enforce there) and stop
+AppIDSvc, or delete
+<code>%WINDIR%\System32\AppLocker\*.AppLocker</code> locally.</p>
     <p class="callout callout-warn">Remove the <code>Exceptions</code> block once you have confirmed no line-of-business application depends on mshta. Audit first with <code>EnforcementMode="AuditOnly"</code> for one week.</p>
 
     <h3>2 — Enable the two relevant ASR rules (PowerShell)</h3>

@@ -569,6 +569,15 @@ EC296F9501AD71E430810CB5CDC38D954D4BA536  googleApiUtil64.sys VulnDriver.Baidu.B
 Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard |
   Select-Object -ExpandProperty SecurityServicesRunning
 # Enable Memory Integrity (HVCI) via registry, then reboot
+# HVCI needs VBS enabled as well -- the scenario key alone is inert and the
+# control silently never activates. All three values are required.
+$dg = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard"
+New-Item -Path $dg -Force | Out-Null
+Set-ItemProperty -Path $dg -Name "EnableVirtualizationBasedSecurity" -Value 1 -Type DWord
+Set-ItemProperty -Path $dg -Name "RequirePlatformSecurityFeatures" -Value 1 -Type DWord
+# Prereqs: UEFI + Secure Boot + virtualization extensions. Reboot required.
+# PILOT FIRST -- incompatible legacy drivers can block boot under HVCI.
+# Rollback: set all three values to 0 and reboot; from Safe Mode or WinRE if it will not boot.
 $p = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
 New-Item -Path $p -Force | Out-Null
 Set-ItemProperty -Path $p -Name "Enabled" -Value 1 -Type DWord</pre>

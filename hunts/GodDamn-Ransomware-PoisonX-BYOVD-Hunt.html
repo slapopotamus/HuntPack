@@ -546,7 +546,17 @@ Signature:   Microsoft-signed PoisonX driver (BYOVD) is the crew's distinguishin
     </div>
     <h3>Deployable Playbook — Driver-load prevention &amp; atom block (PowerShell / config)</h3>
 <pre class="code"># 1. Enable HVCI / Memory Integrity (blocks abused kernel drivers). Requires reboot.
+# HVCI needs VBS enabled as well -- the scenario key alone is inert and the
+# control silently never activates. All three values are required.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v RequirePlatformSecurityFeatures /t REG_DWORD /d 1 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+# Prereqs: UEFI + Secure Boot + virtualization extensions. Reboot required.
+# PILOT FIRST -- incompatible legacy drivers can block boot under HVCI.
+# Verify AFTER reboot (SecurityServicesRunning must contain 2):
+#   (Get-CimInstance Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning
+# Rollback: set both DeviceGuard values and the scenario Enabled back to 0, then reboot.
+#   If the host will not boot, revert from Safe Mode or WinRE.
 
 # 2. Turn on the Microsoft vulnerable/recommended driver blocklist (Win 11 / Server 2022+).
 #    Settings -&gt; Device security -&gt; Core isolation -&gt; Microsoft Vulnerable Driver Blocklist = On

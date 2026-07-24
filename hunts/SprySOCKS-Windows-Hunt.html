@@ -574,7 +574,17 @@ Egress: baseline svchost; flag UDP/WebSocket beacons to fixed external endpoints
     <h4>1 · Enable Microsoft Vulnerable Driver Blocklist (Windows 11 / Server 2022+)</h4>
 <pre class="code">REM Verify / enable HVCI + Vulnerable Driver Blocklist (run as admin; reboot to apply)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
+REM HVCI needs VBS enabled as well -- the scenario key alone is inert and the
+REM control silently never activates. All three values are required.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v RequirePlatformSecurityFeatures /t REG_DWORD /d 1 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+REM Prereqs: UEFI + Secure Boot + virtualization extensions. Reboot required.
+REM PILOT FIRST -- incompatible legacy drivers can block boot under HVCI.
+REM Verify AFTER reboot (SecurityServicesRunning must contain 2):
+REM   (Get-CimInstance Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning
+REM Rollback: set both DeviceGuard values and the scenario Enabled back to 0, then reboot.
+REM   If the host will not boot, revert from Safe Mode or WinRE.
 REM Confirm after reboot:
 powershell -c "(Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning"</pre>
     <h4>2 · Disable Print Spooler on non-print servers (removes WIN_PLUS entry)</h4>

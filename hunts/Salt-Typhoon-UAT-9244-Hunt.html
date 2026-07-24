@@ -869,7 +869,17 @@ Snort SID: 65551</pre>
 <pre class="code" id="pb-1"># 1) Microsoft Vulnerable Driver Blocklist ON
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 1 /f
 # 2) HVCI / Memory Integrity ON (requires reboot)
+# HVCI needs VBS enabled as well -- the scenario key alone is inert and the
+# control silently never activates. All three values are required.
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v RequirePlatformSecurityFeatures /t REG_DWORD /d 1 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f
+# Prereqs: UEFI + Secure Boot + virtualization extensions. Reboot required.
+# PILOT FIRST -- incompatible legacy drivers can block boot under HVCI.
+# Verify AFTER reboot (SecurityServicesRunning must contain 2):
+#   (Get-CimInstance Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard).SecurityServicesRunning
+# Rollback: set both DeviceGuard values and the scenario Enabled back to 0, then reboot.
+#   If the host will not boot, revert from Safe Mode or WinRE.
 # 3) Verify after reboot
 Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard |
   Select-Object -ExpandProperty SecurityServicesRunning   # expect 2 (HVCI) present</pre>
