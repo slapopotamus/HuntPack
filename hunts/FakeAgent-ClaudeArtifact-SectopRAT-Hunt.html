@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FakeAgent — Malicious Claude Artifact to SectopRAT — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the FakeAgent malvertising campaign: Bing sponsored ad to a malicious public Claude Artifact, ClaudeDesktop.exe renamed jcef_helper CEF host, libcef.dll and tempdir.dll sideloading, EdgeUpdate\Install sslconf.exe persistence, EtherHiding C2 and SectopRAT. MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/FakeAgent-ClaudeArtifact-SectopRAT-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FakeAgent — Malicious Claude Artifact to SectopRAT — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Hunt pack for the FakeAgent campaign: malicious public Claude Artifact, DLL sideloading via a renamed CEF host, GPU anti-VM, EtherHiding C2, SectopRAT.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/FakeAgent-ClaudeArtifact-SectopRAT-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117; --surface: #16101f; --surface2: #241a30; --border: #3a2f47;
+  --text: #e6edf3; --text-muted: #a294b3; --accent: #e06bff; --accent-dim: rgba(224,107,255,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b5a7d; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #2a1030 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(224,107,255,0.24); color: #f0a6ff; border: 1px solid #e06bff; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #9b8bab; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: var(--accent); word-break: break-all; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 4px; }
+.ioc-grab { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igh .igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.ioc-grab .igh .igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.ioc-grab pre.code { margin: 0; max-height: 280px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.tier-blk ul { padding-left: 18px; } .tier-blk h4 { font-size: 12.5px; color: var(--text); margin: 2px 0 4px; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-entry:last-child { border-bottom: none; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">FakeAgent<br>Claude Artifact &rarr; SectopRAT</div>
+    <div class="version">v0.1 &middot; 2026-07-24</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; CQL Queries</a>
+    <a href="#s9">9 &middot; Custom IOA Recs</a>
+    <a href="#s10">10 &middot; IOC Quick-Copy</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>FakeAgent — Malicious Claude Artifact &rarr; SectopRAT — Hunt &amp; Hardening Pack</h1>
+  <div class="subtitle">Malvertising campaign documented by <strong>Huntress</strong> on 2026-07-22: a Bing sponsored ad for "Claude Desktop app" pointed at a <strong>malicious public Claude Artifact hosted on the legitimate claude.ai domain</strong> (7,100 views before Anthropic removed it) &rarr; redirect to a fake installer &rarr; <code>ClaudeDesktop.exe</code>, which is a <strong>renamed JetBrains <code>jcef_helper.exe</code></strong> CEF host used purely as a <strong>DLL-sideloading vessel</strong> for a VMProtect-packed <code>libcef.dll</code> &rarr; second-stage IBM SPSS <code>sslconf.exe</code> + <code>tempdir.dll</code> staged in an <strong>EdgeUpdate\Install</strong> path with a <strong>GPU/DXGI anti-VM gate</strong> and a DirectX-shader AES-256-CTR decryptor &rarr; <strong>SectopRAT</strong> (ArechClient2) with <strong>EtherHiding</strong> C2 resolution off BNB Smart Chain. <strong>29 organizations compromised 2026-07-21 to 2026-07-22.</strong> Defensive hunt &amp; harden pack — no offensive code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">FakeAgent campaign &middot; SectopRAT / ArechClient2</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE ITW &middot; 29 ORGS</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Malvertising &rarr; loader &rarr; infostealer/RAT (HVNC)</div></div>
+    <div class="meta-item"><div class="mk">Initial Access</div><div class="mv">Bing sponsored ad &rarr; malicious public Claude Artifact on claude.ai</div></div>
+    <div class="meta-item"><div class="mk">Signature TTP</div><div class="mv">Renamed CEF host + libcef.dll sideload &middot; EdgeUpdate\Install sslconf.exe &middot; EtherHiding C2</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 &middot; 2026-07-24</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (single Tier-1 vendor report, corroborated by two Tier-2 outlets)</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><strong>Huntress</strong> published (2026-07-22) an analysis of a malvertising campaign it named <strong>FakeAgent</strong>, in which at least <strong>29 organizations</strong> were compromised over a two-day window (2026-07-21 to 2026-07-22). Victims performed an ordinary Bing search for <em>"CLAUDE DESKTOP APP"</em>. Among the sponsored results was a link that pointed at the <strong>genuine claude.ai domain</strong> — but at an attacker-published <strong>public Claude Artifact</strong>, a user-generated page that Claude renders and hosts on its own domain. That artifact rendered a convincing fake Claude Desktop download page and its "Download" button redirected the visitor off-domain to a fake installer. The artifact was viewed <strong>7,100 times</strong> before Anthropic removed it on report.</p>
+    <p>The attacker objective is <strong>credential and financial-data theft at scale</strong>. The delivered payload is <strong>SectopRAT</strong> (a.k.a. <strong>ArechClient2</strong>), a .NET remote access trojan with <strong>HVNC</strong> — its decompiled strings reference browser logins, cookies, autofill records, credit cards, Chromium key theft, FTP and messaging clients including Discord. HVNC means the operator gets a hidden interactive desktop on the victim host, so this is a hands-on-keyboard capability, not just a log-grabber.</p>
+    <p>The execution chain is built almost entirely out of <strong>legitimate signed binaries</strong>. <code>ClaudeDesktop.exe</code> is not a Claude binary at all: it is a renamed component of JetBrains' <code>jcef_helper.exe</code>, a Chromium Embedded Framework host, and it is <strong>byte-identical</strong> to the <code>DockerDesktop.exe</code> the same actor drops for scheduled-task reinfection. Its only job is to load a tampered <code>libcef.dll</code> sitting beside it (DLL side-loading, T1574.002). The second stage repeats the trick with a signed <strong>IBM SPSS <code>sslconf.exe</code></strong> written to <code>%APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\sslconf.exe</code>, paired with a malicious <code>tempdir.dll</code>. Anti-analysis is unusually heavy: VMProtect on the first-stage DLL, a <strong>GPU/DXGI anti-VM gate</strong> in the second (it checks adapter vendor IDs <code>0x1234</code> for QEMU and <code>0x15AD</code> for VMware, bails when VRAM is under 1&nbsp;GB, and runs a compute-shader timing check), and a payload (<code>appcfg.dat</code>) whose <strong>AES-256-CTR decryption runs as a compiled DirectX SM5 shader</strong> with a modified MixColumns step so that CPU-side crypto-API hooking sees nothing.</p>
+    <p>C2 is resolved via <strong>EtherHiding</strong>: the address is fetched from Ethereum smart contracts on <strong>BNB Smart Chain</strong>, which lets the operator rotate infrastructure with a single transaction and makes takedown ineffective. Huntress recovered the contract cryptomaterial and decrypted the full historical C2 list back to 2025-05-30 — 21 addresses, of which <code>2.24.131[.]246</code> is current as of 2026-06-12. The same registrant email indexes across 10 malicious domains since December 2025, one of which (<code>polse[.]us</code>) was seized by Microsoft during Operation Endgame, and the same operator ran an <strong>April 2026 fake Docker Desktop campaign</strong> distributed via Docker Hub with the identical <code>libcef.dll</code> chain.</p>
+    <div class="callout callout-danger">&#9888; <strong>Defender priority:</strong> the atomic indicators here are perishable by design — EtherHiding means the C2 rotates on demand, and the delivery domains are disposable. The durable, low-FP tells are <strong>Q2</strong> (the benign JetBrains CEF-host hash executing under <em>any</em> filename other than <code>jcef_helper.exe</code> — this is the masquerade itself, and it survives every rename), <strong>Q4</strong> (an IBM SPSS <code>sslconf.exe</code> living under <code>...\Roaming\Microsoft\EdgeUpdate\Install\</code>, a combination that has no legitimate explanation), and <strong>Q5</strong> (persistence pointing into that same staging directory). Run those three first. Then treat the "trusted brand as a leading DNS label" pattern in <strong>Q7</strong> (<code>claude.ai.download-app[.]us</code>) as a standing control, not a one-off IOC — it is the reusable half of this campaign.</div>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry</th></tr></thead>
+      <tbody>
+        <tr><td>1 &middot; Vendor research</td><td>Huntress — "Inside FakeAgent: How a Claude Desktop Malvertising Campaign Hit 29 Organizations with SectopRAT" (2026-07-22)</td><td>PRIMARY. Full chain and the complete atomic IOC set: the public-artifact URL, the two redirect domains, five SHA-256 hashes (three malicious, two benign-but-abused), both BSC contract addresses, the current C2 and 20 historical C2 IPs decrypted from BSC transactions, the <code>EdgeUpdate\Install\sslconf.exe</code> path, the GPU/DXGI anti-VM detail, the SM5-shader AES-256-CTR decryptor, the SectopRAT attribution and the April 2026 Docker Hub precursor</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 &middot; Vendor press</td><td>BleepingComputer — "Fake Claude app promoted by Bing ads pushes SectopRAT malware"</td><td>Independent corroboration of the 29-org scope, the 2026-07-21/22 window, the 7,100 artifact views, the JetBrains CEF component + <code>libcef.dll</code> sideload, and EtherHiding over BNB Smart Chain. Adds SectopRAT/ArechClient2 lineage (active since 2019, HVNC) and notes recent SectopRAT delivery via CastleLoader and ClickFix</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>2 &middot; Vendor press</td><td>Help Net Security — "How attackers hosted a fake Claude download page on the claude.ai domain"</td><td>Corroborates the artifact-abuse mechanic (public artifact links are viewable without a Claude account), both redirect hops, the bundle contents (renamed signed JetBrains binary + tampered <code>libcef.dll</code> + <code>DockerDesktop.exe</code> registered as a scheduled task for reinfection), and the April 2026 Docker Hub link</td><td><span class="badge b-low">yes</span></td></tr>
+        <tr><td>3 &middot; Background</td><td>Malpedia — <code>win.sectop_rat</code> family page</td><td>SectopRAT / ArechClient2 family lineage, aliases and prior public reporting. Used only for background framing, no atomic IOCs carried</td><td><span class="badge b-med">partial</span></td></tr>
+        <tr><td>3 &middot; Background</td><td>AhnLab ASEC — SectopRAT (ArechClient2) distributed as a fake Notion installer</td><td>Prior art on the same family being delivered through fake-installer lures; supports the "durable behaviour is the fake-installer masquerade, not the hash" framing</td><td><span class="badge b-med">partial</span></td></tr>
+        <tr><td>—</td><td>IT Security Guru — FakeAgent campaign write-up (2026-07-23)</td><td><strong>Not carried.</strong> The site returned HTTP 403 to every fetch attempt, so no snapshot could be saved. Nothing from it is cited and no indicator in this pack depends on it</td><td><span class="badge b-high">no</span></td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-info">&#9432; <strong>Provenance note.</strong> Every atomic indicator shipped in &sect;10 was traced back to the saved verbatim text of a fetched source in <code>FakeAgent-ClaudeArtifact-SectopRAT-Hunt-sources/</code>. Where this pack's brief differed from what the primary report actually says, the <strong>source wins</strong>: the backup SectopRAT domain is <code>5ca8758c-02d0-4a72-89c8-d468b66dda41[.]com</code> as published by Huntress. Vendor-attributed but unpublished internals (the AES key material, the decrypted <code>appcfg.dat</code>) are deliberately absent — they are not defender-actionable and were never released.</div>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <h3>Attack chain</h3>
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt angle</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>User searches Bing for "CLAUDE DESKTOP APP"; clicks a sponsored result whose destination is on the genuine <code>claude.ai</code> domain</td><td>Proxy / secure web gateway logs; browser history</td><td>Web-proxy hunt for requests to <code>claude.ai/public/artifacts/&hellip;</code> immediately followed by an off-domain download (&sect;7)</td></tr>
+        <tr><td>2</td><td>Malicious <strong>public Claude Artifact</strong> renders a fake Claude Desktop download page; "Download" redirects off-domain</td><td>Proxy logs; DNS</td><td>DNS/proxy for the specific artifact path and the redirect hop; generic hunt for a trusted brand appearing as a <em>leading label</em> of an unrelated domain (Q7)</td></tr>
+        <tr><td>3</td><td>Redirect <code>claude.ai.download-app[.]us</code> &rarr; <code>downloading-api[.]it[.]com/html/claude/win</code> serves the bundle</td><td><code>DnsRequest</code>, <code>NetworkConnectIP4</code>, proxy</td><td>Q6 / Q7 — delivery-domain resolution from a browser process</td></tr>
+        <tr><td>4</td><td><code>ClaudeDesktop.exe</code> written to a browser-download path and executed by the user</td><td><code>PeFileWritten</code>, <code>ProcessRollup2</code></td><td>Q1 — masquerade filename executing from Downloads/Temp with a browser parent</td></tr>
+        <tr><td>5</td><td>That EXE is a <strong>renamed JetBrains <code>jcef_helper.exe</code></strong> CEF host, byte-identical to the dropped <code>DockerDesktop.exe</code></td><td><code>ProcessRollup2</code> + <code>SHA256HashData</code></td><td>Q2 — the benign CEF-host hash running under a name that is not <code>jcef_helper.exe</code>. Rename-proof</td></tr>
+        <tr><td>6</td><td>Tampered <strong><code>libcef.dll</code></strong> (VMProtect-packed, references BSC contract <code>0xc1907d7be91f95903ad66d775c397302e7dd9228</code>) side-loaded from the same directory</td><td><code>PeFileWritten</code>, module load (<code>ImageHash</code>)</td><td>Q3 — known-bad hash, or a <code>libcef.dll</code> in a user-writable path</td></tr>
+        <tr><td>7</td><td>Stager pulls a payload referenced through the Ethereum contract (staged as <code>cache.dat</code>) and installs the second stage</td><td><code>NetworkConnectIP4</code>, <code>PeFileWritten</code></td><td>Egress to BSC RPC endpoints from a non-browser process (&sect;7 native hunt — partial coverage)</td></tr>
+        <tr><td>8</td><td>Persistence stage: signed IBM SPSS <code>sslconf.exe</code> written to <code>%APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\</code> with malicious <code>tempdir.dll</code> beside it</td><td><code>PeFileWritten</code>, <code>ProcessRollup2</code></td><td>Q4 — highest-fidelity signal in the pack</td></tr>
+        <tr><td>9</td><td><code>tempdir.dll</code> runs a <strong>GPU/DXGI anti-VM gate</strong> (vendor IDs <code>0x1234</code> QEMU / <code>0x15AD</code> VMware, VRAM under 1&nbsp;GB, compute-shader timing) before proceeding</td><td>—</td><td><span class="badge b-high">GAP</span> No endpoint telemetry exposes DXGI adapter enumeration. Detonate on bare metal, not in a VM</td></tr>
+        <tr><td>10</td><td><code>appcfg.dat</code> decrypted on the GPU via a compiled DirectX SM5 shader (AES-256-CTR with a modified MixColumns)</td><td><code>PeFileWritten</code> / file-write for <code>appcfg.dat</code></td><td>Q4 — the <code>appcfg.dat</code> artifact next to the sideload host. The shader decryption itself is not observable</td></tr>
+        <tr><td>11</td><td>Decrypted blob carves a PE plus a <strong>.NET assembly</strong> — SectopRAT — loaded in-process</td><td><code>ProcessRollup2</code> (host process), module load</td><td>Q9 — the masquerading host holding outbound connections; .NET reflective load itself is <span class="badge b-med">Partial</span></td></tr>
+        <tr><td>12</td><td>Scheduled task re-runs <code>DockerDesktop.exe</code> to reinfect; Run-key / task persistence into the staging directory</td><td><code>AsepValueUpdate</code>, <code>ScheduledTaskRegistered</code>, <code>ProcessRollup2</code></td><td>Q5</td></tr>
+        <tr><td>13</td><td>SectopRAT resolves live C2 from BSC contracts (EtherHiding), beacons to <code>2.24.131[.]246</code>, backup domain <code>5ca8758c-02d0-4a72-89c8-d468b66dda41[.]com</code></td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td>Q6 / Q7</td></tr>
+        <tr><td>14</td><td>Collection: browser logins, cookies, autofill, credit cards, Chromium keys, FTP creds, Discord and messaging clients; HVNC hands-on session</td><td><code>ProcessRollup2</code>, <code>NetworkConnectIP4</code></td><td>Q9 &mdash; <span class="badge b-med">Partial</span>. Falcon does not emit a generic file-read event, so credential-store <em>reads</em> are inferred from the host process, not observed directly</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Hunt hypotheses (ordered by fidelity)</h3>
+    <table>
+      <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Falcon events</th><th>Expected FP source</th><th>Conf</th></tr></thead>
+      <tbody>
+        <tr><td>H1</td><td>A binary whose SHA-256 is the known-benign JetBrains CEF host is running under a filename other than <code>jcef_helper.exe</code> — i.e. it has been renamed to masquerade</td><td>T1036.005, T1574.002</td><td><code>ProcessRollup2</code></td><td>Repackaged IDEs that legitimately rename the helper (rare); confirm the parent</td><td><span class="badge b-low">high</span></td></tr>
+        <tr><td>H2</td><td>A signed IBM SPSS <code>sslconf.exe</code> is executing from, or was written into, an <code>%APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\</code> path</td><td>T1574.002, T1036.005, T1547</td><td><code>ProcessRollup2</code>, <code>PeFileWritten</code></td><td>Genuine SPSS installs (which live under Program Files, never EdgeUpdate)</td><td><span class="badge b-low">high</span></td></tr>
+        <tr><td>H3</td><td><code>ClaudeDesktop.exe</code> or <code>DockerDesktop.exe</code> executed from a browser-download or temp path</td><td>T1204.002, T1036.005</td><td><code>ProcessRollup2</code>, <code>PeFileWritten</code></td><td>A genuine Docker Desktop installer run from Downloads (Docker ships "Docker Desktop Installer.exe", not <code>DockerDesktop.exe</code>)</td><td><span class="badge b-low">high</span></td></tr>
+        <tr><td>H4</td><td>A <code>libcef.dll</code> or <code>tempdir.dll</code> matching the published hashes, or sitting in a user-writable directory next to a renamed host, is loaded</td><td>T1574.002</td><td><code>PeFileWritten</code>, <code>ImageHash</code></td><td>Legitimate Electron/CEF apps installed per-user under <code>\AppData\Local\Programs\</code></td><td><span class="badge b-low">high</span></td></tr>
+        <tr><td>H5</td><td>Run-key or scheduled-task persistence references the EdgeUpdate staging directory or one of the masquerade filenames</td><td>T1547.001, T1053.005</td><td><code>AsepValueUpdate</code>, <code>ScheduledTaskRegistered</code>, <code>ProcessRollup2</code></td><td>Genuine Microsoft Edge updater tasks (which live under Program Files (x86))</td><td><span class="badge b-low">high</span></td></tr>
+        <tr><td>H6</td><td>A host connected to one of the 21 decrypted C2 addresses, or resolved a delivery/backup domain</td><td>T1071.001, T1105</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td>Shared hosting reuse on the historical IPs (they span 2025-05 to 2026-06)</td><td><span class="badge b-low">high</span></td></tr>
+        <tr><td>H7</td><td>A DNS name embeds a trusted software brand as its <em>leading</em> label on an unrelated registrable domain (<code>claude.ai.&lt;attacker&gt;.tld</code>)</td><td>T1583.001, T1566.002</td><td><code>DnsRequest</code></td><td>Legitimate CDN and SaaS vanity chains that do exactly this</td><td><span class="badge b-med">medium</span></td></tr>
+        <tr><td>H8</td><td>A masquerading CEF/SPSS host process is itself holding outbound connections — the sideloaded RAT beaconing through its vessel</td><td>T1071.001, T1055</td><td><code>NetworkConnectIP4</code></td><td>Genuine CEF/Electron apps talk to the internet constantly</td><td><span class="badge b-med">medium</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th><th>Expiry</th></tr></thead>
+      <tbody>
+        <tr><td>URL</td><td class="mono">claude.ai/public/artifacts/ca456f1f-44c0-42af-b329-4f1c7534a877</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Malicious public Claude Artifact — the fake download page. Removed by Anthropic on report; 7,100 views. <strong>Do not block claude.ai itself</strong> — block/alert on the artifact path only</td><td>2026-10-24</td></tr>
+        <tr><td>Domain</td><td class="mono">claude.ai.download-app[.]us</td><td><span class="badge b-low">high</span></td><td>detect</td><td>First redirect hop. Brand-as-leading-label lookalike; registrable domain is <code>download-app[.]us</code> (registered 2026-05-09)</td><td>2027-01-24</td></tr>
+        <tr><td>Domain</td><td class="mono">download-app[.]us</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Registrable parent of the redirect host; registrant email indexes across 10 malicious domains since 2025-12</td><td>2027-01-24</td></tr>
+        <tr><td>Domain</td><td class="mono">downloading-api[.]it[.]com</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Second hop, path <code>/html/claude/win</code> — serves <code>ClaudeDesktop.exe</code></td><td>2027-01-24</td></tr>
+        <tr><td>Domain</td><td class="mono">5ca8758c-02d0-4a72-89c8-d468b66dda41[.]com</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Backup SectopRAT C2 domain</td><td>2027-01-24</td></tr>
+        <tr><td>IPv4</td><td class="mono">2.24.131[.]246</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Current SectopRAT C2, live since 2026-06-12 per the BSC contract transaction history</td><td>2027-01-24</td></tr>
+        <tr><td>IPv4 (20)</td><td class="mono">See &sect;10 &mdash; historical C2 set (107.189.*, 45.59.*, 104.194.133[.]210, 195.110.58[.]222, 191.101.80[.]211)</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Decrypted from BSC contract transactions, 2025-05-30 through 2026-05-12. Likely attributable to other campaigns by the same operator; treat as hunt/enrich, not block — shared hosting reuse is likely over a 13-month span</td><td>2026-10-24</td></tr>
+        <tr><td>SHA-256</td><td class="mono">26bae4d7012bf59847ab4036a065419c3d4ca47e020479f55b3b2c6d0d21394a</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious <code>libcef.dll</code> — VMProtect-packed first-stage sideload payload</td><td>2027-01-24</td></tr>
+        <tr><td>SHA-256</td><td class="mono">1cd58cfba596da296ab1878d74023e00c399345a1b6c2a0e5446c53563f4e3bb</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious <code>tempdir.dll</code> — GPU/DXGI anti-VM gate + SM5-shader AES-256-CTR decryptor</td><td>2027-01-24</td></tr>
+        <tr><td>SHA-256</td><td class="mono">1fe3646d27d286db8123297e06ae7badf3e26f352a04f91b6d82c28869a91664</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Embedded SectopRAT .NET payload carved from the decrypted <code>appcfg.dat</code></td><td>2027-01-24</td></tr>
+        <tr><td>SHA-256</td><td class="mono">f8acb8f5cf88b77a4c27d7fd6856aa299bb178e85f9963c2fbd447d818da3ed0</td><td><span class="badge b-low">high</span></td><td>hunt</td><td><strong>BENIGN component</strong> — the JetBrains <code>jcef_helper.exe</code> CEF host shipped as both <code>ClaudeDesktop.exe</code> and <code>DockerDesktop.exe</code>. <strong>Never block.</strong> Hunt on it running under a non-<code>jcef_helper</code> filename (Q2)</td><td>2026-10-24</td></tr>
+        <tr><td>SHA-256</td><td class="mono">fd826215add30c1319eefa291b6eaf8ddfa7720cfe816c49aef6fe8a88de7939</td><td><span class="badge b-low">high</span></td><td>hunt</td><td><strong>BENIGN component</strong> — signed IBM SPSS <code>sslconf.exe</code> used as the second-stage sideload host. <strong>Never block.</strong> Hunt on its path (Q4)</td><td>2026-10-24</td></tr>
+        <tr><td>BSC contract</td><td class="mono">0xe012d0f34cde9b870e9d9ed566ea5f8fd9b92228</td><td><span class="badge b-low">high</span></td><td>enrich</td><td>SectopRAT EtherHiding contract on BNB Smart Chain — resolves the live C2</td><td>2026-08-24</td></tr>
+        <tr><td>BSC contract</td><td class="mono">0xc1907d7be91f95903ad66d775c397302e7dd9228</td><td><span class="badge b-low">high</span></td><td>enrich</td><td><code>libcef.dll</code> stager EtherHiding contract, referenced directly in the DLL</td><td>2026-08-24</td></tr>
+        <tr><td>Filename</td><td class="mono">ClaudeDesktop.exe &middot; DockerDesktop.exe &middot; libcef.dll &middot; tempdir.dll &middot; sslconf.exe &middot; appcfg.dat &middot; cache.dat</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Campaign filename set. Only meaningful <em>in combination with path</em> — three of these are legitimate filenames in their proper directories</td><td>2026-10-24</td></tr>
+        <tr><td>Path</td><td class="mono">%APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Second-stage staging directory. A per-user EdgeUpdate\Install path is the single strongest signal in this pack</td><td>2027-01-24</td></tr>
+        <tr><td>Domain</td><td class="mono">polse[.]us</td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>Historical domain sharing the actor's registrant email; seized by Microsoft during Operation Endgame for hosting StealC. Attribution context only — not part of this campaign's live chain</td><td>2026-08-24</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows workstations (user-writable execution)</td><td><code>ProcessRollup2</code> / <code>SyntheticProcessRollup2</code> with <code>SHA256HashData</code> populated</td><td><span class="badge b-crit">critical</span></td><td>Low — standard Falcon sensor coverage</td></tr>
+        <tr><td>Executable/DLL writes to user paths</td><td><code>PeFileWritten</code>, <code>NewExecutableWritten</code></td><td><span class="badge b-crit">critical</span></td><td>Low</td></tr>
+        <tr><td>Module load (DLL side-loading)</td><td>Module-load hash telemetry — delivered as <code>ImageHash</code> in most tenants</td><td><span class="badge b-high">high</span></td><td><span class="badge b-med">Medium</span> — module-load event naming and retention vary by tenant and sensor version. Q3/Q8/Q10 carry an in-query <code>&#9888; validate in tenant</code> note; Sysmon EventID 7 is the fallback (&sect;7)</td></tr>
+        <tr><td>Persistence (ASEP + scheduled tasks)</td><td><code>AsepValueUpdate</code>, <code>RegGenericValueUpdate</code>, <code>ScheduledTaskRegistered</code></td><td><span class="badge b-crit">critical</span></td><td>Low—Medium. <code>TaskName</code> / <code>TaskExecutable</code> population varies; the <code>schtasks</code> command-line arm in Q5 is the belt-and-braces path</td></tr>
+        <tr><td>Egress (C2 + delivery)</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td><span class="badge b-crit">critical</span></td><td>Low. Note DNS-over-HTTPS in the browser can blind <code>DnsRequest</code> for the delivery hops — proxy logs (&sect;7) cover that</td></tr>
+        <tr><td>Web gateway / proxy</td><td>Full URL logging including <code>claude.ai</code> paths</td><td><span class="badge b-high">high</span></td><td><span class="badge b-high">High</span> — many estates log domain only, not path. Without path logging the artifact hop is invisible and step 1—2 of the chain is unhunted</td></tr>
+        <tr><td>GPU / DXGI adapter enumeration</td><td>—</td><td><span class="badge b-low">n/a</span></td><td><span class="badge b-high">GAP</span> — no EDR telemetry exposes this. Consequence: the malware will not detonate in a standard VM sandbox, so lab validation must use bare metal or a GPU-passthrough host</td></tr>
+        <tr><td>Browser credential stores</td><td>—</td><td><span class="badge b-high">high</span></td><td><span class="badge b-med">Partial</span> — Falcon emits no generic file-read event, so credential-store access is inferred from the host process (Q9), not observed. Sysmon EventID 11/ file-audit ACLs on the Chromium profile dirs close this (&sect;7)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query / control</th></tr></thead>
+      <tbody>
+        <tr><td>Resource Development</td><td>T1583.001 — Acquire Infrastructure: Domains</td><td>Redirect and C2 domains registered under one registrant email; 10 domains indexed since 2025-12</td><td>Q7 &middot; H-N3</td></tr>
+        <tr><td>Resource Development</td><td>T1583.008 — Malvertising</td><td>Bing sponsored ad for "Claude Desktop app"</td><td>&sect;7 proxy hunt &middot; H-S2</td></tr>
+        <tr><td>Resource Development</td><td>T1584.006 — Compromise Infrastructure: Web Services</td><td>Abuse of the legitimate public Claude Artifact hosting feature to serve the lure page from a trusted domain</td><td>&sect;7 proxy hunt &middot; H-S1</td></tr>
+        <tr><td>Initial Access</td><td>T1189 — Drive-by Compromise</td><td>Sponsored search result &rarr; artifact page &rarr; redirect chain &rarr; download</td><td>Q6, Q7</td></tr>
+        <tr><td>Execution</td><td>T1204.002 — User Execution: Malicious File</td><td>User runs <code>ClaudeDesktop.exe</code> from Downloads</td><td>Q1</td></tr>
+        <tr><td>Defense Evasion</td><td>T1036.005 — Masquerading: Match Legitimate Name or Location</td><td>JetBrains <code>jcef_helper.exe</code> renamed to <code>ClaudeDesktop.exe</code> / <code>DockerDesktop.exe</code>; IBM SPSS <code>sslconf.exe</code> planted in an EdgeUpdate path</td><td>Q1, Q2, Q4</td></tr>
+        <tr><td>Persistence / Priv-Esc / Defense Evasion</td><td>T1574.002 — Hijack Execution Flow: DLL Side-Loading</td><td>Tampered <code>libcef.dll</code> loaded by the renamed CEF host; <code>tempdir.dll</code> loaded by <code>sslconf.exe</code></td><td>Q3, Q8, Q10</td></tr>
+        <tr><td>Defense Evasion</td><td>T1027.002 — Obfuscated Files: Software Packing</td><td><code>libcef.dll</code> packed with VMProtect; .NET payload heavily obfuscated</td><td>Q3, Q8 (hash) — behavior itself is <span class="badge b-high">GAP</span></td></tr>
+        <tr><td>Defense Evasion</td><td>T1027.013 — Encrypted/Encoded File</td><td><code>appcfg.dat</code> AES-256-CTR encrypted, decrypted by a DirectX SM5 shader with a modified MixColumns</td><td>Q4 (the artifact on disk)</td></tr>
+        <tr><td>Defense Evasion</td><td>T1497.001 — Virtualization/Sandbox Evasion: System Checks</td><td>DXGI adapter vendor-ID check (<code>0x1234</code> QEMU, <code>0x15AD</code> VMware), VRAM under 1&nbsp;GB bail-out, compute-shader timing check</td><td><span class="badge b-high">GAP</span> — no telemetry. Detonate on bare metal</td></tr>
+        <tr><td>Defense Evasion</td><td>T1562.001 — Impair Defenses: Disable or Modify Tools</td><td>Defender exclusions observed across the affected estates alongside the installs</td><td>&sect;7 H-W2 &middot; hardening tier 1</td></tr>
+        <tr><td>Persistence</td><td>T1547.001 — Registry Run Keys / Startup Folder</td><td>Persistence referencing the EdgeUpdate staging path</td><td>Q5</td></tr>
+        <tr><td>Persistence</td><td>T1053.005 — Scheduled Task</td><td><code>DockerDesktop.exe</code> registered as a scheduled task to repeatedly reinfect</td><td>Q5 &middot; &sect;7 H-W3</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1102 — Web Service (dead-drop resolver)</td><td><strong>EtherHiding</strong> — C2 address resolved from BNB Smart Chain smart contracts, rotatable by transaction</td><td>&sect;7 H-N4 &middot; hardening tier 2 (egress)</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1071.001 — Application Layer Protocol: Web</td><td>SectopRAT HTTP C2 to <code>2.24.131[.]246</code> / backup domain</td><td>Q6, Q7, Q9</td></tr>
+        <tr><td>Command &amp; Control</td><td>T1105 — Ingress Tool Transfer</td><td><code>cache.dat</code> / <code>appcfg.dat</code> staged after the first-stage sideload</td><td>Q4</td></tr>
+        <tr><td>Credential Access</td><td>T1555.003 — Credentials from Web Browsers</td><td>Browser logins, cookies, autofill, credit cards, Chromium key theft</td><td>Q9 &middot; &sect;7 H-W4 (<span class="badge b-med">Partial</span>)</td></tr>
+        <tr><td>Collection</td><td>T1185 — Browser Session Hijacking (HVNC)</td><td>Hidden secondary desktop giving the operator live control of browser sessions</td><td>Q9 (<span class="badge b-med">Partial</span>)</td></tr>
+        <tr><td>Collection / Exfiltration</td><td>T1005 / T1041 — Data from Local System, Exfil Over C2</td><td>FTP credentials, Discord and messaging-client data exfiltrated over the C2 channel</td><td>Q6, Q9</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (non-CQL)</h2></div>
+  <div class="section-body">
+    <p>These cover the parts of the chain that endpoint EDR sees poorly or not at all. Run them alongside &sect;8, not instead of it.</p>
+    <table>
+      <thead><tr><th>ID</th><th>Source</th><th>Hunt</th><th>Why it matters</th></tr></thead>
+      <tbody>
+        <tr><td>H-S1</td><td>Secure web gateway / proxy (full-URL logging)</td><td>Requests to <code>claude.ai</code> with a URI path beginning <code>/public/artifacts/</code>, then correlate each such session against an executable download in the following 5 minutes</td><td>This is the only place the artifact hop is visible. Domain-only proxy logging makes the whole lure stage invisible — <code>claude.ai</code> looks entirely legitimate</td></tr>
+        <tr><td>H-S2</td><td>Proxy / browser telemetry</td><td>Executable downloads (<code>.exe</code>, <code>.msi</code>, <code>.zip</code>) whose HTTP <em>Referer</em> chain includes a search engine and whose host was registered in the last 90 days</td><td>Generic malvertising control. Catches the next campaign, not just this one</td></tr>
+        <tr><td>H-W1</td><td>Windows Security 4688 / Sysmon EventID 1</td><td>Process creation where the image is <code>ClaudeDesktop.exe</code>, <code>DockerDesktop.exe</code> or <code>sslconf.exe</code> and the parent is a browser or an archive tool</td><td>Fallback where Falcon coverage is thin or the host is unmanaged</td></tr>
+        <tr><td>H-W2</td><td>Microsoft Defender operational log — EventID 5007</td><td>Any change to exclusion paths/processes, especially additions covering <code>%APPDATA%</code>, <code>Downloads</code> or the EdgeUpdate tree</td><td>Huntress observed Defender exclusions being added across the affected organizations. An exclusion for a user-writable path is a standalone incident</td></tr>
+        <tr><td>H-W3</td><td>Windows Security 4698 / Task Scheduler operational log</td><td>Scheduled tasks whose action path resolves under <code>%APPDATA%</code>, <code>%LOCALAPPDATA%</code> or any <code>EdgeUpdate\Install</code> directory</td><td>The reinfection mechanism. Genuine Edge update tasks point at <code>Program Files (x86)</code></td></tr>
+        <tr><td>H-W4</td><td>Sysmon EventID 11 (FileCreate) + file-system audit ACLs</td><td>Non-browser processes touching <code>%LOCALAPPDATA%\Google\Chrome\User Data\*\Login Data</code>, <code>Cookies</code>, <code>Web Data</code>, <code>Local State</code>, and the Edge/Firefox equivalents</td><td>Closes the credential-access gap that Falcon's event model leaves open</td></tr>
+        <tr><td>H-W5</td><td>Sysmon EventID 7 (ImageLoad)</td><td><code>libcef.dll</code>, <code>tempdir.dll</code> or <code>chrome_elf.dll</code> loaded from a path outside the loading process's own install directory; flag unsigned or unverified signatures</td><td>Fallback for tenants whose Falcon module-load telemetry is absent or short-retention</td></tr>
+        <tr><td>H-N3</td><td>DNS resolver / Protective DNS logs</td><td>Resolutions where a well-known software brand appears as the <em>leading label</em> of a domain the organization does not own (<code>claude.ai.*</code>, <code>anthropic.com.*</code>, <code>docker.com.*</code>)</td><td>The reusable half of this campaign. Cheap to run continuously</td></tr>
+        <tr><td>H-N4</td><td>Firewall / proxy egress</td><td>Non-browser, non-developer workstation processes connecting to public BNB Smart Chain / Ethereum JSON-RPC endpoints</td><td>EtherHiding resolution traffic. Expect legitimate hits only from developer machines — baseline, then alert on the rest</td></tr>
+        <tr><td>H-N5</td><td>Netflow / firewall</td><td>Retrospective sweep for the 21 decrypted C2 addresses across the full retention window (they date to 2025-05-30)</td><td>The operator has been active for over a year; a hit on a historical address is still a lead worth chasing</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 &middot; Fake installer (ClaudeDesktop.exe / DockerDesktop.exe) written or run from a download path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the two campaign masquerade filenames being written to disk or executed. <strong>Accomplishes:</strong> catches the user-execution stage at the moment the victim runs the fake installer, with the browser parent still visible. <strong>FP:</strong> low — Docker ships its installer as "Docker Desktop Installer.exe" and its runtime as <code>Docker Desktop.exe</code> (with a space) under Program Files, so a bare <code>DockerDesktop.exe</code> in a user path is anomalous on both counts.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: FakeAgent fake-installer masquerade filenames (T1204.002 / T1036.005)</span>
+<span class="cm">// MITRE: T1204.002, T1036.005</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2, PeFileWritten</span>
+<span class="cm">// FALSE POSITIVES: a repackaged internal deployment of Docker Desktop that renames the binary</span>
+@timestamp &gt;= (now() - 1209600000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten/
+| (FileName=/^(ClaudeDesktop|DockerDesktop)\.exe$/i
+   or TargetFileName=/\\(ClaudeDesktop|DockerDesktop)\.exe$/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, TargetFileName, ParentBaseFileName, SHA256HashData, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 &middot; Renamed JetBrains CEF host — benign hash running under a non-jcef_helper name</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the known-benign JetBrains <code>jcef_helper.exe</code> component executing under any filename except its own. <strong>Accomplishes:</strong> this is the masquerade itself, expressed as a rule rather than an IOC — it fires no matter what the attacker renames the vessel to next, which is why it is the highest-value query in the pack. <strong>FP:</strong> low. <strong>Never add this hash to a block list</strong> — it is a legitimate signed component; the signal is the <em>name mismatch</em>, not the file.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: benign CEF host binary executing under a masquerade filename (T1036.005 / T1574.002)</span>
+<span class="cm">// MITRE: T1036.005, T1574.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 with SHA256HashData populated</span>
+<span class="cm">// NOTE: f8acb8f5... is the BENIGN JetBrains jcef_helper.exe component. Do NOT block it.</span>
+<span class="cm">// FALSE POSITIVES: an internally repackaged JetBrains IDE that renames the CEF helper</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| SHA256HashData="f8acb8f5cf88b77a4c27d7fd6856aa299bb178e85f9963c2fbd447d818da3ed0"
+| FileName!=/^jcef_helper\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, ParentBaseFileName, GrandparentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 &middot; Tampered libcef.dll — known hash, or a libcef.dll landing in a user-writable path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the VMProtect-packed <code>libcef.dll</code> by hash, or any <code>libcef.dll</code> written into or loaded from a Downloads / Temp / AppData path. <strong>Accomplishes:</strong> catches the first-stage side-load payload. <strong>FP:</strong> medium — per-user Electron and CEF applications legitimately install under <code>\AppData\Local\Programs\</code>, so the path arm needs one baselining pass before it is alertable; the hash arm is clean immediately.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: FakeAgent first-stage libcef.dll side-load payload (T1574.002 / T1027.002)</span>
+<span class="cm">// MITRE: T1574.002, T1027.002</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: PeFileWritten, module-load hash telemetry</span>
+<span class="cm">// TUNING: baseline then exclude your approved per-user CEF/Electron installs by directory</span>
+<span class="cm">//         (e.g. \AppData\Local\Programs\&lt;approved-vendor&gt;\); the hash arm needs no tuning.</span>
+<span class="cm">// &#9888; validate in tenant: module-load coverage ships as ImageHash in most tenants —</span>
+<span class="cm">//   confirm your repo emits it, else fall back to Sysmon EventID 7 (see native hunts).</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/PeFileWritten|NewExecutableWritten|ImageHash/
+| (SHA256HashData="26bae4d7012bf59847ab4036a065419c3d4ca47e020479f55b3b2c6d0d21394a"
+   or ((TargetFileName=/\\libcef\.dll$/i or ImageFileName=/\\libcef\.dll$/i)
+       and (TargetFileName=/\\Users\\[^\\]+\\(Downloads|AppData)\\/i
+            or ImageFileName=/\\Users\\[^\\]+\\(Downloads|AppData)\\/i
+            or TargetFileName=/\\Windows\\Temp\\/i
+            or ImageFileName=/\\Windows\\Temp\\/i)))
+| table([@timestamp, aid, ComputerName, UserName, TargetFileName, ImageFileName, SHA256HashData, ContextBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 &middot; Second stage — sslconf.exe / tempdir.dll / appcfg.dat under an EdgeUpdate\Install path</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the persistence stage — a signed IBM SPSS <code>sslconf.exe</code>, its paired <code>tempdir.dll</code>, or the encrypted <code>appcfg.dat</code> payload, anywhere under a per-user <code>Microsoft\EdgeUpdate\Install\</code> directory. <strong>Accomplishes:</strong> the strongest single signal in the pack — a statistics-package binary inside an Edge-updater directory has no benign explanation. <strong>FP:</strong> medium, driven entirely by the bare <code>sslconf</code> filename arm firing on genuine IBM SPSS estates; the path arm on its own is effectively FP-free.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: FakeAgent second-stage staging dir + sideload pair (T1574.002 / T1036.005 / T1547)</span>
+<span class="cm">// MITRE: T1574.002, T1036.005, T1547, T1027.013</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2, PeFileWritten</span>
+<span class="cm">// TUNING: if your estate genuinely deploys IBM SPSS, exclude the vendor install root</span>
+<span class="cm">//         (\Program Files\IBM\SPSS\) and keep only the EdgeUpdate\Install path arm.</span>
+<span class="cm">//         Genuine Edge updater content lives under \Program Files (x86)\Microsoft\EdgeUpdate\.</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten/
+| (ImageFileName=/\\Microsoft\\EdgeUpdate\\Install\\/i
+   or TargetFileName=/\\Microsoft\\EdgeUpdate\\Install\\/i
+   or FileName=/^sslconf(\.exe)?$/i
+   or TargetFileName=/\\(tempdir\.dll|appcfg\.dat|cache\.dat)$/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, TargetFileName, SHA256HashData, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 &middot; Persistence pointing into the EdgeUpdate\Install staging directory</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Run-key values, scheduled-task actions, or <code>schtasks</code> command lines that reference the staging directory or any of the campaign's masquerade binaries. <strong>Accomplishes:</strong> catches the reinfection loop that made this campaign persistent across 29 estates. <strong>FP:</strong> medium — genuine Microsoft Edge updater persistence also contains the string "EdgeUpdate", so the <code>Install</code> subdirectory and the per-user location are what separate malicious from benign.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: FakeAgent persistence into the per-user EdgeUpdate staging dir (T1547.001 / T1053.005)</span>
+<span class="cm">// MITRE: T1547.001, T1053.005</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: AsepValueUpdate, ScheduledTaskRegistered, ProcessRollup2</span>
+<span class="cm">// TUNING: exclude genuine Edge updater persistence under \Program Files (x86)\Microsoft\EdgeUpdate\;</span>
+<span class="cm">//         only a per-user \AppData\Roaming\Microsoft\EdgeUpdate\Install\ target is anomalous.</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/AsepValueUpdate|RegGenericValueUpdate|ScheduledTaskRegistered|ProcessRollup2|SyntheticProcessRollup2/
+| (RegStringValue=/EdgeUpdate\\Install|ClaudeDesktop\.exe|DockerDesktop\.exe|sslconf\.exe/i
+   or TaskExecutable=/EdgeUpdate\\Install|ClaudeDesktop\.exe|DockerDesktop\.exe|sslconf\.exe/i
+   or CommandLine=/schtasks.{0,80}(EdgeUpdate\\Install|ClaudeDesktop|DockerDesktop|sslconf)/i)
+| table([@timestamp, aid, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, TaskName, TaskExecutable, CommandLine])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 &middot; Egress to the decrypted SectopRAT C2 address set (current + historical)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any outbound connection to the 21 C2 addresses Huntress decrypted from the BNB Smart Chain contract transaction history (2025-05-30 through 2026-06-12). <strong>Accomplishes:</strong> a retrospective sweep that reaches well beyond this campaign — a hit on a 2025 address still indicates the same operator touched the host. <strong>FP:</strong> low, but note the historical addresses are over a year old and shared hosting reuse is plausible, so treat a hit on anything other than <code>2.24.131[.]246</code> as a lead to confirm rather than a confirmed compromise.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: FakeAgent / SectopRAT C2 egress, full decrypted address set (T1071.001)</span>
+<span class="cm">// MITRE: T1071.001, T1102</span>
+<span class="cm">// CONF: high  FP: low  COST: medium | REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// 2.24.131.246 is the CURRENT C2 (since 2026-06-12); the rest are historical (2025-05-30 onward).</span>
+@timestamp &gt;= (now() - 7776000000)
+#event_simpleName=/NetworkConnectIP4/
+| in(RemoteAddressIP4, values=["2.24.131.246", "107.189.24.67", "104.194.133.210", "107.189.26.86", "107.189.21.86", "45.59.124.17", "45.59.125.228", "45.59.122.82", "107.189.17.143", "45.59.122.134", "45.59.122.235", "107.189.22.118", "107.189.20.32", "107.189.20.95", "107.189.24.255", "45.59.117.145", "45.59.114.190", "45.59.123.122", "45.59.117.67", "195.110.58.222", "191.101.80.211"])
+| table([@timestamp, aid, ComputerName, UserName, ContextBaseFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 &middot; DNS — delivery/backup domains, plus generic brand-as-leading-label lookalikes</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> two things at once — the campaign's known delivery and backup domains (high confidence), and the reusable pattern behind <code>claude.ai.download-app[.]us</code>: a trusted software brand planted as the <em>leading label</em> of a registrable domain the brand does not own. <strong>Accomplishes:</strong> turns a one-off IOC into a standing control that catches the next campaign. <strong>FP:</strong> high on the generic arm — legitimate CDN and SaaS vanity chains do exactly this, so allowlist first and split the arms into two saved searches if you intend to alert.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: FakeAgent delivery/backup domains + brand-as-leading-label lookalikes (T1583.001 / T1566.002)</span>
+<span class="cm">// MITRE: T1583.001, T1566.002, T1071.001</span>
+<span class="cm">// CONF: medium  FP: high  COST: medium | REQUIRES: DnsRequest</span>
+<span class="cm">// TUNING: the second arm fires on legitimate CDN/vanity chains that embed a brand label.</span>
+<span class="cm">//         Allowlist your own CDN and SaaS vanity domains, then keep only unknown registrables.</span>
+<span class="cm">//         Split the two arms into separate saved searches before promoting either to alerting.</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/DnsRequest|SuspiciousDnsRequest/
+| DomainName=/^((.*\.)?(download-app\.us|downloading-api\.it\.com|5ca8758c-02d0-4a72-89c8-d468b66dda41\.com)|(claude\.ai|anthropic\.com|docker\.com|slack\.com|zoom\.us)\.[a-z0-9-]{2,40}\.[a-z]{2,12})$/i
+| table([@timestamp, aid, ComputerName, UserName, ContextBaseFileName, DomainName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 &middot; Known-bad SHA-256 sweep across execution, module-load and file-write telemetry</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the three malicious hashes anywhere they can surface — as a running process, as a loaded module, or as a written file. <strong>Accomplishes:</strong> the fastest confirm/deny for "were we hit". <strong>FP:</strong> low (exact-hash matching). Deliberately excludes the two benign-but-abused component hashes, which belong in Q2 and Q4 as hunts, never as detections.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: FakeAgent malicious hash sweep (T1204.002 / T1574.002)</span>
+<span class="cm">// MITRE: T1204.002, T1574.002</span>
+<span class="cm">// CONF: high  FP: low  COST: medium | REQUIRES: ProcessRollup2, PeFileWritten, module-load hashes</span>
+<span class="cm">// &#9888; validate in tenant: the ImageHash arm depends on module-load telemetry being enabled.</span>
+<span class="cm">// Malicious only: libcef.dll, tempdir.dll, embedded SectopRAT .NET payload.</span>
+@timestamp &gt;= (now() - 7776000000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten|ImageHash/
+| in(SHA256HashData, values=["26bae4d7012bf59847ab4036a065419c3d4ca47e020479f55b3b2c6d0d21394a", "1cd58cfba596da296ab1878d74023e00c399345a1b6c2a0e5446c53563f4e3bb", "1fe3646d27d286db8123297e06ae7badf3e26f352a04f91b6d82c28869a91664"])
+| table([@timestamp, aid, ComputerName, UserName, FileName, ImageFileName, TargetFileName, SHA256HashData, ParentBaseFileName])
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 &middot; Masquerading sideload vessel holding outbound connections (RAT beaconing through its host)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> outbound connections whose initiating process is one of the campaign's masquerade vessels, grouped by destination so a beacon pattern stands out. <strong>Accomplishes:</strong> catches the SectopRAT stage even after the C2 has rotated via EtherHiding, because the vessel name is stable while the address is not. <strong>FP:</strong> medium — a genuine JetBrains CEF helper talks to the internet routinely, so <code>jcef_helper.exe</code> needs baselining; <code>ClaudeDesktop.exe</code>, <code>DockerDesktop.exe</code> and <code>sslconf.exe</code> making network connections are anomalous on their own.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: sideload vessel beaconing — survives EtherHiding C2 rotation (T1071.001 / T1055)</span>
+<span class="cm">// MITRE: T1071.001, T1102, T1555.003</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// TUNING: exclude jcef_helper.exe destinations belonging to your approved JetBrains estate</span>
+<span class="cm">//         (IDE telemetry/licensing endpoints); keep every ClaudeDesktop/DockerDesktop/sslconf row.</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/NetworkConnectIP4/
+| ContextBaseFileName=/^(ClaudeDesktop|DockerDesktop|sslconf|jcef_helper)\.exe$/i
+| groupBy([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort], function=count(as=Hits), limit=2000)
+| sort(Hits, order=desc, limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q10 &middot; Technique-level breadth — CEF sideload payload DLLs landing in user-writable directories</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the generic version of this actor's tradecraft — any of the classic CEF sideload payload DLLs appearing in a Downloads / AppData / Windows\Temp path. <strong>Accomplishes:</strong> covers the April 2026 fake Docker Desktop precursor and whatever the operator renames the vessel to next, since the payload DLL name is the one thing the CEF loader cannot change. <strong>FP:</strong> high — this is a baselining hunt, not a detection. Run it once, allowlist your approved per-user Electron/CEF apps, then re-run weekly for new publishers only.</p>
+<pre class="cql" id="cql10"><span class="cm">// HUNT: broad — CEF/Chromium sideload payload DLLs in user-writable dirs (T1574.002)</span>
+<span class="cm">// MITRE: T1574.002</span>
+<span class="cm">// CONF: medium  FP: high  COST: medium | REQUIRES: PeFileWritten, module-load hash telemetry</span>
+<span class="cm">// TUNING: baseline-first query. Allowlist the per-user Electron/CEF apps your estate ships</span>
+<span class="cm">//         by directory, then alert only on directories seen for the first time.</span>
+<span class="cm">// &#9888; validate in tenant: the ImageHash arm depends on module-load telemetry being enabled.</span>
+@timestamp &gt;= (now() - 2592000000)
+#event_simpleName=/PeFileWritten|NewExecutableWritten|ImageHash/
+| (TargetFileName=/\\(libcef|tempdir|chrome_elf)\.dll$/i
+   or ImageFileName=/\\(libcef|tempdir|chrome_elf)\.dll$/i)
+| (TargetFileName=/\\Users\\[^\\]+\\(Downloads|AppData)\\/i
+   or ImageFileName=/\\Users\\[^\\]+\\(Downloads|AppData)\\/i
+   or TargetFileName=/\\Windows\\Temp\\/i
+   or ImageFileName=/\\Windows\\Temp\\/i)
+| groupBy([TargetDirectoryName, ContextBaseFileName, SHA256HashData], function=count(as=Hits), limit=2000)
+| sort(Hits, order=desc, limit=300)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <p>Three queries in &sect;8 are strong enough to promote to Custom IOAs. The rest stay Investigate-only hunts.</p>
+    <table>
+      <thead><tr><th>IOA</th><th>From</th><th>Rule type</th><th>Pattern</th><th>Exclusions</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><strong>DETECT — Masqueraded CEF host (FakeAgent)</strong></td><td>Q2</td><td>Process Creation</td><td>Image SHA-256 equals the benign JetBrains CEF helper while the image filename is not <code>jcef_helper.exe</code></td><td>Approved internally repackaged JetBrains IDE install roots, if any exist after baselining</td><td><span class="badge b-crit">Critical</span></td></tr>
+        <tr><td><strong>DETECT — SPSS binary in EdgeUpdate staging path</strong></td><td>Q4</td><td>Process Creation + File Creation</td><td>Image path regex <code>\\Microsoft\\EdgeUpdate\\Install\\</code> under a per-user profile, any image name</td><td><code>\Program Files (x86)\Microsoft\EdgeUpdate\</code> (genuine updater); <code>\Program Files\IBM\SPSS\</code></td><td><span class="badge b-crit">Critical</span></td></tr>
+        <tr><td><strong>DETECT — Fake AI/dev-tool installer execution</strong></td><td>Q1</td><td>Process Creation</td><td>Image filename <code>ClaudeDesktop.exe</code> or <code>DockerDesktop.exe</code> with a grandparent/parent in the browser or archive-tool family</td><td>Enterprise software-deployment agents as parent</td><td><span class="badge b-high">High</span></td></tr>
+        <tr><td>Investigate-only</td><td>Q3, Q5, Q6, Q7, Q8, Q9, Q10</td><td>Scheduled Search</td><td>Run Q5/Q6/Q8 daily and Q3 weekly; Q7 and Q10 are baselining hunts that should stay out of the alert queue until their allowlists exist</td><td>—</td><td><span class="badge b-med">Medium</span></td></tr>
+      </tbody>
+    </table>
+    <h3>Alert package — DETECT: Masqueraded CEF host (FakeAgent)</h3>
+    <p><strong>Subject:</strong> <code>[CRITICAL] Detection: FakeAgent — signed CEF host running under a masquerade filename</code></p>
+    <p><strong>Body:</strong> A binary whose SHA-256 matches the legitimate JetBrains <code>jcef_helper.exe</code> Chromium Embedded Framework component executed under a different filename on <code>&lt;host&gt;</code>. In the FakeAgent campaign this exact component was shipped as <code>ClaudeDesktop.exe</code> and <code>DockerDesktop.exe</code> and used purely as a vessel to side-load a malicious <code>libcef.dll</code>, ending in SectopRAT. The binary itself is benign and signed — the renaming is the attack. Treat as a live intrusion until the co-located DLL is proven clean.</p>
+    <h4>L1 triage checklist</h4>
+    <ol>
+      <li>Record the full image path and the parent/grandparent process. A browser or archive-tool parent means user-initiated download and execution.</li>
+      <li>List every file in the same directory and hash the <code>libcef.dll</code> beside it. Compare against <code>26bae4d7&hellip;</code> and against the vendor's published CEF hashes.</li>
+      <li>Check for <code>%APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\</code> on the host — presence of <code>sslconf.exe</code>, <code>tempdir.dll</code> or <code>appcfg.dat</code> confirms the second stage landed (run Q4 host-scoped).</li>
+      <li>Enumerate scheduled tasks and Run keys referencing that directory or the masquerade filenames (Q5 host-scoped).</li>
+      <li>Pull the host's outbound connections for the surrounding 72 hours and check against the &sect;10 address set (Q6 host-scoped).</li>
+      <li>Check the Defender operational log for exclusion additions (native hunt H-W2) — exclusions were observed alongside these installs.</li>
+      <li>If any of steps 2—6 confirm, network-contain the host and move to the &sect;14 runbook. Assume every credential in every browser profile on that host is compromised.</li>
+      <li>Preserve <code>appcfg.dat</code> and both DLLs before remediation — the payload is GPU-decrypted and cannot be recovered from memory after the fact.</li>
+    </ol>
+    <h4>Pivot queries</h4>
+    <ul>
+      <li><strong>Host-scoped:</strong> add <code>| aid = "REPLACE_WITH_AID"</code> as the second line of Q4, Q5 and Q6.</li>
+      <li><strong>Environment-wide:</strong> run Q8 across the full retention window to find other hosts that touched the same payloads.</li>
+      <li><strong>Upstream:</strong> proxy hunt H-S1 for the artifact path, scoped to the victim's user, to confirm the delivery vector and identify anyone else who visited it.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import &middot; malicious only</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,26bae4d7012bf59847ab4036a065419c3d4ca47e020479f55b3b2c6d0d21394a,prevent,critical,2027-01-24,FakeAgent malicious libcef.dll VMProtect sideload payload,campaign:FakeAgent
+sha256,1cd58cfba596da296ab1878d74023e00c399345a1b6c2a0e5446c53563f4e3bb,prevent,critical,2027-01-24,FakeAgent malicious tempdir.dll GPU anti-VM loader,campaign:FakeAgent
+sha256,1fe3646d27d286db8123297e06ae7badf3e26f352a04f91b6d82c28869a91664,prevent,critical,2027-01-24,SectopRAT embedded .NET payload,campaign:FakeAgent
+ipv4,2.24.131.246,detect,critical,2027-01-24,SectopRAT C2 current since 2026-06-12,campaign:FakeAgent
+domain,download-app.us,detect,high,2027-01-24,FakeAgent redirect domain registrable parent,campaign:FakeAgent
+domain,claude.ai.download-app.us,detect,high,2027-01-24,FakeAgent first redirect hop brand-prefix lookalike,campaign:FakeAgent
+domain,downloading-api.it.com,detect,high,2027-01-24,FakeAgent installer delivery host,campaign:FakeAgent
+domain,5ca8758c-02d0-4a72-89c8-d468b66dda41.com,detect,high,2027-01-24,SectopRAT backup C2 domain,campaign:FakeAgent
+ipv4,107.189.24.67,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,104.194.133.210,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.26.86,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.21.86,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.124.17,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.125.228,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.122.82,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.17.143,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.122.134,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.122.235,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.22.118,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.20.32,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.20.95,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,107.189.24.255,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.117.145,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.114.190,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.123.122,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,45.59.117.67,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,195.110.58.222,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+ipv4,191.101.80.211,detect,medium,2026-10-24,SectopRAT historical C2 from BSC contract,campaign:FakeAgent
+# Malicious ClaudeDesktop.exe binary hash was not published as a distinct value:
+# sha256,REPLACE_WITH_CLAUDEDESKTOP_SHA256,prevent,critical,2027-01-24,FakeAgent fake installer,campaign:FakeAgent</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Benign-but-abused components</span><span class="igc">hunt only &mdash; NEVER block</span></div>
+        <button class="btn-copy" data-label="Copy list" onclick="copyBlock('grab-benign',this)" style="margin:0 0 6px;">Copy list</button>
+<pre class="code" id="grab-benign"># DO NOT add these to a prevent/block list. Both are legitimate, signed
+# vendor components. In FakeAgent they were used as side-loading vessels.
+# The correct control is a HUNT on name/path mismatch (see Q2 and Q4).
+
+f8acb8f5cf88b77a4c27d7fd6856aa299bb178e85f9963c2fbd447d818da3ed0
+  JetBrains jcef_helper.exe (Chromium Embedded Framework host)
+  Shipped by the actor as ClaudeDesktop.exe AND DockerDesktop.exe (identical files)
+  HUNT RULE: this hash executing under any filename other than jcef_helper.exe
+
+fd826215add30c1319eefa291b6eaf8ddfa7720cfe816c49aef6fe8a88de7939
+  IBM SPSS sslconf.exe (signed statistics-platform binary)
+  Planted at %APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\sslconf.exe
+  HUNT RULE: this binary anywhere under a per-user EdgeUpdate\Install path</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral signatures</span><span class="igc">durable &mdash; survives IOC rotation</span></div>
+        <button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy signatures</button>
+<pre class="code" id="grab-behav"># FakeAgent — behavioral signatures (no atomic dependency)
+
+B1  Signed JetBrains CEF helper component executing under a filename
+    that is not jcef_helper.exe                          -> Q2   [strongest]
+B2  Any binary executing from, or written into, a per-user
+    ...\AppData\Roaming\Microsoft\EdgeUpdate\Install\ path -> Q4
+B3  libcef.dll or tempdir.dll written into Downloads, AppData
+    or Windows\Temp beside a non-CEF-named executable      -> Q3, Q10
+B4  Run key or scheduled task whose target resolves under a
+    per-user EdgeUpdate directory                          -> Q5
+B5  DNS name where a trusted software brand is the LEADING label
+    of a registrable domain the brand does not own         -> Q7
+B6  ClaudeDesktop.exe / DockerDesktop.exe / sslconf.exe holding
+    outbound network connections                           -> Q9
+B7  appcfg.dat or cache.dat written next to a sideload host   -> Q4
+B8  Defender exclusion added covering a user-writable path  -> native H-W2
+B9  Workstation (non-developer) egress to a public BNB Smart
+    Chain / Ethereum JSON-RPC endpoint                     -> native H-N4
+B10 Executable download whose referer chain starts at a search
+    engine and whose host is under 90 days old             -> native H-S2</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named tooling &amp; infrastructure</span><span class="igc">context / enrichment</span></div>
+        <button class="btn-copy" data-label="Copy context" onclick="copyBlock('grab-named',this)" style="margin:0 0 6px;">Copy context</button>
+<pre class="code" id="grab-named"># Campaign      FakeAgent (Huntress, 2026-07-22)
+# Payload       SectopRAT, aka ArechClient2 (.NET, active since 2019, HVNC)
+# Loader chain  renamed JetBrains jcef_helper CEF host -> libcef.dll (VMProtect)
+#               -> IBM SPSS sslconf.exe -> tempdir.dll -> appcfg.dat -> .NET RAT
+# Scope         29 organizations, 2026-07-21 to 2026-07-22
+# Lure          Bing sponsored ad for "CLAUDE DESKTOP APP"
+# Lure page     claude.ai/public/artifacts/ca456f1f-44c0-42af-b329-4f1c7534a877
+#               (public Claude Artifact, 7,100 views, removed by Anthropic)
+# EtherHiding contracts (BNB Smart Chain) - enrichment, not blockable:
+#   0xe012d0f34cde9b870e9d9ed566ea5f8fd9b92228   SectopRAT C2 resolver
+#   0xc1907d7be91f95903ad66d775c397302e7dd9228   libcef.dll stager resolver
+# Actor overlap
+#   polse.us            seized by Microsoft (Operation Endgame), hosted StealC
+#   April 2026          fake Docker Desktop via Docker Hub, same libcef.dll chain
+#   10 domains          share one registrant email, indexed since Dec 2025
+# Anti-analysis  VMProtect; DXGI vendor-ID gate (0x1234 QEMU, 0x15AD VMware);
+#                VRAM under 1GB bail-out; compute-shader timing check;
+#                AES-256-CTR via DirectX SM5 shader with modified MixColumns
+# LAB NOTE       will NOT detonate in a standard VM - use bare metal or GPU passthrough</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hardening / ASR audit checklist</span><span class="igc">verify before you hunt again</span></div>
+        <button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checklist</button>
+<pre class="code" id="grab-audit"># FakeAgent — control audit (tick each; see section 12 for the how)
+[ ] ASR "Block executable files from running unless they meet a prevalence,
+    age, or trusted list criterion" = Block   (01443614-cd74-433a-b99e-2ecdc07bfc25)
+[ ] ASR "Block JavaScript or VBScript from launching downloaded executable
+    content" = Block                          (d3e037e1-3eb8-44c8-a917-57927947596d)
+[ ] Defender Tamper Protection = On, and exclusion changes are alerted on
+[ ] SmartScreen for Edge = Enabled, PUA protection = Block
+[ ] AppLocker/WDAC deny rule for %USERPROFILE%\Downloads and %APPDATA%
+[ ] Browser password manager disabled by policy (all managed browsers)
+[ ] Protective DNS: newly-registered-domain category blocked
+[ ] Protective DNS: brand-as-leading-label rule deployed
+[ ] Managed software portal published so users never search for installers
+[ ] Falcon module-load telemetry confirmed present (or Sysmon 7 deployed)
+[ ] Proxy full-URL (path) logging enabled for SaaS/AI domains
+[ ] Phishing-resistant MFA enforced so stolen browser cookies are low-value</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Check</th><th>Pass criterion</th></tr></thead>
+      <tbody>
+        <tr><td>1 &middot; Telemetry ready</td><td>Confirm each event type the pack relies on is present in your repo: <code>ProcessRollup2</code>, <code>PeFileWritten</code>, <code>NewExecutableWritten</code>, <code>AsepValueUpdate</code>, <code>ScheduledTaskRegistered</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code>, and module-load hashes (<code>ImageHash</code>)</td><td>Every event type returns rows over a 24-hour window. If module-load is absent, Q3/Q8/Q10 lose their DLL-load arm — deploy Sysmon EventID 7 (H-W5) before claiming coverage</td></tr>
+        <tr><td>2 &middot; Field population</td><td><code>SHA256HashData</code> is populated on <code>ProcessRollup2</code>; <code>TaskExecutable</code> / <code>TaskName</code> are populated on <code>ScheduledTaskRegistered</code></td><td>Q2 is meaningless without process hashes. Q5 degrades to its <code>schtasks</code> command-line arm if task fields are empty — verify before trusting a null result</td></tr>
+        <tr><td>3 &middot; Benign baseline</td><td>Run Q3, Q7, Q9 and Q10 over 30 days with no exclusions and record what fires</td><td>You have a written allowlist of your per-user CEF/Electron install roots, your CDN/vanity DNS chains, and your JetBrains egress destinations. Until that list exists, none of these four should be alerting</td></tr>
+        <tr><td>4 &middot; Positive test</td><td>On an isolated bare-metal test host, copy a legitimate signed CEF helper to a Downloads path under the name <code>ClaudeDesktop.exe</code> and run it; separately, place a benign signed binary under <code>%APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\</code> and run it</td><td>Q1, Q2 and Q4 all fire within the expected latency. <strong>Do not attempt to detonate the real sample in a VM</strong> — the DXGI gate will suppress execution and you will get a false all-clear</td></tr>
+        <tr><td>5 &middot; Provenance</td><td>Every atomic indicator in &sect;10 traces to the saved source snapshots</td><td>All 31 atomic indicators traced to <code>FakeAgent-ClaudeArtifact-SectopRAT-Hunt-sources/</code> by <code>check_ioc_provenance.py</code> (exit 0, 2026-07-24). The malicious <code>ClaudeDesktop.exe</code> hash was never published and ships as a labelled <code>REPLACE_WITH_</code> placeholder, not as an invented value</td></tr>
+        <tr><td>6 &middot; Promotion</td><td>Promote to alerting only after gates 1—4 pass</td><td>Q1, Q2, Q4 &rarr; Custom IOA. Q5, Q6, Q8 &rarr; daily scheduled search. Q3 &rarr; weekly. Q7, Q9, Q10 &rarr; stay Investigate-only until their allowlists exist</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+  <div class="section-body">
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — deploy this week</div>
+      <h4>1. Block the atomic infrastructure and quarantine the payload hashes</h4>
+      <p>Import the &sect;10 CSV into Falcon IOC Management; block the four domains at Protective DNS and the secure web gateway. <strong>Do not block <code>claude.ai</code></strong> — block the artifact path if your gateway supports URL-path policy, otherwise rely on Q7 plus the H-S1 proxy hunt. <em>MITRE M1031 (Network Intrusion Prevention), M1037 (Filter Network Traffic).</em></p>
+      <h4>2. Turn on Defender Tamper Protection and alert on every exclusion change</h4>
+      <p>Exclusions were observed being added across the affected estates. Tamper Protection blocks the common path; an alert on Defender EventID 5007 covers the rest. An exclusion covering <code>%APPDATA%</code>, <code>Downloads</code> or an EdgeUpdate directory should page someone. <em>M1018 (User Account Management), M1054 (Software Configuration); Microsoft Security Baseline for Windows — Defender Antivirus.</em></p>
+      <h4>3. Enable the two ASR rules that break this exact chain</h4>
+      <p><code>01443614-cd74-433a-b99e-2ecdc07bfc25</code> (block executables that lack prevalence/age/trust) stops a freshly-compiled fake installer cold, and <code>d3e037e1-3eb8-44c8-a917-57927947596d</code> (block scripts from launching downloaded executable content) covers the scripted-redirect variant. Deploy in Audit for 72 hours, then Block. <em>M1038 (Execution Prevention); CIS Microsoft Windows Benchmark — Attack Surface Reduction.</em></p>
+      <h4>4. Enforce SmartScreen and PUA blocking in managed browsers</h4>
+      <p>Edge SmartScreen with the bypass prompt disabled would have interrupted the download hop even though the referring page sat on a trusted domain. <em>M1021 (Restrict Web-Based Content); Microsoft Edge Security Baseline.</em></p>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — 1 to 4 weeks, pilot on a ring first</div>
+      <h4>5. Deny execution from user-writable directories (AppLocker or WDAC in audit &rarr; enforce)</h4>
+      <p>Every stage of this chain runs from <code>Downloads</code> or <code>%APPDATA%</code>. A publisher-based allowlist with a deny rule over those paths removes the entire class, not just this campaign. Pilot on a single ring; expect to carve exceptions for legitimately per-user-installed apps (Teams, Slack, Zoom, several IDEs) — that exception list <em>is</em> the baseline Q3 and Q10 need anyway. <em>M1038 (Execution Prevention); CIS Windows Benchmark, Microsoft WDAC guidance.</em></p>
+      <h4>6. Protective DNS: block newly-registered domains and brand-prefix lookalikes</h4>
+      <p>The redirect domain was registered 2026-05-09 and used in July. An NRD category block plus a rule for "trusted brand as leading label on a domain we do not own" (the Q7 pattern, pushed left to the resolver) closes the delivery hop without depending on any specific IOC. <em>M1037 (Filter Network Traffic); NIST SP 800-81 / CISA Protective DNS guidance.</em></p>
+      <h4>7. Publish a managed software portal and tell people to use it</h4>
+      <p>This campaign works only because employees search the web for installers. An internal catalogue for AI and developer tooling — with the genuine Claude, Docker and IDE packages in it — removes the reason to search at all. Pair it with a short awareness note naming this specific lure. <em>M1017 (User Training), M1051 (Update Software); best-practice, no formal benchmark.</em></p>
+      <h4>8. Disable browser password managers by policy; restrict workstation egress to blockchain RPC</h4>
+      <p>SectopRAT's payday is the browser credential store — emptying it removes the payload's value. Separately, block public BNB Smart Chain / Ethereum JSON-RPC endpoints from non-developer workstations at the proxy; EtherHiding cannot resolve a C2 the host cannot reach. <em>M1027 (Password Policies), M1037 (Filter Network Traffic); CIS Benchmarks for Google Chrome and Microsoft Edge.</em></p>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — 1 to 3 months</div>
+      <h4>9. Signed WDAC policy in enforcement across the managed fleet</h4>
+      <p>The end state for tier 5. A signed policy that only permits binaries from approved publishers ends DLL side-loading as a delivery technique, because the vessel and the payload both have to be signed by someone you trust. <em>M1038 (Execution Prevention); Microsoft WDAC design guide, DISA Windows STIG.</em></p>
+      <h4>10. Phishing-resistant MFA plus short session lifetimes everywhere</h4>
+      <p>HVNC and cookie theft both target the session, not the password. FIDO2/WebAuthn with conditional-access session controls means a stolen cookie jar buys the operator very little. <em>M1032 (Multi-factor Authentication); CISA phishing-resistant MFA guidance, NIST SP 800-63B.</em></p>
+      <h4>11. Guarantee module-load telemetry and full-URL proxy logging as standing requirements</h4>
+      <p>Two of this pack's gaps are telemetry gaps, not detection gaps. Make module-load events and path-level proxy logging non-negotiable line items in the logging standard, with retention long enough to answer "when did that DLL first load here". <em>M1047 (Audit); best-practice, no formal benchmark.</em></p>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h3>P1 — Sweep a host for the FakeAgent second stage (read-only)</h3>
+<pre class="code"># Run as the signed-in user or as SYSTEM. Read-only: reports, changes nothing.
+$stage = Join-Path $env:APPDATA 'Microsoft\EdgeUpdate\Install'
+if (Test-Path $stage) {
+    Write-Warning "FakeAgent staging directory present: $stage"
+    Get-ChildItem -Path $stage -Recurse -Force -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            [pscustomobject]@{
+                Path      = $_.FullName
+                Bytes     = $_.Length
+                LastWrite = $_.LastWriteTimeUtc
+                SHA256    = (Get-FileHash -Algorithm SHA256 -Path $_.FullName -ErrorAction SilentlyContinue).Hash
+            }
+        } | Format-Table -AutoSize
+} else {
+    Write-Host "No per-user EdgeUpdate\Install directory found."
+}
+
+# Campaign filenames anywhere under the user profile
+$names = 'ClaudeDesktop.exe','DockerDesktop.exe','sslconf.exe','tempdir.dll','appcfg.dat','cache.dat'
+Get-ChildItem -Path $env:USERPROFILE -Recurse -Force -Include $names -ErrorAction SilentlyContinue |
+    Select-Object FullName, Length, LastWriteTimeUtc</pre>
+    <p class="callout callout-info">&#9432; Run this from a management tool that captures structured output (NinjaOne, Intune script, Falcon RTR) rather than reading it off a console — you want the hashes back as data so they can be checked against &sect;10 in bulk.</p>
+
+    <h3>P2 — Audit persistence pointing at the staging directory (read-only)</h3>
+<pre class="code"># Scheduled tasks whose action resolves into a per-user EdgeUpdate path
+Get-ScheduledTask | ForEach-Object {
+    $t = $_
+    $t.Actions | Where-Object { $_.Execute -match 'EdgeUpdate.Install|ClaudeDesktop|DockerDesktop|sslconf' } |
+        ForEach-Object {
+            [pscustomobject]@{
+                TaskPath = $t.TaskPath; TaskName = $t.TaskName
+                Execute  = $_.Execute;  Arguments = $_.Arguments
+            }
+        }
+} | Format-List
+
+# Run keys, both hives
+$keys = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run',
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run',
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
+foreach ($k in $keys) {
+    if (Test-Path $k) {
+        (Get-ItemProperty -Path $k).PSObject.Properties |
+            Where-Object { $_.Value -match 'EdgeUpdate.Install|ClaudeDesktop|DockerDesktop|sslconf' } |
+            Select-Object @{n='Key';e={$k}}, Name, Value
+    }
+}</pre>
+
+    <h3>P3 — Enable the two ASR rules (Audit first, then Block)</h3>
+<pre class="code"># Step 1 — Audit for 72 hours and review Defender EventID 1121/1122 before enforcing.
+$rules = @(
+  '01443614-cd74-433a-b99e-2ecdc07bfc25',  # Block low-prevalence / untrusted executables
+  'd3e037e1-3eb8-44c8-a917-57927947596d'   # Block JS/VBS launching downloaded executables
+)
+Add-MpPreference -AttackSurfaceReductionRules_Ids $rules -AttackSurfaceReductionRules_Actions AuditMode
+
+# Step 2 — after review, switch to Block
+# Add-MpPreference -AttackSurfaceReductionRules_Ids $rules -AttackSurfaceReductionRules_Actions Enabled
+
+# Verify what is actually applied
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Actions</pre>
+
+    <h3>P4 — Tamper Protection and exclusion audit</h3>
+<pre class="code"># Report current exclusions — anything covering a user-writable path is suspect
+$p = Get-MpPreference
+[pscustomobject]@{
+    TamperProtection = (Get-MpComputerStatus).IsTamperProtected
+    ExclusionPath    = ($p.ExclusionPath    -join '; ')
+    ExclusionProcess = ($p.ExclusionProcess -join '; ')
+    ExclusionExtension = ($p.ExclusionExtension -join '; ')
+} | Format-List
+
+# Tamper Protection is set via Intune / Defender portal policy, not locally.
+# Alert on Defender operational log EventID 5007 (settings change) centrally:
+#   Log: Microsoft-Windows-Windows Defender/Operational   EventID: 5007</pre>
+
+    <h3>P5 — AppLocker deny rule for user-writable execution (audit mode)</h3>
+<pre class="code">&lt;!-- Deploy via GPO: Computer Config / Windows Settings / Security Settings /
+     Application Control Policies / AppLocker. Start in Audit, review, then Enforce. --&gt;
+&lt;RuleCollection Type="Exe" EnforcementMode="AuditOnly"&gt;
+  &lt;FilePathRule Id="a1b2c3d4-0001-4000-8000-fakeagent0001"
+                Name="DENY exe from user Downloads"
+                Description="FakeAgent: fake installers execute from the browser download path"
+                UserOrGroupSid="S-1-1-0" Action="Deny"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%OSDRIVE%\Users\*\Downloads\*"/&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+  &lt;FilePathRule Id="a1b2c3d4-0002-4000-8000-fakeagent0002"
+                Name="DENY exe from per-user EdgeUpdate staging"
+                Description="FakeAgent: sslconf.exe staged in AppData EdgeUpdate\Install"
+                UserOrGroupSid="S-1-1-0" Action="Deny"&gt;
+    &lt;Conditions&gt;&lt;FilePathCondition Path="%OSDRIVE%\Users\*\AppData\Roaming\Microsoft\EdgeUpdate\*"/&gt;&lt;/Conditions&gt;
+  &lt;/FilePathRule&gt;
+&lt;/RuleCollection&gt;
+
+&lt;!-- DLL rules matter here too: the payload is a DLL, not an EXE.
+     Enable the AppLocker DLL rule collection in Audit before enforcing. --&gt;</pre>
+
+    <h3>P6 — Disable the browser password manager by policy</h3>
+<pre class="code"># Removes the payload's primary target. Apply via GPO/Intune, not per-machine.
+# Microsoft Edge
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v PasswordManagerEnabled /t REG_DWORD /d 0 /f
+# Google Chrome
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v PasswordManagerEnabled /t REG_DWORD /d 0 /f
+# SmartScreen, with the user bypass removed
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v SmartScreenEnabled /t REG_DWORD /d 1 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v PreventSmartScreenPromptOverride /t REG_DWORD /d 1 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v SmartScreenPuaEnabled /t REG_DWORD /d 1 /f</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence to capture</th></tr></thead>
+      <tbody>
+        <tr><td><strong>0 &middot; Confirm</strong></td><td>Run Q2, Q4 and Q5 host-scoped. Hash the DLLs beside the suspect executable. A hit on the benign-CEF-hash-under-another-name rule plus anything under <code>EdgeUpdate\Install</code> is a confirmed intrusion, not a maybe</td><td>SOC L2</td><td>Full process tree, directory listing with hashes, Falcon detection IDs</td></tr>
+        <tr><td><strong>1 &middot; Isolate</strong></td><td>Network-contain the host in Falcon. Do <em>not</em> power it off — the .NET payload lives in the host process and memory is worth more than a clean shutdown</td><td>SOC L2</td><td>Containment timestamp; memory image if your process supports it</td></tr>
+        <tr><td><strong>2 &middot; Preserve</strong></td><td>Collect <code>appcfg.dat</code>, <code>cache.dat</code>, both DLLs and the sideload hosts before touching anything. The payload is GPU-decrypted at runtime and cannot be reconstructed after remediation</td><td>DFIR</td><td>Hashed evidence bundle with chain of custody</td></tr>
+        <tr><td><strong>3 &middot; Scope</strong></td><td>Run Q1, Q4, Q6 and Q8 fleet-wide over full retention. Run the H-S1 proxy hunt to find every user who reached the artifact page — visitors who downloaded but did not execute still need checking</td><td>Threat hunt</td><td>Affected-host list; proxy sessions touching the artifact path</td></tr>
+        <tr><td><strong>4 &middot; Eradicate</strong></td><td>Delete the staging directory and every campaign artifact; remove the scheduled task and Run-key entries; remove any Defender exclusion the actor added; confirm no second persistence path remains (re-run Q5 and P2)</td><td>Endpoint ops</td><td>Before/after persistence inventory</td></tr>
+        <tr><td><strong>5 &middot; Credential response</strong></td><td>Treat every credential in every browser profile on the host as compromised. Force password resets, <strong>revoke all active sessions and refresh tokens</strong> (cookie theft and HVNC both defeat a password reset alone), rotate any FTP and messaging-client credentials, and check for mail rules or OAuth grants added during the window</td><td>IAM + SOC</td><td>Reset and revocation log; token-revocation timestamps</td></tr>
+        <tr><td><strong>6 &middot; Recover</strong></td><td>Reimage. A host that ran an HVNC-capable RAT with hands-on-keyboard access does not get cleaned in place. Restore user data from a copy predating first execution</td><td>Endpoint ops</td><td>Reimage record; restore point justification</td></tr>
+        <tr><td><strong>7 &middot; Harden &amp; close</strong></td><td>Apply &sect;12 tiers 1—4 fleet-wide if not already done. Add the artifact URL and delivery domains to the gateway blocklist. Brief the affected user population on the specific lure — a sponsored ad on the real vendor domain defeats the usual "check the URL" advice, and people need to hear why</td><td>Security eng + Comms</td><td>Control-change tickets; awareness comms record</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1583.008 / T1584.006</td><td>Malvertising via a sponsored ad to a malicious artifact on a trusted domain</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> — endpoint-blind. Covered only by proxy hunt H-S1/H-S2, and only if full-URL logging is on</td></tr>
+        <tr><td>T1189</td><td>Redirect chain to the fake installer</td><td>Q6, Q7</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1204.002</td><td>User executes the fake installer</td><td>Q1</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1036.005</td><td>Signed CEF host renamed; SPSS binary planted in an EdgeUpdate path</td><td>Q1, Q2, Q4</td><td>Yes</td><td><span class="badge b-low">Good</span> — Q2 is rename-proof</td></tr>
+        <tr><td>T1574.002</td><td>DLL side-loading (libcef.dll, tempdir.dll)</td><td>Q3, Q8, Q10</td><td>—</td><td><span class="badge b-med">Partial</span> — file-write arm is solid; the module-load arm depends on tenant <code>ImageHash</code> coverage</td></tr>
+        <tr><td>T1027.002</td><td>VMProtect packing</td><td>Q3, Q8 (by hash)</td><td>—</td><td><span class="badge b-med">Partial</span> — packing itself is not observable; only the specific packed file is</td></tr>
+        <tr><td>T1027.013</td><td>Encrypted <code>appcfg.dat</code> payload</td><td>Q4</td><td>—</td><td><span class="badge b-low">Good</span> — the artifact on disk is visible even though the decryption is not</td></tr>
+        <tr><td>T1497.001</td><td>DXGI adapter / VRAM / shader-timing anti-VM gate</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> — no EDR surface exposes DXGI enumeration. Mitigation is procedural: detonate on bare metal</td></tr>
+        <tr><td>T1562.001</td><td>Defender exclusions added</td><td>—</td><td>—</td><td><span class="badge b-med">Partial</span> — native hunt H-W2 (Defender EventID 5007) carries this; no CQL equivalent in this pack</td></tr>
+        <tr><td>T1547.001 / T1053.005</td><td>Run key and scheduled-task persistence into the staging directory</td><td>Q5</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1102</td><td>EtherHiding — C2 resolved from BNB Smart Chain contracts</td><td>—</td><td>—</td><td><span class="badge b-med">Partial</span> — native hunt H-N4 (workstation egress to blockchain RPC) plus the tier-2 egress control. The contract read itself is indistinguishable from any HTTPS request</td></tr>
+        <tr><td>T1071.001 / T1105</td><td>SectopRAT C2 and payload staging</td><td>Q6, Q7, Q9</td><td>—</td><td><span class="badge b-low">Good</span> — Q9 survives C2 rotation because it keys on the vessel, not the address</td></tr>
+        <tr><td>T1555.003 / T1185</td><td>Browser credential theft and HVNC</td><td>Q9</td><td>—</td><td><span class="badge b-med">Partial</span> — Falcon emits no generic file-read event. Sysmon EventID 11 + audit ACLs (H-W4) close it</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;"><strong>Validation gates:</strong> the six gates in &sect;11 must pass before any of these queries alert. In short: confirm module-load telemetry exists (or deploy Sysmon 7), confirm <code>SHA256HashData</code> is populated on process events, run a 30-day benign baseline for Q3/Q7/Q9/Q10 and write the allowlist down, positive-test Q1/Q2/Q4 on <strong>bare-metal</strong> hardware, and only then promote Q1/Q2/Q4 to Custom IOAs. Two gaps are structural rather than fixable by better queries: the malvertising and DXGI anti-VM stages have no endpoint telemetry at all, so they are answered by proxy logging and by lab procedure respectively.</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code">TITLE:      FakeAgent — malicious Claude Artifact malvertising delivering SectopRAT via CEF DLL side-loading
+SEVERITY:   Critical — active in the wild, 29 organizations compromised 2026-07-21 to 2026-07-22
+SCOPE:      All Windows endpoints with internet access. Highest risk: users who install their own
+            AI/developer tooling. Lookback 90 days (C2 set reaches back to 2025-05-30).
+
+HYPOTHESIS: A user searched for the Claude desktop app, clicked a Bing sponsored ad pointing at a
+            malicious public artifact on the genuine claude.ai domain, and ran ClaudeDesktop.exe —
+            a renamed JetBrains jcef_helper CEF host that side-loads a tampered libcef.dll, stages
+            IBM SPSS sslconf.exe plus tempdir.dll under %APPDATA%\Roaming\Microsoft\EdgeUpdate\Install\,
+            GPU-decrypts appcfg.dat and runs SectopRAT with HVNC and browser credential theft.
+
+QUERIES:    Q1  fake installer filenames in a download path          CONF high / FP low
+            Q2  benign CEF host hash under a non-jcef_helper name    CONF high / FP low   [START HERE]
+            Q3  tampered libcef.dll by hash or user-writable path    CONF high / FP med
+            Q4  sslconf.exe / tempdir.dll / appcfg.dat in EdgeUpdate CONF high / FP med   [START HERE]
+            Q5  persistence into the staging directory               CONF high / FP med
+            Q6  egress to the 21 decrypted C2 addresses              CONF high / FP low
+            Q7  delivery domains + brand-as-leading-label DNS        CONF med  / FP high
+            Q8  malicious SHA-256 sweep                              CONF high / FP low
+            Q9  sideload vessel beaconing (survives C2 rotation)     CONF med  / FP med
+            Q10 CEF payload DLLs in user-writable dirs (baseline)    CONF med  / FP high
+
+DO FIRST:   1. Run Q2 and Q4 fleet-wide. Either firing is a confirmed intrusion — go to section 14.
+            2. Run Q8 and Q6 across full retention for retrospective scope.
+            3. Check Defender exclusion changes (native hunt H-W2) on any host that fires.
+            4. Proxy hunt H-S1 for claude.ai/public/artifacts/ to find everyone who saw the lure.
+
+FINDINGS:   [ ] Q2 hits: ____   [ ] Q4 hits: ____   [ ] Q6/Q8 hits: ____   [ ] proxy hits: ____
+
+GAPS:       - Malvertising / artifact-hosting stage has NO endpoint telemetry (proxy full-URL only)
+            - DXGI anti-VM gate is unobservable; sample will not detonate in a standard VM
+            - Module-load (ImageHash) coverage is tenant-dependent — verify before trusting Q3/Q8/Q10
+            - Browser credential-store reads are inferred, not observed (no Falcon file-read event)
+            - Malicious ClaudeDesktop.exe hash was never published — shipped as a REPLACE_WITH_ placeholder
+
+ACTIONS:    - Import section 10 CSV to Falcon IOC Management; block the 4 domains at DNS and proxy
+            - Do NOT block claude.ai; do NOT block the two benign component hashes
+            - Promote Q1/Q2/Q4 to Custom IOAs after validation gates 1-4 pass
+            - Deploy hardening tier 1 (ASR pair, Tamper Protection, SmartScreen) this week
+            - Publish a managed software portal so users stop searching the web for installers
+
+OWNER:      HuntPack
+VERSION:    v0.1 (2026-07-24)</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-24</span><span>Initial pack built to the review-v2 gold layout (fixed left-sidebar scrollspy TOC with collapse toggle, Falcon cloud selector inside the CQL section, per-card Copy CQL / Open in Falcon, Grouped IOC Quick-Copy grid, coverage map + validation gates, hunt ticket). Sourced from the Huntress report "Inside FakeAgent: How a Claude Desktop Malvertising Campaign Hit 29 Organizations with SectopRAT" (2026-07-22), corroborated by BleepingComputer and Help Net Security, with Malpedia and AhnLab ASEC for SectopRAT/ArechClient2 family background. Covers the full chain: Bing sponsored ad for "CLAUDE DESKTOP APP" to a malicious public Claude Artifact on the genuine claude.ai domain (7,100 views before removal), redirect through claude.ai.download-app[.]us and downloading-api[.]it[.]com, ClaudeDesktop.exe / DockerDesktop.exe as a renamed JetBrains jcef_helper CEF host, VMProtect-packed libcef.dll side-load, IBM SPSS sslconf.exe plus tempdir.dll staged under a per-user Microsoft\EdgeUpdate\Install path, DXGI/VRAM anti-VM gate, DirectX SM5 shader AES-256-CTR decryption of appcfg.dat, SectopRAT .NET payload with HVNC, and EtherHiding C2 resolution off two BNB Smart Chain contracts. 10 CQL queries and 10 native audit-log hunts; 3 Custom IOA candidates. 36 atomic indicators shipped, all traced to saved source snapshots; the malicious ClaudeDesktop.exe hash was never published and ships as a labelled REPLACE_WITH_ placeholder rather than an invented value. IT Security Guru returned HTTP 403 to every fetch attempt and is therefore not cited. Violet accent theme.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access date</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://www.huntress.com/blog/fakeagent-claude-desktop-malvertising-ends-in-dotnet-rat" target="_blank">Huntress — Inside FakeAgent: How a Claude Desktop Malvertising Campaign Hit 29 Organizations with SectopRAT</a> (2026-07-22)</td><td>PRIMARY — full attack chain, all atomic IOCs (hashes, domains, current + 20 historical C2 addresses, BSC contracts, staging path), anti-analysis internals, SectopRAT attribution, actor-overlap and April 2026 Docker Hub precursor</td><td>2026-07-24</td></tr>
+        <tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/fake-claude-app-promoted-by-bing-ads-pushes-sectoprat-malware/" target="_blank">BleepingComputer — Fake Claude app promoted by Bing ads pushes SectopRAT malware</a></td><td>Independent corroboration of scope, timeline, artifact view count, the JetBrains CEF component and EtherHiding; SectopRAT/ArechClient2 lineage and HVNC capability</td><td>2026-07-24</td></tr>
+        <tr><td>2</td><td><a href="https://www.helpnetsecurity.com/2026/07/23/anthropic-claude-artifacts-download-malware/" target="_blank">Help Net Security — How attackers hosted a fake Claude download page on the claude.ai domain</a></td><td>Claude Artifacts mechanics (public links viewable without an account), both redirect hops, bundle contents and scheduled-task reinfection, April 2026 Docker Hub link</td><td>2026-07-24</td></tr>
+        <tr><td>3</td><td><a href="https://malpedia.caad.fkie.fraunhofer.de/details/win.sectop_rat" target="_blank">Malpedia — win.sectop_rat</a></td><td>SectopRAT / ArechClient2 family lineage and prior reporting (background only)</td><td>2026-07-24</td></tr>
+        <tr><td>3</td><td><a href="https://asec.ahnlab.com/en/83621/" target="_blank">AhnLab ASEC — Distribution of SectopRAT (ArechClient2) Disguised as Notion Installer</a></td><td>Prior fake-installer delivery of the same family; supports the behavioral-over-atomic framing</td><td>2026-07-24</td></tr>
+        <tr><td>4</td><td><a href="https://attack.mitre.org/techniques/T1574/002/" target="_blank">MITRE ATT&amp;CK T1574.002 — DLL Side-Loading</a> &middot; <a href="https://attack.mitre.org/techniques/T1036/005/" target="_blank">T1036.005</a> &middot; <a href="https://attack.mitre.org/techniques/T1497/001/" target="_blank">T1497.001</a> &middot; <a href="https://attack.mitre.org/techniques/T1102/" target="_blank">T1102</a></td><td>Technique definitions and mitigation M-numbers used in &sect;6 and &sect;12</td><td>2026-07-24</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 &middot; FakeAgent — Malicious Claude Artifact &rarr; SectopRAT &middot; Generated 2026-07-24 &middot; Defensive use only — no offensive code. This campaign's atomic indicators are unusually perishable: EtherHiding lets the operator rotate C2 with a single blockchain transaction, and the delivery domains are disposable. The durable signal is behavioral — a signed CEF host running under a name that is not its own (Q2), a statistics-package binary inside a per-user EdgeUpdate directory (Q4), and persistence pointing at that directory (Q5). Validate field names, confirm module-load telemetry, run the 30-day baseline for Q3/Q7/Q9/Q10, and positive-test on bare-metal hardware — the sample's DXGI gate will suppress execution in a VM and hand you a false all-clear.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) { document.body.classList.toggle('toc-shown'); }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.split('\n').filter(function (line) { return line.trim().indexOf('//') !== 0; }).join('\n').trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
