@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">DEBULL · Device-Code<br>Phishing (M365 / Entra ID)</div>
-    <div class="version">v0.1 · 2026-07-19</div>
+    <div class="version">v0.2 · 2026-07-19</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -146,7 +146,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <h1>DEBULL — Microsoft Device-Code Phishing (Storm-2372-style Tradecraft)</h1>
   <div class="subtitle">Phishing-as-a-Service tooling that abuses the OAuth 2.0 Device Authorization Grant to take over M365 / Entra ID accounts — no password stolen, MFA bypassed.</div>
   <div class="meta-grid">
-    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-07-19</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.2 · 2026-07-19</div></div>
     <div class="meta-item"><div class="mk">Threat Class</div><div class="mv">Identity / PhaaS / ATO</div></div>
     <div class="meta-item"><div class="mk">Primary Plane</div><div class="mv">Entra ID · M365</div></div>
     <div class="meta-item"><div class="mk">CQL Queries</div><div class="mv">10</div></div>
@@ -435,7 +435,7 @@ mab
 <span class="cm">//   SaaS vendors that host on workers.dev</span>
 <span class="cm">// TUNING: allowlist your own and known-vendor workers.dev subdomains; raise the Hosts</span>
 <span class="cm">//   ceiling in large estates; lower it to 2 for a high-precision first pass</span>
-@timestamp &gt;= (now() - 604800000)
+<span class="cm">// LOOKBACK: 7d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 #event_simpleName=DnsRequest
 | DomainName=/\.workers\.dev$/i
 | DomainName=/(docviewer|onedrive|adobe|xls|excel|sheet|box|secure|doc|invoice|payment|team)/i
@@ -462,7 +462,7 @@ mab
 <span class="cm">//   alert only on human user accounts, and treat any first-ever device-code use as high</span>
 <span class="cm">// ⚠ validate in tenant: Entra fields are parser-prefixed in many tenants, e.g.</span>
 <span class="cm">//   azure.signinlogs.properties.appDisplayName - confirm shape with head(10) first</span>
-@timestamp &gt;= (now() - 1209600000)
+<span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | authenticationProtocol=/deviceCode/i
 | table([@timestamp, userPrincipalName, appDisplayName, appId, ipAddress, location, resultType, correlationId, userAgent])
 | sort(@timestamp, order=desc)</pre>
@@ -485,7 +485,7 @@ mab
 <span class="cm">// TUNING: join to Q4 output and keep only correlation IDs whose app is unexpected</span>
 <span class="cm">// ⚠ validate in tenant: confirm resultType is ingested as a string, not an integer;</span>
 <span class="cm">//   if numeric, drop the quotes in the values list below</span>
-@timestamp &gt;= (now() - 1209600000)
+<span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | in(resultType, values=["0", "50199"])
 | groupBy([userPrincipalName, correlationId, appDisplayName],
     function=[count(resultType, distinct=true, as=DistinctResults),
@@ -514,7 +514,7 @@ mab
 <span class="cm">// TUNING: add your egress ranges to an allowlist and compare ASN rather than raw IP;</span>
 <span class="cm">//   tighten by requiring FirstSeen and LastSeen within 15 minutes</span>
 <span class="cm">// ⚠ validate in tenant: confirm appDisplayName strings match your tenant exactly</span>
-@timestamp &gt;= (now() - 1209600000)
+<span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | appDisplayName=/^(Microsoft Authentication Broker|OfficeHome|One Outlook Web)$/i
 | resultType="0"
 | groupBy([userPrincipalName],
@@ -549,7 +549,7 @@ mab
 <span class="cm">//   join to Q4 output on userPrincipalName and keep registrations within 30 minutes</span>
 <span class="cm">// ⚠ validate in tenant: target device fields vary by connector - confirm which field</span>
 <span class="cm">//   carries the device display name before relying on the name regex</span>
-@timestamp &gt;= (now() - 2592000000)
+<span class="cm">// LOOKBACK: 30d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | operationName=/(Register device|Add device|Add registered owner to device|Add registered users to device)/i
 | table([@timestamp, operationName, result, initiatedBy, targetDeviceDisplayName, targetDeviceId, ipAddress, userPrincipalName])
 | sort(@timestamp, order=desc)</pre>
@@ -571,7 +571,7 @@ mab
 <span class="cm">// TUNING: keep only rules whose parameters contain ForwardTo / RedirectTo / DeleteMessage,</span>
 <span class="cm">//   or that were created within 24h of a Q4/Q5/Q6 hit for the same principal</span>
 <span class="cm">// ⚠ validate in tenant: the rule-parameter field name varies by connector</span>
-@timestamp &gt;= (now() - 1209600000)
+<span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | operationName=/^(New-InboxRule|Set-InboxRule|UpdateInboxRules|New-TransportRule|Set-TransportRule|Set-Mailbox)$/i
 | table([@timestamp, userPrincipalName, operationName, clientIP, resultStatus, parameters])
 | sort(@timestamp, order=desc)</pre>
@@ -594,7 +594,7 @@ mab
 <span class="cm">// TUNING: exclude sync/backup service accounts; raise or lower the Downloads floor to</span>
 <span class="cm">//   match your baseline; prioritise principals that also appear in Q4/Q6</span>
 <span class="cm">// ⚠ validate in tenant: confirm the client-IP and object-id field names for your connector</span>
-@timestamp &gt;= (now() - 1209600000)
+<span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | operationName=/^(FileDownloaded|FileSyncDownloadedFull)$/i
 | Bucket1h := @timestamp - (@timestamp % 3600000)
 | groupBy([userPrincipalName, clientIP, Bucket1h],
@@ -621,7 +621,7 @@ mab
 <span class="cm">// TUNING: enrich ipAddress with ASN and keep only hosting/VPS/datacenter ASNs - that is</span>
 <span class="cm">//   what separates this from ordinary user mobility; allowlist corporate egress ranges</span>
 <span class="cm">// ⚠ validate in tenant: confirm the broker app display name string matches exactly</span>
-@timestamp &gt;= (now() - 2592000000)
+<span class="cm">// LOOKBACK: 30d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | appDisplayName=/Microsoft Authentication Broker/i
 | resultType="0"
 | groupBy([userPrincipalName, ipAddress],
@@ -1083,7 +1083,7 @@ Get-OrganizationConfig | Select-Object AuditDisabled   # expect False
   <div class="section-body">
     <div class="ticket">
 <pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt - DEBULL device-code phishing (Storm-2372-style M365/Entra ID ATO)
-VERSION:      v0.1 - 2026-07-19
+VERSION:      v0.2 - 2026-07-19
 SEVERITY:     High (MFA-bypassing account takeover; PRT persistence survives password reset)
 SCOPE:        Entra ID / M365 identity control plane; Exchange Online; SharePoint/OneDrive;
               Falcon-managed endpoints (lure-fetch visibility only)
@@ -1131,7 +1131,8 @@ AUTHOR:       HuntPack</pre>
 <div class="section" id="s17">
   <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-19</span><span>Initial pack. Six sources snapshotted and cited. 10 CQL queries (3 endpoint, 7 Entra/M365 NGSIEM), 5 native KQL/checklist hunts, 14 ATT&amp;CK techniques, 14 tiered hardening controls, 5 deployable playbooks, 3-phase containment runbook. Corrected the widespread conflation of DEBULL with the separately-reported ARToken/EvilTokens panel — ARToken indicators are carried but labelled distinctly. Microsoft Authentication Broker client-ID GUID omitted from the import CSV (not present in any fetched source); queries match on app display name instead. <code>trogir-rental.com</code>, <code>49.12.61.13</code> and the VPS hostname downgraded to hunt-only to prevent collateral blocking of a compromised legitimate site and shared hosting.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-07-24</span><span>CQL fix. Removed the in-query <code>@timestamp &gt;= (now() - N)</code> timeframe line from every query: an expression on the right of a comparison is not valid in CQL filter context, so Falcon rejected the query at line 1 and no hunt would run. The lookback is now a <code>// LOOKBACK</code> comment; set the window with Falcon's time picker, which is what the rest of the library does. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-19</span><span>Initial pack. Six sources snapshotted and cited. 10 CQL queries (3 endpoint, 7 Entra/M365 NGSIEM), 5 native KQL/checklist hunts, 14 ATT&amp;CK techniques, 14 tiered hardening controls, 5 deployable playbooks, 3-phase containment runbook. Corrected the widespread conflation of DEBULL with the separately-reported ARToken/EvilTokens panel — ARToken indicators are carried but labelled distinctly. Microsoft Authentication Broker client-ID GUID omitted from the import CSV (not present in any fetched source); queries match on app display name instead. <code>trogir-rental.com</code>, <code>49.12.61.13</code> and the VPS hostname downgraded to hunt-only to prevent collateral blocking of a compromised legitimate site and shared hosting.</span></div>
   </div>
 </div>
 
@@ -1148,7 +1149,7 @@ AUTHOR:       HuntPack</pre>
       <li>MITRE ATT&amp;CK — T1528 Steal Application Access Token; T1550.001 Application Access Token; T1098.005 Device Registration; T1621 MFA Request Generation. <a href="https://attack.mitre.org/">attack.mitre.org</a></li>
       <li>IETF RFC 8628 — <em>OAuth 2.0 Device Authorization Grant</em> — the legitimate specification being abused. <a href="https://datatracker.ietf.org/doc/html/rfc8628">datatracker.ietf.org</a></li>
     </ol>
-    <p style="margin-top:12px;color:var(--text-muted);font-size:11px;">Generated 2026-07-19 · HuntPack v0.1 · Defensive content only — hunt, detection, and hardening guidance. Source snapshots retained in <code>DEBULL-DeviceCodePhishing-Hunt-sources/</code> for indicator provenance verification.</p>
+    <p style="margin-top:12px;color:var(--text-muted);font-size:11px;">Generated 2026-07-19 · HuntPack v0.2 · Defensive content only — hunt, detection, and hardening guidance. Source snapshots retained in <code>DEBULL-DeviceCodePhishing-Hunt-sources/</code> for indicator provenance verification.</p>
   </div>
 </div>
 
