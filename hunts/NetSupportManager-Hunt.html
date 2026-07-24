@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">NetSupport Manager<br>RAT Abuse</div>
-    <div class="version">v0.4 · 2026-06-29</div>
+    <div class="version">v0.5 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -282,7 +282,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | FileName=/^(client32|client32u|pcicfgui|runscript32)\.exe$/i
 | ImageFileName=/\\(ProgramData|Users\\[^\\]+\\AppData|Temp)\\/i
-| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])</pre>
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -300,7 +300,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/PeFileWritten|NewExecutableWritten/
 | TargetFileName=/\\(client32u?\.ini|pcicapi\.dll|HTCTL32\.DLL|PCICHEK\.DLL|nskbfltr\.inf|client32\.exe)$/i
 | TargetFileName=/\\(ProgramData|AppData|Temp)\\/i
-| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName])</pre>
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName], limit=200)</pre>
       </div>
     </div>
 
@@ -317,7 +317,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: correlate to Q1/Q2; allow-list sanctioned managed-path NetSupport</span>
 #event_simpleName=/AsepValueUpdate|ScheduledTaskRegistered/
 | (RegStringValue=/\\(ProgramData|AppData)\\.+client32|client32\.exe/i or CommandLine=/client32\.exe/i)
-| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue, CommandLine], limit=200)</pre>
       </div>
     </div>
 
@@ -335,7 +335,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | OriginalFilename=/client32/i
 | FileName!=/^client32(u)?\.exe$/i
-| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, OriginalFilename, SHA256HashData])</pre>
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, OriginalFilename, SHA256HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -353,7 +353,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=NetworkConnectIP4
 | ContextBaseFileName=/^client32(u)?\.exe$/i
 | RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|127\.)/
-| table([@timestamp, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])</pre>
+| table([@timestamp, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort], limit=200)</pre>
       </div>
     </div>
 
@@ -370,7 +370,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | ParentBaseFileName=/^client32(u)?\.exe$/i
 | FileName=/^(cmd|powershell|pwsh|net|net1|nltest|whoami|systeminfo|reg|wmic|rundll32|mshta)\.exe$/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
       </div>
     </div>
   </div>
@@ -540,7 +540,8 @@ VERSION:      v0.3 - 2026-06-12</pre>
 <div class="section" id="s14">
   <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q2).</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.5</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q2).</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Red Canary/Picus/Darktrace: install-path anomaly detection, component-DLL inventory, client32.ini gateway extraction, ClickFix delivery, hands-on lineage. 6 CQL + 4 native hunts, 2 IOA candidates.</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-26</span><span>Initial pack: NetSupport Manager RAT overview + hunts. Pre-gold top-bar layout.</span></div>
   </div>

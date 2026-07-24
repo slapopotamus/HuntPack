@@ -119,7 +119,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">macOS.Gaslight — DPRK Rust Backdoor / Infostealer</div>
-    <div class="version">v0.2 · 2026-06-29</div>
+    <div class="version">v0.3 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -157,7 +157,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
       <div class="meta-item"><div class="mk">Type</div><div class="mv">Backdoor / Infostealer (Rust)</div></div>
       <div class="meta-item"><div class="mk">Platform</div><div class="mv">macOS (Apple Silicon arm64 + x86_64)</div></div>
       <div class="meta-item"><div class="mk">Attribution</div><div class="mv">DPRK-aligned (high confidence)</div></div>
-      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.2 · 2026-06-29</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-06-29</div></div>
       <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
       <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (4 corroborating sources)</div></div>
     </div>
@@ -328,7 +328,7 @@ WHERE name LIKE '%com.apple.system.services.activity%'
 #event_simpleName=/NewExecutableWritten|FileRename/
 | TargetFileName=/LaunchAgents\/.*com\.apple\.system\.services\.activity.*\.plist$/i
 | TargetFileName!=/^\/System\/Library\//
-| table([ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData])</pre>
+| table([ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData], limit=200)</pre>
         </div>
       </div>
 
@@ -351,7 +351,7 @@ WHERE name LIKE '%com.apple.system.services.activity%'
 <span class="cm">// TUNING: exclude approved inventory/backup agents by ImageFileName</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | CommandLine=/login\.keychain-db|system_profiler|ps\s+aux/i
-| table([ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine])</pre>
+| table([ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine], limit=200)</pre>
         </div>
       </div>
 
@@ -375,7 +375,7 @@ WHERE name LIKE '%com.apple.system.services.activity%'
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | ImageFileName=/cpython-3\.10\.18.*\/(bin\/)?python3?$/i
 | ImageFileName!=/\/\.pyenv\//
-| table([ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine, SHA256HashData])</pre>
+| table([ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine, SHA256HashData], limit=200)</pre>
         </div>
       </div>
 
@@ -399,7 +399,7 @@ WHERE name LIKE '%com.apple.system.services.activity%'
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | CommandLine=/base64\s+(-d|--decode)/i
 | CommandLine=/python3?/i
-| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])</pre>
+| table([ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine], limit=200)</pre>
         </div>
       </div>
 
@@ -423,7 +423,7 @@ WHERE name LIKE '%com.apple.system.services.activity%'
 #event_simpleName=DnsRequest
 | DomainName=/^api\.telegram\.org$/i
 | ContextBaseFileName!=/^(Telegram|Safari|Google Chrome|firefox|com\.apple\.WebKit|Brave Browser)/i
-| table([ComputerName, DomainName, ContextBaseFileName, ContextProcessId])</pre>
+| table([ComputerName, DomainName, ContextBaseFileName, ContextProcessId], limit=200)</pre>
         </div>
       </div>
 
@@ -445,7 +445,7 @@ WHERE name LIKE '%com.apple.system.services.activity%'
 <span class="cm">// FALSE POSITIVES: none (exact hash match)</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | SHA256HashData=/^(6328567511d88fdc2ae0939c5ef17b7a63d2a833881900de018a4f12f4982525|77b4fd46994992f0e57302cfe76ed23c0d90101381d2b89fc2ddf5c4536e77ca|baabf249c77bc54c54ab0e66e15af798bd28aa5b4683554456a8b73ab8741239|b3c56d689414343589f38394d19ba2fe9a518133281200faa0556ba4e4136394)$/i
-| table([ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData])</pre>
+| table([ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData], limit=200)</pre>
         </div>
       </div>
 
@@ -674,7 +674,8 @@ VERSION    : v0.1 - 2026-06-27</pre>
   <div class="section" id="s17">
     <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
     <div class="section-body">
-      <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q1).</span></div>
+      <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q1).</span></div>
       <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-27</span><span>Initial HuntPack — 6 CQL queries, 4 IOA recommendations, tiered macOS hardening, containment runbook. Built from SentinelOne Labs teardown + 3 corroborating sources. All atomic IOCs traced to cited intel.</span></div>
     </div>
   </div>

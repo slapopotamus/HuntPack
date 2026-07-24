@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">DEBULL · Device-Code<br>Phishing (M365 / Entra ID)</div>
-    <div class="version">v0.2 · 2026-07-19</div>
+    <div class="version">v0.3 · 2026-07-19</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -146,7 +146,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <h1>DEBULL — Microsoft Device-Code Phishing (Storm-2372-style Tradecraft)</h1>
   <div class="subtitle">Phishing-as-a-Service tooling that abuses the OAuth 2.0 Device Authorization Grant to take over M365 / Entra ID accounts — no password stolen, MFA bypassed.</div>
   <div class="meta-grid">
-    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.2 · 2026-07-19</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.3 · 2026-07-19</div></div>
     <div class="meta-item"><div class="mk">Threat Class</div><div class="mv">Identity / PhaaS / ATO</div></div>
     <div class="meta-item"><div class="mk">Primary Plane</div><div class="mv">Entra ID · M365</div></div>
     <div class="meta-item"><div class="mk">CQL Queries</div><div class="mv">10</div></div>
@@ -395,7 +395,7 @@ mab
 <span class="cm">// TUNING: split the compromised-site domain into its own lower-severity hunt if it is noisy</span>
 #event_simpleName=DnsRequest
 | DomainName=/^(frenksv\.sbs|debull\.app|page-8-xls-vft-lvfsa\.pefferarley83249\.workers\.dev|trogir-rental\.com|vps3459922\.trouble-free\.net)$/i
-| table([@timestamp, aid, ComputerName, UserName, DomainName, ContextBaseFileName])
+| table([@timestamp, aid, ComputerName, UserName, DomainName, ContextBaseFileName], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -415,7 +415,7 @@ mab
 <span class="cm">//   shared web host, so treat that hit as hunt-grade rather than confirmed-malicious</span>
 #event_simpleName=/NetworkConnectIP4|NetworkConnectIP6/
 | in(RemoteAddressIP4, values=["162.35.167.138", "96.126.176.130", "49.12.61.13"])
-| table([@timestamp, aid, ComputerName, UserName, ContextBaseFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort])
+| table([@timestamp, aid, ComputerName, UserName, ContextBaseFileName, LocalAddressIP4, RemoteAddressIP4, RemotePort], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -464,7 +464,7 @@ mab
 <span class="cm">//   azure.signinlogs.properties.appDisplayName - confirm shape with head(10) first</span>
 <span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | authenticationProtocol=/deviceCode/i
-| table([@timestamp, userPrincipalName, appDisplayName, appId, ipAddress, location, resultType, correlationId, userAgent])
+| table([@timestamp, userPrincipalName, appDisplayName, appId, ipAddress, location, resultType, correlationId, userAgent], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -551,7 +551,7 @@ mab
 <span class="cm">//   carries the device display name before relying on the name regex</span>
 <span class="cm">// LOOKBACK: 30d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | operationName=/(Register device|Add device|Add registered owner to device|Add registered users to device)/i
-| table([@timestamp, operationName, result, initiatedBy, targetDeviceDisplayName, targetDeviceId, ipAddress, userPrincipalName])
+| table([@timestamp, operationName, result, initiatedBy, targetDeviceDisplayName, targetDeviceId, ipAddress, userPrincipalName], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -573,7 +573,7 @@ mab
 <span class="cm">// ⚠ validate in tenant: the rule-parameter field name varies by connector</span>
 <span class="cm">// LOOKBACK: 14d. Set the search window in Falcon; no in-query time filter (an expression on the right of a comparison is not valid in CQL filter context).</span>
 | operationName=/^(New-InboxRule|Set-InboxRule|UpdateInboxRules|New-TransportRule|Set-TransportRule|Set-Mailbox)$/i
-| table([@timestamp, userPrincipalName, operationName, clientIP, resultStatus, parameters])
+| table([@timestamp, userPrincipalName, operationName, clientIP, resultStatus, parameters], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -1083,7 +1083,7 @@ Get-OrganizationConfig | Select-Object AuditDisabled   # expect False
   <div class="section-body">
     <div class="ticket">
 <pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt - DEBULL device-code phishing (Storm-2372-style M365/Entra ID ATO)
-VERSION:      v0.2 - 2026-07-19
+VERSION:      v0.3 - 2026-07-19
 SEVERITY:     High (MFA-bypassing account takeover; PRT persistence survives password reset)
 SCOPE:        Entra ID / M365 identity control plane; Exchange Online; SharePoint/OneDrive;
               Falcon-managed endpoints (lure-fetch visibility only)
@@ -1131,7 +1131,8 @@ AUTHOR:       HuntPack</pre>
 <div class="section" id="s17">
   <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-07-24</span><span>CQL fix. Removed the in-query <code>@timestamp &gt;= (now() - N)</code> timeframe line from every query: an expression on the right of a comparison is not valid in CQL filter context, so Falcon rejected the query at line 1 and no hunt would run. The lookback is now a <code>// LOOKBACK</code> comment; set the window with Falcon's time picker, which is what the rest of the library does. No detection logic, fields, or IOCs changed.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-07-24</span><span>CQL fix. Removed the in-query <code>@timestamp &gt;= (now() - N)</code> timeframe line from every query: an expression on the right of a comparison is not valid in CQL filter context, so Falcon rejected the query at line 1 and no hunt would run. The lookback is now a <code>// LOOKBACK</code> comment; set the window with Falcon's time picker, which is what the rest of the library does. No detection logic, fields, or IOCs changed.</span></div>
         <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-19</span><span>Initial pack. Six sources snapshotted and cited. 10 CQL queries (3 endpoint, 7 Entra/M365 NGSIEM), 5 native KQL/checklist hunts, 14 ATT&amp;CK techniques, 14 tiered hardening controls, 5 deployable playbooks, 3-phase containment runbook. Corrected the widespread conflation of DEBULL with the separately-reported ARToken/EvilTokens panel — ARToken indicators are carried but labelled distinctly. Microsoft Authentication Broker client-ID GUID omitted from the import CSV (not present in any fetched source); queries match on app display name instead. <code>trogir-rental.com</code>, <code>49.12.61.13</code> and the VPS hostname downgraded to hunt-only to prevent collateral blocking of a compromised legitimate site and shared hosting.</span></div>
   </div>
 </div>

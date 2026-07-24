@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">UNC3753 / Luna Moth<br>Vishing Data-Theft Extortion</div>
-    <div class="version">v0.4 · 2026-06-29</div>
+    <div class="version">v0.5 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -147,7 +147,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
     <div class="meta-item"><div class="mk">Type</div><div class="mv">Vishing / social engineering → RMM → exfil → extortion</div></div>
     <div class="meta-item"><div class="mk">Targets</div><div class="mv">US legal, financial &amp; professional-services firms</div></div>
     <div class="meta-item"><div class="mk">Speed</div><div class="mv">Call → theft in &lt; 1 business day (often &lt; 1 hour)</div></div>
-    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.4 · 2026-06-29</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.5 · 2026-06-29</div></div>
     <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
   </div>
 </div>
@@ -284,7 +284,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// ENV EDIT: allow-list sanctioned RMM + the IT-support host group</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | FileName=/^(AnyDesk|ScreenConnect|Connectwisecontrol|ZohoAssist|Zaservice|Splashtop|SRService|TeamViewer|AteraAgent|syncro|LogMeIn|RustDesk)[^\\]*\.exe$/i
-| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, ParentBaseFileName])</pre>
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, ParentBaseFileName], limit=200)</pre>
       </div>
     </div>
 
@@ -301,7 +301,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: correlate to a following exfil (Q3) / mass file access (Q4)</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | FileName=/^(quickassist|msra)\.exe$/i
-| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName])</pre>
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName], limit=200)</pre>
       </div>
     </div>
 
@@ -319,7 +319,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | (FileName=/^(rclone|winscp|filezilla|megasync|pcloud)\.exe$/i
    or CommandLine=/(rclone\s+(copy|sync|move)|mega\.nz|put\s+.+\.zip|--no-check-certificate.*upload)/i)
-| table([@timestamp, ComputerName, UserName, FileName, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine], limit=200)</pre>
       </div>
     </div>
 
@@ -337,7 +337,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | (FileName=/^(7z|7zG|WinRAR|Rar)\.exe$/i and CommandLine=/\b(a|u)\b.+\.(7z|zip|rar)/i)
    or CommandLine=/Get-ChildItem.+-Recurse.+(\.docx?|\.pdf|\.xlsx?)|forfiles\s+\/s/i
-| table([@timestamp, ComputerName, UserName, FileName, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine], limit=200)</pre>
       </div>
     </div>
 
@@ -374,7 +374,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=NetworkConnectIP4
 | ContextBaseFileName=/^(AnyDesk|ScreenConnect|ZohoAssist|Splashtop|RustDesk|TeamViewer)[^\\]*\.exe$/i
 | RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|127\.)/
-| table([@timestamp, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])</pre>
+| table([@timestamp, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort], limit=200)</pre>
       </div>
     </div>
   </div>
@@ -540,7 +540,8 @@ VERSION:      v0.3 - 2026-06-12</pre>
 <div class="section" id="s14">
   <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q5).</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.5</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q5).</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid with a human-layer playbook block, coverage+validation, .ticket). Refreshed from Mandiant/FBI Flash/THN: Jan–May 2026 campaign, aliases (Luna Moth/SRG/Chatty Spider/Storm-0252), invoice→vishing→RMM/screen-share→exfil chain, &lt;1-hour speed, 2026 physical-intrusion escalation, Conti lineage. 6 CQL + 5 native hunts, 2 IOA candidates.</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-26</span><span>Initial pack: UNC3753 vishing extortion overview + hunts. Pre-gold top-bar layout.</span></div>
   </div>

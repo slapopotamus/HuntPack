@@ -112,7 +112,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">GentleKiller — Gentlemen BYOVD EDR-Killer Framework</div>
-    <div class="version">v0.2 · 2026-06-29</div>
+    <div class="version">v0.3 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -307,7 +307,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// MITRE: T1068, T1014  CONF: high  FP: low  COST: low | REQUIRES: PeFileWritten</span>
 #event_simpleName=/PeFileWritten|NewExecutableWritten/
 | TargetFileName=/(\\)(eb|nseckrnl|vgk|stpm_old|stpm_new|dmx|360netmon_wfp|G11|googleApiUtil64|ThrottleBlood|havoc)\.sys$/i
-| table([ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData])</pre>
+| table([ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData], limit=200)</pre>
         </div>
       </div>
 
@@ -325,10 +325,10 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <pre class="cql" id="cql2"><span class="cm">// HUNT: kernel service install pointing at user-writable .sys</span>
 <span class="cm">// MITRE: T1543.003, T1068  CONF: high  FP: medium  COST: low | REQUIRES: ServiceInstalled</span>
 <span class="cm">// TUNING: exclude deployment tooling: | !in(field="ServiceImagePath", values=["*\\Windows\\System32\\drivers\\*"])</span>
-#event_simpleName=ServiceInstalled
+#event_simpleName=CreateService|ModifyServiceBinary
 | ServiceImagePath=/\.sys/i
 | ServiceImagePath=/\\Temp\\|\\ProgramData\\|\\Downloads\\|\\Users\\|\\AppData\\/i
-| table([ComputerName, UserName, ServiceDisplayName, ServiceImagePath])</pre>
+| table([ComputerName, UserName, ServiceDisplayName, ServiceImagePath], limit=200)</pre>
         </div>
       </div>
 
@@ -349,7 +349,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | ImageFileName=/\\(Kasps|FaceIT1|Valorant2|EASolo2Light|BitD1|MB2|Deletor|Symantec|Avast|Sent|Sophos|buildx64|buildx641)\.exe$/i
 | ImageFileName=/\\Temp\\|\\ProgramData\\|\\Downloads\\|\\Users\\|\\AppData\\/i
-| table([ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData])</pre>
+| table([ComputerName, UserName, ImageFileName, CommandLine, SHA256HashData], limit=200)</pre>
         </div>
       </div>
 
@@ -371,7 +371,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 | CommandLine=/CSFalcon|CSAgent|MsMpEng|SentinelAgent|SophosHealth|elastic-endpoint|bdservicehost|avp|McShield|TaniumClient/i
 | groupBy([ComputerName, ImageFileName], function=count(as=kills))
 | kills &gt;= 3
-| table([ComputerName, ImageFileName, kills])</pre>
+| table([ComputerName, ImageFileName, kills], limit=200)</pre>
         </div>
       </div>
 
@@ -392,7 +392,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=EndOfProcess
 | ImageFileName=/(CSFalconService|MsMpEng|SentinelAgent|SophosHealth|elastic-endpoint|bdservicehost|avp|McShield|ekrn|PaloAlto)\.exe$/i
 | timeChart(span=2m, series=ImageFileName, function=count())
-| table([ComputerName, ImageFileName, _count])</pre>
+| table([ComputerName, ImageFileName, _count], limit=200)</pre>
         </div>
       </div>
 
@@ -413,7 +413,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/FileOpenInfo/
 | TargetFileName=/\\Login Data$|\\key4\.db$|\\logins\.json$/i
 | ImageFileName!=/\\(chrome|msedge|firefox|brave|opera)\.exe$/i
-| table([ComputerName, UserName, ImageFileName, TargetFileName])</pre>
+| table([ComputerName, UserName, ImageFileName, TargetFileName], limit=200)</pre>
         </div>
       </div>
 
@@ -434,7 +434,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/PeFileWritten|NewExecutableWritten/
 | TargetFileName=/\.sys$/i
 | TargetFileName=/\\Temp\\|\\Downloads\\|\\ProgramData\\|\\AppData\\/i
-| table([ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData])</pre>
+| table([ComputerName, UserName, ImageFileName, TargetFileName, SHA256HashData], limit=200)</pre>
         </div>
       </div>
     </div>
@@ -651,7 +651,8 @@ VERSION:    v0.1 · 2026-06-22</pre>
   <div class="section" id="s17">
     <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
     <div class="section-body">
-      <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q6).</span></div>
+      <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q6).</span></div>
       <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-22</span><span>Initial HuntPack — 7 CQL queries; full ESET IOC set (12 killer binaries + 12 vuln drivers, SHA-1); BYOVD-focused hardening (vuln-driver blocklist / HVCI / WDAC), playbooks, containment. Scoped to the GentleKiller EDR-killer tooling (distinct from the Gentlemen ransomware lifecycle).</span></div>
     </div>
   </div>

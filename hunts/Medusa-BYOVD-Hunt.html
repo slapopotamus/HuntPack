@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">Medusa Ransomware<br>ABYSSWORKER BYOVD</div>
-    <div class="version">v0.4 · 2026-06-29</div>
+    <div class="version">v0.5 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -284,7 +284,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/DriverLoad|KernelModuleLoad|ModuleLoadFromMemory/
 | (FileName=/^smuol\.sys$/i
    or (FileName=/^csagent\.sys$/i and ImageFileName!=/\\CrowdStrike\\/i))
-| table([@timestamp, ComputerName, FileName, ImageFileName, SHA256HashData])</pre>
+| table([@timestamp, ComputerName, FileName, ImageFileName, SHA256HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -301,7 +301,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: flag ImagePath -> .sys in %TEMP%/%AppData%/ProgramData; correlate to Q1</span>
 #event_simpleName=/ServiceStarted|ServiceImagePath|RegSystemConfigValueUpdate/
 | RegStringValue=/\\(Temp|AppData|ProgramData|Users)\\.+\.sys$/i
-| table([@timestamp, ComputerName, ServiceName, RegStringValue])</pre>
+| table([@timestamp, ComputerName, ServiceName, RegStringValue], limit=200)</pre>
       </div>
     </div>
 
@@ -318,7 +318,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: correlate to Q1/Q2 on the same host; alert on clusters of sensor death</span>
 #event_simpleName=EndOfProcess
 | FileName=/^(MsMpEng|SenseIR|MsSense|CSFalconService|elastic-endpoint|ekrn|avp|SentinelAgent|xagt|cb)\.exe$/i
-| table([@timestamp, ComputerName, FileName, ImageFileName])</pre>
+| table([@timestamp, ComputerName, FileName, ImageFileName], limit=200)</pre>
       </div>
     </div>
 
@@ -335,7 +335,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: flag a user/temp-path process writing a .sys; correlate to Q1/Q2</span>
 #event_simpleName=/PeFileWritten|NewExecutableWritten/
 | TargetFileName=/\\(Temp|AppData|ProgramData|Users)\\.+\.sys$/i
-| table([@timestamp, ComputerName, ContextBaseFileName, TargetFileName, SHA256HashData])</pre>
+| table([@timestamp, ComputerName, ContextBaseFileName, TargetFileName, SHA256HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -354,7 +354,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 | ((FileName=/^(vssadmin|wmic|diskshadow)\.exe$/i and CommandLine=/(delete|shadowcopy|shadows)/i)
    or (FileName=/^bcdedit\.exe$/i and CommandLine=/(recoveryenabled|bootstatuspolicy)/i)
    or (FileName=/^wbadmin\.exe$/i and CommandLine=/delete/i))
-| table([@timestamp, ComputerName, UserName, FileName, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine], limit=200)</pre>
       </div>
     </div>
 
@@ -371,7 +371,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: tune note filename + extension to current Medusa intel</span>
 #event_simpleName=/PeFileWritten|NewExecutableWritten/
 | TargetFileName=/(\.medusa$|!READ_ME_MEDUSA!|MEDUSA.+README.+\.html?$)/i
-| table([@timestamp, ComputerName, TargetFileName])</pre>
+| table([@timestamp, ComputerName, TargetFileName], limit=200)</pre>
       </div>
     </div>
   </div>
@@ -539,7 +539,8 @@ VERSION:      v0.3 - 2026-06-12</pre>
 <div class="section" id="s14">
   <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q6).</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.5</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): removed invalid FileCreateInfo event (Q6).</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-12</span><span>Re-hunt + reformatted to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Refreshed from Elastic/CISA/Symantec/Microsoft: ABYSSWORKER (smuol.sys) CSAgent.sys impersonation + IOCTL EDR-kill, HEARTCRYPT loader, revoked/stolen certs (POORTRY lineage), Medusa = Spearwing/FROZEN SPIDER/Storm-1175, HVCI vulnerable-driver blocklist as the primary control. 6 CQL + 4 native hunts, 2 IOA candidates.</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-05-20</span><span>Initial pack: Medusa BYOVD overview + hunts. Pre-gold top-bar layout.</span></div>
   </div>

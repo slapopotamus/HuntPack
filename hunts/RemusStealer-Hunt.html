@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">RemusStealer · AnimateClipper · SessionGate<br>Fake Dev-Tool Sites (SEO + TDS)</div>
-    <div class="version">v0.3 · 2026-06-29</div>
+    <div class="version">v0.4 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -285,7 +285,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 | ImageFileName=/\\(Downloads|Temp)\\/i
 | FileName=/^(ghidra|dnspy|ilspy|spiderfoot|grpcurl|mqttexplorer|mfcmapi|winsetupfromusb|crystaldiskmark|guiformat).*\.(exe|msi)$/i
 | ParentBaseFileName=/^(chrome|msedge|firefox|brave|opera|explorer)\.exe$/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine], limit=200)</pre>
       </div>
     </div>
 
@@ -300,12 +300,12 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <pre class="cql" id="cql2"><span class="cm">// HUNT: RemusStealer mass browser/wallet credential access</span>
 <span class="cm">// MITRE: T1555.003, T1539 | CONF: high  FP: medium  COST: med</span>
 <span class="cm">// TUNING: require many distinct targets + non-browser image; baseline backup/security tools</span>
-#event_simpleName=/FileOpenInfo|RansomFileOpenInfo|FileReadInfo/
+#event_simpleName=/FileOpenInfo/
 | TargetFileName=/(\\User Data\\.+\\(Login Data|Web Data|Cookies|Local State)|\\wallet\.dat|\\Ethereum\\keystore|MetaMask|Local Extension Settings|Authy|\\2fa)/i
 | ImageFileName!=/\\(chrome|msedge|firefox|brave|opera|opera_gx)\.exe$/i
 | groupBy([ComputerName, ImageFileName], function=count(TargetFileName, distinct=true, as=files))
 | files &gt;= 6
-| table([ComputerName, ImageFileName, files])</pre>
+| table([ComputerName, ImageFileName, files], limit=200)</pre>
       </div>
     </div>
 
@@ -323,7 +323,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">//         persistence and correlate to Q1; review for crypto-address swapping at IR</span>
 #event_simpleName=/AsepValueUpdate|ScheduledTaskRegistered|RegGenericValueUpdate/
 | RegStringValue=/\\(Downloads|AppData|Temp|ProgramData)\\.+\.(exe|scr|com)$/i
-| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue])</pre>
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue], limit=200)</pre>
       </div>
     </div>
 
@@ -341,7 +341,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | ParentImageFileName=/\\(Downloads|Temp|AppData)\\/i
 | FileName=/^(powershell|pwsh|cmd|wscript|cscript|mshta|rundll32|regsvr32|conhost)\.exe$/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
       </div>
     </div>
 
@@ -361,7 +361,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 | ContextImageFileName!=/\\(chrome|msedge|firefox|brave|opera)\.exe$/i
 | in(RemotePort, values=[80, 443, 8080, 8443])
 | groupBy([ComputerName, ContextImageFileName, RemoteAddressIP4], function=count())
-| table([ComputerName, ContextImageFileName, RemoteAddressIP4, _count])</pre>
+| table([ComputerName, ContextImageFileName, RemoteAddressIP4, _count], limit=200)</pre>
       </div>
     </div>
 
@@ -378,7 +378,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: correlate to Q1; legitimate dev tools rarely auto-start from Downloads/AppData</span>
 #event_simpleName=/AsepValueUpdate|ScheduledTaskRegistered/
 | RegStringValue=/\\(Downloads|AppData\\Local\\Temp|ProgramData)\\.+\.(exe|scr|dll|com)/i
-| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue])</pre>
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegStringValue], limit=200)</pre>
       </div>
     </div>
   </div>
@@ -555,7 +555,8 @@ VERSION:      v0.2 - 2026-06-16</pre>
 <div class="section" id="s14">
   <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): ImageFileName→ContextImageFileName on network event and regex-on-numeric RemotePort→in() (Q5).</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): ImageFileName→ContextImageFileName on network event and regex-on-numeric RemotePort→in() (Q5).</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-16</span><span>Re-published with refreshed metadata — index now shows Updated 2026-06-16 over the original Added date (2026-06-12). No detection-content changes.</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-12</span><span>Initial pack, built in the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation, .ticket). Research from Check Point Research + The Hacker News (June 2026): 100+ SEO-poisoned spoofed open-source tool sites → CloudFront JS → gated TDS delivering RemusStealer (browser/wallet/2FA theft), AnimateClipper (clipboard wallet-swap), and SessionGate (obfuscated multi-stage loader). 6 CQL + 4 native hunts, 2 IOA candidates; behavior-anchored (TDS-gated payload, churning domains).</span></div>
   </div>

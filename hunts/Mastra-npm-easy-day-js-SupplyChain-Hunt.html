@@ -126,7 +126,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">Mastra npm Supply-Chain — easy-day-js</div>
-    <div class="version">v0.2 · 2026-06-29</div>
+    <div class="version">v0.3 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -348,7 +348,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 | ImageFileName=/\\node(\.exe)?$/i
 | CommandLine=/setup\.cjs/i
 | CommandLine=/--no-warnings/i OR ParentBaseFileName=/^(npm|npx|node|yarn|pnpm)/i
-| table([ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, SHA256HashData, aid])</pre>
+| table([ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, SHA256HashData, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -373,7 +373,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 | ParentBaseFileName=/^node/i
 | CommandLine=/[\/\\][0-9a-f]{24}\.js/i
 | CommandLine=/(Temp|tmp|Users|home|AppData)/i
-| table([ComputerName, UserName, ParentBaseFileName, CommandLine, SHA256HashData, aid])</pre>
+| table([ComputerName, UserName, ParentBaseFileName, CommandLine, SHA256HashData, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -397,7 +397,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | CommandLine=/NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*0/i
 | ParentBaseFileName!=/^(corp-build-tool)\.exe$/i
-| table([ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine, aid])</pre>
+| table([ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -419,7 +419,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 <span class="cm">// FALSE POSITIVES: none expected; these IPs are attacker-attributed</span>
 #event_simpleName=NetworkConnectIP4
 | RemoteAddressIP4=/^23\.254\.164\.(92|123)$/
-| table([ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, aid])</pre>
+| table([ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -444,7 +444,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 | ContextBaseFileName=/^node(\.exe)?$/i
 | in(RemotePort, values=[8000, 8080, 8443])
 | RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/
-| table([ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, aid])</pre>
+| table([ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -467,7 +467,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 <span class="cm">// TUNING: require a node-family process context; correlate with Q1/Q4 on same aid</span>
 #event_simpleName=/FileDeleteInfo/
 | TargetFileName=/(\\|\/)(setup\.cjs|\.pkg_history|\.pkg_logs)$/i
-| table([ComputerName, UserName, #event_simpleName, TargetFileName, ContextBaseFileName, aid])</pre>
+| table([ComputerName, UserName, #event_simpleName, TargetFileName, ContextBaseFileName, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -490,7 +490,7 @@ Get-ChildItem -Path $env:USERPROFILE,$env:TEMP -Filter ".pkg_*" -Force -EA Silen
 <span class="cm">// TUNING: exclude scanner ContextBaseFileName; confirm path under node_modules</span>
 #event_simpleName=/NewExecutableWritten|PeFileWritten/
 | TargetFileName=/node_modules[\/\\]easy-day-js[\/\\]/i OR TargetFileName=/easy-day-js/i AND TargetFileName=/package-lock\.json$/i
-| table([ComputerName, UserName, TargetFileName, ContextBaseFileName, aid])</pre>
+| table([ComputerName, UserName, TargetFileName, ContextBaseFileName, aid], limit=200)</pre>
         </div>
       </div>
 
@@ -721,7 +721,8 @@ VERSION:    v0.1 · 2026-06-18 · HuntPack</pre>
   <div class="section" id="s17">
     <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
     <div class="section-body">
-      <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): regex-on-numeric RemotePort→in() (Q5), removed invalid FileCreateInfo (Q6), replaced sole FileCreateInfo with valid file-write events (Q7).</span></div>
+      <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): regex-on-numeric RemotePort→in() (Q5), removed invalid FileCreateInfo (Q6), replaced sole FileCreateInfo with valid file-write events (Q7).</span></div>
       <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-18</span><span>Initial HuntPack. 7 CQL queries (3 IOA/Prevent candidates), behavioral + C2 IOC appendix, tiered hardening, deployable playbooks, containment runbook. Built from multi-vendor intel (StepSecurity, Endor Labs, Aikido, The Hacker News, Orca).</span></div>
     </div>
   </div>

@@ -111,7 +111,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
   <div class="sidebar-logo">
     <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
     <div class="pack-name">Awesome Motive CDN<br>WordPress Supply-Chain Attack</div>
-    <div class="version">v0.2 · 2026-06-29</div>
+    <div class="version">v0.3 · 2026-06-29</div>
   </div>
   <nav>
     <div class="nav-section">Overview</div>
@@ -288,7 +288,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/DnsRequest/i
 | DomainName=/(^|\.)tidio/i
 | DomainName!=/(^|\.)tidio\.com$/i
-| table([@timestamp, aid, ComputerName, DomainName, RequestType])
+| table([@timestamp, aid, ComputerName, DomainName, RequestType], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -310,7 +310,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 | ContextBaseFileName=/^(php|php-fpm[0-9.]*|httpd|apache2|nginx|w3wp)(\.exe)?$/i
 | in(RemotePort, values=[80, 443, 8080, 8443])
 | RemoteAddressIP4!=/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|127\.)/
-| table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort])
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -330,7 +330,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: confirm against the WP DB (N4); allow-list known-good dev_ accounts</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
 | CommandLine=/(developer_api1|customer1usx@gmail\.com|user\s+create\s+dev_[a-z0-9]+|INSERT.+wp_users)/i
-| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName])
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -350,7 +350,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <span class="cm">// TUNING: alert on the two named dirs first; for the generic .php rule, allow-list scheduled update windows</span>
 #event_simpleName=/PeFileWritten/i
 | TargetFileName=/wp-content[\/\\]plugins[\/\\](content-delivery-helper|database-optimizer)[\/\\]/i
-| table([@timestamp, aid, ComputerName, ContextBaseFileName, TargetFileName, UserName])
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, TargetFileName, UserName], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -372,7 +372,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 | DomainName=/(optinmonster|trustpulse|pushengage|awesomemotive)/i
 | @timestamp&gt;=1749686400000
 | @timestamp&lt;=1749945600000
-| table([@timestamp, aid, ComputerName, DomainName])
+| table([@timestamp, aid, ComputerName, DomainName], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -393,7 +393,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/i
 | ParentBaseFileName=/^(php|php-fpm[0-9.]*|httpd|apache2|nginx|w3wp)(\.exe)?$/i
 | FileName=/^(bash|sh|dash|ksh|zsh|cmd|powershell|pwsh|wget|curl|python[0-9.]*)(\.exe)?$/i
-| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)
 | sort(@timestamp, order=desc)</pre>
       </div>
     </div>
@@ -563,7 +563,8 @@ VERSION:      v0.1 - 2026-06-16</pre>
 <div class="section" id="s14">
   <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): replaced regex-on-numeric RemotePort with in() (Q2); also removed an invalid FileCreateInfo event name from the plugin-drop file-write hunt.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-07-24</span><span>CQL correctness pass. All <code>table()</code> calls now carry an explicit row limit: the default is 200 and truncation is silent, so a capped result was indistinguishable from a complete one. Atomic-IOC sweeps (filters over 5+ hashes or C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped; behavioural hunts use <code>limit=200</code>, where exceeding the cap indicates the query needs tuning. Where present, event names that do not exist in the Falcon data model were corrected (e.g. <code>ServiceInstalled</code> is a Sysmon concept, not a Falcon event; <code>ElfFileWritten</code> is <code>ELFFileWritten</code>) — such queries could never return a row. No detection logic, fields, or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-06-29</span><span>CQL syntax review (crowdstrike-logscale-v3): replaced regex-on-numeric RemotePort with in() (Q2); also removed an invalid FileCreateInfo event name from the plugin-drop file-write hunt.</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-06-16</span><span>Initial pack — built to the review-v2 gold layout (fixed left-sidebar scrollspy TOC, collapsible, Falcon cloud selector inside the CQL section, per-card Copy/Open-in-Falcon, Grouped IOC Quick-Copy grid, coverage+validation gates, .ticket). Covers the Awesome Motive CDN supply-chain attack on OptinMonster / TrustPulse / PushEngage: 6 CQL hunts (2 network/DNS C2, 1 identity, 2 file/process backdoor, 1 CDN-exposure), 4 native hunts, 3 IOA/IOC candidates. Keyed on the tidio.cc C2 domain, the content-delivery-helper / database-optimizer backdoor plugins, and the developer_api1 / dev_* rogue admins, plus the 2026-06-12..06-14 payload window.</span></div>
   </div>
 </div>
