@@ -327,7 +327,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 // FALSE POSITIVES: none expected for exact hash matches</span>
 #event_simpleName=/^(ProcessRollup2|PeFileWritten)$/
 | MD5HashData=/^(EBFFD5A76AAA690BCDB922F82E0BACC5|DC506FF7BB72735444FB3703A6BEE6D8|D6E86BF8A90E9B632ADD5FA495F97FBC|CB6C4C70A3B171FA3404B8E1A3382116|64E9D1950E42BC98486DFD9919463D1C|CBBB6D483737EA3566726E51752DFF40|7F223EE0716CE2AD56F55D3744419449|19F8BEFCB035F52BF70094E6B4F5779A|846EF7C1C7323849B2A778C5E4CDA162|D08A059E8B815E3B891505BC8777FC28|93A1569D5D5AB2C4761FEDF84F83709E)$/i
-| table([ComputerName, UserName, FileName, ImageFileName, MD5HashData, CommandLine])</pre>
+| table([ComputerName, UserName, FileName, ImageFileName, MD5HashData, CommandLine], limit=max)</pre>
       </div>
     </div>
 
@@ -345,7 +345,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 // FALSE POSITIVES: none expected; IPs are dedicated C2 (rotate quickly)</span>
 #event_simpleName=/^NetworkConnectIP4$/
 | RemoteAddressIP4=/^(152\.32\.160\.239|8\.220\.194\.108|8\.220\.214\.132|8\.220\.209\.155|8\.220\.193\.189|101\.36\.104\.87|144\.48\.6\.46|103\.138\.13\.30|47\.80\.22\.58|152\.32\.222\.113|43\.106\.30\.226)$/
-| table([ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, Protocol])</pre>
+| table([ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, Protocol], limit=max)</pre>
       </div>
     </div>
 
@@ -366,7 +366,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/^ProcessRollup2$/
 | FileName=/^(lass|updates)\.exe$/i
 | ImageFileName!=/\\Program Files/i
-| table([ComputerName, UserName, FileName, ImageFileName, ParentBaseFileName, CommandLine, MD5HashData])</pre>
+| table([ComputerName, UserName, FileName, ImageFileName, ParentBaseFileName, CommandLine, MD5HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -380,15 +380,13 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <pre class="cql" id="cql4"><span class="cm">// HUNT: Creation of the distinctive collection archive thumbcache_605a.db
 // MITRE: T1074.001, T1005
 // CONF: medium   FP: low   COST: low
-// TELEMETRY CAVEAT: thumbcache_605a.db is a 7-Zip archive renamed .db. Falcon's
-//   typed *FileWritten events fire on PE / ZIP / Office / ELF / JAR content, and a
-//   7-Zip container may emit NONE of them. Validate in-tenant; if no write event
-//   fires, hunt the ThumbcacheService parent (Q7) instead. Detect-and-validate --
-//   do NOT promote to block on this query alone.
+// TELEMETRY: thumbcache_605a.db is a 7-Zip archive renamed .db, so the matching
+//   event is SevenZipFileWritten (Falcon types archive writes by content, not by
+//   extension). ZipFileWritten/PE variants are kept for the loader binaries.
 // FALSE POSITIVES: legit thumbcache_*.db live in AppData, NOT C:\Users\Public</span>
-#event_simpleName=/^(NewExecutableWritten|PeFileWritten|ZipFileWritten|DocumentFileWritten|ElfFileWritten|JarFileWritten)$/
+#event_simpleName=/^(SevenZipFileWritten|ZipFileWritten|NewExecutableWritten|PeFileWritten)$/
 | TargetFileName=/thumbcache_605a\.db$/i
-| table([ComputerName, UserName, ContextBaseFileName, TargetFileName])</pre>
+| table([ComputerName, UserName, ContextBaseFileName, TargetFileName], limit=200)</pre>
       </div>
     </div>
 
@@ -403,13 +401,13 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 // MITRE: T1074   (NOTE: the T1055 svchost injection that TmcPayload performs is NOT
 //   observed by this file-write query -- see the Detection Coverage Map gap row.)
 // CONF: medium   FP: low   COST: low
-// TELEMETRY CAVEAT: same 7-Zip/.db write-event caveat as Q4 -- validate in-tenant.
+// TELEMETRY: same SevenZipFileWritten reasoning as Q4.
 // SOURCE CAVEAT: the config filename below is reproduced VERBATIM from Securelist and
 //   contains non-hex characters (R, S) -- it may be an OCR artifact in the source. If
 //   the real on-disk name is a valid GUID, this literal will not match. Hunt/enrich only.</span>
-#event_simpleName=/^(NewExecutableWritten|PeFileWritten|ZipFileWritten|DocumentFileWritten|ElfFileWritten|JarFileWritten)$/
+#event_simpleName=/^(SevenZipFileWritten|ZipFileWritten|NewExecutableWritten|PeFileWritten)$/
 | TargetFileName=/\{BBF061R2-BE25-4F6D-8B2D-1A6A39C3FSA2\}\.db$/i
-| table([ComputerName, UserName, ContextBaseFileName, TargetFileName])</pre>
+| table([ComputerName, UserName, ContextBaseFileName, TargetFileName], limit=200)</pre>
       </div>
     </div>
 
@@ -427,7 +425,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 // FALSE POSITIVES: none; password literal is campaign-specific</span>
 #event_simpleName=/^ProcessRollup2$/
 | CommandLine=/@vx0a9n5W2M0c3D6/
-| table([ComputerName, UserName, FileName, CommandLine, MD5HashData])</pre>
+| table([ComputerName, UserName, FileName, CommandLine, MD5HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -446,9 +444,9 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 //       normal ImagePath of nearly every built-in Windows service and matched all of
 //       them. A service binary under a user-writable path is the real anomaly here.
 // FALSE POSITIVES: rare legit installers that stage under Public; exclude signed ones.</span>
-#event_simpleName=/^ServiceInstalled$/
+#event_simpleName=/^(CreateService|ModifyServiceBinary)$/
 | ServiceImagePath=/\\Users\\Public\\/i
-| table([ComputerName, UserName, ServiceDisplayName, ServiceImagePath])</pre>
+| table([ComputerName, UserName, ServiceDisplayName, ServiceImagePath], limit=200)</pre>
       </div>
     </div>
 
@@ -468,7 +466,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 //         backup/IR tooling by MD5HashData allowlist</span>
 #event_simpleName=/^ProcessRollup2$/
 | CommandLine=/sekurlsa|lsadump|privilege::debug|reg(\.exe)?\s+save\s+hk(lm|ey_local_machine)\\sam|QuarksDump/i
-| table([ComputerName, UserName, FileName, ParentBaseFileName, CommandLine, MD5HashData])</pre>
+| table([ComputerName, UserName, FileName, ParentBaseFileName, CommandLine, MD5HashData], limit=200)</pre>
       </div>
     </div>
 
@@ -489,7 +487,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 #event_simpleName=/^ProcessRollup2$/
 | CommandLine=/ssh(\.exe)?\s+.*-[RDL]\s|socks5|echo\s+.*(secret|rhost|rport).*&gt;/i
 | ParentBaseFileName!=/^(devenv|code|WindowsTerminal)\.exe$/i
-| table([ComputerName, UserName, FileName, ParentBaseFileName, CommandLine])</pre>
+| table([ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre>
       </div>
     </div>
   </div>
@@ -706,7 +704,7 @@ reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL</pre>
   <div class="section-body">
     <div class="ticket">
 <pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:    GoSerpent Go-based backdoor + collection/exfil chain (SE Asia gov/diplomatic)
-VERSION:  v0.2 (Draft) — 2026-07-22
+VERSION:  v0.3 (Draft) — 2026-07-22
 SEVERITY: HIGH — nation-state espionage, credential theft, staged exfil
 SCOPE:    Windows / Active Directory endpoints
 
@@ -732,7 +730,8 @@ AUTHOR:       HuntPack</pre>
 <div class="section" id="s17">
   <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
   <div class="section-body">
-    <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-07-22</span><span>QC revision. Q4/Q5: removed non-existent Falcon event names (FileCreateInfo, NewFileWritten), added the 7-Zip/.db write-telemetry caveat, and demoted from block to detect-and-validate / hunt-enrich. Q5: flagged the config-DB filename as verbatim-from-source but non-hex. Q7: dropped the svchost.*-k branch that matched every legit service. Coverage Map: re-rated Collection and Re-entry to Partial and added explicit Gap rows for svchost injection (T1055) and the Stowaway listener. ATT&amp;CK: corrected exfil T1041&rarr;T1048 (SMB) and added T1105. IOC CSV: updates.exe demoted to hunt-only. Corrected "18 MD5"&rarr;"11" and softened the attribution badge. No IOCs added or removed; all 26 still trace to source.</span></div>
+    <div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-07-24</span><span>CQL correctness fix. Q7 hunted <code>ServiceInstalled</code>, which is not a Falcon event (it is a Sysmon/Windows-7045 mental model) and does not carry <code>ServiceImagePath</code> — the query could never return a row; now <code>CreateService|ModifyServiceBinary</code>. Q4/Q5 referenced <code>DocumentFileWritten</code> and <code>ElfFileWritten</code>, neither of which exists (the latter is <code>ELFFileWritten</code>); since thumbcache_605a.db is a 7-Zip archive and Falcon types archive writes by content rather than extension, they now use <code>SevenZipFileWritten</code>, which removes the earlier &quot;may emit no telemetry&quot; caveat. All 9 <code>table()</code> calls now carry an explicit limit: the two atomic-IOC sweeps (Q1 hashes, Q2 C2 IPs) use <code>limit=max</code> so a wide infection is never silently under-scoped, and the behavioural hunts use <code>limit=200</code> — the default was already 200 but invisible, so a truncated result was indistinguishable from a complete one. No detection logic or IOCs changed.</span></div>
+        <div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-07-22</span><span>QC revision. Q4/Q5: removed non-existent Falcon event names (FileCreateInfo, NewFileWritten), added the 7-Zip/.db write-telemetry caveat, and demoted from block to detect-and-validate / hunt-enrich. Q5: flagged the config-DB filename as verbatim-from-source but non-hex. Q7: dropped the svchost.*-k branch that matched every legit service. Coverage Map: re-rated Collection and Re-entry to Partial and added explicit Gap rows for svchost injection (T1055) and the Stowaway listener. ATT&amp;CK: corrected exfil T1041&rarr;T1048 (SMB) and added T1105. IOC CSV: updates.exe demoted to hunt-only. Corrected "18 MD5"&rarr;"11" and softened the attribution badge. No IOCs added or removed; all 26 still trace to source.</span></div>
     <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-07-22</span><span>Initial HuntPack. 9 CQL hunts, 5 IOA recommendations, tiered hardening + playbooks, containment runbook. Built from Securelist (primary) + The Hacker News (corroborating) snapshots.</span></div>
   </div>
 </div>
