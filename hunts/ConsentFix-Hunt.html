@@ -286,6 +286,7 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
 <pre class="cql" id="cql1"><span class="cm">// HUNT: Non-interactive first-party-app token redemption (ConsentFix)</span>
 <span class="cm">// MITRE: T1528, T1550.001, T1078.004 | CONF: med-high  FP: med  COST: low-med</span>
 <span class="cm">// REQUIRES: Entra ID sign-in logs ingested into NG-SIEM; NOTE: field tokens depend on your parser — validate</span>
+<span class="cm">// TUNING: these three appIds (Azure CLI, PowerShell, Auth Broker) are used non-interactively all day by sanctioned automation -- exclude your service principals and CI egress ASNs first. A real hit is a human userPrincipalName redeeming from an autonomousSystemNumber that user has no history with; rank by first-seen (user, ASN) pairs, not by raw count.</span>
 appId=/^(04b07795-8ddb-461a-bbee-02f9e1bf7b46|aebc6443-996d-45c2-90f0-388ff96faa56|29d9ed98-a469-4536-ade2-f981bc1d605e)$/i
 | isInteractive=false
 | incomingTokenType=/refreshToken/i
@@ -375,7 +376,8 @@ appId=/^29d9ed98-a469-4536-ade2-f981bc1d605e$/i
         <p><strong>Looks for:</strong> sign-ins where the token-protection session status is <code>unbound</code>. <strong>Accomplishes:</strong> directly flags tokens not bound to their original device — the hallmark of replay. <strong>FP:</strong> clients not yet supporting token binding — baseline these first.</p>
 <pre class="cql" id="cql6"><span class="cm">// HUNT: Unbound token-protection sessions on first-party apps</span>
 <span class="cm">// MITRE: T1550.001, T1606.002 | CONF: med-high  FP: low-med  COST: low</span>
-<span class="cm">// REQUIRES: Token Protection enabled in CA; TUNING: baseline expected unbound clients first</span>
+<span class="cm">// REQUIRES: Token Protection enabled in CA</span>
+<span class="cm">// TUNING: baseline expected unbound clients first</span>
 | signInSessionStatus=/unbound/i
 | appId=/^(04b07795|aebc6443|29d9ed98)/i
 | table([userPrincipalName, appDisplayName, ipAddress, signInSessionStatus, @timestamp], limit=200)</pre>

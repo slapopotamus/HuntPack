@@ -298,7 +298,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> a Java runtime launched by an Office app or script host — the QuimaRAT dropper detonating. <strong>FP:</strong> some enterprise Java LOB apps launch via scripts; baseline and exclude known internal launchers.</p>
 <pre class="cql" id="cql1"><span class="cm">// HUNT: QuimaRAT lure-parent launches Java</span>
 <span class="cm">// MITRE: T1204.002, T1059.007  | CONF: high  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: ProcessRollup2   TUNING: exclude approved script-launched Java LOB apps</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// TUNING: exclude approved script-launched Java LOB apps</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | ParentBaseFileName=/^(winword|excel|powerpnt|outlook|wscript|cscript|mshta|hh)\.exe$/i
 | FileName=/^javaw?\.exe$/i
@@ -319,7 +320,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> <code>javaw.exe -jar</code> where the JAR lives in a user-writable/temp path — QuimaRAT payload execution. <strong>FP:</strong> some updaters run JARs from ProgramData; confirm the JAR name/signature and pair with persistence (Q3–Q5).</p>
 <pre class="cql" id="cql2"><span class="cm">// HUNT: QuimaRAT JAR from temp/appdata</span>
 <span class="cm">// MITRE: T1059.007  | CONF: high  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: ProcessRollup2   TUNING: allowlist signed internal JAR paths</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// TUNING: allowlist signed internal JAR paths</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | FileName=/^javaw?\.exe$/i
 | CommandLine=/-jar/i
@@ -341,7 +343,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> an autostart Run value whose data invokes a Java runtime and a JAR. <strong>FP:</strong> a few legitimate Java apps register Run keys; scope the value data to <code>-jar</code> from a temp/user path.</p>
 <pre class="cql" id="cql3"><span class="cm">// HUNT: QuimaRAT Run-key persistence</span>
 <span class="cm">// MITRE: T1547.001  | CONF: high  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: AsepValueUpdate   TUNING: exclude signed vendor Java autostarts</span>
+<span class="cm">// REQUIRES: AsepValueUpdate</span>
+<span class="cm">// TUNING: exclude signed vendor Java autostarts</span>
 #event_simpleName=/AsepValueUpdate|RegGenericValueUpdate/
 | RegObjectName=/\\CurrentVersion\\Run/i
 | RegStringValue=/javaw?(\.exe)?.*-jar/i
@@ -362,7 +365,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> task creation via <code>schtasks.exe</code> whose action runs a Java runtime with <code>-jar</code>. <strong>FP:</strong> exclude sanctioned Java maintenance tasks by name.</p>
 <pre class="cql" id="cql4"><span class="cm">// HUNT: QuimaRAT scheduled-task persistence</span>
 <span class="cm">// MITRE: T1053.005  | CONF: med  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: ProcessRollup2   TUNING: allowlist approved Java task names</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// TUNING: allowlist approved Java task names</span>
 #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
 | FileName=/^schtasks\.exe$/i
 | CommandLine=/javaw?(\.exe)?.*-jar/i
@@ -383,7 +387,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> a <code>.jar</code> or <code>.lnk</code> dropped into a Startup directory. <strong>FP:</strong> installers occasionally place Startup shortcuts; verify the target resolves to a Java payload.</p>
 <pre class="cql" id="cql5"><span class="cm">// HUNT: QuimaRAT Startup-folder persistence</span>
 <span class="cm">// MITRE: T1547.001  | CONF: med  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: PeFileWritten/FileCreateInfo   TUNING: exclude known installer shortcuts</span>
+<span class="cm">// REQUIRES: PeFileWritten/FileCreateInfo</span>
+<span class="cm">// TUNING: exclude known installer shortcuts</span>
 #event_simpleName=/PeFileWritten|NewExecutableWritten|FileCreateInfo/
 | TargetFileName=/Start Menu\\Programs\\Startup/i
 | TargetFileName=/\.jar$|\.lnk$/i
@@ -404,7 +409,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> DNS resolution of <code>pastebin.com</code> attributed to a Java process — the optional C2-host update channel. <strong>FP:</strong> developers legitimately hit Pastebin; scope to Java-context requests and correlate with Q2 execution.</p>
 <pre class="cql" id="cql6"><span class="cm">// HUNT: QuimaRAT Pastebin C2-rotation lookup</span>
 <span class="cm">// MITRE: T1102, T1105  | CONF: med  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: DnsRequest   TUNING: exclude developer workstations / CI hosts</span>
+<span class="cm">// REQUIRES: DnsRequest</span>
+<span class="cm">// TUNING: exclude developer workstations / CI hosts</span>
 #event_simpleName=/DnsRequest/
 | DomainName=/(^|\.)pastebin\.com$/i
 | ContextBaseFileName=/^javaw?\.exe$/i
@@ -425,7 +431,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> the QuimaRAT runtime files — an XOR <code>config.dat</code> and a temp <code>.lock</code> single-instance guard. <strong>FP:</strong> both names are generic; require a nearby Java process (correlate with Q2) before actioning.</p>
 <pre class="cql" id="cql7"><span class="cm">// HUNT: QuimaRAT runtime artifacts (config.dat / .lock)</span>
 <span class="cm">// MITRE: T1027  | CONF: med  FP: med  COST: low</span>
-<span class="cm">// REQUIRES: FileCreateInfo/PeFileWritten   TUNING: correlate with a Java process on same host</span>
+<span class="cm">// REQUIRES: FileCreateInfo/PeFileWritten</span>
+<span class="cm">// TUNING: correlate with a Java process on same host</span>
 #event_simpleName=/PeFileWritten|NewExecutableWritten|FileCreateInfo/
 | TargetFileName=/\\config\.dat$|\\Temp\\[^\\]+\.lock$/i
 | table([ComputerName, UserName, TargetFileName], limit=200)</pre>
@@ -445,7 +452,8 @@ code { background: var(--surface2); border: 1px solid var(--border); border-radi
           <p><strong>Looks for:</strong> external connections attributed to a Java process on non-web ports (candidate TCP/WebSocket C2). <strong>FP:</strong> high — Java apps make many outbound connections; use as a pivot after Q1/Q2, exclude RFC1918 and known SaaS. Replace the placeholder C2 once identified.</p>
 <pre class="cql" id="cql8"><span class="cm">// HUNT: QuimaRAT Java outbound C2 (pivot)</span>
 <span class="cm">// MITRE: T1071.001, T1573.002  | CONF: med  FP: high  COST: med</span>
-<span class="cm">// REQUIRES: NetworkConnectIP4   TUNING: exclude internal ranges + sanctioned SaaS; pivot from Q1/Q2 hosts</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// TUNING: exclude internal ranges + sanctioned SaaS; pivot from Q1/Q2 hosts</span>
 #event_simpleName=/NetworkConnectIP4/
 | ContextBaseFileName=/^javaw?\.exe$/i
 | RemotePort!=80
