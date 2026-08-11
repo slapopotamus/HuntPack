@@ -1,0 +1,798 @@
+<title>Metabase SQLi → Admin Takeover — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Metabase SQLi → Admin Takeover: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Metabase-GHSA-vwf4-SQLi-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Metabase SQLi → Admin Takeover — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Metabase SQLi → Admin Takeover: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Metabase-GHSA-vwf4-SQLi-Hunt.html">
+<meta name="twitter:card" content="summary">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #7ee787;
+  --accent-dim: rgba(126,231,135,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #0d2614 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.ticket { background: var(--surface2); border: 1px solid var(--accent); border-radius: 6px; padding: 4px; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">Metabase Unauthenticated SQLi &mdash; GHSA-vwf4-m7j8-wcjf</div>
+    <div class="version">v0.1 &middot; 2026-08-11</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; CQL Queries</a>
+    <a href="#s9">9 &middot; Custom IOA Recs</a>
+    <a href="#s10">10 &middot; IOC Appendix</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>Metabase Unauthenticated SQL Injection &rarr; Admin Takeover (GHSA-vwf4-m7j8-wcjf / CVE-2026-72898)</h1>
+    <div class="subtitle">CVSS 10.0 &middot; unauthenticated remote SQL injection in the Metabase BI/analytics platform, actively exploited in the wild since early August 2026 with multiple confirmed victim breaches</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">Metabase SQLi &rarr; Admin Takeover</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">EXPLOITED ITW</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Web App / SQL Injection</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Unauthenticated, Remote</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) &middot; 2026-08-11</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High &mdash; 8 corroborating sources</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p>Metabase, a widely deployed open-source business-intelligence and dashboarding tool, shipped a maximum-severity (CVSS 10.0) SQL injection flaw &mdash; tracked as GHSA-vwf4-m7j8-wcjf and, as confirmed directly from the GitHub advisory page on 2026-08-11, since assigned CVE-2026-72898 &mdash; in its unauthenticated <code>POST /api/session/reset_password</code> endpoint. The endpoint merges attacker-controlled JSON keys into an internal map without stripping an unexpected <code>user-id</code> field; when that field is supplied as a HoneySQL <code>{:raw "..."}</code> object it is compiled into literal, unparameterized SQL, giving a remote unauthenticated attacker blind SQL injection into the Metabase application database and, from there, the ability to mint a working administrator session. Every release from 1.58.0 through the 1.63.x branch is affected; fixed releases are 1.58.24, 1.59.21, 1.60.17, 1.61.11, 1.62.9 and 1.63.5.</p>
+      <p>The flaw was exploited in the wild before public disclosure: Metabase itself disclosed that its own Metabase Cloud environment was attacked, and self-hosted customers Framework (laptop manufacturer), Tally (form builder), n8n (workflow automation &mdash; 136 customer records, 5 with bcrypt-hashed passwords), and Kilo Code (Slack access tokens for a subset of users) have all independently confirmed breaches traced to this vulnerability. Metabase's own CEO published the operative detection signature: a <code>POST /api/session/reset_password</code> call returning HTTP 400 immediately followed by a <code>GET /api/user/current</code> call returning HTTP 200 from the same client. That pattern is the single highest-fidelity indicator of exploitation, but it lives entirely in Metabase's own application log, a reverse proxy, or a WAF &mdash; it is not something a CrowdStrike Falcon sensor can see, because Falcon has no visibility into in-process HTTP request/response handling inside the Metabase JVM.</p>
+      <p>This pack is built around what Falcon <strong>can</strong> see on and around the host running Metabase: anomalous child processes of the Metabase Java process, outbound network activity following compromise (including cloud instance-metadata theft, a realistic follow-on given Metabase's role holding connected-database credentials), dropped web shells or backdoor artifacts, unexpected listening ports, and persistence attempts. No attacker-attributed file hashes, C2 domains, or source IPs have been publicly disclosed for this campaign as of 2026-08-11, so every detection here is behavioral rather than atomic-indicator based.</p>
+      <p class="callout callout-danger">Defender priority: patching is necessary but not sufficient. Because the flaw grants full application-admin access, treat every unpatched, internet-reachable Metabase instance as presumed-compromised until you have rotated every connected-database credential it held, purged <code>core_session</code>, and audited admin accounts and API keys &mdash; the exploitation window opened well before public disclosure.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+        <tr><td>1</td><td>The Hacker News (public disclosure article)</td><td>First aggregation of the flaw, CEO-published detection signature, named victims</td><td>Yes</td></tr>
+        <tr><td>1</td><td>GitHub Security Advisory GHSA-vwf4-m7j8-wcjf</td><td>Authoritative CVSS vector, exact affected/patched version ranges, CVE-2026-72898 assignment, vendor remediation checklist</td><td>Yes</td></tr>
+        <tr><td>1</td><td>Metabase official blog &mdash; Security Update</td><td>Vendor incident narrative, detection signature, post-patch remediation steps</td><td>Yes</td></tr>
+        <tr><td>1</td><td>n8n Blog &mdash; Metabase security incident update</td><td>Self-disclosed victim breach: 136 records, timeline, DPO notification</td><td>Yes</td></tr>
+        <tr><td>1</td><td>Kilo (Anaconda) Blog &mdash; Metabase incident</td><td>Self-disclosed victim breach: Slack access token exposure, remediation</td><td>Yes</td></tr>
+        <tr><td>2</td><td>Wiz Blog &mdash; technical root-cause analysis</td><td>HoneySQL <code>:raw</code> injection mechanics, Clojure <code>merge</code> root cause</td><td>Yes</td></tr>
+        <tr><td>2</td><td>Resecurity Blog &mdash; incident analysis</td><td>Corroborates root cause and detection signature; independent version-range confirmation</td><td>Partial</td></tr>
+        <tr><td>2</td><td>BleepingComputer &mdash; Framework/Tally coverage</td><td>Independent confirmation of Framework and Tally breaches, exploitation HTTP pattern</td><td>Yes</td></tr>
+      </table>
+      <p><strong>Web Hunter notes:</strong> No source reviewed &mdash; including the two technical deep-dives (Wiz, Resecurity) &mdash; published attacker infrastructure (C2 IPs, domains, malware hashes). Both technical write-ups describe the injection mechanism in prose only; this pack does not reproduce working exploit payloads, consistent with defensive-content-only scope. One CVE identifier discrepancy was resolved during research: the task brief stated "no CVE assigned," which was accurate as of the original Hacker News publication, but the GitHub advisory now lists CVE-2026-72898 &mdash; independently confirmed by directly fetching the advisory page text rather than trusting a single summarization pass.</p>
+      <p class="callout callout-info"><strong>Prompt-injection check (per operating instructions):</strong> all eight fetched sources were reviewed for text addressed to an AI agent/assistant. None was found in any of the eight snapshots saved to the sources folder for this pack. Nothing from fetched content was treated as an instruction.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <p><strong>Hypothesis set (ordered by fidelity):</strong></p>
+      <ol>
+        <li><strong>H1 (high):</strong> A compromised Metabase Java process spawns an unexpected shell/interpreter child process for post-exploitation recon or command execution.</li>
+        <li><strong>H2 (high):</strong> An attacker with admin-level Metabase access drops a web shell or backdoor script/binary on the host to maintain access beyond patching.</li>
+        <li><strong>H3 (medium):</strong> A compromised Metabase host process queries the cloud instance metadata service to escalate from stolen application-DB credentials to cloud IAM credentials.</li>
+        <li><strong>H4 (medium):</strong> A compromised Metabase host opens an unexpected listening port for a backdoor/reverse-shell channel.</li>
+        <li><strong>H5 (medium):</strong> A compromised Metabase host makes outbound connections to non-standard external destinations consistent with data staging or exfiltration of connected-database contents.</li>
+        <li><strong>H6 (low-medium):</strong> An attacker establishes scheduled-task/cron persistence on the Metabase host.</li>
+        <li><strong>H7 (medium):</strong> Post-compromise reconnaissance for stored database credentials or cloud credential files/environment variables on the Metabase host.</li>
+      </ol>
+      <table>
+        <tr><th>Step</th><th>Attacker Action</th><th>Telemetry</th><th>Hunt Angle</th></tr>
+        <tr><td>1</td><td>Unauthenticated POST to <code>/api/session/reset_password</code> with a crafted <code>user-id</code> HoneySQL raw-SQL payload</td><td>Metabase app log / reverse proxy / WAF only &mdash; <strong>not visible to Falcon</strong></td><td>App-layer log hunt (Section 7)</td></tr>
+        <tr><td>2</td><td>Blind SQLi confirms/derives admin credentials or a session token, then <code>GET /api/user/current</code> confirms a live admin session</td><td>Metabase app log / reverse proxy / WAF only &mdash; <strong>not visible to Falcon</strong></td><td>App-layer log hunt (Section 7) &mdash; the CEO-published 400&rarr;200 signature</td></tr>
+        <tr><td>3</td><td>Attacker uses admin access to view/export connected-database credentials, create API keys, or modify settings</td><td>Metabase audit log / activity history</td><td>Native audit-log hunt (Section 7)</td></tr>
+        <tr><td>4</td><td>Attacker pivots from stolen DB credentials or the host itself toward host-level access (recon, backdoor, persistence)</td><td>ProcessRollup2, NetworkConnectIP4, NetworkListenIP4, PeFileWritten/ELFFileWritten, ScheduledTaskRegistered/CreateService</td><td><strong>Falcon-visible &mdash; Q1&ndash;Q7 (Section 8)</strong></td></tr>
+        <tr><td>5</td><td>Data staged and exfiltrated from connected data warehouses via Metabase's own query/export functionality</td><td>Metabase query history / connected-DB audit logs; host-level outbound connections (Q2)</td><td>Native audit-log hunt + Q2 as a pivot</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">No attacker-attributed file hashes, C2 domains, or source IP addresses have been publicly disclosed for this campaign as of 2026-08-11. This threat is <strong>behavioral-only</strong> at the atomic-indicator level; the table below lists version fingerprints and the app-layer detection pattern rather than classic IOCs.</p>
+      <table>
+        <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr>
+        <tr><td>Vulnerable version range</td><td>1.58.0&ndash;1.58.23, 1.59.0&ndash;1.59.20, 1.60.0&ndash;1.60.16, 1.61.0&ndash;1.61.10, 1.62.0&ndash;1.62.8, 1.63.0&ndash;1.63.3</td><td>high</td><td>hunt</td><td>Confirm via <code>GET /api/session/properties</code> on the target instance</td><td>2027-02-11</td></tr>
+        <tr><td>Patched version range</td><td>1.58.24, 1.59.21, 1.60.17, 1.61.11, 1.62.9, 1.63.5</td><td>high</td><td>enrich</td><td>Target state for patch verification</td><td>2027-02-11</td></tr>
+        <tr><td>Vulnerable endpoint</td><td><code>POST /api/session/reset_password</code></td><td>high</td><td>detect</td><td>Root of the injection; also the temporary WAF-block workaround</td><td>2027-02-11</td></tr>
+        <tr><td>App-layer exploitation pattern</td><td><code>POST /api/session/reset_password</code> &rarr; HTTP 400, then <code>GET /api/user/current</code> &rarr; HTTP 200, same client, short window</td><td>high</td><td>detect</td><td>Vendor-published (Metabase CEO); hunt in app/WAF/proxy logs, not Falcon</td><td>2027-02-11</td></tr>
+        <tr><td>Identifier</td><td>GHSA-vwf4-m7j8-wcjf / CVE-2026-72898</td><td>high</td><td>enrich</td><td>Advisory and CVE identifiers for tracking/patch management</td><td>2027-02-11</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr>
+        <tr><td>Metabase application (HTTP API layer)</td><td>App request/response log, reverse-proxy/WAF log</td><td>Critical &mdash; this is where exploitation happens</td><td><strong>High &mdash; Falcon has no visibility here</strong>; must be hunted natively (Section 7)</td></tr>
+        <tr><td>Host running Metabase (Linux VM/container most common; Windows possible)</td><td>ProcessRollup2/SyntheticProcessRollup2, PeFileWritten/NewExecutableWritten/ELFFileWritten, NetworkConnectIP4, NetworkListenIP4, ScheduledTaskRegistered/CreateService</td><td>High &mdash; primary Falcon coverage area</td><td>Low if the Falcon sensor is deployed on the host; check container-runtime sensor coverage for containerized deployments</td></tr>
+        <tr><td>Cloud IAM / instance metadata (AWS/GCP/Azure)</td><td>Host-level NetworkConnectIP4 to the 169.254.169.254 metadata endpoint; cloud provider IAM/CloudTrail-equivalent logs</td><td>High &mdash; realistic escalation path from stolen app-DB creds</td><td>Medium &mdash; Falcon sees the network call but not the resulting cloud-side credential use; pair with cloud audit logs</td></tr>
+        <tr><td>Connected data warehouses/databases</td><td>Database audit/query logs for the Metabase service account</td><td>High &mdash; this is what an admin-level attacker actually wants</td><td>High &mdash; entirely outside Falcon; must be hunted in the DB's own logging</td></tr>
+        <tr><td>Metabase application database (<code>core_session</code>, admin accounts, API keys)</td><td>Metabase audit log / activity history</td><td>Critical for scoping post-compromise admin activity</td><td>High &mdash; outside Falcon; native hunt only</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed/Expected Behavior</th></tr>
+        <tr><td>Initial Access</td><td>T1190</td><td>Exploit Public-Facing Application</td><td>Unauthenticated SQL injection via <code>POST /api/session/reset_password</code></td></tr>
+        <tr><td>Privilege Escalation</td><td>T1078</td><td>Valid Accounts</td><td>SQLi used to mint/derive a working administrator session</td></tr>
+        <tr><td>Credential Access</td><td>T1552.001</td><td>Unsecured Credentials: Credentials In Files</td><td>Post-compromise search for stored DB/cloud credentials and environment variables on the Metabase host</td></tr>
+        <tr><td>Credential Access</td><td>T1552.005</td><td>Unsecured Credentials: Cloud Instance Metadata API</td><td>Host process querying 169.254.169.254 to escalate to cloud IAM credentials</td></tr>
+        <tr><td>Persistence</td><td>T1505.003</td><td>Server Software Component: Web Shell</td><td>Backdoor script/binary dropped by the Metabase process</td></tr>
+        <tr><td>Persistence</td><td>T1053</td><td>Scheduled Task/Job</td><td>Scheduled task or cron entry added on the compromised host</td></tr>
+        <tr><td>Command and Control</td><td>T1071</td><td>Application Layer Protocol</td><td>Outbound connections from the Metabase host to attacker infrastructure</td></tr>
+        <tr><td>Command and Control</td><td>T1572</td><td>Protocol Tunneling</td><td>Unexpected listening port opened for a reverse/bind channel</td></tr>
+        <tr><td>Exfiltration</td><td>T1567</td><td>Exfiltration Over Web Service</td><td>Connected-database data exported via Metabase's own query/export features</td></tr>
+        <tr><td>Impact</td><td>T1565</td><td>Data Manipulation (n/a to this pack)</td><td>Not observed in any reviewed source; listed for completeness of the admin-takeover blast radius</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (Non-CQL)</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">This is the single most important section of the pack. The vendor-published detection signature is an HTTP request/response pattern that CrowdStrike Falcon <strong>cannot see</strong> &mdash; it must be hunted in Metabase's own application log, a reverse proxy, a load balancer, or a WAF.</p>
+      <h3>1. Primary exploitation signature (Metabase app log / reverse proxy / WAF / load-balancer access log)</h3>
+      <p>Hunt for: <code>POST /api/session/reset_password</code> returning HTTP 400, followed within a short window by <code>GET /api/user/current</code> returning HTTP 200, from the same client IP or the same short-lived session. This is the pattern Metabase's own CEO called out as the operative compromise indicator. If request logging is not currently enabled on your Metabase deployment, enable it and forward it to your SIEM before doing anything else &mdash; without it, this entire attack class is invisible.</p>
+      <h3>2. Metabase application audit log ("Admin &gt; Audit log" / activity history)</h3>
+      <p>Review for: new API key creation, new admin accounts, permission-group changes, and connected-database configuration edits in the days surrounding your earliest possible exposure date (treat the earliest of your patch date or 2026-08-01 as the start of the review window, since exploitation predates public disclosure).</p>
+      <h3>3. <code>core_session</code> table review (Metabase application database)</h3>
+      <p>Before purging <code>core_session</code> per the vendor remediation steps, export it for forensic review: look for session records with anomalous creation timestamps, unfamiliar source IPs, or sessions tied to admin accounts that were not actively used by legitimate staff.</p>
+      <h3>4. Connected data-warehouse / database query logs</h3>
+      <p>Review query logs for the Metabase service account for unusual export-style queries (large row counts, <code>SELECT *</code> against sensitive tables, queries outside normal business hours) in the exposure window.</p>
+      <h3>5. Linux cron / systemd-timer persistence (Falcon coverage gap &mdash; supplement here)</h3>
+      <p>Falcon's LogScale event model has no dedicated cron-file-write event (see Q6 and the Coverage Map for the equivalent host-based hunt and its limits). Supplement with a native <code>auditd</code> watch rule on <code>/etc/cron.d/</code>, <code>/etc/cron.daily/</code>, <code>/var/spool/cron/</code>, and <code>/etc/systemd/system/*.timer</code>, or a periodic file-integrity check against those paths.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+      </div>
+
+      <p class="callout callout-info">All seven queries below hunt <strong>host and network telemetry around the Metabase server</strong>, not the SQL injection itself. Scope every query to your Metabase host group (by <code>aid</code>/<code>ComputerName</code> or a Falcon host group) before running &mdash; several are written broadly for portability and will be noisy run fleet-wide.</p>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 &middot; Unexpected Child Process of the Metabase Java Process</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a shell, scripting interpreter, or common recon/transfer tool spawned as a direct child of the Metabase JVM &mdash; the highest-fidelity Falcon-visible signal that a Metabase instance has been used for command execution post-compromise. <strong>FP:</strong> some deployments run health-check wrappers, backup agents, or configuration-management tools that legitimately spawn a shell alongside a co-located java process; scope to your actual Metabase host group.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Unexpected child process of the Metabase Java process</span>
+<span class="cm">// MITRE: T1190, T1059</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2, SyntheticProcessRollup2 on the Metabase host(s)</span>
+<span class="cm">// FALSE POSITIVES: health-check wrapper scripts, backup jobs, or config-management agents co-located on the same host</span>
+<span class="cm">// TUNING: exclude known deployment/orchestration parent-child chains for your Metabase image (e.g. container entrypoint scripts) after a benign baseline period; scope to your Metabase host group with aid/ComputerName before promoting to IOA</span>
+<span class="cm">// LOOKBACK: 7d (set via console time picker)</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^java(\.exe)?$/i
+| FileName=/^(sh|bash|dash|zsh|cmd|powershell|pwsh|python[0-9.]*|perl|curl|wget|nc|ncat|socat)(\.exe)?$/i
+| table([aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, timestamp])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 &middot; Metabase Host Outbound Connection to Non-Internal Destination</span>
+          <div class="qc-badges"><span class="badge b-high">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> outbound connections from the Metabase java process to any destination outside common internal/private ranges &mdash; a broad net for data staging/exfil or C2 following compromise. <strong>FP:</strong> Metabase legitimately connects outward to every connected data warehouse, SMTP relays, Slack/webhook integrations, and its own license/update checks, so this is high-noise on its own.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Metabase host outbound connection to a non-internal destination</span>
+<span class="cm">// MITRE: T1041, T1071</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 on the Metabase host(s)</span>
+<span class="cm">// FALSE POSITIVES: connections to legitimate connected data warehouses, SMTP relays, Slack/webhook integrations, and Metabase's own update/license checks</span>
+<span class="cm">// TUNING: build an allowlist of expected outbound destinations (connected DB hosts, SMTP relay, integration endpoints) with in()/cidr() exclusions before alerting on this; best used as a pivot after Q1 or Q4 fires, not run standalone</span>
+<span class="cm">// LOOKBACK: 7d (set via console time picker)</span>
+#event_simpleName=/NetworkConnectIP4/
+| ContextBaseFileName=/^java(\.exe)?$/i
+| !cidr(RemoteAddressIP4, subnet=["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","127.0.0.0/8","169.254.0.0/16","100.64.0.0/10"])
+| table([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, LocalPort, timestamp])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 &middot; Cloud Instance Metadata Service Access from the Metabase Process</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the Metabase java process reaching the cloud instance metadata endpoint (169.254.169.254) &mdash; a realistic escalation path from stolen application-DB credentials to the underlying cloud IAM role/service account. <strong>FP:</strong> some JDBC drivers (e.g. IAM-authenticated RDS/Cloud SQL connectors) legitimately call IMDS to resolve credentials, so a driver baseline is required before promoting to IOA.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Metabase process calling the cloud instance metadata service</span>
+<span class="cm">// MITRE: T1552.005</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 on the Metabase host(s), cloud-hosted deployment</span>
+<span class="cm">// FALSE POSITIVES: JDBC drivers or SDKs that legitimately resolve cloud-IAM database credentials via IMDS (e.g. IAM-authenticated RDS/Cloud SQL connectors)</span>
+<span class="cm">// TUNING: if a specific connected-database driver legitimately calls IMDS, baseline and exclude that driver's known process/command-line signature rather than excluding the whole host</span>
+<span class="cm">// LOOKBACK: 7d (set via console time picker)</span>
+#event_simpleName=/NetworkConnectIP4/
+| ContextBaseFileName=/^java(\.exe)?$/i
+| RemoteAddressIP4="169.254.169.254"
+| table([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, timestamp])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 &middot; New Executable or Script Written by the Metabase Process</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a new PE, Linux ELF binary, or executable script written to disk by the Metabase java process &mdash; consistent with a dropped web shell or backdoor used to persist beyond patching. <strong>FP:</strong> low; the JVM occasionally writes temp files or downloads plugin driver JARs during normal driver installation, which is why the write event type list below intentionally does not include archive/document writes.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: New executable/script written by the Metabase process</span>
+<span class="cm">// MITRE: T1505.003, T1105</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: PeFileWritten, NewExecutableWritten, ELFFileWritten on the Metabase host(s)</span>
+<span class="cm">// FALSE POSITIVES: legitimate JDBC/plugin driver JARs downloaded during normal Metabase driver installation</span>
+#event_simpleName=/PeFileWritten|NewExecutableWritten|ELFFileWritten/
+| ContextBaseFileName=/^java(\.exe)?$/i
+| table([aid, ComputerName, ContextBaseFileName, TargetFileName, SHA256HashData, timestamp])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 &middot; Unexpected Listening Port Opened on the Metabase Host</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the Metabase java process opening a listening port outside the expected Metabase/reverse-proxy set &mdash; a possible bind-shell or backdoor listener. <strong>FP:</strong> JVM debug (5005) or JMX/management ports intentionally opened by ops tooling will trip this if not excluded.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Unexpected listening port on the Metabase host</span>
+<span class="cm">// MITRE: T1071, T1572</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: NetworkListenIP4 on the Metabase host(s)</span>
+<span class="cm">// FALSE POSITIVES: JVM remote-debug (5005) or JMX/management ports intentionally opened by operations tooling</span>
+<span class="cm">// TUNING: add your environment's actual Metabase listen port (default 3000, or 80/443/8080 if reverse-proxy fronted) plus any intentionally-open JVM debug/JMX ports to the exclusion list before promoting to IOA</span>
+<span class="cm">// LOOKBACK: 7d (set via console time picker)</span>
+#event_simpleName=/NetworkListenIP4/
+| ContextBaseFileName=/^java(\.exe)?$/i
+| !in(LocalPort, values=["3000","8080","443","80"])
+| table([aid, ComputerName, ContextBaseFileName, LocalPort, LocalAddressIP4, timestamp])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 &middot; Scheduled Task / Service Persistence on the Metabase Host</span>
+          <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a new scheduled task or service registered on the specific host(s) running Metabase, following the vendor's own remediation reminder to audit for persistence after this class of admin takeover. <strong>FP:</strong> routine patch/maintenance scheduled tasks and container-orchestrator health-check tasks will appear here. <strong>Coverage note:</strong> this covers Windows-hosted Metabase well; Falcon's LogScale event model has no dedicated cron-file-write event, so Linux cron/systemd-timer persistence is a gap &mdash; see the native <code>auditd</code> hunt in Section 7.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Scheduled task / service persistence on the Metabase host</span>
+<span class="cm">// MITRE: T1053</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: ScheduledTaskRegistered, CreateService; host-scoped by ComputerName</span>
+<span class="cm">// FALSE POSITIVES: routine patch/maintenance scheduled tasks, container-orchestrator health-check tasks</span>
+<span class="cm">// TUNING: replace REPLACE_WITH_METABASE_HOSTNAME with your actual Metabase server hostname(s); this query has no Linux-cron equivalent in the Falcon event model -- pair it with the auditd hunt in Section 7 for full coverage</span>
+<span class="cm">// LOOKBACK: 14d (set via console time picker)</span>
+#event_simpleName=/ScheduledTaskRegistered|CreateService/
+| in(ComputerName, values=["REPLACE_WITH_METABASE_HOSTNAME"])
+| table([aid, ComputerName, UserName, CommandLine, timestamp])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 &middot; Credential / Environment Reconnaissance from the Metabase Process</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> shell commands spawned from the Metabase process tree that reference credential material, environment dumps, or the Metabase application's own session/config store &mdash; consistent with an attacker harvesting connected-database credentials after admin takeover. <strong>FP:</strong> legitimate ops/debugging sessions on the same host will trigger some of these terms.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Credential/environment recon spawned from the Metabase process</span>
+<span class="cm">// MITRE: T1552.001, T1518</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2, SyntheticProcessRollup2 on the Metabase host(s)</span>
+<span class="cm">// FALSE POSITIVES: legitimate ops/debugging sessions on the same host reviewing environment or credential configuration</span>
+<span class="cm">// TUNING: exclude known admin/SRE tooling that legitimately reads environment variables on this host (e.g. a config-management agent's command-line signature)</span>
+<span class="cm">// LOOKBACK: 7d (set via console time picker)</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(sh|bash|dash|zsh|java)(\.exe)?$/i
+| CommandLine=/(credentials|printenv|environ|GOOGLE_APPLICATION_CREDENTIALS|core_session|metabase\.db)/i
+| table([aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, timestamp])</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <p>Three queries are strong Custom IOA candidates once tuned against your own Metabase host baseline. The remaining four should stay Investigate-only given their FP profile.</p>
+      <table>
+        <tr><th>Query</th><th>IOA Name</th><th>Pattern</th><th>Exclusions Needed</th><th>Deployment Path</th></tr>
+        <tr><td>Q1</td><td>Metabase Process &mdash; Unexpected Shell Child</td><td>Shell/interpreter/transfer-tool spawned as a direct child of the Metabase JVM</td><td>Deployment/orchestration parent-child chains for your specific Metabase image</td><td>Falcon console &rarr; Custom IOA rule groups, scoped to a "Metabase Servers" host group</td></tr>
+        <tr><td>Q3</td><td>Metabase Process &mdash; IMDS Access</td><td>Metabase JVM connecting to 169.254.169.254</td><td>Any driver/SDK on the host with a legitimate, baselined need to call IMDS</td><td>Same host group; low volume, safe to run near-real-time</td></tr>
+        <tr><td>Q4</td><td>Metabase Process &mdash; New Executable/Script Write</td><td>PE/ELF/script write events with the Metabase JVM as the writing process</td><td>None expected once your plugin/driver install baseline is captured</td><td>Same host group; highest-confidence IOA in the pack</td></tr>
+      </table>
+      <p>Q2, Q5, Q6, and Q7 remain Investigate-only: Q2 and Q5 have high/medium FP that needs an environment-specific allowlist before alerting, and Q6/Q7 are best run as periodic hunts rather than always-on IOAs.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">No attacker-attributed atomic indicators (hashes, C2 domains, source IPs) have been published for this campaign as of 2026-08-11. The CSV block below ships only placeholder rows for your own investigation findings; nothing in it is a real indicator. This pack's actual detection value is the behavioral signatures in the second block.</p>
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import &mdash; placeholders only</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv"># No attacker-attributed file hashes, C2 domains, or IPs have been publicly
+# disclosed for GHSA-vwf4-m7j8-wcjf / CVE-2026-72898 as of 2026-08-11.
+# The rows below are placeholders for YOUR OWN incident-response findings --
+# populate them from your Falcon/WAF/Metabase log investigation, do not
+# invent values.
+type,value,action,severity,expiration,description,tags
+sha256,REPLACE_WITH_SHA256,prevent,critical,2027-02-11,Metabase host post-exploitation artifact (webshell/backdoor),campaign:Metabase-GHSA-vwf4
+domain,REPLACE_WITH_C2_DOMAIN,detect,high,2026-11-11,Suspected exfil/C2 destination observed from a compromised Metabase host,campaign:Metabase-GHSA-vwf4
+ipv4,REPLACE_WITH_ATTACKER_IP,detect,high,2026-11-11,Suspected attacker source IP identified in Metabase app/WAF logs,campaign:Metabase-GHSA-vwf4</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">the actual detection value</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behavior"># PRIMARY exploitation signature -- Metabase app log / WAF / reverse-proxy
+# access log ONLY. This is NOT visible in Falcon EDR telemetry.
+POST /api/session/reset_password  -&gt; HTTP 400
+  immediately followed by (same client, short window)
+GET  /api/user/current            -&gt; HTTP 200
+
+# Vulnerable version fingerprint -- query GET /api/session/properties
+Vulnerable: 1.58.0-1.58.23, 1.59.0-1.59.20, 1.60.0-1.60.16,
+            1.61.0-1.61.10, 1.62.0-1.62.8, 1.63.0-1.63.3
+Patched:    1.58.24, 1.59.21, 1.60.17, 1.61.11, 1.62.9, 1.63.5
+
+# Falcon-visible host-layer behaviors (see Q1-Q7 in Section 8)
+- Shell/interpreter spawned as a direct child of the Metabase JVM
+- Metabase JVM process reaching 169.254.169.254 (cloud instance metadata)
+- New PE/ELF/script write events attributed to the Metabase JVM
+- Unexpected listening port opened by the Metabase JVM
+- New scheduled task/service on the Metabase host</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Vulnerability / Advisory Reference</span><span class="igc">tracking identifiers</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-ref',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-ref">GHSA:            GHSA-vwf4-m7j8-wcjf
+CVE:             CVE-2026-72898
+CVSS:            10.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H)
+Vulnerable ep:   POST /api/session/reset_password
+Root cause:      unvalidated "user-id" JSON key reaches HoneySQL as a
+                 {:raw ...} raw-SQL directive, bypassing parameter binding
+Vendor advisory: github.com/metabase/metabase/security/advisories/GHSA-vwf4-m7j8-wcjf
+Vendor blog:     metabase.com/blog/security-update</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Patch / WAF / Post-Incident Audit Checklist</span><span class="igc">vendor-recommended</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit">[ ] Confirm current version via GET /api/session/properties
+[ ] Upgrade to the fixed release for your branch
+    (1.58.24 / 1.59.21 / 1.60.17 / 1.61.11 / 1.62.9 / 1.63.5)
+[ ] Block POST /api/session/reset_password at the proxy/WAF until patched
+[ ] Delete all rows in the core_session application-database table
+[ ] Review and revoke unrecognized Metabase API keys
+[ ] Audit administrator accounts for unauthorized creation/changes
+[ ] Rotate every credential Metabase held for connected databases
+[ ] Review connected data-warehouse access/query logs for the exposure window
+[ ] Review Metabase activity history / audit log for anomalies
+[ ] Run Q1, Q3, Q4 (Section 8) against the Metabase host for host-level compromise indicators</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Gate</th><th>Status</th><th>Notes</th></tr>
+        <tr><td>Telemetry ready</td><td><span class="badge b-med">Verify</span></td><td>Confirm ProcessRollup2/SyntheticProcessRollup2, NetworkConnectIP4, NetworkListenIP4, and file-write events are actively collected from every host running Metabase, including container-runtime sensor coverage if Metabase runs in Docker/Kubernetes</td></tr>
+        <tr><td>Benign baseline</td><td><span class="badge b-med">Required before promotion</span></td><td>Run Q1, Q2, and Q5 in Investigate mode for 7&ndash;14 days to capture your environment's legitimate child-process, egress, and listening-port behavior before promoting any of them to an IOA</td></tr>
+        <tr><td>Positive test</td><td><span class="badge b-med">Recommended</span></td><td>In a lab Metabase instance, validate Q4 fires by writing a benign test file from a child process of a mock java process; validate Q1 fires on a deliberately spawned benign shell child</td></tr>
+        <tr><td>Promotion</td><td><span class="badge b-low">Q1 / Q3 / Q4 ready</span></td><td>Q1, Q3, and Q4 are promotable to Custom IOA once host-specific exclusions are tuned (Section 9); Q2, Q5, Q6, Q7 remain hunt-only pending baseline/coverage work</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening &mdash; Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate &mdash; this week</div>
+        <p><strong>1. Patch to the fixed release for your branch</strong> (1.58.24 / 1.59.21 / 1.60.17 / 1.61.11 / 1.62.9 / 1.63.5). MITRE M1051 (Update Software). Verify via <code>GET /api/session/properties</code> returning a patched version string.</p>
+        <p><strong>2. Block <code>POST /api/session/reset_password</code> at the reverse proxy/WAF</strong> until patched, per vendor guidance. MITRE M1037 (Filter Network Traffic). <span class="badge b-med">&#9888; best-practice, no formal CIS benchmark entry</span> &mdash; this is a vendor-recommended emergency control, not a benchmark item. Verify by confirming the endpoint returns 403/404 from outside the proxy.</p>
+        <p><strong>3. Rotate every connected-database credential Metabase held, revoke/regenerate all API keys, and purge <code>core_session</code></strong> to invalidate any attacker-held session. Vendor guidance (Metabase Security Update advisory). Verify via a diff of active API keys and admin accounts against your last known-good baseline.</p>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term &mdash; 1&ndash;4 weeks</div>
+        <p><strong>1. Remove direct internet exposure of the Metabase admin/API surface</strong>: front it with SSO, a VPN, or an IP allowlist at the reverse proxy. MITRE M1030 (Network Segmentation); align with your reverse proxy's own CIS benchmark (e.g. CIS Nginx or Apache HTTP Server Benchmark) for the proxy configuration itself. Verify via an external port scan confirming the API is unreachable without the proxy/VPN path.</p>
+        <p><strong>2. Enforce IMDSv2 with a hop limit of 1</strong> on the cloud instance(s) hosting Metabase, and restrict the instance's IAM role/service account to least privilege. MITRE M1042 (Disable or Remove Feature or Program); CIS AWS Foundations Benchmark (IMDSv2 control) or the equivalent CIS Azure/GCP Foundations control. Verify via your cloud CLI's instance-metadata-options query.</p>
+        <p><strong>3. If containerized, apply the CIS Docker Benchmark baseline</strong>: run as a non-root UID, read-only root filesystem, drop unnecessary Linux capabilities, restrict egress via a network policy. MITRE M1038 (Execution Prevention) / M1030 (Network Segmentation); CIS Docker Benchmark sections 4 and 5. Verify via <code>docker inspect</code> or <code>kubectl get pod -o yaml</code> capability/user checks.</p>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic &mdash; 1&ndash;3 months</div>
+        <p><strong>1. Move connected-database credentials to short-lived, dynamically issued secrets</strong> via a secrets manager (Vault, AWS Secrets Manager, GCP Secret Manager) instead of static stored credentials in Metabase. MITRE M1027 (Password Policies) applied architecturally. <span class="badge b-med">&#9888; best-practice, no single formal benchmark covers this architecture</span>. Verify via absence of long-lived static secrets in the Metabase application database.</p>
+        <p><strong>2. Build a durable app-layer detection pipeline</strong>: ship Metabase/WAF/proxy access logs to your SIEM so the reset_password(400)&rarr;user/current(200) signature and future app-layer exploitation attempts are hunted continuously. This directly closes the Falcon telemetry gap documented throughout this pack. Verify via a synthetic test alert firing on a benign simulated 400/200 sequence in a lab instance.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h3>Playbook A &mdash; Emergency WAF/reverse-proxy block (nginx example)</h3>
+<pre class="code">location = /api/session/reset_password {
+    deny all;
+    return 403;
+}</pre>
+      <p><strong>Prerequisites:</strong> a reverse proxy (nginx or equivalent) sits in front of Metabase; ability to reload its configuration.<br>
+      <strong>Reboot required:</strong> no &mdash; <code>nginx -s reload</code> applies it live.<br>
+      <strong>Rollback:</strong> remove the <code>location</code> block and reload; only do this after confirming the instance is patched to a fixed version.</p>
+
+      <h3>Playbook B &mdash; Enforce IMDSv2 (AWS CLI example)</h3>
+<pre class="code">aws ec2 modify-instance-metadata-options \
+  --instance-id REPLACE_WITH_INSTANCE_ID \
+  --http-tokens required \
+  --http-put-response-hop-limit 1 \
+  --http-endpoint enabled</pre>
+      <p><strong>Prerequisites:</strong> AWS CLI configured with <code>ec2:ModifyInstanceMetadataOptions</code> permission; confirm no application code on the instance still calls IMDSv1 without a session token.<br>
+      <strong>Reboot required:</strong> no.<br>
+      <strong>Rollback:</strong> <code>aws ec2 modify-instance-metadata-options --instance-id REPLACE_WITH_INSTANCE_ID --http-tokens optional</code> restores IMDSv1 compatibility if a legacy integration breaks.</p>
+
+      <h3>Playbook C &mdash; Session purge (Metabase application database)</h3>
+<pre class="code">-- Run against the Metabase APPLICATION database only
+-- (never a connected data-source database).
+DELETE FROM core_session;</pre>
+      <p><strong>Prerequisites:</strong> direct admin access to the Metabase application database; export the table for forensic review first (Section 7); put Metabase into maintenance mode to avoid races during the delete.<br>
+      <strong>Reboot required:</strong> restart the Metabase application process afterward to clear in-memory session caches.<br>
+      <strong>Rollback:</strong> none required &mdash; this only invalidates existing sessions; legitimate users simply re-authenticate.</p>
+
+      <h3>Playbook D &mdash; Container hardening (docker-compose example)</h3>
+<pre class="code"># docker-compose.yml
+services:
+  metabase:
+    image: metabase/metabase:REPLACE_WITH_PATCHED_TAG
+    read_only: true
+    user: "2000:2000"
+    cap_drop: ["ALL"]
+    tmpfs: ["/tmp"]</pre>
+      <p><strong>Prerequisites:</strong> confirm the patched Metabase image tolerates a read-only root filesystem (mount a writable <code>tmpfs</code> for its plugins/temp directories); test in staging before production.<br>
+      <strong>Reboot required:</strong> container recreate (<code>docker compose up -d</code>).<br>
+      <strong>Rollback:</strong> revert to the previous compose file (remove the <code>read_only</code>/<code>user</code>/<code>cap_drop</code> lines) and recreate the container.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr>
+        <tr><td>1 &middot; Isolate</td><td>Restrict network access to the Metabase host/API to trusted sources only, or take it offline; block <code>/api/session/reset_password</code> at the proxy immediately (Playbook A)</td><td>IR lead / Network team</td><td>Firewall/WAF change log with timestamp of isolation</td></tr>
+        <tr><td>2 &middot; Eradicate</td><td>Patch to the fixed version; purge <code>core_session</code> (Playbook C); revoke/regenerate all API keys; audit and remove unauthorized admin accounts; run Q1/Q3/Q4 against the host and remove any dropped artifacts found</td><td>App/Platform team + IR</td><td>Patch version confirmation, admin-account diff, Falcon detection review</td></tr>
+        <tr><td>3 &middot; Recover</td><td>Rotate every connected-database credential Metabase held; restore Metabase from a known-clean image/backup if host integrity is in doubt; re-enable access only behind the hardened proxy/VPN</td><td>DBA + Platform team</td><td>Credential-rotation log, clean image tag/hash</td></tr>
+        <tr><td>4 &middot; Post-Incident</td><td>Review connected data-warehouse query/export logs for the compromise window; determine customer PII exposure scope and trigger breach-notification process if applicable; convert the reset_password/user-current signature into a permanent SIEM/WAF rule</td><td>IR + Legal/Privacy + SOC</td><td>Data-warehouse audit report, notification records, new detection rule ID</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr>
+        <tr><td>T1190 (the SQLi itself)</td><td><code>reset_password</code> 400 &rarr; <code>user/current</code> 200</td><td>None &mdash; Falcon has no HTTP request/response visibility into the Metabase JVM</td><td>N/A</td><td><span class="badge b-high">GAP</span> &mdash; hunt in app/WAF/proxy logs (Section 7), not Falcon</td></tr>
+        <tr><td>T1078 / post-exploitation execution</td><td>Unexpected child process of the Metabase JVM</td><td>Q1</td><td>Candidate</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1552.005 cloud credential theft</td><td>Metabase JVM calling 169.254.169.254</td><td>Q3</td><td>Candidate</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1505.003 web shell / backdoor</td><td>New executable/script written by the JVM</td><td>Q4</td><td>Candidate</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1041/T1071 exfil / C2</td><td>Outbound connection to non-internal destination</td><td>Q2</td><td>Investigate-only</td><td><span class="badge b-med">Partial</span> &mdash; high FP, needs environment allowlist</td></tr>
+        <tr><td>T1572 tunneling / backdoor listener</td><td>Unexpected listening port</td><td>Q5</td><td>Investigate-only</td><td><span class="badge b-med">Partial</span></td></tr>
+        <tr><td>T1053 scheduled task/cron persistence</td><td>New scheduled task/service; Linux cron unmapped</td><td>Q6</td><td>Investigate-only</td><td><span class="badge b-med">Partial</span> &mdash; Windows covered, Linux cron is a Falcon event-model gap (see Section 7 auditd hunt)</td></tr>
+        <tr><td>T1552.001 credential/env recon</td><td>Env/credential-referencing commands from the JVM's process tree</td><td>Q7</td><td>Investigate-only</td><td><span class="badge b-med">Partial</span></td></tr>
+        <tr><td>T1567 exfil via connected data warehouse</td><td>Anomalous export-style queries under the Metabase service account</td><td>None &mdash; lives in the data warehouse's own audit log</td><td>N/A</td><td><span class="badge b-high">GAP</span> &mdash; hunt natively in the connected database's audit/query log</td></tr>
+      </table>
+      <p>Validation gate status (full detail in Section 11): telemetry readiness must be confirmed per host, Q1/Q2/Q5 require a benign baseline before promotion, and Q1/Q3/Q4 are the only queries currently recommended for Custom IOA promotion.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE:      Metabase Unauthenticated SQLi -> Admin Takeover (GHSA-vwf4-m7j8-wcjf / CVE-2026-72898)
+SEVERITY:   Critical (CVSS 10.0) -- confirmed exploited in the wild, multiple victim breaches disclosed
+SCOPE:      Any self-hosted Metabase instance on 1.58.0 through the 1.63.x branch reachable by
+            an untrusted network path to /api/session/reset_password
+HYPOTHESIS: An unauthenticated attacker used the reset_password SQLi to obtain admin access,
+            then pivoted from stolen connected-database credentials and/or host access toward
+            recon, persistence, or exfiltration on/around the Metabase host.
+QUERIES:    Q1 unexpected shell child of Metabase JVM | Q2 outbound to non-internal destination
+            | Q3 IMDS access from Metabase JVM | Q4 new exe/script written by Metabase JVM
+            | Q5 unexpected listening port | Q6 scheduled task/service on host
+            | Q7 credential/env recon from process tree
+DO FIRST:   1) Confirm version via GET /api/session/properties  2) Patch to the fixed release
+            3) Block reset_password at the proxy/WAF if not yet patched  4) Purge core_session
+            and rotate every connected-database credential
+FINDINGS:   [populate during investigation]
+GAPS:       The primary exploitation signature (reset_password 400 -> user/current 200) is not
+            visible to Falcon and must be hunted in Metabase/WAF/proxy logs. Linux cron
+            persistence has no dedicated Falcon event -- supplement with auditd. No
+            attacker-attributed atomic IOCs (hashes/domains/IPs) are publicly available as of
+            2026-08-11.
+ACTIONS:    Patch -> rotate credentials -> purge sessions -> run Q1/Q3/Q4 against the host ->
+            review connected data-warehouse logs -> assess PII exposure / notification duty
+OWNER:      [assign IR lead]
+VERSION:    v0.1 -- 2026-08-11</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-11</span><span>Initial pack built from public disclosure of GHSA-vwf4-m7j8-wcjf / CVE-2026-72898. Seven host/network CQL hunts (three promotable to Custom IOA), tiered hardening, four deployable playbooks, phased containment runbook, and an explicit callout that the vendor-published app-layer detection signature falls outside Falcon EDR telemetry.</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+        <tr><td>1</td><td><a href="https://thehackernews.com/2026/08/metabase-zero-day-exploited-in-wild.html" target="_blank" rel="noopener">The Hacker News &mdash; Metabase Zero-Day Exploited in Wild</a></td><td>Primary disclosure, CEO-published detection signature, named victims</td><td>2026-08-11</td></tr>
+        <tr><td>1</td><td><a href="https://github.com/metabase/metabase/security/advisories/GHSA-vwf4-m7j8-wcjf" target="_blank" rel="noopener">GitHub Security Advisory GHSA-vwf4-m7j8-wcjf</a></td><td>CVSS vector, version ranges, CVE-2026-72898, vendor remediation checklist</td><td>2026-08-11</td></tr>
+        <tr><td>1</td><td><a href="https://www.metabase.com/blog/security-update" target="_blank" rel="noopener">Metabase &mdash; Security Update</a></td><td>Vendor incident narrative and remediation steps</td><td>2026-08-11</td></tr>
+        <tr><td>1</td><td><a href="https://blog.n8n.io/metabase-security-incident-update/" target="_blank" rel="noopener">n8n Blog &mdash; Metabase security incident update</a></td><td>Self-disclosed victim breach detail (136 records)</td><td>2026-08-11</td></tr>
+        <tr><td>1</td><td><a href="https://blog.kilo.ai/p/metabase-incident-impacting-kilo" target="_blank" rel="noopener">Kilo (Anaconda) Blog &mdash; Metabase incident</a></td><td>Self-disclosed victim breach detail (Slack token exposure)</td><td>2026-08-11</td></tr>
+        <tr><td>2</td><td><a href="https://www.wiz.io/blog/inside-the-metabase-sqli-exploited-in-the-wild" target="_blank" rel="noopener">Wiz Blog &mdash; Inside the Metabase SQLi</a></td><td>Technical root-cause analysis (HoneySQL/Clojure merge)</td><td>2026-08-11</td></tr>
+        <tr><td>2</td><td><a href="https://www.resecurity.com/blog/article/metabase-zero-day-exploited-in-the-wild-unauthenticated-sql-injection-leading-to-full-admin-access" target="_blank" rel="noopener">Resecurity &mdash; Metabase Zero-Day analysis</a></td><td>Corroborating technical analysis</td><td>2026-08-11</td></tr>
+        <tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/framework-tally-disclose-metabase-data-theft-attacks/" target="_blank" rel="noopener">BleepingComputer &mdash; Framework, Tally disclose Metabase attacks</a></td><td>Independent confirmation of Framework/Tally breaches</td><td>2026-08-11</td></tr>
+      </table>
+      <p>Verbatim extracted-text snapshots of all eight sources are saved alongside this pack in <code>Metabase-GHSA-vwf4-SQLi-Hunt-sources/</code> for provenance verification.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
