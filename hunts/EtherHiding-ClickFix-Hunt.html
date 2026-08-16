@@ -1,0 +1,849 @@
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #02c39a;
+  --accent-dim: rgba(2,195,154,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #06231d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.ticket { border: 1px dashed var(--accent); border-radius: 6px; padding: 10px; background: #010409; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">EtherHiding ClickFix — Blockchain-Hidden C2 Delivery Chain</div>
+    <div class="version">v0.1 · 2026-08-16</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+<div class="hp-header">
+  <h1>EtherHiding ClickFix</h1>
+  <div class="subtitle">ClickFix social-engineering lure + Polygon/BSC smart-contract C2 resolution — a takedown-resistant malware delivery chain</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">Malware delivery / blockchain C2</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE CAMPAIGN</span></div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">User-initiated (T1204.004)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-08-16</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Intel confidence</div><div class="mv">High (multi-vendor corroboration)</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><strong>EtherHiding ClickFix</strong> is a malware-delivery pattern, not a single campaign: it fuses <strong>ClickFix</strong> (a fake-CAPTCHA / "verify you are human" prompt that tricks a victim into pressing Win+R or opening Terminal, pasting a clipboard-hijacked command, and executing it — MITRE T1204.004) with <strong>EtherHiding</strong> (storing the live command-and-control address inside a public blockchain smart contract — chiefly Polygon, also observed on BNB Smart Chain — so operators rotate infrastructure with a single on-chain transaction instead of re-infecting every compromised site). Between March and August 2026 at least six independent vendors — Cribl SecOps, AllSecure, LevelBlue SpiderLabs, PhishEye, FileScan.io/OPSWAT, and Cynet — documented distinct operator clusters running this pattern, most originating from compromised WordPress sites (injected script in <code>robots.txt</code>, page footers, or must-use plugins) and distributing payloads ranging from commodity infostealers (Vidar) and loaders (GULoader, HijackLoader) to a custom RAT (Starland RAT) and, in AllSecure's research, a backdoor plus malicious browser extension pair whose tradecraft aligns with DPRK cluster UNC5342 / Contagious Interview.</p>
+    <p>The one step common to <em>every</em> reported variant is the user-driven paste-and-run action itself — the smart-contract lookup happens silently in the browser before the victim ever sees a prompt, so Falcon's earliest reliable signal is the process spawned immediately afterward (explorer.exe/Terminal → PowerShell/cmd/mshta/rundll32 with a hidden window and an <code>iex(irm ...)</code> or UNC-path pattern). Because the C2 configuration layer lives on-chain, domain and IP blocking alone under-serves this threat: a takedown only removes one disposable front-end while the contract — and the attacker's ability to repoint every future execution — persists.</p>
+    <p class="callout callout-danger"><strong>Defender priority:</strong> Detect the paste-and-run execution pattern (Q1/Q2) as the highest-fidelity, lowest-effort control; pair it with outbound monitoring for public blockchain RPC calls from non-developer endpoints (Q3) and a standing user-awareness message that no legitimate site ever asks for Win+R-and-paste. Treat any host that executed the pasted command as compromised — rotate credentials and cryptocurrency wallet keys reachable from that endpoint before declaring the incident closed.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Published</th><th>Key contribution</th><th>Decision</th></tr></thead>
+      <tbody>
+        <tr><td>T1</td><td><a href="https://cribl.io/blog/cribl-secops-uncovers-etherhiding-malware-campaign-on-the-blockchain/">Cribl SecOps</a></td><td>~2026-08-11</td><td>Original quote for the robots.txt injection + Polygon RPC + smart-contract lookup mechanism; own contract/wallet IOC set</td><td>Carry forward</td></tr>
+        <tr><td>T1</td><td><a href="https://gbhackers.com/clickfix-campaign-uses-etherhiding/">GBHackers</a> (syndicating AllSecure)</td><td>~2026-08-11</td><td>Flagship atomic IOC set: domains, dual EtherHiding contracts, getter selector, XOR keys, DPRK/UNC5342 attribution</td><td>Carry forward</td></tr>
+        <tr><td>T1</td><td><a href="https://www.allsecure.io/blog/clickfix-etherhiding-dprk-wallet/">AllSecure</a> (originating research)</td><td>2026-07-29</td><td>Originating DPRK-wallet-trail research; page is JS-rendered, only metadata mechanically extractable — corroborated via GBHackers syndication</td><td>Carry forward (partial)</td></tr>
+        <tr><td>T1</td><td><a href="https://thehackernews.com/2026/08/threatsday-ghostjacking-ai-attacks.html">The Hacker News — ThreatsDay</a></td><td>2026-08-13</td><td>"Blockchain-Hidden C2" roundup item anchoring the campaign; verbatim Cribl quote</td><td>Carry forward</td></tr>
+        <tr><td>T1</td><td><a href="https://www.levelblue.com/blogs/spiderlabs-blog/err-hiding-and-seek-how-errtraffic-v3-leverages-etherhiding-in-clickfix-campaign">LevelBlue SpiderLabs</a></td><td>2026-04-09</td><td>ErrTraffic v3 MaaS framework; WordPress mu-plugin backdoor (session-manager.php); own contract + TLD pattern</td><td>Carry forward</td></tr>
+        <tr><td>T1</td><td><a href="https://phisheye.com/blog/clickfix-2026-fake-captcha-etherhiding">PhishEye</a></td><td>Campaign window Mar–Jun 2026</td><td>Explicit Win+R-paste mechanic; 97-domain rotation; contract shared with LevelBlue; XOR key; defender guidance</td><td>Carry forward</td></tr>
+        <tr><td>T1</td><td><a href="https://blog.filescan.io/posts/clickfix-etherhiding-chain/">FileScan.io Threat Labs</a></td><td>2026-07-20, updated 2026-07-30</td><td>Deepest forensic trace: live <code>eth_call</code>, 14 sibling contracts, MITRE mapping, PowerShell/Sysmon telemetry guidance</td><td>Carry forward</td></tr>
+        <tr><td>T1</td><td><a href="https://www.opswat.com/blog/inside-a-live-clickfix-campaign-using-etherhiding-to-hide-its-next-move">OPSWAT</a></td><td>2026-08-13</td><td>Summarizes FileScan.io; confirms formal MITRE T1204.004 mapping for ClickFix</td><td>Carry forward</td></tr>
+        <tr><td>T2</td><td><a href="https://www.cynet.com/blog/clickfix-reloaded-from-mass-hijackloader-infections-to-stealth-etherhiding-rats/">Cynet</a></td><td>2026-07-31</td><td>HijackLoader + Starland RAT variants; concrete hashes and C2; independent EtherHiding contract</td><td>Carry forward</td></tr>
+        <tr><td>T2</td><td><a href="https://cybersecuritynews.com/clickfix-campaign-uses-etherhiding-and-guloader/">cybersecuritynews.com</a> + <a href="https://gbhackers.com/wordpress-sites-to-deliver-guloader/">GBHackers</a> (GULoader)</td><td>Incident 2026-06-16</td><td>BNB Smart Chain Testnet variant; rundll32 UNC-path LOLBin execution; real hashes, corroborated by two outlets</td><td>Carry forward</td></tr>
+        <tr><td>T2</td><td><a href="https://gbhackers.com/errtraffic-combines-wordpress-hacks/">GBHackers</a> (ErrTraffic family)</td><td>recent, undated</td><td>Broader ErrTraffic payload family (Vidar, Okobot, LegionLoader, OnionDrop, BabaDedaLoader); <code>errtraffic_session=</code> cookie indicator</td><td>Carry forward (behavioral only)</td></tr>
+      </tbody>
+    </table>
+    <p class="callout callout-info"><strong>Web-hunter note:</strong> "EtherHiding ClickFix" spans <em>at least five independently reported operator clusters</em> sharing the same technique but distinct infrastructure (different contracts, wallets, and function selectors). This pack treats the AllSecure/GBHackers DPRK-linked instance as the flagship IOC set (matches this build's source brief exactly) and carries the other clusters as corroborating, separately-labeled "related infrastructure" — do not merge their atomic indicators into one campaign identity. No text addressed to an AI/assistant was found in any fetched source; all fetched content was treated strictly as research material.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <h3>Hunt hypotheses</h3>
+    <ol>
+      <li><strong>H1 · High:</strong> A host whose Run dialog or Terminal spawns a shell/scripting interpreter immediately after explorer.exe/Terminal, carrying an <code>iex(irm ...)</code>-style download-and-execute pattern, indicates ClickFix paste-and-run.</li>
+      <li><strong>H2 · High:</strong> PowerShell launched with a hidden window flag combined with <code>Invoke-RestMethod</code>/<code>iex</code> is a distinctive fingerprint of the ClickFix stager fetch documented independently by FileScan.io and Cribl.</li>
+      <li><strong>H3 · Medium:</strong> Outbound DNS/HTTP calls to public blockchain RPC endpoints from a browser-spawned or script-hosting process (not a known Web3/dev tool) indicate live EtherHiding contract resolution.</li>
+      <li><strong>H4 · High:</strong> rundll32.exe loading a DLL via a UNC path with an ordinal export is the documented GULoader/ClickFix LOLBin execution stage.</li>
+      <li><strong>H5 · High:</strong> DNS lookups for the specific atomic stager/C2 domains published across these sources are a direct, high-confidence hit.</li>
+      <li><strong>H6 · Medium:</strong> A schtasks.exe-created task running every minute, spawned from a Run-dialog PowerShell one-liner, matches the Starland RAT persistence pattern.</li>
+      <li><strong>H7 · Medium:</strong> A Node.js process launched from Terminal/shell shortly after a ClickFix Terminal paste, running from a cache/temp path outside normal developer tooling, matches the AllSecure macOS RAT loader.</li>
+      <li><strong>H8 · Medium:</strong> A newly-written DLL loaded immediately by a process spawned from msiexec.exe matches the HijackLoader-style sideload chain documented by Cynet.</li>
+    </ol>
+    <h3>Attack chain</h3>
+    <table>
+      <thead><tr><th>Step</th><th>Documented behavior</th><th>Best telemetry</th><th>Hunt angle</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Victim reaches a compromised WordPress site (search result or malvertising); injected JS lives in <code>robots.txt</code>, a page footer, or a must-use plugin</td><td>Web server / WAF logs, file-integrity monitoring — not Falcon endpoint (server not assumed to run the sensor)</td><td>Native audit-log hunt (§7)</td></tr>
+        <tr><td>2</td><td>Injected script performs an <code>eth_call</code>/RPC POST to a public Polygon or BNB Smart Chain endpoint, reading the current C2/stager domain out of a smart contract (EtherHiding)</td><td>Browser network activity; corporate DNS/proxy logs; Falcon <code>DnsRequest</code>/<code>NetworkConnectIP4</code> from the browser process</td><td>Q3</td></tr>
+        <tr><td>3</td><td>Script renders a fake CAPTCHA/verification overlay, silently writes a command to the clipboard, and instructs the victim to press Win+R (Windows) or open Terminal (macOS) and paste</td><td>Browser-internal clipboard API — not directly visible to Falcon</td><td>User-awareness control (§12); detected only via its consequence, step 4</td></tr>
+        <tr><td>4</td><td>Victim pastes and executes; explorer.exe/Terminal spawns PowerShell/cmd/mshta/rundll32 with a hidden window and an <code>iex(irm)</code> or UNC LOLBin pattern</td><td><code>ProcessRollup2</code></td><td>Q1, Q2, Q4</td></tr>
+        <tr><td>5</td><td>Secondary payload retrieved: GULoader shellcode, an MSI installer masquerading as legitimate software, or a ZIP containing a Python/Node.js RAT</td><td><code>NewExecutableWritten</code>, <code>PeFileWritten</code></td><td>Q8</td></tr>
+        <tr><td>6</td><td>Persistence established: per-minute scheduled task, startup LNK, or malicious browser extension</td><td><code>ProcessRollup2</code> (schtasks.exe)</td><td>Q6, native hunt for extensions (§7)</td></tr>
+        <tr><td>7</td><td>Ongoing beacon: RAT reads attacker commands from the EtherHiding contract or connects to the rotated stager/C2 domain every few minutes</td><td><code>DnsRequest</code>, <code>NetworkConnectIP4</code></td><td>Q3, Q5</td></tr>
+        <tr><td>8</td><td>Data theft: browser-saved credentials, cryptocurrency wallets, SSH keys, and cloud tokens exfiltrated over the same channel</td><td>Limited endpoint visibility — file-open telemetry on wallet/browser-profile paths is not part of the standard event set</td><td>Gap — see Coverage Map (§15)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <p><strong>Flagship instance</strong> (AllSecure / GBHackers — macOS ClickFix → Terminal → Node.js RAT + malicious Chrome extension; tradecraft aligned to DPRK UNC5342 / Contagious Interview):</p>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr></thead>
+      <tbody>
+        <tr><td>Domain</td><td>real-tumble[.]pro</td><td>High</td><td>detect</td><td>Stage-0 delivery / malvertising landing domain</td><td>2027-02-16</td></tr>
+        <tr><td>URL</td><td>rg-telemetry[.]sbs/api</td><td>High</td><td>detect</td><td>Backdoor C2 endpoint</td><td>2027-02-16</td></tr>
+        <tr><td>URL</td><td>th-updates[.]sbs/analytics</td><td>High</td><td>detect</td><td>Malicious browser-extension C2 endpoint</td><td>2027-02-16</td></tr>
+        <tr><td>Ethereum contract (Polygon)</td><td>0x2acA749b59529f5CBCd6fbd34B35b1A546713dF6</td><td>High</td><td>enrich / pivot</td><td>EtherHiding contract resolving the backdoor's C2</td><td>2027-02-16</td></tr>
+        <tr><td>Ethereum contract (Polygon)</td><td>0x85a6d913aaC80286f01Fa082ef0B96C188673043</td><td>High</td><td>enrich / pivot</td><td>EtherHiding contract resolving the extension's C2</td><td>2027-02-16</td></tr>
+        <tr><td>Function selector</td><td>0x3bc5de30</td><td>High</td><td>enrich</td><td>Contract getter selector used to read the stored C2 value</td><td>2027-02-16</td></tr>
+        <tr><td>XOR key</td><td>9f10d0899beff7952f586a49305f8b14</td><td>High</td><td>enrich</td><td>Decodes the on-chain response for the backdoor channel</td><td>2027-02-16</td></tr>
+        <tr><td>XOR key</td><td>2752df77aeb348657f5fb59a22d65f4a</td><td>High</td><td>enrich</td><td>Decodes the on-chain response for the extension channel</td><td>2027-02-16</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Related infrastructure</strong> — independently reported EtherHiding-ClickFix clusters, kept source-tagged and separate from the flagship set above:</p>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context / Source</th><th>Expiry</th></tr></thead>
+      <tbody>
+        <tr><td>Ethereum contract (Polygon)</td><td>0x0C7Cb01C83203aC0a50Abc3a9AFF3c9Ca727eF55</td><td>Medium</td><td>hunt</td><td>Cribl SecOps instance; decoded to thu-ipad-03[.]cfd at capture time</td><td>2026-11-16</td></tr>
+        <tr><td>Domain</td><td>thu-ipad-03[.]cfd</td><td>Medium</td><td>hunt</td><td>Cribl SecOps — decoded second-stage domain (perishable, rotates)</td><td>2026-11-16</td></tr>
+        <tr><td>Ethereum contract (Polygon)</td><td>0xB6bC9e1D0b2fB96Ab7C47E04Cb0BE477410bC1f2</td><td>High</td><td>hunt</td><td>FileScan.io/OPSWAT — independently corroborated by two outside researchers</td><td>2027-02-16</td></tr>
+        <tr><td>Domain</td><td>authorization-cdn-press-enter[.]info</td><td>Medium</td><td>hunt</td><td>FileScan.io — stager domain live at capture; already rotated to auth-id-browser[.]info</td><td>2026-11-16</td></tr>
+        <tr><td>Domain</td><td>wpteamcdn[.]beer</td><td>High</td><td>hunt</td><td>FileScan.io — ClickFix lure/injection domain</td><td>2027-02-16</td></tr>
+        <tr><td>Domain</td><td>claudesave[.]beer</td><td>High</td><td>hunt</td><td>FileScan.io — Claude-AI-impersonation lure domain on shared infrastructure</td><td>2027-02-16</td></tr>
+        <tr><td>Ethereum contract (Polygon)</td><td>0x08207B087F61d7e95E441E15fd6d40BEfd6eD308</td><td>High</td><td>hunt</td><td>LevelBlue SpiderLabs + PhishEye — ErrTraffic v3 contract, reported independently by both</td><td>2027-02-16</td></tr>
+        <tr><td>Domain</td><td>superboomer[.]world</td><td>Medium</td><td>hunt</td><td>PhishEye — ErrTraffic-family Traffic Distribution System domain</td><td>2026-11-16</td></tr>
+        <tr><td>Ethereum contract (Polygon)</td><td>0x308e9ecc849533a042f13fD77E5C82eC3c62e9f2</td><td>Medium</td><td>hunt</td><td>Cynet — Starland RAT EtherHiding contract</td><td>2026-11-16</td></tr>
+        <tr><td>Domain</td><td>ho9894htrg43[.]com</td><td>Medium</td><td>hunt</td><td>Cynet — Starland RAT C2</td><td>2026-11-16</td></tr>
+        <tr><td>Domain</td><td>autum-path[.]vo8xalon[.]in[.]net</td><td>High</td><td>detect</td><td>cybersecuritynews.com + GBHackers — GULoader C2, BNB Smart Chain Testnet variant, corroborated by two outlets</td><td>2027-02-16</td></tr>
+        <tr><td>Domain (RPC)</td><td>bsc-testnet[.]drpc[.]org</td><td>High</td><td>hunt</td><td>GULoader/BSC variant — EtherHiding RPC endpoint</td><td>2027-02-16</td></tr>
+        <tr><td>SHA256</td><td>172a25a9ed8b798d8baeec29424b46627b5b39723b37c787f928d3700509001e</td><td>High</td><td>detect</td><td>GULoader/BSC variant — malicious web content sample (ANY.RUN)</td><td>2027-02-16</td></tr>
+        <tr><td>HTTP cookie (behavioral)</td><td><code>errtraffic_session=</code></td><td>Medium</td><td>hunt</td><td>GBHackers — ErrTraffic family web-layer indicator (WAF/proxy logs, not endpoint)</td><td>2026-11-16</td></tr>
+      </tbody>
+    </table>
+    <p class="callout callout-warn">Domains and stager URLs in this family rotate on the order of days (FileScan.io measured 2–7 day cadence; PhishEye measured 97 domains across one campaign window). Treat every domain/URL row as perishable — the Ethereum/Polygon contract addresses are the durable pivot, not the domains they currently resolve to.</p>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Visibility / gap</th></tr></thead>
+      <tbody>
+        <tr><td>Windows endpoints</td><td><code>ProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code>, <code>NewExecutableWritten</code></td><td>Critical</td><td>Falcon sensor telemetry is authoritative for the whole post-paste execution chain (steps 4–7)</td></tr>
+        <tr><td>macOS endpoints</td><td><code>ProcessRollup2</code> (macOS sensor), <code>NetworkConnectIP4</code></td><td>High</td><td>Covers the Terminal-paste → Node.js RAT chain documented by AllSecure; Chrome extension/Secure-Preferences tampering has limited direct field coverage — rely on MDM (§7)</td></tr>
+        <tr><td>Corporate web/proxy layer</td><td>DNS/proxy logs, network flow</td><td>High</td><td>Falcon endpoint DNS/NetworkConnect telemetry covers this only when the browser runs on a Falcon-monitored endpoint; network-appliance-only visibility needs proxy logs directly</td></tr>
+        <tr><td>WordPress / web-server infrastructure (initial compromise surface)</td><td>Native web-server access/error logs, WAF, file-integrity monitoring</td><td>Critical</td><td>Not Falcon-visible unless the WordPress host itself runs the sensor (uncommon); native audit-log hunts (§7) are the primary control here</td></tr>
+        <tr><td>Browser extension layer (Chrome/Edge)</td><td>MDM extension inventory, <code>PeFileWritten</code>/<code>NewExecutableWritten</code> (partial)</td><td>Medium</td><td>Falcon endpoint events are not built to fingerprint extension-manifest or Secure-Preferences content changes; managed-extension allowlisting is the reliable control</td></tr>
+        <tr><td>Cryptocurrency / blockchain infrastructure (Polygon, BNB Smart Chain)</td><td>None on-endpoint — public ledger only</td><td>Informational</td><td>Contract/wallet addresses are useful for on-chain pivot and threat-intel enrichment, not for blocking; RPC providers can be asked to flag abusive contracts but cannot remove them</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Initial Access</td><td>T1189</td><td>Drive-by Compromise</td><td>Injected script on a compromised WordPress site triggers on visit, no phishing email or link involved</td></tr>
+        <tr><td>Execution</td><td>T1204.004</td><td>Malicious Copy and Paste</td><td>ClickFix fake-CAPTCHA/verification overlay instructs Win+R (Windows) or Terminal (macOS) paste-and-run — formally mapped by MITRE, confirmed by OPSWAT/FileScan.io</td></tr>
+        <tr><td>Execution</td><td>T1059.001</td><td>Command and Scripting Interpreter: PowerShell</td><td>Hidden-window <code>iex(irm ...)</code> download cradle</td></tr>
+        <tr><td>Execution</td><td>T1218.011</td><td>System Binary Proxy Execution: Rundll32</td><td>rundll32.exe loads an attacker DLL via a UNC path with an ordinal export (GULoader stage)</td></tr>
+        <tr><td>Persistence</td><td>T1053.005</td><td>Scheduled Task/Job: Scheduled Task</td><td>Per-minute schtasks.exe task re-executing the PowerShell stager (Starland RAT)</td></tr>
+        <tr><td>Persistence</td><td>T1176</td><td>Browser Extensions</td><td>Malicious extension masquerading as a legitimate Chrome extension, patched into Secure Preferences</td></tr>
+        <tr><td>Defense Evasion</td><td>T1027</td><td>Obfuscated Files or Information</td><td>Base64 + single-byte XOR obfuscation of the injected JavaScript loader</td></tr>
+        <tr><td>Defense Evasion</td><td>T1140</td><td>Deobfuscate/Decode Files or Information</td><td>XOR-decoding of the on-chain smart-contract response into a usable C2 domain</td></tr>
+        <tr><td>Command and Control</td><td>T1102</td><td>Web Service</td><td>Closest ATT&amp;CK analogue for EtherHiding per FileScan.io's own assessment; a public blockchain read differs meaningfully from the web-service C2 the sub-technique was written for — no exact sub-technique exists yet</td></tr>
+        <tr><td>Command and Control</td><td>T1583.001</td><td>Acquire Infrastructure: Domains</td><td>Rapid domain rotation (2–7 day cadence) via bulk registrars (Dynadot observed) fronted by Cloudflare</td></tr>
+        <tr><td>Credential Access</td><td>T1555.003</td><td>Credentials from Web Browsers</td><td>Infostealer component targets 150+ wallet types plus browser-saved credentials, SSH keys, and cloud tokens</td></tr>
+        <tr><td>Discovery</td><td>T1082</td><td>System Information Discovery</td><td>RAT reconnaissance beacon reports machine GUID, OS version, AV product, domain, and privilege level</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <p>These checks live outside Falcon's endpoint event stream — on the web server, the domain-name system, or the browser-management console — and cover the steps of the chain (1, 3, 6-extension) that Falcon endpoint telemetry does not directly see.</p>
+    <ol>
+      <li><strong>PowerShell ScriptBlock logging (Event ID 4104):</strong> if not already enabled fleet-wide, turn it on and search for the <code>-w h</code>/<code>-windowstyle hidden</code> + <code>iex(irm ...)</code> fingerprint. This is the same signature Q2 hunts in Falcon telemetry, but 4104 captures the fully deobfuscated script block text, which is useful when the CommandLine itself is truncated or further obfuscated.</li>
+      <li><strong>WordPress site integrity (organization-owned properties only):</strong> scan <code>robots.txt</code>, theme <code>header.php</code>/<code>footer.php</code>/<code>functions.php</code>, and the <code>mu-plugins</code> directory for injected <code>&lt;script&gt;</code> blocks containing <code>fromCharCode</code>, <code>atob(</code>, <code>createElement("script")</code>, or outbound <code>fetch()</code>/<code>XMLHttpRequest</code> calls to RPC-sounding hostnames. Specifically check for an unfamiliar <code>session-manager.php</code>-style file in <code>mu-plugins</code> — LevelBlue's documented ErrTraffic v3 backdoor filename.</li>
+      <li><strong>Web server / WAF access logs:</strong> search for a <code>Set-Cookie: errtraffic_session=</code> response header, and for requests matching <code>/api/index.php?a=dl</code> or <code>/api/?a=tds_cfg</code> patterns.</li>
+      <li><strong>Enterprise DNS resolver logs:</strong> flag first-time lookups to blockchain RPC domains (<code>polygon-rpc.com</code>, <code>publicnode.com</code>, <code>drpc.org</code>, <code>bnbchain.org</code>, <code>alchemyapi.io</code>, <code>infura.io</code>, <code>ankr.com</code>, <code>quiknode.pro</code>) from subnets that are not your dev/Web3 team — mirrors Q3 but at the resolver instead of the endpoint, covering hosts without Falcon coverage.</li>
+      <li><strong>Managed browser extension inventory (MDM/Chrome Enterprise console):</strong> review the extension allowlist/installed-extension report for IDs outside your approved catalog, and for any recent modification timestamp on <code>Secure Preferences</code> that doesn't correlate with a scheduled Chrome update.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · ClickFix Run-dialog paste-and-execute</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> explorer.exe spawning a shell/scripting interpreter whose command line carries an IEX/download-and-run pattern — the universal ClickFix fingerprint across every reported variant. <strong>FP:</strong> IT help-desk remote-support scripts and legitimate admin one-liners launched via the Run dialog will also match.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: ClickFix Run-dialog paste-and-execute (Win+R / explorer.exe-spawned shell)</span>
+<span class="cm">// MITRE: T1204.004</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: help-desk remote-support one-liners, RMM tooling launched via Run dialog</span>
+<span class="cm">// TUNING: exclude ParentBaseFileName=explorer.exe children signed by your RMM/help-desk tooling; scope out known internal script-share paths</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=ProcessRollup2
+| ParentBaseFileName=/^explorer\.exe$/i
+| in(FileName, values=["powershell.exe","pwsh.exe","cmd.exe","mshta.exe","wscript.exe","cscript.exe","rundll32.exe"], ignoreCase=true)
+| CommandLine=/iex\(|invoke-expression\(|irm |invoke-restmethod|downloadstring|-enc |-w h|-windowstyle hidden/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Hidden-window PowerShell IEX(IRM) stager fetch</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the precise FileScan.io/Cribl fingerprint — PowerShell launched with a hidden window <em>and</em> an <code>iex(...)</code>/<code>Invoke-RestMethod</code> pair in the same command line. <strong>FP:</strong> rare; some internal automation intentionally hides PowerShell windows while calling Invoke-RestMethod.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Hidden-window PowerShell IEX(IRM) download cradle (ClickFix / EtherHiding stager fetch)</span>
+<span class="cm">// MITRE: T1059.001, T1204.004</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: internal automation that intentionally hides PowerShell windows while calling Invoke-RestMethod; verify against a change-managed script inventory</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^(powershell|pwsh)(\.exe)?$/i
+| CommandLine=/-w(indowstyle)? +h(idden)?/i
+| CommandLine=/iex\(|invoke-expression\(/i
+| CommandLine=/irm |invoke-restmethod/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Outbound calls to public blockchain RPC endpoints (EtherHiding resolution)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a process resolving a known public blockchain RPC gateway domain, joined back to the initiating process — the behavioral signature of a live EtherHiding contract read. <strong>FP:</strong> legitimate Web3/crypto developers, browser extensions like MetaMask, and blockchain-monitoring tools on dev/finance workstations.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Outbound calls to public blockchain RPC endpoints (EtherHiding on-chain C2 resolution)</span>
+<span class="cm">// MITRE: T1102</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: DnsRequest, ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate Web3/crypto developers, MetaMask and similar wallet extensions, blockchain-monitoring tools</span>
+<span class="cm">// TUNING: exclude aid/ComputerName groups belonging to your blockchain/dev/finance teams before promoting past investigate-only</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=DnsRequest
+| DomainName=/polygon-rpc\.com|publicnode\.com|drpc\.org|bnbchain\.org|alchemyapi\.io|infura\.io|ankr\.com|quiknode\.pro/i
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName=ProcessRollup2}, field=TargetProcessId_decimal, include=[FileName, ParentBaseFileName, CommandLine])
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, DomainName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · rundll32 UNC-path ordinal-export execution (GULoader LOLBin stage)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> rundll32.exe pointed at a remote UNC path with an ordinal-based export call — the exact pattern documented for the GULoader/ClickFix chain (<code>rundll32.exe \\host\share\...,#1</code>). <strong>FP:</strong> rare; some legitimate network-share software deployment uses rundll32 with UNC paths.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: rundll32.exe executing a UNC-path DLL via ordinal export (GULoader / ClickFix LOLBin stage)</span>
+<span class="cm">// MITRE: T1218.011, T1105</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate network-share software deployment tooling invoking rundll32 with UNC paths</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^rundll32(\.exe)?$/i
+| CommandLine=/\\\\[a-z0-9.\-]+\\/i
+| CommandLine=/,#[0-9]+/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Known EtherHiding-ClickFix stager/C2 domain hits</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS lookups to the atomic domains published in §4 across the flagship and related-infrastructure IOC sets. <strong>FP:</strong> none expected — these are campaign-specific; treat any hit as confirmed positive requiring immediate triage. Domains are perishable (2–7 day rotation observed) — re-run against the current IOC table, not from memory.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Known EtherHiding-ClickFix stager/C2 domain hits</span>
+<span class="cm">// MITRE: T1071.001, T1583.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: DnsRequest</span>
+<span class="cm">// FALSE POSITIVES: none expected -- campaign-specific atomic indicators</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=DnsRequest
+| DomainName=/rg-telemetry\.sbs|th-updates\.sbs|real-tumble\.pro|thu-ipad-03\.cfd|wpteamcdn\.beer|claudesave\.beer|ethercdnns\.beer|authorization-cdn-press-enter\.info|auth-id-browser\.info|superboomer\.world|ho9894htrg43\.com|autum-path\.vo8xalon\.in\.net/i
+| table([@timestamp, ComputerName, UserName, DomainName])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Recurring per-minute scheduled task from a paste-and-run PowerShell one-liner</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> schtasks.exe run with <code>/create</code> and <code>/sc minute</code>, spawned from a PowerShell/cmd parent whose own command line carries an <code>iex(</code> pattern — the Starland RAT persistence signature. <strong>FP:</strong> legitimate short-interval monitoring/health-check scheduled tasks.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Recurring per-minute scheduled task created via paste-and-run PowerShell (Starland RAT / ClickFix persistence pattern)</span>
+<span class="cm">// MITRE: T1053.005, T1204.004</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate short-interval monitoring or health-check scheduled tasks created via schtasks.exe</span>
+<span class="cm">// TUNING: correlate the /tr payload against a change-managed script inventory; exclude known RMM/monitoring command patterns</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^schtasks(\.exe)?$/i
+| CommandLine=/\/create/i
+| CommandLine=/\/sc +minute/i
+| ParentBaseFileName=/^(cmd|powershell|pwsh)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Node.js spawned from Terminal running from an unusual cache path (macOS RAT loader)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a node binary launched directly by Terminal/bash/zsh from a temp/cache/Application-Support path rather than a package-manager install location — matches AllSecure's ~38KB Node.js RAT loader. <strong>FP:</strong> developers legitimately running Node.js from nvm/Homebrew cache paths; scope to endpoints outside your engineering asset group.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Node.js runtime spawned from a user cache/temp directory shortly after Terminal execution (macOS ClickFix RAT loader pattern)</span>
+<span class="cm">// MITRE: T1204.004, T1059.007</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2 (macOS sensor)</span>
+<span class="cm">// FALSE POSITIVES: developers legitimately running Node.js from nvm/Homebrew cache paths</span>
+<span class="cm">// TUNING: exclude ImageFileName paths under known package-manager install locations (/usr/local/homebrew, /opt/homebrew, ~/.nvm) used by your engineering fleet</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=ProcessRollup2
+| ParentBaseFileName=/^(Terminal|bash|zsh|sh)$/i
+| FileName=/^node$/i
+| ImageFileName=/\/(tmp|Caches|Library\/Application Support)\//i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · New DLL written and loaded by a process spawned from msiexec (sideload chain)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a DLL written to disk and then loaded by a process whose parent is msiexec.exe — the HijackLoader-style MSI → signed-binary → sideloaded-DLL chain documented by Cynet (ESET SysInspector renamed, sciter-x.dll sideload). <strong>FP:</strong> standard MSI-based software installs that legitimately drop and load DLLs from the same install directory.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: New DLL written immediately before load by a process spawned from msiexec (potential sideload chain)</span>
+<span class="cm">// MITRE: T1574.002, T1204.004</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: NewExecutableWritten, ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: standard MSI-based software installs that legitimately drop and load DLLs from the same install directory</span>
+<span class="cm">// TUNING: exclude known-good installer families by ParentBaseFileName + AuthenticodeHashData combination against your approved-software baseline</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=NewExecutableWritten
+| TargetFileName=/\.dll$/i
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName=ProcessRollup2 | ParentBaseFileName=/^msiexec(\.exe)?$/i}, field=TargetProcessId_decimal, include=[FileName, CommandLine])
+| table([@timestamp, ComputerName, UserName, TargetFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Candidate</th><th>Disposition</th><th>Reason</th><th>Promotion path</th></tr></thead>
+      <tbody>
+        <tr><td>Q2 hidden-window IEX(IRM)</td><td>IOA candidate</td><td>High confidence, low FP — the most precise ClickFix fingerprint across sources</td><td>Run 14-day baseline as scheduled search; promote to Custom IOA if FP rate stays near zero</td></tr>
+        <tr><td>Q4 rundll32 UNC ordinal export</td><td>IOA candidate</td><td>High confidence, low FP, narrow legitimate-use footprint</td><td>Promote to Custom IOA after confirming no internal UNC-based deployment tooling matches</td></tr>
+        <tr><td>Q5 known stager/C2 domains</td><td>IOA candidate (block, not just detect)</td><td>High confidence, zero expected FP — but perishable, requires an update cadence</td><td>Feed into Custom IOC/domain-block list with a refresh job; do not hardcode into a static IOA pattern</td></tr>
+        <tr><td>Q1 ClickFix broad paste pattern</td><td>Investigate only</td><td>Medium FP — legitimate help-desk/RMM tooling overlaps</td><td>Baseline 14 days, tune approved parent-process signers, then consider scheduled-search promotion</td></tr>
+        <tr><td>Q3, Q6, Q7, Q8</td><td>Investigate only</td><td>Medium FP or narrower telemetry requirement; useful for triage and pivoting, not yet precise enough for prevention</td><td>Re-evaluate after 30 days of tuning against your environment's baseline</td></tr>
+      </tbody>
+    </table>
+    <h3>Alert package — Q2 &amp; Q4 (promotable pair)</h3>
+    <p><strong>Scheduled Search name:</strong> DETECT — ClickFix Hidden-Window PowerShell / rundll32 UNC LOLBin (EtherHiding Delivery Chain)<br>
+    <strong>Description:</strong> Fires when a host executes the hidden-window <code>iex(irm)</code> PowerShell fingerprint or a UNC-path rundll32 ordinal-export call — the two highest-fidelity signatures for the ClickFix paste-and-run stage documented across the EtherHiding-ClickFix vendor reporting.<br>
+    <strong>Alert email subject:</strong> [HIGH] Detection: EtherHiding ClickFix — hidden-window stager execution on &lt;ComputerName&gt;<br>
+    <strong>Alert email body:</strong> A host matched the ClickFix/EtherHiding stager-execution fingerprint (hidden-window PowerShell IEX/IRM, or a UNC-path rundll32 ordinal call). This pattern is associated with a blockchain-hidden C2 delivery chain that has recently distributed infostealers, loaders, and RATs. Treat the endpoint as potentially compromised until triaged — the user executing this command most likely pasted it from a fake CAPTCHA/verification prompt. Immediate actions: network-contain the host, capture the full CommandLine and any child-process tree, and identify the site/prompt the user interacted with just prior to execution.<br>
+    <strong>Triage checklist:</strong></p>
+    <ol>
+      <li>Pull the full <code>ProcessRollup2</code> record and confirm the parent is explorer.exe (Windows Run dialog) or Terminal (macOS)</li>
+      <li>Interview the user: what page/prompt told them to press Win+R or open Terminal and paste?</li>
+      <li>Check <code>NetworkConnectIP4</code>/<code>DnsRequest</code> for the affected host in the surrounding 5 minutes for RPC-endpoint or known stager-domain traffic (pivot: Q3, Q5)</li>
+      <li>Check for a resulting <code>NewExecutableWritten</code> event (secondary payload drop) on the same host (pivot: Q8)</li>
+      <li>Check for a resulting scheduled task or startup persistence artifact (pivot: Q6)</li>
+      <li>If browser credentials or a cryptocurrency wallet are present on the host, treat them as compromised — begin rotation immediately</li>
+      <li>Network-contain the host if not already isolated; preserve the process/network evidence before remediation</li>
+      <li>Escalate to IR if any child process wrote an executable, established outbound C2, or created persistence</li>
+    </ol>
+    <p><strong>Pivot queries:</strong> host-scoped — re-run Q3/Q5/Q6/Q8 with <code>aid = &lt;affected_aid&gt;</code>; environment-wide — re-run Q1–Q8 across the fleet for the same 7-day window to scope additional victims.</p>
+    <h3>Lighter package — Q1, Q3, Q6, Q7, Q8 (investigate-only)</h3>
+    <p>No alert email; run as scheduled hunts. Pivot queries: for any hit, join back to Q5 (known domains) and Q3 (RPC calls) on the same host/time window to confirm the full chain before escalating.</p>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <div class="ioc-grab-grid">
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import — flagship instance</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,real-tumble.pro,detect,high,2027-02-16,EtherHiding ClickFix stage-0 delivery domain,campaign:EtherHidingClickFix
+domain,rg-telemetry.sbs,detect,high,2027-02-16,EtherHiding ClickFix backdoor C2,campaign:EtherHidingClickFix
+domain,th-updates.sbs,detect,high,2027-02-16,EtherHiding ClickFix extension C2,campaign:EtherHidingClickFix
+domain,autum-path.vo8xalon.in.net,detect,high,2027-02-16,GULoader C2 (EtherHiding/BSC variant),campaign:EtherHidingClickFix
+domain,wpteamcdn.beer,detect,high,2027-02-16,ClickFix lure/injection domain (FileScan.io),campaign:EtherHidingClickFix
+sha256,172a25a9ed8b798d8baeec29424b46627b5b39723b37c787f928d3700509001e,detect,high,2027-02-16,Malicious web content sample (GULoader/EtherHiding variant),campaign:EtherHidingClickFix</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Blockchain / EtherHiding Anchors</span><span class="igc">enrich &amp; pivot — not blockable</span></div>
+        <button class="btn-copy" data-label="Copy anchors" onclick="copyBlock('grab-chain',this)" style="margin:0 0 6px;">Copy anchors</button>
+<pre class="code" id="grab-chain">CONTRACT_BACKDOOR=0x2acA749b59529f5CBCd6fbd34B35b1A546713dF6
+CONTRACT_EXTENSION=0x85a6d913aaC80286f01Fa082ef0B96C188673043
+GETTER_SELECTOR=0x3bc5de30
+XOR_KEY_BACKDOOR=9f10d0899beff7952f586a49305f8b14
+XOR_KEY_EXTENSION=2752df77aeb348657f5fb59a22d65f4a
+RELATED_CONTRACT_CRIBL=0x0C7Cb01C83203aC0a50Abc3a9AFF3c9Ca727eF55
+RELATED_CONTRACT_FILESCAN=0xB6bC9e1D0b2fB96Ab7C47E04Cb0BE477410bC1f2
+RELATED_CONTRACT_ERRTRAFFIC_V3=0x08207B087F61d7e95E441E15fd6d40BEfd6eD308
+RELATED_CONTRACT_STARLAND_RAT=0x308e9ecc849533a042f13fD77E5C82eC3c62e9f2
+NOTE=Contracts are durable pivots; resolved domains rotate every 2-7 days per FileScan.io</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">CommandLine / process patterns</span></div>
+        <button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy signatures</button>
+<pre class="code" id="grab-behavior">PATTERN_CLICKFIX_PASTE=explorer.exe|Terminal -> powershell|cmd|mshta|rundll32 with iex(irm ...) or -enc
+PATTERN_HIDDEN_WINDOW=powershell.exe -w h|-windowstyle hidden + iex( + irm|Invoke-RestMethod
+PATTERN_RUNDLL32_UNC=rundll32.exe \\\\host\\share\\...,#ordinal
+PATTERN_SCHTASK_PERMIN=schtasks /create ... /sc minute /mo 1 (spawned from powershell/cmd with iex()
+PATTERN_HTTP_COOKIE=Set-Cookie: errtraffic_session=
+BLOCKCHAIN_RPC_DOMAINS=polygon-rpc.com,publicnode.com,drpc.org,bnbchain.org,alchemyapi.io,infura.io,ankr.com,quiknode.pro</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">WordPress / Web-Layer Audit</span><span class="igc">for organization-owned sites</span></div>
+        <button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checklist</button>
+<pre class="code" id="grab-audit">CHECK_1=Diff robots.txt against last known-good version
+CHECK_2=Scan mu-plugins/ for unfamiliar files (watch for session-manager.php)
+CHECK_3=Grep theme header.php/footer.php/functions.php for fromCharCode|atob(|createElement("script")
+CHECK_4=Review WP admin account list for unrecognized/recently-created accounts
+CHECK_5=Check WAF/access logs for Set-Cookie: errtraffic_session=
+TOOLING=Wordfence, Sucuri, Imunify360, or an equivalent WordPress-aware FIM/WAF product</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Pass criteria</th><th>Safe validation</th></tr></thead>
+      <tbody>
+        <tr><td>Telemetry ready</td><td>ProcessRollup2, DnsRequest, NetworkConnectIP4, NewExecutableWritten searchable for the target host population (Windows + macOS)</td><td>Confirm a known-benign PowerShell/Node.js execution appears in Falcon within the expected lookback window</td></tr>
+        <tr><td>Benign baseline</td><td>Approved RMM/help-desk tooling, dev/Web3 team subnets, and internal script-share paths documented before tuning Q1/Q3</td><td>Run a 14-day baseline; classify every recurring hit before promoting any query</td></tr>
+        <tr><td>Positive test</td><td>Q1/Q2 return a sanctioned test execution (e.g., a benign <code>iex(irm ...)</code> one-liner run from a canary host's Run dialog)</td><td>Use an isolated lab host and a harmless test URL; never test against the actual reported stager domains</td></tr>
+        <tr><td>IOC freshness</td><td>Q5 domain list re-synced against §4 before each hunt cycle</td><td>Track the "Expiry" column in §4; re-pull vendor reporting if a domain has rotated</td></tr>
+        <tr><td>Promotion</td><td>Measured FP rate and analyst runbook approved for Q2/Q4/Q5 before Custom IOA/block promotion</td><td>Scheduled search first; promote to Custom IOA only after the 14-day baseline shows near-zero FP</td></tr>
+      </tbody>
+    </table>
+    <p class="callout callout-danger">Never validate by visiting an actual reported ClickFix lure page or pasting a captured attacker command, even in a lab — several variants fetch a live second-stage payload from rotating infrastructure that cannot be fully controlled by the analyst.</p>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate · this week</div>
+      <ul>
+        <li><strong>Enable PowerShell Script Block Logging (Event ID 4104) fleet-wide.</strong> Low-risk, no user-visible change, and it captures the deobfuscated script text behind the Q2 fingerprint even when CommandLine truncates. Framework: MITRE M1040 (Behavior Prevention on Endpoint). Verify: <code>Get-WinEvent -LogName "Microsoft-Windows-PowerShell/Operational" | Where-Object Id -eq 4104 | Select-Object -First 1</code></li>
+        <li><strong>Block outbound resolution of public blockchain RPC domains</strong> (<code>polygon-rpc.com</code>, <code>publicnode.com</code>, <code>drpc.org</code>, <code>bnbchain.org</code>, <code>alchemyapi.io</code>, <code>infura.io</code>, <code>ankr.com</code>, <code>quiknode.pro</code>) at the perimeter proxy/firewall for every subnet except an explicit dev/Web3 allowlist. Framework: MITRE M1031 (Network Intrusion Prevention). Verify: attempt DNS resolution from a non-allowlisted test host and confirm the block.</li>
+        <li><strong>Publish a ClickFix-specific user-awareness advisory</strong> naming the exact sequence: no legitimate site ever asks a user to press Win+R (or open Terminal) and paste a command to "verify you are human" or "fix an error." Framework: MITRE M1017 (User Training). Verify: track advisory acknowledgment/click-through rate.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term · 1-4 weeks</div>
+      <ul>
+        <li><strong>Pilot Microsoft Defender ASR rule "Block execution of potentially obfuscated scripts"</strong> (GUID <code>5beb7efe-fd9a-4556-801d-275e5ffc04cc</code>) in Audit mode on a ring, then move to Block. Framework: MITRE M1038 (Execution Prevention); Microsoft Defender ASR reference rule. Verify: <code>Get-MpPreference | Select-Object AttackSurfaceReductionRules_Ids,AttackSurfaceReductionRules_Actions</code></li>
+        <li><strong>Disable the WebClient (WebDAV Redirector) service</strong> on workstations without a documented WebDAV business need — closes the UNC-path LOLBin loading vector GULoader used via rundll32 in the reported chain. Framework: MITRE M1042 (Disable or Remove Feature or Program). Verify: <code>Get-Service WebClient</code> shows Disabled/Stopped on a sample host.</li>
+        <li><strong>Restrict the Run command (Win+R) via GPO for high-risk populations</strong> (shared kiosks, call-center seats) where business need allows it, paired with PowerShell Constrained Language Mode. Framework: MITRE M1038. Verify: <code>gpresult /r</code> shows the policy applied on a test OU.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic · 1-3 months</div>
+      <ul>
+        <li><strong>Deploy WordPress-aware file-integrity monitoring / WAF</strong> (Wordfence, Sucuri, Imunify360, or equivalent) on any organization-owned WordPress properties, with mandatory scanning of <code>mu-plugins</code>, theme footer/header/functions files, and <code>robots.txt</code>. Enforce admin MFA and least-privilege plugin accounts. ⚠ No formal CIS Benchmark exists for WordPress specifically — cite OWASP WordPress Security Guidance as the best-practice authority. Verify: scheduled FIM diff report shows zero unexplained changes to <code>robots.txt</code>/<code>mu-plugins</code> over a rolling 30-day window.</li>
+        <li><strong>Roll out managed browser-extension allowlisting</strong> (Chrome/Edge <code>ExtensionInstallAllowlist</code> policy) via MDM so unauthorized extensions cannot silently persist post-compromise. Framework: MITRE M1038. Verify: <code>reg query HKLM\SOFTWARE\Policies\Google\Chrome\ExtensionInstallAllowlist</code> shows the managed policy present.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h3>Playbook 1 — Enable PowerShell Script Block Logging (GPO)</h3>
+    <p><strong>Step 1:</strong> Computer Configuration &gt; Administrative Templates &gt; Windows Components &gt; Windows PowerShell &gt; "Turn on PowerShell Script Block Logging" = Enabled; link the GPO to the target OU.</p>
+<pre class="code">Set-GPRegistryValue -Name "EtherHiding-ClickFix-ScriptBlockLogging" `
+  -Key "HKLM\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" `
+  -ValueName "EnableScriptBlockLogging" -Type DWord -Value 1</pre>
+    <p><strong>Prerequisites:</strong> Domain Admin rights, GPMC access, target OU identified.<br>
+    <strong>Reboot required:</strong> No — run <code>gpupdate /force</code> and open a new PowerShell session.<br>
+    <strong>Rollback:</strong> Set the policy back to Not Configured/Disabled and run <code>gpupdate /force</code>; purely a logging toggle, no data loss.</p>
+
+    <h3>Playbook 2 — ASR rule: block execution of potentially obfuscated scripts</h3>
+<pre class="code"># Pilot (Audit) first
+Set-MpPreference -AttackSurfaceReductionRules_Ids 5beb7efe-fd9a-4556-801d-275e5ffc04cc `
+  -AttackSurfaceReductionRules_Actions AuditMode
+
+# After pilot review, move to enforcement
+Set-MpPreference -AttackSurfaceReductionRules_Ids 5beb7efe-fd9a-4556-801d-275e5ffc04cc `
+  -AttackSurfaceReductionRules_Actions Enabled</pre>
+    <p><strong>Prerequisites:</strong> Microsoft Defender Antivirus active as (or alongside) the primary AV, Windows 10 1709+/Server 2019+, pilot ring identified.<br>
+    <strong>Reboot required:</strong> No.<br>
+    <strong>Rollback:</strong> <code>Set-MpPreference -AttackSurfaceReductionRules_Ids 5beb7efe-fd9a-4556-801d-275e5ffc04cc -AttackSurfaceReductionRules_Actions Disabled</code></p>
+
+    <h3>Playbook 3 — Disable the WebClient (WebDAV) service</h3>
+<pre class="code">\# Survey for dependency first, then:
+Set-Service -Name WebClient -StartupType Disabled
+Stop-Service -Name WebClient -Force</pre>
+    <p><strong>Prerequisites:</strong> Confirm no business-critical WebDAV-mapped drives depend on the service (survey the target population first).<br>
+    <strong>Reboot required:</strong> No, though users with open WebDAV handles should close them first to avoid an in-flight-transfer interruption.<br>
+    <strong>Rollback:</strong> <code>Set-Service -Name WebClient -StartupType Manual; Start-Service -Name WebClient</code></p>
+
+    <h3>Playbook 4 — Perimeter block for public blockchain RPC domains</h3>
+<pre class="code"># Example generic proxy/firewall ACL syntax -- adapt to your platform
+deny dst-domain-category "blockchain-rpc" src-group "all" exclude-group "web3-dev-team"
+deny dst-domain "polygon-rpc.com,publicnode.com,drpc.org,bnbchain.org,alchemyapi.io,infura.io,ankr.com,quiknode.pro" src-group "all" exclude-group "web3-dev-team"</pre>
+    <p><strong>Prerequisites:</strong> Identify and document the dev/Web3 allowlist group before deployment — this is the single biggest source of legitimate breakage.<br>
+    <strong>Reboot required:</strong> No.<br>
+    <strong>Rollback:</strong> Remove the deny rule / re-enable resolution for the affected domain category.</p>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence to preserve</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain the endpoint that executed the Run-dialog/Terminal paste command (Falcon RTR network containment or equivalent). Block confirmed atomic domains (§4) at DNS/proxy/firewall immediately. Suspend/rotate credentials for any account whose session touched the endpoint after the execution timestamp.</td><td>IR / SOC on-call</td><td>Full <code>ProcessRollup2</code> chain, network-containment timestamp, list of blocked domains</td></tr>
+        <tr><td>Eradicate</td><td>Identify and pull (via RTR) the dropped RAT/backdoor binary, GULoader-staged DLL, or malicious Node.js payload before deletion. Remove any unauthorized browser extension and reset Secure Preferences/extension policy state. Remove persistence (scheduled task, startup LNK, malicious mu-plugin file on an org-owned WordPress asset). Rotate all credentials and cryptocurrency wallet keys reachable from the endpoint.</td><td>IR / Endpoint engineering</td><td>Preserved sample (hash + binary), persistence-artifact listing, credential-rotation ticket references</td></tr>
+        <tr><td>Recover</td><td>Rebuild/reimage the endpoint from a known-good image if backdoor/RAT execution is confirmed — do not trust in-place cleanup for an <code>eval()</code>-capable RAT. Restore the WordPress site from a clean backup if organization-owned; patch core/theme/plugins; force-reset all admin credentials. Re-enable network access only after 72 hours with no further Q3/Q5 beacon traffic from the host.</td><td>Endpoint engineering / Web team</td><td>Reimage confirmation, WordPress restore log, 72-hour clean-beacon confirmation</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1204.004</td><td>ClickFix paste-and-run</td><td>Q1, Q2</td><td>Q2 candidate</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1059.001</td><td>Hidden-window PowerShell IEX(IRM)</td><td>Q2</td><td>Candidate</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1218.011</td><td>rundll32 UNC ordinal-export LOLBin</td><td>Q4</td><td>Candidate</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1071.001 / T1583.001</td><td>Known stager/C2 domain contact</td><td>Q5</td><td>Candidate (block)</td><td><span class="badge b-low">Good — but perishable, needs refresh cadence</span></td></tr>
+        <tr><td>T1102</td><td>EtherHiding blockchain RPC resolution</td><td>Q3</td><td>Investigate only</td><td><span class="badge b-med">Partial — only visible when the browser sits on a Falcon-monitored endpoint; FP tuning required</span></td></tr>
+        <tr><td>T1053.005</td><td>Per-minute scheduled-task persistence</td><td>Q6</td><td>Investigate only</td><td><span class="badge b-med">Partial</span></td></tr>
+        <tr><td>T1574.002</td><td>MSI → signed binary → sideloaded DLL</td><td>Q8</td><td>Investigate only</td><td><span class="badge b-med">Partial</span></td></tr>
+        <tr><td>T1204.004 (macOS)</td><td>Terminal → Node.js RAT loader</td><td>Q7</td><td>Investigate only</td><td><span class="badge b-med">Partial — macOS sensor only</span></td></tr>
+        <tr><td>T1176 / T1555.003</td><td>Malicious browser extension persistence &amp; credential theft</td><td>None</td><td>n/a</td><td><span class="badge b-high">GAP — Falcon endpoint events don't fingerprint extension-manifest/Secure-Preferences content; rely on MDM allowlisting (§7, §12)</span></td></tr>
+        <tr><td>T1189</td><td>WordPress robots.txt / mu-plugin injection (initial access)</td><td>None</td><td>n/a</td><td><span class="badge b-high">GAP — no Falcon endpoint telemetry assumed on the web server; native audit-log hunt required (§7)</span></td></tr>
+        <tr><td>T1027 / T1140</td><td>Client-side XOR/Base64 obfuscation of the loader JS</td><td>None directly</td><td>n/a</td><td><span class="badge b-med">Partial — occurs inside the browser JS engine, outside Falcon process telemetry; only the resulting spawned process (Q1/Q2) is visible</span></td></tr>
+      </tbody>
+    </table>
+    <p class="callout callout-info">Before promoting any query past investigate-only, confirm the Detection Validation Gates in §11 (telemetry readiness, benign baseline, positive test, IOC freshness) have all passed for your tenant.</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code">TITLE: EtherHiding ClickFix -- Blockchain-Hidden C2 Delivery Chain
+SEVERITY: High / active, multi-vendor-corroborated campaign family
+DATE: 2026-08-16
+VERSION: v0.1
+SCOPE: Windows and macOS endpoints; organization-owned WordPress infrastructure
+HYPOTHESIS: A user paste-and-run action (ClickFix) triggers a hidden-window PowerShell/rundll32/Terminal
+  execution chain whose C2 configuration is resolved from a public Polygon or BNB Smart Chain smart contract
+  (EtherHiding), making domain/IP blocking alone insufficient.
+QUERIES: Q1 ClickFix paste pattern; Q2 hidden-window IEX(IRM); Q3 blockchain RPC calls; Q4 rundll32 UNC LOLBin;
+  Q5 known stager/C2 domains; Q6 per-minute schtasks persistence; Q7 macOS Node.js RAT loader; Q8 MSI/DLL sideload
+DO FIRST: Run Q2, Q4, Q5 as the highest-confidence triage; correlate any hit against Q3 (blockchain RPC) to
+  confirm the EtherHiding stage; treat any positive host as compromised pending investigation.
+EXPECTED FINDINGS: hidden-window PowerShell/rundll32 execution off explorer.exe/Terminal, DNS hits to public
+  RPC gateways or the atomic domains in section 4, or a per-minute scheduled task spawned from PowerShell.
+GAPS: No Falcon endpoint visibility on the WordPress compromise stage or browser-extension tampering;
+  client-side blockchain-read and XOR decode happen entirely inside the browser JS engine.
+ACTIONS: Enable PowerShell Script Block Logging; block outbound blockchain-RPC domains for non-dev subnets;
+  publish the ClickFix user-awareness advisory; pilot the obfuscated-script ASR rule; disable WebClient where unused.
+OWNER: Detection Engineering / Incident Response
+FOLLOW-UP: Re-hunt weekly against a refreshed IOC set -- this family's domains rotate every 2-7 days.</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-16</span><span>Initial draft — 8 CQL queries, flagship + related-infrastructure IOC sets, tiered hardening, containment runbook. Built from 13 saved source snapshots.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead>
+      <tbody>
+        <tr><td>T1</td><td><a href="https://cribl.io/blog/cribl-secops-uncovers-etherhiding-malware-campaign-on-the-blockchain/">Cribl SecOps — "Cribl SecOps uncovers EtherHiding malware campaign on the blockchain"</a></td><td>robots.txt injection mechanism, RPC/contract lookup, own IOC set</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://gbhackers.com/clickfix-campaign-uses-etherhiding/">GBHackers — "ClickFix Campaign Uses EtherHiding to Hide Malware and Exposes DPRK Wallet Trail"</a></td><td>Flagship IOC set, DPRK/UNC5342 attribution</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://www.allsecure.io/blog/clickfix-etherhiding-dprk-wallet/">AllSecure — "ClickFix, EtherHiding &amp; a DPRK Wallet Trail"</a></td><td>Originating research (metadata corroboration)</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://thehackernews.com/2026/08/threatsday-ghostjacking-ai-attacks.html">The Hacker News — ThreatsDay, "Blockchain-Hidden C2"</a></td><td>Campaign anchor, verbatim Cribl quote</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://www.levelblue.com/blogs/spiderlabs-blog/err-hiding-and-seek-how-errtraffic-v3-leverages-etherhiding-in-clickfix-campaign">LevelBlue SpiderLabs — "Err-Hiding and Seek: How ErrTraffic v3 Leverages EtherHiding in ClickFix Campaign"</a></td><td>ErrTraffic v3 framework, WordPress mu-plugin backdoor</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://phisheye.com/blog/clickfix-2026-fake-captcha-etherhiding">PhishEye — "ClickFix 2026: Fake CAPTCHA Hides C2 On-Chain"</a></td><td>Win+R paste mechanic, domain-rotation scale</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://blog.filescan.io/posts/clickfix-etherhiding-chain/">FileScan.io Threat Labs — "Tracing ClickFix Chain to a Live EtherHiding Resolution"</a></td><td>Deep forensic trace, MITRE mapping, defender telemetry guidance</td><td>2026-08-16</td></tr>
+        <tr><td>T1</td><td><a href="https://www.opswat.com/blog/inside-a-live-clickfix-campaign-using-etherhiding-to-hide-its-next-move">OPSWAT — "Inside a Live ClickFix Campaign using EtherHiding to Hide Its Next Move"</a></td><td>MITRE T1204.004 confirmation, FileScan.io summary</td><td>2026-08-16</td></tr>
+        <tr><td>T2</td><td><a href="https://www.cynet.com/blog/clickfix-reloaded-from-mass-hijackloader-infections-to-stealth-etherhiding-rats/">Cynet — "ClickFix Reloaded: From Mass HijackLoader Infections to Stealth EtherHiding RATs"</a></td><td>HijackLoader + Starland RAT variant IOCs</td><td>2026-08-16</td></tr>
+        <tr><td>T2</td><td><a href="https://cybersecuritynews.com/clickfix-campaign-uses-etherhiding-and-guloader/">cybersecuritynews.com — "ClickFix Campaign Uses EtherHiding and GULoader to Infect Windows Users via Fake CAPTCHA"</a></td><td>BNB Smart Chain / GULoader variant IOCs</td><td>2026-08-16</td></tr>
+        <tr><td>T2</td><td><a href="https://gbhackers.com/wordpress-sites-to-deliver-guloader/">GBHackers — "Hackers Abuse Compromised WordPress Sites to Deliver GULoader Through EtherHiding Chain"</a></td><td>rundll32 UNC LOLBin corroboration, mu-plugin backdoor detail</td><td>2026-08-16</td></tr>
+        <tr><td>T2</td><td><a href="https://gbhackers.com/errtraffic-combines-wordpress-hacks/">GBHackers — "ErrTraffic Combines WordPress Hacks, Blockchain C2 and Rotating Malware Domains in One Delivery Network"</a></td><td>ErrTraffic payload family, errtraffic_session cookie</td><td>2026-08-16</td></tr>
+      </tbody>
+    </table>
+    <p class="callout callout-warn">Tradecraft in the flagship instance is reported to align with DPRK cluster UNC5342 / Contagious Interview per AllSecure's analysis. This is a distinct delivery/C2 mechanism (ClickFix + blockchain-hosted EtherHiding C2) from the already-published <em>Contagious Interview / BeaverTail</em> HuntPack, which covers fake job-interview coding-challenge delivery via npm/PyPI — the two packs should be run together for full UNC5342-linked coverage but do not overlap in detection content.</p>
+  </div>
+</div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>

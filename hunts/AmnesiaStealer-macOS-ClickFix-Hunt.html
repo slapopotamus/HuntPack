@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AmnesiaStealer (macOS ClickFix) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for AmnesiaStealer, a Rust-based macOS infostealer delivered via a counterfeit-GitHub ClickFix lure: root LaunchDaemon persistence, CVE-2020-9771 TCC bypass, Amnesia Panel C2, and CDP-driven live browser hijack. MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/AmnesiaStealer-macOS-ClickFix-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AmnesiaStealer (macOS ClickFix) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for AmnesiaStealer: root LaunchDaemon persistence, CVE-2020-9771 TCC bypass, Amnesia Panel C2, CDP live browser hijack, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/AmnesiaStealer-macOS-ClickFix-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #ff9e64;
+  --accent-dim: rgba(255,158,100,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1808 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(255,158,100,0.1); color: #ff9e64; border-color: rgba(255,158,100,0.5); }
+.btn-falcon:hover { background: rgba(255,158,100,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #ff9e64; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #ff9e64; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(255,158,100,0.09); border: 1px solid rgba(255,158,100,0.3); color: #ff9e64; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">AmnesiaStealer — macOS ClickFix Infostealer + Live Browser Hijack</div>
+    <div class="version">v0.1 · 2026-08-16</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>AmnesiaStealer — macOS ClickFix Infostealer + Live Browser Hijack</h1>
+    <div class="subtitle">Counterfeit GitHub "Download for macOS" page → Base64 Terminal paste → 3-stage Rust dropper → root LaunchDaemon persistence ("Amnesia Panel" C2) → CVE-2020-9771 TCC bypass + Chrome DevTools Protocol live browser takeover</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">AmnesiaStealer (macOS)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">NEW / ACTIVE (2026-08-13)</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">macOS Infostealer + Remote Browser Control</div></div>
+      <div class="meta-item"><div class="mk">Delivery</div><div class="mv">ClickFix · counterfeit GitHub page</div></div>
+      <div class="meta-item"><div class="mk">Attribution</div><div class="mv">Unattributed — Russian-language C2 backend</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-08-16</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (vendor primary research + 2-source hash/IOC corroboration)</div></div>
+    </div>
+  </div>
+
+  <!-- 1 Executive Summary -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>AmnesiaStealer</strong> is a newly discovered, multi-stage <strong>Rust-based macOS infostealer</strong> first reported by <strong>Jamf Threat Labs</strong> (researcher Thijs Xhaflaire) on <strong>2026-08-13</strong>. It is delivered via a <strong>ClickFix-style lure</strong>: a counterfeit GitHub "Download for macOS" page — correct dark theme, Octocat logo, a fake <em>"Verified Publisher"</em> badge — presenting a "Terminal installation" box that tricks the victim into pasting and running a <strong>Base64-encoded Terminal command</strong>. The malware is named after the <strong>"Amnesia Panel"</strong> backend it reports to, whose failed-login page returns Russian-language error text.</p>
+      <p><strong>Three-stage chain:</strong> Stage 0 is a self-deleting shell dropper that strips the quarantine attribute, ad-hoc code-signs, and launches a password-protected ("<code>dulin</code>") ZIP payload; Stage 1 is the Rust infostealer itself, which stages loot in a directory named with <strong>25 random alphanumeric characters under <code>/tmp</code></strong> (subfolders <code>Browsers/</code>, <code>Passwords/</code>, <code>Wallets/</code>, <code>Notes/</code>, <code>Telegram/</code>, <code>FileGrabber/</code>, plus <code>system_info.json</code>, <code>installed_apps.txt</code>, <code>collection_report.txt</code>, and a cleartext <code>pwd</code> file — the harvested local password is <em>also</em> written to <code>~/.pwd</code>); Stage 2 is an on-demand <code>stream_module</code> that gives the operator <strong>live, hands-on-keyboard control of the victim's browser</strong>.</p>
+      <p><strong>Persistence</strong> is a <strong>root LaunchDaemon that impersonates Apple's crash-reporting service</strong> (<code>com.apple.ReportCrash.agent_&lt;digits&gt;.plist</code> under <code>/Library/LaunchDaemons/</code>). <strong>Data theft</strong> spans <strong>16 Chromium-family browsers</strong> (Chrome, Brave, Arc, Edge, Opera, Vivaldi, Chromium, and others) plus Safari, Apple Notes, Telegram, and iCloud/local Keychain. For Safari cookie theft the malware <strong>reuses CVE-2020-9771</strong> — a macOS Time Machine / <code>mount_apfs</code> local-snapshot TCC bypass Apple patched in Catalina 10.15.4/10.15.5. A host where this bypass actually succeeds is either running an <strong>unpatched or downgraded macOS</strong>, or is exposed to a regressed/variant bypass — treat a successful <code>mount_apfs -o nobrowse</code> invocation as a hardening signal in its own right, independent of AmnesiaStealer.</p>
+      <p><strong>Distinctive capability:</strong> the Stage 2 <code>stream_module</code> clones the victim's browser profile, launches it headless, and relays it over the <strong>Chrome DevTools Protocol (CDP)</strong> — the operator receives a live screencast at <strong>~3fps</strong> with full keyboard, mouse, scroll, navigation, and tab-management input, effectively driving the victim's already-authenticated browser session (banking, email, social) without any on-screen change the victim would notice. A <strong>clipboard-hijacking module</strong> targets nine cryptocurrency address formats (Bitcoin, Bitcoin Cash, Ethereum, TRON, Litecoin, Monero, Solana, Ripple, ATOM/Cosmos) but was <strong>observed disabled</strong> in the analyzed build — treated below as a dormant capability to watch, not a firing detection.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> This pack is built around what makes AmnesiaStealer distinct from other macOS ClickFix stealers already in the HuntPack library (AMOS, MacSync, Phexia) — the <strong>25-char <code>/tmp</code> staging directory with named subfolders</strong> (Q3), the <strong>root LaunchDaemon masquerading as Apple crash reporting</strong> (Q4), the <strong><code>mount_apfs -o nobrowse</code> CVE-2020-9771 signal</strong> (Q5), the <strong>Amnesia Panel C2 domain family</strong> (Q8), and the <strong>CDP remote-debugging flags</strong> that precede a live browser hijack (Q9). Pair the ClickFix bootstrap hunt (Q1–Q2) with these AmnesiaStealer-specific behaviors rather than relying on generic ClickFix signatures alone.</p>
+    </div>
+  </div>
+
+  <!-- 2 Source Review -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Source</th><th>Tier</th><th>Key finding</th><th>Carry forward</th></tr></thead>
+        <tbody>
+          <tr><td>Jamf Threat Labs — original research (Thijs Xhaflaire)</td><td><span class="badge b-purple">Primary Research</span></td><td>Full 3-stage architecture, XOR config key, staging dir structure, C2 API paths, TCC bypass techniques, Stage 2 CDP relay details, both binary hashes</td><td>Yes</td></tr>
+          <tr><td>The Hacker News — Ravie Lakshmanan</td><td><span class="badge b-info">Reporting</span></td><td>Confirms attack chain, clipboard-hijack currency list, exfil staging dir pattern, ~/.pwd cleartext storage, Chrome Safe Storage recovery</td><td>Yes</td></tr>
+          <tr><td>SecurityWeek — Ionut Arghire</td><td><span class="badge b-info">Reporting</span></td><td>CVE-2020-9771 confirmation, Safe Storage key overwrite / macOS 26 credential-destruction behavior, AMOS/MacSync/CrashStealer overlap note</td><td>Yes</td></tr>
+          <tr><td>SecurityAffairs — Pierluigi Paganini</td><td><span class="badge b-info">Reporting</span></td><td>LaunchDaemon exact naming pattern (<code>com.apple.ReportCrash.agent</code>), <code>dscl</code>/<code>security unlock-keychain</code> credential flow, CDP <code>Network.getAllCookies</code> detail</td><td>Yes</td></tr>
+          <tr><td>Infosecurity Magazine — James Coker</td><td><span class="badge b-info">Reporting</span></td><td>Audio-mute-during-theft behavior, 7-browser CDP scope confirmation</td><td>Partial (no new IOCs)</td></tr>
+          <tr><td>GBHackers — Divya</td><td><span class="badge b-info">Reporting</span></td><td>Full atomic IOC set — domains, IPs, both SHA-256 hashes, archive password, temp-file naming pattern, exact LaunchDaemon path</td><td>Yes</td></tr>
+          <tr><td>SC Media — Laura French</td><td><span class="badge b-info">Reporting</span></td><td>Targeted file-extension list, CVE-2020-9771 patch-version confirmation, 3fps screencast detail</td><td>Yes</td></tr>
+          <tr><td>Brinztech — breach alert</td><td><span class="badge b-med">Secondary</span></td><td>XOR key corroboration, mitigation recommendations</td><td>Partial (advisory only)</td></tr>
+          <tr><td>Cyber Security News — Guru Baran</td><td><span class="badge b-info">Reporting</span></td><td>Landing-page domain (<code>github[.]aoitour[.]com</code>), stage-by-stage delivery mechanics</td><td>Yes</td></tr>
+          <tr><td>MacTech.com — Dennis Sellers</td><td><span class="badge b-med">Secondary</span></td><td>General campaign summary, Jamf mitigation pointer</td><td>Partial (context only)</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Provenance note:</strong> every atomic IOC in §4/§10 (SHA-256 hashes, C2 domains, IPs, file paths, archive password, XOR key) is drawn from the cited reporting above and is present verbatim in the saved source snapshots at <code>AmnesiaStealer-macOS-ClickFix-Hunt-sources/</code>. The two IP addresses (<code>138.124.70.84</code>, <code>138.124.96.160</code>) and the <code>shlyapadulina[.]space</code> / <code>amz.shlyapadulina[.]space</code> domains are corroborated by only one outlet (GBHackers) — flagged <code>medium</code> confidence below; validate before broad blocking. Both SHA-256 hashes and the primary C2 domain (<code>debug[.]allllowef[.]space</code>) are corroborated across two or more independent sources and carry <code>high</code> confidence. Fetched articles were treated strictly as research data — none contained instructions directed at an AI agent, and none were acted upon as commands.</p>
+    </div>
+  </div>
+
+  <!-- 3 Hunt Brief & Chain -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt hypotheses</h3>
+      <ul>
+        <li><strong>H1:</strong> A macOS host runs the ClickFix bootstrap — <code>Terminal</code>/<code>bash</code> decoding and executing a long Base64 blob pasted from a fraudulent web page.</li>
+        <li><strong>H2:</strong> A process strips the quarantine attribute, ad-hoc code-signs, and <code>nohup</code>-launches a binary extracted from a password-protected ZIP — the Gatekeeper-bypass handoff between Stage 0 and Stage 1.</li>
+        <li><strong>H3:</strong> A staging directory named with 25 random alphanumeric characters appears under <code>/tmp</code>, containing the AmnesiaStealer-specific artifact set (<code>Browsers/</code>, <code>Passwords/</code>, <code>Wallets/</code>, <code>Notes/</code>, <code>Telegram/</code>, <code>FileGrabber/</code>, <code>pwd</code>, etc.).</li>
+        <li><strong>H4:</strong> A root LaunchDaemon is installed and loaded that impersonates Apple's crash-reporting service (<code>com.apple.ReportCrash.agent_&lt;digits&gt;.plist</code>).</li>
+        <li><strong>H5:</strong> A process invokes <code>mount_apfs -o nobrowse</code> against a local Time Machine snapshot — the CVE-2020-9771 TCC-bypass primitive used for Safari cookie theft.</li>
+        <li><strong>H6:</strong> A spoofed "Installer" password prompt is followed by <code>dscl . -authonly</code> validation and/or <code>security unlock-keychain -p</code> — the credential-harvest stage.</li>
+        <li><strong>H7:</strong> A non-browser process reads Chromium <code>Cookies</code>/<code>Login Data</code>/<code>Web Data</code>/<code>Local State</code> stores across multiple distinct browser bundles in a short window — mass credential-store collection.</li>
+        <li><strong>H8:</strong> Any host resolves or connects to the Amnesia Panel C2 domain family (<code>debug[.]allllowef[.]space</code>, <code>news[.]allllowef[.]space</code>, <code>shlyapadulina[.]space</code>) or its published IPs.</li>
+        <li><strong>H9:</strong> A non-browser process spawns a Chromium-family binary with <code>--remote-debugging-port</code>/<code>--headless</code> flags — the Stage 2 <code>stream_module</code> activating live CDP browser control.</li>
+      </ul>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>#</th><th>Step</th><th>Observable</th><th>ATT&amp;CK</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Counterfeit GitHub page (fake Verified Publisher badge) presents a "Terminal installation" box; victim copies and pastes a Base64 command</td><td><code>Terminal</code> → <code>bash</code> decoding a long Base64 blob</td><td>T1204.004 / T1140</td></tr>
+          <tr><td>2</td><td>Stage 0 shell script downloads a password-protected ("dulin") ZIP, strips quarantine, ad-hoc codesigns, <code>nohup</code>-launches, clears shell history, self-deletes</td><td><code>xattr -d com.apple.quarantine</code>, <code>codesign --sign -</code>, <code>unzip -P</code>, <code>nohup</code></td><td>T1553.001 / T1140</td></tr>
+          <tr><td>3</td><td>Stage 1 Rust infostealer stages loot under a 25-char random <code>/tmp</code> directory</td><td><code>/tmp/&lt;25-char&gt;/Browsers</code>, <code>Passwords</code>, <code>Wallets</code>, <code>Notes</code>, <code>Telegram</code>, <code>FileGrabber</code>, <code>pwd</code></td><td>T1560 / T1005</td></tr>
+          <tr><td>4</td><td>Root LaunchDaemon persistence impersonating Apple crash reporter</td><td><code>/Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist</code> + <code>launchctl bootstrap/load</code></td><td>T1543.004</td></tr>
+          <tr><td>5</td><td>Native "Installer" password prompt captured, validated via <code>dscl</code>, stored cleartext at <code>~/.pwd</code> / staging-dir <code>pwd</code>; used to unlock Keychain</td><td><code>dscl . -authonly</code>, <code>security unlock-keychain -p</code>, cleartext <code>.pwd</code> writes</td><td>T1056.002 / T1552.001 / T1555.001</td></tr>
+          <tr><td>6</td><td>CVE-2020-9771 TCC bypass mounts an APFS local snapshot to reach protected Safari cookie data</td><td><code>mount_apfs -o nobrowse</code></td><td>T1548</td></tr>
+          <tr><td>7</td><td>16 Chromium-family browsers + Safari + Apple Notes + Telegram + Keychain harvested; Chrome Safe Storage key overwritten (destructive on macOS 26+)</td><td>Reads of <code>Cookies</code>, <code>Login Data</code>, <code>Web Data</code>, <code>Local State</code> across multiple browser bundles</td><td>T1555.003 / T1539 / T1217</td></tr>
+          <tr><td>8</td><td>Collected data archived and exfiltrated to Amnesia Panel C2</td><td>HTTP(S) to <code>debug[.]allllowef[.]space/send/</code>, <code>X-API-Key</code> header, Russian-language panel errors</td><td>T1071.001</td></tr>
+          <tr><td>9</td><td>On operator command, <code>stream_module</code> clones the browser profile, spawns it headless with CDP flags, relays a live 3fps screencast + full input over a WebSocket relay</td><td><code>--remote-debugging-port</code>, <code>--headless</code>, WebSocket relay to C2</td><td>T1219 / T1113</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 IOC Table -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">Atomic indicators are from the cited reporting (§2/§18). IPs and the <code>shlyapadulina[.]space</code> domain family are single-sourced (GBHackers) — validate before blocking. The clipboard-hijack module is confirmed present but disabled in the analyzed build; it is listed as a behavioral watch item, not an active detection.</p>
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>Domain</td><td><code>debug.allllowef.space</code></td><td><span class="badge b-low">high</span></td><td>block</td><td>Amnesia Panel C2 root + <code>/send/</code> exfil endpoint (Q8)</td></tr>
+          <tr><td>Domain</td><td><code>news.allllowef.space</code></td><td><span class="badge b-med">medium</span></td><td>block</td><td>Related C2 infrastructure (Q8)</td></tr>
+          <tr><td>Domain</td><td><code>shlyapadulina.space</code>, <code>amz.shlyapadulina.space</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Single-sourced C2/delivery infra — validate (Q8)</td></tr>
+          <tr><td>Domain</td><td><code>github.aoitour.com</code></td><td><span class="badge b-low">high</span></td><td>block</td><td>Counterfeit GitHub ClickFix landing page</td></tr>
+          <tr><td>IPv4</td><td><code>138.124.70.84</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Single-sourced C2 host — validate before block (Q8)</td></tr>
+          <tr><td>IPv4</td><td><code>138.124.96.160</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Single-sourced C2 host — validate before block (Q8)</td></tr>
+          <tr><td>SHA256</td><td><code>de5748aac4a4d4cb48cf050652679e6bc49eda33d9ffaa0d280b578122fab55a</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Stage 1 Rust infostealer binary (2-source corroborated)</td></tr>
+          <tr><td>SHA256</td><td><code>e853748ca8f9a5a9168263617409a9039ab09f4ffc7d860374c1e3b0b67b31a5</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Stage 2 stream_module binary (2-source corroborated)</td></tr>
+          <tr><td>File path (pattern)</td><td><code>/tmp/&lt;25-char-random&gt;/{Browsers,Passwords,Wallets,Notes,Telegram,FileGrabber}</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Staging directory (Q3)</td></tr>
+          <tr><td>File path</td><td><code>~/.pwd</code>, staging-dir <code>pwd</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Cleartext harvested local password (Q6)</td></tr>
+          <tr><td>File path (pattern)</td><td><code>/Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Root LaunchDaemon persistence (Q4)</td></tr>
+          <tr><td>File path</td><td><code>/tmp/tempAppleScript.scpt</code>, <code>/tmp/starter</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Osascript fallback / staging artifact</td></tr>
+          <tr><td>Behavior</td><td><code>mount_apfs -o nobrowse</code> (CVE-2020-9771)</td><td><span class="badge b-low">high</span></td><td>detect</td><td>TCC bypass for Safari cookie theft (Q5)</td></tr>
+          <tr><td>Behavior</td><td>Base64-decoded Terminal paste from a counterfeit GitHub page</td><td><span class="badge b-low">high</span></td><td>detect</td><td>ClickFix bootstrap (Q1)</td></tr>
+          <tr><td>Behavior</td><td>Chrome DevTools Protocol relay: <code>--remote-debugging-port</code> / <code>--headless</code> on a cloned browser profile</td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Stage 2 live browser hijack (Q9)</td></tr>
+          <tr><td>Context (not a block target)</td><td>XOR key <code>4mn3s1a_2o26!xK</code>; archive password <code>dulin</code>; Safe Storage overwrite key <code>pqz8N3vKxRmY2aLcQ</code></td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>Analyst identification / malware-config confirmation only</td></tr>
+          <tr><td>Behavior (dormant)</td><td>Clipboard hijack targeting BTC, BCH, ETH, TRON, LTC, XMR, SOL, XRP, ATOM addresses</td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>Present in code, disabled in analyzed build — watch, do not alert as active</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 Affected Surface -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <p><strong>Affected:</strong> macOS endpoints from <strong>Catalina through macOS 26</strong>, Intel and Apple Silicon. No vulnerability is exploited for initial access — delivery is 100% social engineering (ClickFix). CVE-2020-9771 is used post-compromise as a TCC bypass; it only succeeds on unpatched/downgraded macOS or via a bypass variant, so a successful hit is itself a patch-hygiene signal.</p>
+      <p class="callout callout-info"><strong>macOS telemetry model note:</strong> Falcon's macOS sensor does not expose Windows-style Registry or Service-Control-Manager telemetry. Persistence here shows up as a <strong>LaunchDaemon plist write + <code>launchctl</code> process invocation</strong> (the macOS analog to a Windows service install), credential access shows up as <strong>process-level <code>dscl</code>/<code>security</code>/<code>mount_apfs</code> invocations plus TCC-protected file opens</strong> (there is no SAM/LSASS equivalent), and defense evasion shows up as <strong><code>xattr</code>/<code>codesign</code> Gatekeeper manipulation</strong> rather than AMSI/ETW tampering. Every query in §8 is written against this macOS-specific model, not translated from a Windows pack.</p>
+      <table>
+        <thead><tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr></thead>
+        <tbody>
+          <tr><td>macOS process tree</td><td>Falcon ProcessRollup2 / SyntheticProcessRollup2 (<code>event_platform=Mac</code>)</td><td><span class="badge b-high">Critical</span></td><td>Requires Falcon sensor deployed on Macs</td></tr>
+          <tr><td>File opens on credential/browser stores</td><td>Falcon FileOpenInfo (macOS) — <code>TargetFileName</code>, <code>ImageFileName</code></td><td><span class="badge b-high">Critical</span></td><td>Confirm macOS file-open telemetry enabled in policy</td></tr>
+          <tr><td>LaunchDaemon / LaunchAgent persistence</td><td>Process evidence (<code>launchctl bootstrap/load</code>) + native audit-log sweep (§7)</td><td><span class="badge b-high">Critical</span></td><td>No dedicated macOS "service install" Falcon event — rely on the launchctl process + native log</td></tr>
+          <tr><td>DNS resolution</td><td>Falcon DnsRequest (DomainName, Amnesia Panel domain family)</td><td><span class="badge b-high">Critical</span></td><td>None — good coverage</td></tr>
+          <tr><td>Network egress</td><td>Falcon NetworkConnectIP4 (C2 IPs, CDP WebSocket relay)</td><td><span class="badge b-med">High</span></td><td>HTTPS/WSS payload opaque; rely on destination + process context</td></tr>
+          <tr><td>TCC / Keychain / privacy database</td><td>Process evidence for <code>mount_apfs</code>, <code>tccutil</code>, <code>security</code> invocations</td><td><span class="badge b-med">High</span></td><td>TCC.db content itself is not directly queryable via CQL</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6 ATT&CK Mapping -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Query / Control</th></tr></thead>
+        <tbody>
+          <tr><td>Initial Access</td><td>T1204.004 — User Execution: Malicious Copy &amp; Paste</td><td>ClickFix counterfeit-GitHub Base64 Terminal paste</td><td>Q1, §12 awareness</td></tr>
+          <tr><td>Execution</td><td>T1059.004 — Unix Shell</td><td><code>bash</code> decode-and-execute bootstrap</td><td>Q1</td></tr>
+          <tr><td>Defense Evasion</td><td>T1140 — Deobfuscate/Decode Files or Information</td><td>Base64-decoded payload command</td><td>Q1</td></tr>
+          <tr><td>Defense Evasion</td><td>T1553.001 — Subvert Trust Controls: Gatekeeper Bypass</td><td><code>xattr -d com.apple.quarantine</code> + ad-hoc <code>codesign</code></td><td>Q2</td></tr>
+          <tr><td>Collection</td><td>T1560 — Archive Collected Data</td><td>25-char <code>/tmp</code> staging directory + named subfolders</td><td>Q3</td></tr>
+          <tr><td>Persistence</td><td>T1543.004 — Create or Modify System Process: Launch Daemon</td><td>Root LaunchDaemon impersonating Apple crash reporter</td><td>Q4</td></tr>
+          <tr><td>Defense Evasion</td><td>T1548 — Abuse Elevation Control Mechanism (TCC bypass)</td><td>CVE-2020-9771 <code>mount_apfs -o nobrowse</code></td><td>Q5</td></tr>
+          <tr><td>Credential Access</td><td>T1056.002 — GUI Input Capture</td><td>Spoofed "Installer" native password prompt</td><td>Q6</td></tr>
+          <tr><td>Credential Access</td><td>T1552.001 — Unsecured Credentials: Credentials In Files</td><td>Cleartext password at <code>~/.pwd</code> / staging <code>pwd</code></td><td>Q6, §4</td></tr>
+          <tr><td>Credential Access</td><td>T1555.001 — Credentials from Password Stores: Keychain</td><td><code>security unlock-keychain -p</code></td><td>Q6</td></tr>
+          <tr><td>Credential Access / Collection</td><td>T1555.003 / T1539 — Credentials from Web Browsers / Steal Web Session Cookie</td><td>Cookies, Login Data, Web Data, Local State across 16 browsers</td><td>Q7</td></tr>
+          <tr><td>Collection</td><td>T1217 — Browser Information Discovery</td><td>Bookmarks, extensions, profile enumeration</td><td>Q7</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1071.001 — Application Layer Protocol: Web Protocols</td><td>HTTP(S) exfil to Amnesia Panel <code>/send/</code></td><td>Q8</td></tr>
+          <tr><td>Command &amp; Control / Collection</td><td>T1219 / T1113 — Remote Access Software / Screen Capture</td><td>CDP-relayed headless browser, 3fps live screencast, full input</td><td>Q9</td></tr>
+          <tr><td>Collection (dormant)</td><td>T1115 — Clipboard Data</td><td>Crypto-address clipboard hijack (disabled in analyzed build)</td><td>§4, §15 (watch item)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 Native Hunts -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+      <p>macOS-native checks that complement the Falcon CQL in §8 — useful for live triage on a suspect Mac (run read-only first; capture before remediating).</p>
+      <h3>Persistence &amp; staging artifacts (macOS shell)</h3>
+<pre class="code"># Root LaunchDaemon impersonating Apple crash reporting
+ls -la /Library/LaunchDaemons/ | grep -Ei "ReportCrash\.agent_[0-9]"
+sudo launchctl list | grep -Ei "ReportCrash\.agent_[0-9]"
+
+# 25-char random staging directory under /tmp with AmnesiaStealer artifact set
+find /tmp -maxdepth 1 -type d -regex '.*/[A-Za-z0-9]\{25\}$' 2&gt;/dev/null \
+  -exec sh -c 'ls "$1"/Browsers "$1"/Passwords "$1"/Wallets "$1"/Telegram "$1"/pwd 2&gt;/dev/null &amp;&amp; echo "SUSPECT: $1"' _ {} \;
+
+# Cleartext harvested password
+test -f ~/.pwd &amp;&amp; echo "AmnesiaStealer password store present: ~/.pwd"</pre>
+      <h3>TCC bypass &amp; credential harvest (macOS shell / unified log)</h3>
+<pre class="code"># CVE-2020-9771 style local-snapshot mount (should be rare outside Time Machine's own backupd)
+log show --last 1d --predicate 'process == "mount_apfs"' 2&gt;/dev/null | grep -i "nobrowse"
+
+# dscl-based local password validation + Keychain unlock outside normal admin activity
+log show --last 1d --predicate 'process == "dscl" OR process == "security"' 2&gt;/dev/null \
+  | grep -Ei "authonly|unlock-keychain"
+
+# Gatekeeper bypass chain (quarantine strip + ad-hoc sign)
+log show --last 1d --predicate 'process == "xattr" OR process == "codesign"' 2&gt;/dev/null \
+  | grep -Ei "com.apple.quarantine|--sign -"</pre>
+      <h3>Stage 2 CDP relay check</h3>
+<pre class="code"># Chromium-family process launched headless with a remote-debugging port open
+ps aux | grep -Ei "(chrome|brave|edge|arc|opera|vivaldi|chromium).*(--headless|--remote-debugging-port)" | grep -v grep
+lsof -iTCP -sTCP:LISTEN -n -P | grep -Ei ":92[0-9]{2}\b"   # common CDP debug-port range; confirm parent process</pre>
+      <p class="callout callout-info">Treat the combination of a 25-char <code>/tmp</code> staging directory, the <code>ReportCrash.agent_&lt;digits&gt;</code> LaunchDaemon, and a cleartext <code>~/.pwd</code> as confirmed AmnesiaStealer infection — proceed to §14 containment and capture the plist, staging directory, and any active CDP relay process before removal.</p>
+    </div>
+  </div>
+
+  <!-- 8 CQL Queries -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+      </div>
+
+      <!-- Q1 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · ClickFix bootstrap — Base64-decoded Terminal paste (macOS)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Terminal/shell-descended process decoding a long Base64 blob — the ClickFix "paste this to verify/install" bootstrap. <strong>FP:</strong> very low; ad-hoc manual base64 decoding of long strings is rare on user endpoints. Review every hit.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: AmnesiaStealer ClickFix bootstrap — base64-encoded command pasted into Terminal (macOS)</span>
+<span class="cm">// MITRE: T1204.004, T1140, T1059.004 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: rare; developers occasionally decode base64 blobs manually — review CommandLine context</span>
+<span class="cm">// TUNING: keep ParentBaseFileName scoped to Terminal/bash/zsh/sh; widen if the lure spawns via a different app</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| ParentBaseFileName=/^(Terminal|bash|zsh|sh)$/i
+| CommandLine=/(base64\s+-{0,2}[Dd](ecode)?|echo\s+[A-Za-z0-9+\=]{60,}\s*\|)/i
+| groupBy([ComputerName, ParentBaseFileName, FileName, CommandLine], function=([count(aid, as=hits), collect([UserName])]))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · Gatekeeper bypass — quarantine strip, ad-hoc codesign, password-protected archive extraction</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the Stage 0 → Stage 1 handoff — quarantine-attribute removal, ad-hoc code signing, extraction of a password-protected ZIP, and a <code>nohup</code>-backgrounded launch in the same process tree. <strong>FP:</strong> low; some developer workflows ad-hoc-sign local builds — review <code>ParentBaseFileName</code> and correlate with Q1/Q3.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: AmnesiaStealer Gatekeeper bypass — quarantine strip + ad-hoc codesign + protected-archive extraction (macOS)</span>
+<span class="cm">// MITRE: T1553.001, T1140 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: low; developer ad-hoc signing of locally-built binaries</span>
+<span class="cm">// TUNING: raise confidence when chained with Q1 or Q3 hits on the same host within minutes</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| CommandLine=/(xattr\s+-d\s+com\.apple\.quarantine|codesign\s+--sign\s+-|unzip\s+-P\s+\S+|nohup\s+\S+.{0,20}&)/i
+| groupBy([ComputerName, ParentBaseFileName, FileName, CommandLine], function=([count(aid, as=hits), collect([UserName])]))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · AmnesiaStealer staging directory — 25-char /tmp folder with named artifact set</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> file access under a 25-character random-alphanumeric directory in <code>/tmp</code> whose contents match the AmnesiaStealer artifact naming convention (<code>Browsers</code>, <code>Passwords</code>, <code>Wallets</code>, <code>Notes</code>, <code>Telegram</code>, <code>FileGrabber</code>, <code>Diagnostics</code>, <code>system_info.json</code>, <code>installed_apps.txt</code>, <code>collection_report.txt</code>, <code>pwd</code>). This is the single highest-fidelity, most AmnesiaStealer-specific signature in this pack. <strong>FP:</strong> very low — this exact naming pattern is not a normal macOS or developer-tooling convention.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: AmnesiaStealer 25-char /tmp staging directory with named loot subfolders (macOS)</span>
+<span class="cm">// MITRE: T1560, T1005 | CONF: high  FP: low  COST: medium | REQUIRES: FileOpenInfo (macOS)</span>
+<span class="cm">// FALSE POSITIVES: very low; this naming convention is not used by legitimate installers or dev tooling</span>
+<span class="cm">// TUNING: if COST is a concern in a large fleet, scope the time window in the console picker rather than in-query</span>
+#event_simpleName=/FileOpenInfo/
+| TargetFileName=/\/tmp\/[A-Za-z0-9]{25}\/(Browsers|Passwords|Wallets|Notes|Telegram|FileGrabber|Diagnostics|system_info\.json|installed_apps\.txt|collection_report\.txt|pwd)/i
+| table([@timestamp, ComputerName, aid, ImageFileName, TargetFileName, UserName], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · Root LaunchDaemon persistence impersonating Apple crash reporter</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a <code>launchctl bootstrap</code>/<code>load</code> invocation referencing a <code>ReportCrash.agent_&lt;digits&gt;</code> label — AmnesiaStealer's exact LaunchDaemon-impersonation pattern. Falcon's macOS sensor has no dedicated "service install" event, so this is caught via the <code>launchctl</code> process invocation rather than a file-write event (see §5 telemetry note). <strong>FP:</strong> very low; the real Apple <code>ReportCrash</code> LaunchDaemon (<code>com.apple.ReportCrash</code>, no <code>.agent_&lt;digits&gt;</code> suffix) is preloaded at boot by <code>launchd</code> itself, not re-loaded by a user-invoked <code>launchctl</code> command.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: AmnesiaStealer root LaunchDaemon — ReportCrash.agent_&lt;digits&gt; impersonation (macOS)</span>
+<span class="cm">// MITRE: T1543.004 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: very low; genuine com.apple.ReportCrash is loaded by launchd at boot, not via user launchctl</span>
+<span class="cm">// TUNING: extend the label regex if a variant build uses a different Apple-service name</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| FileName=/^launchctl$/i
+| CommandLine=/(bootstrap|load).{0,120}ReportCrash\.agent_?[0-9]*/i
+| groupBy([ComputerName, ParentBaseFileName, CommandLine, UserName], function=count(aid, as=hits))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · CVE-2020-9771 TCC bypass — mount_apfs -o nobrowse local snapshot mount</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a process mounting an APFS local Time Machine snapshot with <code>-o nobrowse</code> — the CVE-2020-9771 primitive AmnesiaStealer reuses to bypass TCC for Safari cookie theft. A hit on a fully patched, non-downgraded macOS host is unexpected and worth escalating on its own — it indicates either a regressed/variant bypass or a tampered OS. <strong>FP:</strong> medium; Time Machine's own <code>backupd</code>/<code>tmutil</code> perform legitimate local-snapshot mounts — exclude those parents.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: CVE-2020-9771 TCC bypass — mount_apfs -o nobrowse local snapshot mount (macOS)</span>
+<span class="cm">// MITRE: T1548 | CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: Time Machine's own backupd/tmutil legitimately mount local snapshots</span>
+<span class="cm">// TUNING: exclude ParentBaseFileName in (backupd, tmutil); a hit outside those parents is high-value</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| FileName=/^mount_apfs$/i
+| CommandLine=/nobrowse/i
+| ParentBaseFileName!=/^(backupd|tmutil)$/i
+| groupBy([ComputerName, ParentBaseFileName, CommandLine, UserName], function=count(aid, as=hits))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · Credential harvest — spoofed "Installer" password prompt, dscl validation, Keychain unlock</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> local password validation via <code>dscl . -authonly</code> and/or a <code>security unlock-keychain -p</code> call, consistent with AmnesiaStealer's native "Installer" password-prompt harvest. <strong>FP:</strong> low under a non-admin, non-MDM parent process; some enterprise MDM/provisioning tooling uses <code>dscl</code> legitimately — allowlist known management agents.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: AmnesiaStealer credential harvest — dscl authonly / Keychain unlock (macOS)</span>
+<span class="cm">// MITRE: T1056.002, T1552.001, T1555.001 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: MDM/provisioning tooling may use dscl legitimately — allowlist by ParentBaseFileName</span>
+<span class="cm">// TUNING: correlate with Q3 (staging dir) hits on the same host to confirm the AmnesiaStealer chain</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| CommandLine=/(dscl\s+\.\s+-?authonly|security\s+unlock-keychain\s+-p)/i
+| groupBy([ComputerName, ParentBaseFileName, FileName, CommandLine, UserName], function=count(aid, as=hits))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · Mass Chromium credential-store collection across multiple browser bundles</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a non-browser process reading <code>Cookies</code>, <code>Login Data</code>, <code>Web Data</code>, or <code>Local State</code> — AmnesiaStealer's 16-browser sweep. <strong>FP:</strong> medium; backup/sync agents and browser-migration tools also touch these files — exclude the owning browser bundle and known backup agents, and prioritize a single process touching <em>multiple distinct</em> browser bundles.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Non-browser process reads Chromium credential/session stores across multiple bundles (macOS)</span>
+<span class="cm">// MITRE: T1555.003, T1539, T1217 | CONF: high  FP: medium  COST: medium | REQUIRES: FileOpenInfo (macOS)</span>
+<span class="cm">// FALSE POSITIVES: backup/sync agents, browser profile-migration tools</span>
+<span class="cm">// TUNING: exclude ImageFileName for the owning browser bundle + known backup agents; prioritize a single</span>
+<span class="cm">// process hitting 3+ distinct browser bundle paths within a short window</span>
+#event_simpleName=/FileOpenInfo/
+| TargetFileName=/\/(Cookies|Login Data|Login Data For Account|Web Data|Local State)$/i
+| ImageFileName!=/\/(Google Chrome|Google Chrome Helper.*|Microsoft Edge|Brave Browser|Opera|Vivaldi|Arc|Chromium|Safari|com\.apple\.).*$/i
+| groupBy([ComputerName, ImageFileName, TargetFileName, UserName], function=count(aid, as=hits))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q8 · Amnesia Panel C2 sweep — debug[.]allllowef[.]space / news[.]allllowef[.]space / shlyapadulina[.]space domain family + published IPs</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any host resolving or connecting to the published Amnesia Panel C2 infrastructure. <strong>FP:</strong> low for the domains; the two IPs are single-sourced — treat as <code>hunt</code>, not an automatic block, until corroborated.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: AmnesiaStealer atomic C2 sweep — Amnesia Panel domain family + published IPs (macOS/all)</span>
+<span class="cm">// MITRE: T1071.001 | CONF: high  FP: low  COST: low | REQUIRES: DnsRequest / NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: low for domains; IPs are single-sourced (GBHackers) — confirm before broad block</span>
+<span class="cm">// TUNING: extend the domain list as new Amnesia Panel infrastructure is published</span>
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| DomainName=/(allllowef\.space|shlyapadulina\.space)$/i OR RemoteAddressIP4=/^(138\.124\.70\.84|138\.124\.96\.160)$/
+| groupBy([ComputerName, DomainName, RemoteAddressIP4, ContextBaseFileName], function=count(aid, as=hits))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q9 · Stage 2 live browser hijack — Chromium spawned with CDP remote-debugging flags</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a Chromium-family browser spawned headless with <code>--remote-debugging-port</code> — the moment the <code>stream_module</code> clones the victim's profile and opens the CDP relay for live operator control. <strong>FP:</strong> medium; legitimate browser-automation/QA tooling (Selenium, Puppeteer, Playwright) uses the same flags — exclude known automation hosts/parents, and prioritize a browser process whose parent is <em>not</em> a normal launcher (Finder, Dock, another browser).</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: AmnesiaStealer Stage 2 — Chromium spawned headless with CDP remote-debugging flags (macOS)</span>
+<span class="cm">// MITRE: T1219, T1113 | CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2 (macOS)</span>
+<span class="cm">// FALSE POSITIVES: legitimate browser-automation/QA tooling (Selenium, Puppeteer, Playwright)</span>
+<span class="cm">// TUNING: exclude known CI/automation hosts and ParentBaseFileName values for those frameworks</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| event_platform=Mac
+| FileName=/^(Google Chrome|Brave Browser|Microsoft Edge|Arc|Opera|Vivaldi|Chromium)$/i
+| CommandLine=/--remote-debugging-port=[0-9]+/i
+| CommandLine=/--headless/i
+| groupBy([ComputerName, ParentBaseFileName, FileName, CommandLine, UserName], function=count(aid, as=hits))
+| sort(hits, order=desc)</pre>
+        </div>
+      </div>
+
+      <p class="callout callout-info"><strong>Field-name note:</strong> queries use standard Falcon fields (<code>#event_simpleName</code>, <code>event_platform</code>, <code>ParentBaseFileName</code>, <code>FileName</code>, <code>ImageFileName</code>, <code>CommandLine</code>, <code>TargetFileName</code>, <code>ContextBaseFileName</code>, <code>DomainName</code>, <code>RemoteAddressIP4</code>, <code>ComputerName</code>, <code>aid</code>, <code>UserName</code>). Q3/Q7 use <code>FileOpenInfo</code>, the same macOS file-access event already validated in the AMOS-Stealer-macOS-Hunt pack in this library — confirm it is enabled for macOS hosts in your tenant policy.</p>
+    </div>
+  </div>
+
+  <!-- 9 Custom IOA Recs -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Deployment</th></tr></thead>
+        <tbody>
+          <tr><td>macOS-Amnesia-TmpStagingDir</td><td>File access under <code>/tmp/&lt;25-char-random&gt;/</code> matching the AmnesiaStealer artifact set (process-create/file-access IOA, macOS)</td><td>None known — pattern is not used by legitimate installers</td><td>Host group: all Macs; Action: Detect → Prevent</td></tr>
+          <tr><td>macOS-Amnesia-LaunchDaemon</td><td><code>launchctl bootstrap</code>/<code>load</code> referencing <code>ReportCrash.agent_&lt;digits&gt;</code></td><td>None — genuine ReportCrash is loaded by launchd at boot, not via user launchctl</td><td>Host group: Macs; Action: Prevent (high fidelity)</td></tr>
+          <tr><td>macOS-CVE-2020-9771-Mount</td><td><code>mount_apfs -o nobrowse</code> outside a <code>backupd</code>/<code>tmutil</code> parent</td><td>Time Machine's own snapshot mounts</td><td>Host group: Macs; Action: Detect</td></tr>
+          <tr><td>macOS-Amnesia-ClickFix-Base64</td><td>Terminal/shell decoding a long base64 blob (process-create IOA)</td><td>Rare developer manual decode workflows</td><td>Host group: all Macs; Action: Detect</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Start every IOA in Detect. Promote <strong>macOS-Amnesia-LaunchDaemon</strong> and <strong>macOS-Amnesia-TmpStagingDir</strong> to Prevent first — both are behaviorally distinctive to AmnesiaStealer with essentially no known legitimate collision.</p>
+    </div>
+  </div>
+
+  <!-- 10 IOC Appendix -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">Atomic indicators are from cited research and ready to import. The two IP addresses are single-sourced (GBHackers) — set to detect/validate rather than hard block. Domains and hashes carry higher confidence.</p>
+      <div class="ioc-grab-grid">
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,debug.allllowef.space,block,critical,2027-02-16,AmnesiaStealer Amnesia Panel C2 root + exfil,campaign:amnesiastealer
+domain,news.allllowef.space,block,high,2027-02-16,AmnesiaStealer related C2 infrastructure,campaign:amnesiastealer
+domain,shlyapadulina.space,detect,medium,2026-11-16,AmnesiaStealer C2/delivery infra (single-sourced),campaign:amnesiastealer
+domain,amz.shlyapadulina.space,detect,medium,2026-11-16,AmnesiaStealer C2/delivery infra (single-sourced),campaign:amnesiastealer
+domain,github.aoitour.com,block,high,2027-02-16,AmnesiaStealer counterfeit GitHub ClickFix landing page,campaign:amnesiastealer
+ipv4,138.124.70.84,detect,medium,2026-11-16,AmnesiaStealer C2 host (single-sourced-validate),campaign:amnesiastealer
+ipv4,138.124.96.160,detect,medium,2026-11-16,AmnesiaStealer C2 host (single-sourced-validate),campaign:amnesiastealer
+sha256,de5748aac4a4d4cb48cf050652679e6bc49eda33d9ffaa0d280b578122fab55a,prevent,critical,2027-02-16,AmnesiaStealer Stage 1 Rust infostealer binary,campaign:amnesiastealer
+sha256,e853748ca8f9a5a9168263617409a9039ab09f4ffc7d860374c1e3b0b67b31a5,prevent,critical,2027-02-16,AmnesiaStealer Stage 2 stream_module binary,campaign:amnesiastealer</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Host Artifacts</span><span class="igc">macOS paths</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-paths',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-paths">STAGE    /tmp/&lt;25-random-alphanumeric-chars&gt;/                       -&gt; loot staging directory
+STAGE    .../Browsers  .../Passwords  .../Wallets  .../Notes  .../Telegram  .../FileGrabber
+STAGE    .../system_info.json  .../installed_apps.txt  .../collection_report.txt  .../pwd
+CREDS    ~/.pwd                                                     -&gt; cleartext harvested local password
+PERSIST  /Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist  -&gt; root LaunchDaemon
+DROPPER  /tmp/starter  /tmp/tempAppleScript.scpt                     -&gt; Stage 0 staging / osascript fallback
+CONFIG   XOR key 4mn3s1a_2o26!xK (analyst identification only, not a block target)
+CONFIG   Archive password "dulin"; Safe Storage overwrite key pqz8N3vKxRmY2aLcQ</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">ship as-is</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh">BEHAVIOR: Terminal/shell decodes long base64 blob (ClickFix bootstrap)               -&gt; detect (Q1)
+BEHAVIOR: xattr quarantine strip + ad-hoc codesign + protected-zip extraction        -&gt; detect (Q2)
+BEHAVIOR: 25-char /tmp staging dir with AmnesiaStealer artifact set                  -&gt; detect (Q3)
+BEHAVIOR: launchctl load of ReportCrash.agent_&lt;digits&gt; LaunchDaemon                  -&gt; detect (Q4)
+BEHAVIOR: mount_apfs -o nobrowse outside Time Machine (CVE-2020-9771)                -&gt; detect (Q5)
+BEHAVIOR: dscl authonly / security unlock-keychain credential harvest                -&gt; detect (Q6)
+BEHAVIOR: non-browser process reads Cookies/Login Data across multiple bundles       -&gt; detect (Q7)
+BEHAVIOR: DNS/network to Amnesia Panel domain family or published IPs                -&gt; detect (Q8)
+BEHAVIOR: Chromium spawned headless with --remote-debugging-port (CDP hijack)        -&gt; hunt   (Q9)
+BEHAVIOR: clipboard hijack of BTC/BCH/ETH/TRON/LTC/XMR/SOL/XRP/ATOM addresses        -&gt; dormant, watch only (disabled in analyzed build)</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Triage One-Liners</span><span class="igc">read-only first</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-triage',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-triage">CHECK  ls -la /Library/LaunchDaemons/ | grep -Ei "ReportCrash\.agent_[0-9]"
+CHECK  test -f ~/.pwd &amp;&amp; echo "AmnesiaStealer password store present"
+CHECK  find /tmp -maxdepth 1 -type d -regex '.*/[A-Za-z0-9]\{25\}$'
+LOG    log show --last 1d --predicate 'process == "mount_apfs"' | grep -i nobrowse
+LOG    ps aux | grep -Ei "(chrome|brave|edge|arc).*(--headless|--remote-debugging-port)" | grep -v grep
+KILL   (after evidence capture) sudo launchctl bootout system /Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist</pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 Validation Gates -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>Falcon for macOS reporting ProcessRollup2, FileOpenInfo, DnsRequest, NetworkConnectIP4 on all Macs</td><td>All Macs visible in last 24h with macOS-platform events</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q5/Q7/Q9 over 7–14 days; catalog Time Machine snapshot mounts, browser backup/sync agents, and any legitimate automation hosts</td><td>Documented allowlist before alerting</td></tr>
+          <tr><td>Positive test</td><td>In a lab Mac: <code>echo "dGVzdA==" | base64 -D</code> from Terminal; <code>xattr -d com.apple.quarantine</code> a test file then <code>codesign --sign -</code> it; create <code>/tmp/&lt;25-random-chars&gt;/Browsers</code> and open a file in it</td><td>Q1, Q2, and Q3 fire</td></tr>
+          <tr><td>Atomic sweep</td><td>Run Q8 across the estate for the published domains/IPs; run a hash sweep for both SHA-256 values</td><td>Zero hits in a clean estate; any hit = investigate immediately</td></tr>
+          <tr><td>Promotion</td><td>Q3 (staging dir) and Q4 (LaunchDaemon) IOAs → Prevent; Q9 (CDP hijack) stays Detect until automation hosts are excluded</td><td>Signed off by detection owner</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12 Hardening -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (0–72h)</div>
+        <ul>
+          <li><strong>Block/detect the §10 C2 domains and hashes</strong> at DNS/proxy and Falcon IOC Management; hunt Q1–Q9 across the last 14 days for any host with a Q3 (staging dir) or Q4 (LaunchDaemon) hit — isolate and proceed to §14 for any positive. <em>Verify:</em> confirm the CSV imported cleanly via <code>Falcon Console → IOC Management → search "amnesiastealer"</code>. <strong>M1031</strong> (Network Intrusion Prevention).</li>
+          <li><strong>Confirm macOS patch level</strong> fleet-wide — CVE-2020-9771 was fixed in Catalina 10.15.4/10.15.5; a host where Q5 fires despite being "current" indicates either a downgraded OS or a regressed/variant bypass and should be treated as its own incident. <em>Verify:</em> <code>sw_vers -productVersion</code> across the fleet via MDM inventory. <strong>M1051</strong> (Update Software).</li>
+          <li><strong>User-awareness flash:</strong> "paste this into Terminal to install/verify" is an attack, even on a page that looks like GitHub with a verified badge — never paste a command from a web page without reading it first. <em>Verify:</em> track completion in the security-awareness platform. <strong>M1017</strong> (User Training) — counters T1204.004.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (this week)</div>
+        <ul>
+          <li>Deploy the §9 Custom IOAs in Detect across all Macs; promote <code>macOS-Amnesia-LaunchDaemon</code> and <code>macOS-Amnesia-TmpStagingDir</code> to Prevent (both are high-fidelity, low-collision). <em>Verify:</em> Falcon Console → Custom IOA → confirm deployed host-group coverage = 100% of Mac fleet. <strong>M1040</strong> (Behavior Prevention on Endpoint).</li>
+          <li>Restrict use of <code>sudo mount_apfs</code> and audit any <code>-o nobrowse</code> invocation outside Time Machine's own process; consider a macOS configuration profile that logs or blocks ad-hoc APFS snapshot mounts for standard users. <em>Verify:</em> re-run Q5 after deployment and confirm only <code>backupd</code>/<code>tmutil</code> parents remain. <strong>M1028</strong> (Operating System Configuration).</li>
+          <li>Enforce Gatekeeper / notarization requirements via MDM (disable "Anywhere" app-source setting fleet-wide) so quarantine-strip + ad-hoc-codesign chains (Q2) are rarer and more anomalous. <em>Verify:</em> <code>spctl --status</code> reports <code>assessments enabled</code> on all managed Macs. <strong>M1038</strong> (Execution Prevention).</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic</div>
+        <ul>
+          <li>Deploy MDM configuration profiles that restrict LaunchDaemon/LaunchAgent installation to signed, managed payloads and alert on any unmanaged plist appearing under <code>/Library/LaunchDaemons/</code>. <em>Verify:</em> quarterly audit comparing observed LaunchDaemons against the managed baseline. <strong>M1047</strong> (Audit).</li>
+          <li>Egress/DNS filtering so newly registered or low-reputation domains (the Amnesia Panel pattern: short-lived, oddly-spelled TLD-abusing names) are flagged before first contact; feed Q8's domain family into a continuously updated threat-intel blocklist. <em>Verify:</em> confirm DNS security tooling ingests the Falcon IOC feed. <strong>M1037</strong> (Filter Network Traffic).</li>
+          <li>Reduce standing local-admin rights so the native "Installer" password prompt (Q6) has less blast radius if a non-admin user is tricked — a non-admin's password does not unlock a root LaunchDaemon install path as readily. <em>Verify:</em> MDM report of local-admin group membership trending toward zero for standard users. <strong>M1026</strong> (Privileged Account Management).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 Playbooks -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h3>1 · Read-only sweep for AmnesiaStealer artifacts (Falcon RTR / MDM script)</h3>
+      <p><strong>Prerequisites:</strong> Falcon RTR read-only session or MDM custom-script deployment capability; no elevated privileges required for the checks below.<br>
+      <strong>Reboot required:</strong> none.<br>
+      <strong>Rollback:</strong> none required — this script only reads and prints; it makes no changes.</p>
+<pre class="code">#!/bin/bash
+# Run per-user context where possible. Read-only enumeration only.
+echo "== LaunchDaemon check =="
+ls -la /Library/LaunchDaemons/ 2&gt;/dev/null | grep -Ei "ReportCrash\.agent_[0-9]"
+
+echo "== Staging directory check =="
+find /tmp -maxdepth 1 -type d -regex '.*/[A-Za-z0-9]\{25\}$' 2&gt;/dev/null
+
+echo "== Cleartext password store check =="
+for ua in /Users/*; do
+  [ -f "$ua/.pwd" ] &amp;&amp; echo "PASSWORD STORE: $ua/.pwd"
+done
+
+echo "== Active CDP relay check =="
+ps aux | grep -Ei "(chrome|brave|edge|arc|opera|vivaldi|chromium).*(--headless|--remote-debugging-port)" | grep -v grep</pre>
+
+      <h3>2 · Remove persistence &amp; artifacts after evidence capture</h3>
+      <p><strong>Prerequisites:</strong> local admin/root (via Falcon RTR elevated session or MDM); Stage 1 evidence capture completed for the plist, staging directory, and any binaries under quarantine BEFORE this step runs.<br>
+      <strong>Reboot required:</strong> no — <code>launchctl bootout</code> takes effect immediately without a reboot.<br>
+      <strong>Rollback:</strong> if a legitimate host is misidentified, restore the quarantined plist and staging directory from the evidence copy and re-run <code>sudo launchctl bootstrap system /Library/LaunchDaemons/&lt;restored-plist&gt;</code>. Because the daemon is malicious in every confirmed case, rollback is expected to be rare — document the false-positive if it occurs.</p>
+<pre class="code"># 1) Capture evidence FIRST (copy, do not move, to an evidence share):
+sudo cp -R /Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist /evidence/ 2&gt;/dev/null
+sudo cp -R /tmp/&lt;25-char-staging-dir&gt; /evidence/ 2&gt;/dev/null
+
+# 2) Unload and remove the malicious LaunchDaemon:
+sudo launchctl bootout system /Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist
+sudo rm -f /Library/LaunchDaemons/com.apple.ReportCrash.agent_&lt;digits&gt;.plist
+
+# 3) Remove staging directory and cleartext password stores:
+rm -rf /tmp/&lt;25-char-staging-dir&gt;
+rm -f ~/.pwd /tmp/pwd /tmp/starter /tmp/tempAppleScript.scpt</pre>
+
+      <h3>3 · Block Amnesia Panel C2 at the network edge</h3>
+      <p><strong>Prerequisites:</strong> access to the DNS sinkhole / secure-web-gateway policy console.<br>
+      <strong>Reboot required:</strong> none — DNS/proxy policy changes apply on next resolution.<br>
+      <strong>Rollback:</strong> remove the entries from the denylist; no endpoint-side change is made, so rollback is a simple policy revert with no residual state.</p>
+<pre class="code"># DNS/proxy denylist (import via your control plane):
+debug.allllowef.space
+news.allllowef.space
+github.aoitour.com
+# Detect-and-validate (single-sourced, lower confidence — hunt before hard-blocking):
+shlyapadulina.space
+amz.shlyapadulina.space
+138.124.70.84
+138.124.96.160</pre>
+      <p class="callout callout-info">Because C2 infrastructure for these campaigns typically rotates, treat the domain/IP list as a seed — rely on Q1–Q7 (which detect AmnesiaStealer's on-host behavior, not just its current infrastructure) to catch a re-infrastructured wave.</p>
+    </div>
+  </div>
+
+  <!-- 14 Containment -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Network-contain the Mac via Falcon RTR/host-containment; block the §10 C2 domains/IPs at DNS/proxy</td><td>SOC</td><td>Containment timestamp, host ID</td></tr>
+          <tr><td>Capture</td><td>Preserve the LaunchDaemon plist, the full 25-char staging directory, <code>~/.pwd</code>, and the process tree for any active CDP-relay browser process before removal</td><td>IR</td><td>Plist + staging dir + process tree</td></tr>
+          <tr><td>Eradicate</td><td>Bootout + remove the LaunchDaemon; delete the staging directory and cleartext password files; kill any live <code>--remote-debugging-port</code> browser process; confirm no second persistence mechanism</td><td>IR + Endpoint</td><td>Removed-artifact list</td></tr>
+          <tr><td>Credentials</td><td>Rotate the user's local macOS account password plus every credential the stealer could reach: browser-saved passwords, Keychain items, Chrome Safe Storage-protected data, crypto wallets, Telegram session, iCloud Keychain re-verification</td><td>IAM + user</td><td>Rotation records, wallet review</td></tr>
+          <tr><td>Recover &amp; monitor</td><td>If a live CDP session was confirmed active (T1219/T1113), treat any account accessed through the victim's authenticated browser sessions during that window as potentially compromised — force sign-out of active sessions on high-value services; keep Q1–Q9 + IOAs enabled; re-image if hands-on operator activity is confirmed</td><td>SOC + Endpoint</td><td>Post-recovery hunt results, session-revocation log</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 Coverage Map -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1204.004 / T1140</td><td>ClickFix base64 Terminal paste</td><td>Q1</td><td>macOS-Amnesia-ClickFix-Base64</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1553.001</td><td>Quarantine strip + ad-hoc codesign + archive extraction</td><td>Q2</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1560 / T1005</td><td>25-char /tmp staging directory with named artifacts</td><td>Q3</td><td>macOS-Amnesia-TmpStagingDir</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1543.004</td><td>Root LaunchDaemon impersonating Apple crash reporter</td><td>Q4</td><td>macOS-Amnesia-LaunchDaemon</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1548</td><td>CVE-2020-9771 TCC bypass (mount_apfs -o nobrowse)</td><td>Q5</td><td>macOS-CVE-2020-9771-Mount</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1056.002 / T1552.001 / T1555.001</td><td>Spoofed password prompt, dscl validation, Keychain unlock</td><td>Q6</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1555.003 / T1539 / T1217</td><td>16-browser credential/session-store collection</td><td>Q7</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1071.001</td><td>Amnesia Panel C2 exfil</td><td>Q8</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1219 / T1113</td><td>CDP-relayed live browser hijack</td><td>Q9</td><td>—</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1115</td><td>Clipboard crypto-address hijack</td><td>—</td><td>—</td><td><span class="badge b-high">Gap — dormant capability</span></td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Coverage note:</strong> browser credential-store reads (Q7) and C2 exfil (Q8) are rated <em>Partial</em> because both overlap with legitimate software (backup agents, normal HTTPS traffic) — this pack catches them with reasonable fidelity but leans on the surrounding chain (staging dir → LaunchDaemon → credential harvest) for confirmation rather than alerting on either signal alone. The CDP live-hijack query (Q9) is <em>Partial</em> because the same command-line flags are used by legitimate browser-automation tooling; tune the exclusion list to your environment before promoting to Prevent. <strong>Clipboard hijacking (T1115) has no query</strong> because Jamf's analysis confirmed the module is present in the code but disabled in the observed build — shipping a query against inactive functionality would not fire and was deliberately omitted rather than fabricated; re-add coverage immediately if a future build is reported with it enabled.</p>
+    </div>
+  </div>
+
+  <!-- 16 Hunt Ticket -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE      : AmnesiaStealer — macOS ClickFix Infostealer + Live Browser Hijack
+SEVERITY   : High — newly disclosed (2026-08-13), credential + wallet + live-session theft, root persistence
+SCOPE      : macOS Catalina through macOS 26 — social-engineering delivery, no initial-access CVE;
+             CVE-2020-9771 reused post-compromise for Safari TCC bypass (patched 10.15.4/10.15.5)
+HYPOTHESIS : ClickFix base64 paste -> Gatekeeper bypass -> /tmp staging dir -> root LaunchDaemon ->
+             credential/Keychain harvest (+/- CVE-2020-9771) -> 16-browser collection -> Amnesia Panel exfil ->
+             on-demand CDP live browser hijack (~3fps, full input)
+QUERIES    : Q1 ClickFix bootstrap | Q2 Gatekeeper bypass | Q3 staging dir | Q4 LaunchDaemon | Q5 CVE-2020-9771 |
+             Q6 credential harvest | Q7 browser collection | Q8 C2 sweep | Q9 CDP hijack
+DO FIRST   : Import §10 IOCs; hunt Q1-Q9 14d; isolate any host with a Q3 or Q4 hit; verify macOS patch level
+             fleet-wide for CVE-2020-9771 exposure
+FINDINGS   : &lt;fill from hunt&gt;
+GAPS       : Clipboard-hijack module confirmed present but disabled in analyzed build — no active query;
+             browser-collection and C2-exfil queries rated Partial (overlap with legitimate software)
+ACTIONS    : Block/detect C2 (sect 10), deploy IOAs (sect 9), rotate creds/wallets/Keychain/browser sessions
+             for confirmed hosts, patch-verify CVE-2020-9771, user-awareness on ClickFix
+OWNER      : HuntPack
+VERSION    : v0.1 · 2026-08-16</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 Changelog -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-16</span><span>Initial HuntPack for AmnesiaStealer (Jamf Threat Labs, published 2026-08-13). 9 CQL hunt queries covering the ClickFix bootstrap, Gatekeeper bypass, the 25-char <code>/tmp</code> staging directory signature, root LaunchDaemon persistence (Apple crash-reporter impersonation), CVE-2020-9771 TCC-bypass reuse, credential/Keychain harvest, 16-browser credential-store collection, Amnesia Panel C2, and Stage 2 CDP live-browser-hijack activation. Ships cited atomic IOCs (2 SHA-256 hashes, 5 domains, 2 IPs, LaunchDaemon/staging-dir path patterns) — all traced to the 10 saved source snapshots in <code>AmnesiaStealer-macOS-ClickFix-Hunt-sources/</code>; none fabricated. Clipboard-hijack capability (T1115) is noted as a confirmed-but-dormant module and deliberately shipped without a detection query.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 References -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-purple">Primary Research</span></td><td><a href="https://www.jamf.com/blog/amnesia-stealer-macos-infostealer-clickfix/">Jamf Threat Labs — AmnesiaStealer: macOS Infostealer That Hijacks Browsers</a></td><td>Full technical analysis — staging dir, XOR key, C2 API, TCC bypasses, CDP relay, both hashes</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://thehackernews.com/2026/08/amnesiastealer-hijacks-chromium.html">The Hacker News — AmnesiaStealer Hijacks Chromium Sessions</a></td><td>Attack-chain confirmation, clipboard-hijack currency list</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://www.securityweek.com/amnesiastealer-macos-malware-steals-data-controls-browser-sessions/">SecurityWeek — AmnesiaStealer macOS Malware Steals Data, Controls Browser Sessions</a></td><td>CVE-2020-9771 confirmation, Safe Storage overwrite behavior</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://securityaffairs.com/197190/malware/amnesiastealer-gives-attackers-live-control-of-victims-macos-browsers.html">SecurityAffairs — AmnesiaStealer Gives Attackers Live Control of Victims' macOS Browsers</a></td><td>LaunchDaemon naming pattern, credential-harvest flow</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://www.infosecurity-magazine.com/news/macos-infostealer-spread-clickfix/">Infosecurity Magazine — Novel macOS Infostealer AmnesiaStealer Spread via ClickFix</a></td><td>Audio-mute behavior, CDP browser-scope confirmation</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://gbhackers.com/new-amnesiastealer-malware-targets-macos-users/">GBHackers — New AmnesiaStealer Malware Targets macOS Users</a></td><td>Atomic IOC set — domains, IPs, hashes, archive password, LaunchDaemon path</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://www.scworld.com/news/macos-amnesiastealer-malware-spread-through-clickfix-grants-live-browser-control">SC Media — MacOS AmnesiaStealer Malware Spread Through ClickFix</a></td><td>Targeted file-extension list, CVE patch-version confirmation</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-med">Secondary</span></td><td><a href="https://www.brinztech.com/breach-alerts/brinztech-alert-amnesiastealer-multi-stage-rust-infostealer-targets-macos-users-via-counterfeit-github-pages">Brinztech — AmnesiaStealer Multi-Stage Rust Infostealer breach alert</a></td><td>XOR key corroboration, mitigation recommendations</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://cybersecuritynews.com/amnesiastealer-macos-malware/">Cyber Security News — AmnesiaStealer macOS Malware Hijacks Browser Sessions</a></td><td>Landing-page domain, delivery mechanics</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-med">Secondary</span></td><td><a href="https://www.mactech.com/2026/08/13/jamf-threat-labs-releases-report-of-macos-malware-dubbed-amnesiastealer/">MacTech.com — Jamf Threat Labs releases report of macOS malware dubbed 'AmnesiaStealer'</a></td><td>Campaign summary, Jamf mitigation pointer</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Framework</span></td><td><a href="https://nvd.nist.gov/vuln/detail/CVE-2020-9771">NVD — CVE-2020-9771 (macOS Time Machine / mount_apfs TCC bypass)</a></td><td>TCC-bypass technical basis, patch versions</td><td>2026-08-16</td></tr>
+          <tr><td><span class="badge b-info">Framework</span></td><td><a href="https://attack.mitre.org/techniques/T1543/004/">MITRE ATT&amp;CK — T1543.004 Launch Daemon</a></td><td>Persistence technique + mitigations</td><td>2026-08-16</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
