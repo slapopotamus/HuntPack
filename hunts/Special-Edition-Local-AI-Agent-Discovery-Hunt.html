@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Special Edition: Local AI Agent Discovery & Risk Hunting | HuntPack</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="A HuntPack Special Edition with 43 CrowdStrike CQL hunts for discovering local AI agents, MCP servers, model runtimes, and high-risk autonomous behavior.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Special-Edition-Local-AI-Agent-Discovery-Hunt.html">
+<meta property="og:type" content="article"><meta property="og:title" content="Special Edition: Local AI Agent Discovery & Risk Hunting | HuntPack"><meta property="og:description" content="CrowdStrike CQL discovery and risk hunting for local AI agents, MCP servers, and inference runtimes."><meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Special-Edition-Local-AI-Agent-Discovery-Hunt.html"><meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f778ba;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(247,120,186,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1020 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+<nav id="sidebar"><div class="sidebar-logo"><div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div><div class="pack-name">Local AI Agent Discovery</div><div class="version">v0.4 · 2026-08-21</div></div><nav><div class="nav-section">Special Edition</div><a href="#s1">1 · Executive Overview</a><a href="#s2">2 · Inventory Model</a><a href="#s3">3 · Risk Scenarios</a><a href="#s4">4 · Core CQL Hunts</a><a href="#s5">5 · Extended Coverage</a><a href="#s6">6 · Investigation &amp; Validation</a><a href="#s7">7 · Governance &amp; Hardening</a><a href="#s8">8 · Coverage Gaps</a><a href="#s9">9 · Hunt Ticket</a><a href="#s10">10 · References &amp; Changelog</a></nav></nav>
+<div id="main">
+<div class="hp-header"><span class="badge b-purple">SPECIAL EDITION</span><h1>Special Edition: Local AI Agent Discovery & Risk Hunting</h1><div class="subtitle">Fleet discovery, behavioral risk hunting, validation, and governance for local coding agents, MCP tooling, and inference runtimes.</div><div class="meta-grid">
+<div class="meta-item"><div class="mk">Edition</div><div class="mv">Special Edition</div></div>
+<div class="meta-item"><div class="mk">Threat</div><div class="mv">Local AI agents, MCP, and inference runtimes</div></div>
+<div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-med">POLICY-DEPENDENT</span></div></div>
+<div class="meta-item"><div class="mk">Type</div><div class="mv">Discovery / Governance</div></div>
+<div class="meta-item"><div class="mk">Scope</div><div class="mv">Windows + Linux · Falcon / LogScale</div></div>
+<div class="meta-item"><div class="mk">Queries</div><div class="mv">43 · 21 core / 22 extended</div></div>
+<div class="meta-item"><div class="mk">Version</div><div class="mv">v0.4 · 2026-08-21</div></div>
+<div class="meta-item"><div class="mk">Author</div><div class="mv">slapopotamus</div></div>
+</div></div>
+<div class="section" id="s1"><div class="section-hdr"><span class="snum">01</span><h2>Executive Overview</h2></div><div class="section-body"><p>Local AI agents increasingly run as ordinary endpoint processes, CLI wrappers, IDE helpers, containers, MCP clients, MCP servers, and local inference APIs. Presence alone is not malicious; the defensive goal is to establish ownership and approval, then identify behavior that crosses policy boundaries.</p><div class="callout"><b>Defender priority:</b> escalate agent-spawned secret discovery, persistence, tunneling, privileged execution, archives, and model APIs bound beyond loopback.</div></div></div><div class="section" id="s2"><div class="section-hdr"><span class="snum">02</span><h2>AI Agent Inventory Model</h2></div><div class="section-body"><p>No atomic malicious IOCs are claimed. Product names, executable names, ports, and configuration filenames are behavioral discovery pivots, not block indicators.</p><h3>Affected Surface and Telemetry</h3><table><tr><th>Surface</th><th>Falcon telemetry</th><th>Coverage</th></tr><tr><td>Windows and Linux process execution</td><td>ProcessRollup2, SyntheticProcessRollup2</td><td>Good</td></tr><tr><td>IPv4 listeners and connections</td><td>NetworkListenIP4, NetworkConnectIP4, NetworkReceiveAcceptIP4</td><td>Good</td></tr><tr><td>Executable introduction</td><td>NewExecutableWritten, PeFileWritten, ELFFileWritten</td><td>Partial</td></tr><tr><td>Registry persistence</td><td>AsepValueUpdate, RegGenericValueUpdate</td><td>Windows only</td></tr><tr><td>File content and prompt/tool audit</td><td>Product-specific logs and DLP</td><td>Gap / tenant-dependent</td></tr></table></div></div><div class="section" id="s3"><div class="section-hdr"><span class="snum">03</span><h2>Risk Scenarios and ATT&amp;CK</h2></div><div class="section-body"><table><tr><th>Family</th><th>Hypothesis</th><th>Urgency</th></tr><tr><td>Inventory</td><td>Known agents, wrappers, runtimes, containers, or rare hashes appear on endpoints.</td><td>Review</td></tr><tr><td>Tool execution</td><td>An agent launches shells, downloaders, remote tools, archives, or broad enumeration.</td><td>Medium–High</td></tr><tr><td>MCP</td><td>Short-lived Node/Python subprocesses reveal configured tool servers.</td><td>Review</td></tr><tr><td>Exposure</td><td>Local inference APIs listen beyond loopback or accept remote connections.</td><td>High</td></tr><tr><td>Persistence</td><td>An agent establishes tasks, services, or auto-start registry entries.</td><td>High</td></tr><tr><td>Sensitive access</td><td>Agent-driven commands enumerate secrets, credentials, environment tokens, or broad repositories.</td><td>High</td></tr></table><h3>ATT&amp;CK Mapping</h3><p>T1059 Command and Scripting Interpreter; T1105 Ingress Tool Transfer; T1552.001 Credentials in Files; T1560.001 Archive via Utility; T1074.001 Local Data Staging; T1053.005 Scheduled Task; T1543.003 Windows Service; T1572 Protocol Tunneling; T1610 Deploy Container; T1078.002 Domain Accounts; T1083 File and Directory Discovery. Inventory-only observations use T1518.001 Security Software Discovery as the closest administrative discovery mapping and should not be interpreted as adversary attribution.</p></div></div><div class="section" id="s4"><div class="section-hdr"><span class="snum">04</span><h2>Core CQL Hunts</h2></div><div class="section-body"><p class="callout callout-info"><strong>Start here:</strong> these hunts prioritize fleet inventory, high-risk tool execution, persistence, exposed model services, sensitive behavior, and wrapper lineage.</p><div class="cloud-sel">
+<label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+<select id="cloud-region"><option value="https://falcon.crowdstrike.com">US-1</option><option value="https://falcon.us-2.crowdstrike.com">US-2</option><option value="https://falcon.eu-1.crowdstrike.com">EU-1</option><option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option><option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option></select>
+<span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q1 · Known AI agent and coding-assistant executables</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Known AI agent and coding-assistant executables. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Known AI agent and coding-assistant executables</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — inventory and first-seen review</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved software-distribution paths and managed developer workstations.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|gemini|copilot|windsurf|zed|amp)(\.exe)?$/i
+| groupBy([FileName, ImageFileName], function=[count(as=Executions), count(aid, distinct=true, as=Hosts), collect(ComputerName, limit=50), collect(UserName, limit=50), collect(CommandLine, limit=50)], limit=5000)
+| sort(Hosts, order=desc, limit=500)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q4 · Local model runtimes and inference servers</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Local model runtimes and inference servers. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Local model runtimes and inference servers</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — inventory persistent and intermittent runtimes</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude sanctioned AI lab endpoints and approved inference servers.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(ollama|lms|lmstudio|llmster|llama-server|llama-cli|vllm|local-ai|localai|jan|gpt4all)(\.exe)?$/i
+| groupBy([FileName, ImageFileName], function=[count(as=Executions), count(aid, distinct=true, as=Hosts), collect(ComputerName, limit=50), collect(UserName, limit=50), collect(CommandLine, limit=50)], limit=5000)
+| sort(Hosts, order=desc, limit=500)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q6 · MCP server launch through npx</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> MCP server launch through npx. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: MCP server launch through npx</span>
+<span class="cm">// MITRE: T1059.007</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — MCP servers can be short-lived</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Allowlist approved MCP package names and expected parent clients.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(npx|npm|node)(\.exe)?$/i
+| CommandLine = /(@modelcontextprotocol\/|mcp-server-|modelcontextprotocol\/inspector|\bmcp\b.*\bserver\b)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q7 · MCP server launch through uvx or Python</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> MCP server launch through uvx or Python. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: MCP server launch through uvx or Python</span>
+<span class="cm">// MITRE: T1059.006</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — Python MCP servers are often ephemeral</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Allowlist approved server modules, virtual environments, and parent AI clients.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(uvx|uv|python|python3)(\.exe)?$/i
+| CommandLine = /(mcp[-_ ]server|fastmcp|modelcontextprotocol|\bmcp\s+run\b)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q8 · Codex or Claude MCP server modes</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Codex or Claude MCP server modes. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: Codex or Claude MCP server modes</span>
+<span class="cm">// MITRE: T1059</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — explicit server modes are strong inventory signals</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: No default exclusion; confirm the owning user and approved integration.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(codex|claude)(\.exe)?$/i
+| CommandLine = /(mcp-server|\bmcp\s+(add|serve|list|get)\b|--mcp-config)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q9 · AI agent spawning command shells</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent spawning command shells. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: AI agent spawning command shells</span>
+<span class="cm">// MITRE: T1059.001,T1059.003,T1059.004</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — direct tool execution is higher-signal</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude documented IDE terminal workflows and signed enterprise automation after parent validation.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf|ollama|lmstudio)(\.exe)?$/i
+| FileName = /^(cmd|powershell|pwsh|bash|sh|zsh|wsl)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q12 · AI agent spawning tunneling software</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent spawning tunneling software. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql12"><span class="cm">// HUNT: AI agent spawning tunneling software</span>
+<span class="cm">// MITRE: T1572</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — tunnels may expose local services externally</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Allowlist sanctioned remote-development gateways and documented support sessions.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf|ollama|lmstudio)(\.exe)?$/i
+| FileName = /^(ngrok|cloudflared|frpc|chisel|tailscale|ssh)(\.exe)?$/i
+| CommandLine = /(tunnel|--url|--remote|\s-R\s|\s-L\s|serve|funnel)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q13 · Agent command lines targeting credential and secret paths</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql13',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql13')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent command lines targeting credential and secret paths. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql13"><span class="cm">// HUNT: Agent command lines targeting credential and secret paths</span>
+<span class="cm">// MITRE: T1552.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — secret discovery warrants rapid review</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude authorized secrets-scanning jobs and approved developer security tooling.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| CommandLine = /(\.ssh[\\\/]|\.aws[\\\/]|\.azure[\\\/]|\.kube[\\\/]|\.env\b|credentials|id_rsa|known_hosts|keychain|login\.json|config\.toml)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q17 · AI agent creating Windows scheduled tasks</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql17',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql17')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent creating Windows scheduled tasks. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql17"><span class="cm">// HUNT: AI agent creating Windows scheduled tasks</span>
+<span class="cm">// MITRE: T1053.005</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — persistence is uncommon for normal assistants</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved endpoint-management task names after verifying the parent chain.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| FileName = /^(schtasks|powershell|pwsh)(\.exe)?$/i
+| CommandLine = /(\/create|Register-ScheduledTask|New-ScheduledTask)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q18 · AI agent creating persistent services</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql18',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql18')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent creating persistent services. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql18"><span class="cm">// HUNT: AI agent creating persistent services</span>
+<span class="cm">// MITRE: T1543.003</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — service changes can establish privileged persistence</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved software installers only after confirming binary path and service owner.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| FileName = /^(sc|systemctl)(\.exe)?$/i
+| CommandLine = /(\bsc(\.exe)?\s+(create|config)\b|\bsystemctl\s+enable\b)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q19 · Persistence registry values referencing agent runtimes</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql19',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql19')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Persistence registry values referencing agent runtimes. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql19"><span class="cm">// HUNT: Persistence registry values referencing agent runtimes</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — direct persistence artifact</span>
+<span class="cm">// REQUIRES: AsepValueUpdate / RegGenericValueUpdate</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved per-user startup entries after validating signer, path, and owner.</span>
+#event_simpleName = /AsepValueUpdate|RegGenericValueUpdate/
+| RegObjectName = /(CurrentVersion\\Run|CurrentVersion\\RunOnce|Policies\\Explorer\\Run)/i
+| RegStringValue = /(codex|claude|cursor|aider|goose|opencode|cline|roo|ollama|lmstudio|python.*agent|node.*mcp)/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q21 · Ollama or LM Studio listener exposed beyond loopback</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql21',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql21')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Ollama or LM Studio listener exposed beyond loopback. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql21"><span class="cm">// HUNT: Ollama or LM Studio listener exposed beyond loopback</span>
+<span class="cm">// MITRE: N/A — exposure inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 7d — exposed APIs can permit unintended access</span>
+<span class="cm">// REQUIRES: NetworkListenIP4 plus process correlation</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude explicitly approved, authenticated inference servers after network-owner review.</span>
+#event_simpleName = NetworkListenIP4
+| LocalPort = /^(11434|1234)$/
+| LocalAddressIP4 != "127.0.0.1"
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ | FileName = /^(ollama|lms|lmstudio|llmster)(\.exe)?$/i}, field=[aid, TargetProcessId_decimal], include=[FileName, ImageFileName, CommandLine, UserName], mode=inner)
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, LocalAddressIP4, LocalPort, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q23 · Agent or model runtime receiving non-loopback connections</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-high">COST HIGH</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql23',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql23')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent or model runtime receiving non-loopback connections. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql23"><span class="cm">// HUNT: Agent or model runtime receiving non-loopback connections</span>
+<span class="cm">// MITRE: N/A — exposure inventory</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: high</span>
+<span class="cm">// TIMEFRAME: 7d — identifies network-reachable local services</span>
+<span class="cm">// REQUIRES: NetworkReceiveAcceptIP4 plus process correlation</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved server VLANs and authenticated inference services; prioritize workstations.</span>
+#event_simpleName = NetworkReceiveAcceptIP4
+| RemoteAddressIP4 != "127.0.0.1"
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ | FileName = /^(codex|claude|ollama|lms|lmstudio|llmster|vllm|localai)(\.exe)?$/i}, field=[aid, TargetProcessId_decimal], include=[FileName, ImageFileName, CommandLine, UserName], mode=inner)
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, LocalAddressIP4, LocalPort, RemoteAddressIP4, RemotePort, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q31 · IDE-managed local MCP server subprocesses</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql31',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql31')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> IDE-managed local MCP server subprocesses. <strong>FP:</strong> approved mcp extensions and workspace tools.</p>
+<pre class="cql" id="cql31"><span class="cm">// HUNT: IDE-managed local MCP server subprocesses</span>
+<span class="cm">// MITRE: T1059</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — MCP subprocesses may run only during a session</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved MCP extensions and workspace tools</span>
+<span class="cm">// TUNING: Allowlist server command, package, workspace, parent editor, and expected user together.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(code|code-insiders|cursor|windsurf|kiro|vscodium)(\.exe)?$/i
+| FileName = /^(npx|node|python|python3|uv|uvx|docker|podman|java|dotnet)(\.exe)?$/i
+| CommandLine = /(mcp[-_ ]server|modelcontextprotocol|fastmcp|@modelcontextprotocol|\bmcp\b)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q32 · MCP configuration command-line references</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql32',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql32')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> MCP configuration command-line references. <strong>FP:</strong> authorized mcp onboarding.</p>
+<pre class="cql" id="cql32"><span class="cm">// HUNT: MCP configuration command-line references</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — configuration establishes local tool access</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: authorized MCP onboarding</span>
+<span class="cm">// TUNING: Confirm the server definition, workspace trust, authentication method, and business owner.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine = /(--add-mcp|\.vscode[\\\/]mcp\.json|\.cursor[\\\/]mcp\.json|\.mcp\.json|--mcp-config|mcp\s+add)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q33 · WSL launching agents or model runtimes</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql33',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql33')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> WSL launching agents or model runtimes. <strong>FP:</strong> approved development inside wsl.</p>
+<pre class="cql" id="cql33"><span class="cm">// HUNT: WSL launching agents or model runtimes</span>
+<span class="cm">// MITRE: T1059.004</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — Windows wrappers may hide Linux-side execution</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved development inside WSL</span>
+<span class="cm">// TUNING: Baseline approved WSL distributions, users, repositories, and agent commands.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^wsl(\.exe)?$/i
+| CommandLine = /(codex|claude|gemini|qwen|aider|goose|opencode|cline|roo|continue|openhands|ollama|llama-server|vllm|localai|mcp[-_ ]server)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q39 · Agent-driven host or network discovery</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql39',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql39')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent-driven host or network discovery. <strong>FP:</strong> approved diagnostics and security testing.</p>
+<pre class="cql" id="cql39"><span class="cm">// HUNT: Agent-driven host or network discovery</span>
+<span class="cm">// MITRE: T1046,T1082</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — autonomous discovery may cross the intended workspace</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved diagnostics and security testing</span>
+<span class="cm">// TUNING: Exclude documented diagnostic playbooks and security-team endpoints; prioritize broad or repeated scans.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|aider|goose|opencode|cline|roo|continue|gemini|qwen|openhands|interpreter)(\.exe)?$/i
+| FileName = /^(nmap|masscan|systeminfo|nltest|dsquery|ipconfig|ifconfig|netstat|ss)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q40 · Agent-spawned encoded or hidden PowerShell</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql40',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql40')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent-spawned encoded or hidden PowerShell. <strong>FP:</strong> approved automation frameworks that encode powershell payloads.</p>
+<pre class="cql" id="cql40"><span class="cm">// HUNT: Agent-spawned encoded or hidden PowerShell</span>
+<span class="cm">// MITRE: T1059.001,T1027</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — encoding or hidden execution is unusual for transparent agent work</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved automation frameworks that encode PowerShell payloads</span>
+<span class="cm">// TUNING: Decode and validate the payload; exclude only signed, documented automation after review.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|aider|goose|opencode|cline|roo|continue|gemini|qwen|openhands|interpreter)(\.exe)?$/i
+| FileName = /^(powershell|pwsh)(\.exe)?$/i
+| CommandLine = /(-enc(odedcommand)?\s+|-windowstyle\s+hidden|-w\s+hidden|frombase64string)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q41 · Agent-spawned destructive file or repository commands</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql41',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql41')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent-spawned destructive file or repository commands. <strong>FP:</strong> approved build cleanup, test teardown, and repository maintenance.</p>
+<pre class="cql" id="cql41"><span class="cm">// HUNT: Agent-spawned destructive file or repository commands</span>
+<span class="cm">// MITRE: T1070.004,T1485</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — autonomous destructive actions require rapid validation</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved build cleanup, test teardown, and repository maintenance</span>
+<span class="cm">// TUNING: Exclude narrow known cleanup paths; never globally suppress broad recursive deletion or forced resets.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|aider|goose|opencode|cline|roo|continue|gemini|qwen|openhands|interpreter)(\.exe)?$/i
+| CommandLine = /(rm\s+-rf|Remove-Item.*-Recurse.*-Force|del\s+\/s.*\/q|rmdir\s+\/s.*\/q|git\s+reset\s+--hard|git\s+clean\s+-[a-z]*f)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q42 · Risky child tools through agent wrapper processes</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-high">COST HIGH</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql42',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql42')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Risky child tools through agent wrapper processes. <strong>FP:</strong> approved ide terminals, build systems, package managers, and test automation.</p>
+<pre class="cql" id="cql42"><span class="cm">// HUNT: Risky child tools through agent wrapper processes</span>
+<span class="cm">// MITRE: T1059,T1105,T1572</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: high</span>
+<span class="cm">// TIMEFRAME: 14d — closes the direct-parent blind spot for one wrapper generation</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2 with PID correlation</span>
+<span class="cm">// FALSE POSITIVES: approved IDE terminals, build systems, package managers, and test automation</span>
+<span class="cm">// TUNING: Require the joined wrapper command to identify an agent package; baseline approved users and workspaces.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(cmd|powershell|pwsh|bash|sh|curl|wget|ssh|scp|rclone|ngrok|cloudflared|chisel)(\.exe)?$/i
+| rename(field=ParentProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ | FileName = /^(node|python|python3|npx|npm|uv|uvx|code|cursor|wsl)(\.exe)?$/i | CommandLine = /(codex|claude-code|gemini-cli|qwen-code|aider|goose|opencode|cline|roo|continue|openhands|mcp[-_ ]server)/i | rename(field=FileName, as=AgentWrapper) | rename(field=CommandLine, as=AgentWrapperCommand)}, field=[aid, TargetProcessId_decimal], include=[AgentWrapper, AgentWrapperCommand], mode=inner)
+| table([@timestamp, ComputerName, UserName, AgentWrapper, AgentWrapperCommand, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q43 · AI agent unrestricted or permission-bypass modes</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql43',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql43')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent unrestricted or permission-bypass modes. <strong>FP:</strong> isolated test sandboxes and explicitly approved automation.</p>
+<pre class="cql" id="cql43"><span class="cm">// HUNT: AI agent unrestricted or permission-bypass modes</span>
+<span class="cm">// MITRE: N/A — policy-risk behavior</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — identifies reduced human-control safeguards</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: isolated test sandboxes and explicitly approved automation</span>
+<span class="cm">// TUNING: Exclude only documented isolated hosts with compensating controls and a named owner.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(codex|claude|node|npx|python|python3)(\.exe)?$/i
+| CommandLine = /(--dangerously-skip-permissions|--sandbox\s+danger-full-access|--approval-policy\s+never|--full-auto|--yolo|--auto-approve|--allow-all-tools)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div></div></div><div class="section" id="s5"><div class="section-hdr"><span class="snum">05</span><h2>Extended CQL Coverage</h2></div><div class="section-body"><p class="callout callout-warn"><strong>Extended coverage:</strong> run these for deeper inventory, model and package attribution, file activity, containers, WSL, browser automation, and tenant-specific pivots. High-cost hunts should remain analyst-driven until measured.</p><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q2 · CLI package names launched through Node.js or npm</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> CLI package names launched through Node.js or npm. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: CLI package names launched through Node.js or npm</span>
+<span class="cm">// MITRE: T1059.007</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — catches wrapper-based installations</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved package-manager automation and developer build hosts.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(node|npm|npx)(\.exe)?$/i
+| CommandLine = /(@openai\/codex|@anthropic-ai\/claude-code|@modelcontextprotocol|\baider\b|\bopencode\b|\bgoose\b|\bcline\b)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q3 · Python-based agent frameworks and assistants</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Python-based agent frameworks and assistants. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Python-based agent frameworks and assistants</span>
+<span class="cm">// MITRE: T1059.006</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — broad discovery for Python agents</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Baseline approved virtual environments, automation accounts, notebooks, and orchestration servers.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(python|python3|pip|pip3|pipx|uv|uvx)(\.exe)?$/i
+| CommandLine = /(aider|autogen|crewai|langgraph|langchain|smolagents|open-interpreter|openhands|agent-zero|browser-use|mcp[-_ ]server)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q5 · Containerized local AI or agent workloads</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Containerized local AI or agent workloads. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Containerized local AI or agent workloads</span>
+<span class="cm">// MITRE: T1610</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — containers may hide the host process name</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved container hosts, image registries, and ML platform namespaces.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(docker|podman|nerdctl)(\.exe)?$/i
+| CommandLine = /(ollama\/ollama|lmstudio|localai|vllm|text-generation-webui|open-webui|openhands|agent-zero|langchain|crewai)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q10 · AI agent spawning download utilities</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent spawning download utilities. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql10"><span class="cm">// HUNT: AI agent spawning download utilities</span>
+<span class="cm">// MITRE: T1105</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — tool-driven transfer may introduce code or data</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved dependency retrieval and known internal artifact repositories.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| FileName = /^(curl|wget|certutil|bitsadmin|aria2c)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q11 · AI agent spawning remote-access or transfer tools</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent spawning remote-access or transfer tools. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql11"><span class="cm">// HUNT: AI agent spawning remote-access or transfer tools</span>
+<span class="cm">// MITRE: T1021.004,T1048</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — remote operations can cross trust boundaries</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved repository operations and managed deployment workflows.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| FileName = /^(ssh|scp|sftp|rsync|rclone|pscp|plink)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q14 · Agent-driven environment and token discovery</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql14',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql14')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent-driven environment and token discovery. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql14"><span class="cm">// HUNT: Agent-driven environment and token discovery</span>
+<span class="cm">// MITRE: T1082,T1552.001</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — common but useful when correlated</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude expected build, CI, and developer bootstrap activity; prioritize unusual users and servers.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| CommandLine = /(set\s*$|printenv|env\s*$|Get-ChildItem\s+Env:|ANTHROPIC_API_KEY|OPENAI_API_KEY|AZURE_CLIENT_SECRET|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q15 · Agent-driven archive and data staging</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql15',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql15')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent-driven archive and data staging. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql15"><span class="cm">// HUNT: Agent-driven archive and data staging</span>
+<span class="cm">// MITRE: T1560.001,T1074.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — staging can precede upload or model ingestion</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved release packaging and backup activity; prioritize temp, public, and user-profile outputs.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| FileName = /^(7z|7za|rar|tar|zip|makecab|powershell|pwsh)(\.exe)?$/i
+| CommandLine = /(Compress-Archive|\.zip\b|\.7z\b|\btar\s|\brar\s|\bmakecab\b)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q16 · Broad source-repository enumeration by an agent</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql16',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql16')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Broad source-repository enumeration by an agent. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql16"><span class="cm">// HUNT: Broad source-repository enumeration by an agent</span>
+<span class="cm">// MITRE: T1083</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — useful for spotting overly broad workspace access</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Baseline normal repository roots and exclude approved indexing operations.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf)(\.exe)?$/i
+| CommandLine = /(Get-ChildItem|find\s+|dir\s+\/s|rg\s+--files|git\s+(status|log|ls-files)).*(C:\\|\/home\/|\/srv\/|\/opt\/)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q20 · Distinctive local AI API port inventory</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql20',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql20')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Distinctive local AI API port inventory. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql20"><span class="cm">// HUNT: Distinctive local AI API port inventory</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 7d — current service exposure snapshot</span>
+<span class="cm">// REQUIRES: NetworkListenIP4</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Confirm LocalAddressIP4 binding; allowlist sanctioned inference endpoints and documented ports.</span>
+#event_simpleName = NetworkListenIP4
+| LocalPort = /^(11434|1234)$/
+| groupBy([ComputerName, LocalAddressIP4, LocalPort, ContextBaseFileName], function=[count(as=Events), collect(UserName, limit=20)], limit=5000)
+| sort(Events, order=desc, limit=500)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q22 · Outbound network activity from known agent processes</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-high">COST HIGH</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql22',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql22')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Outbound network activity from known agent processes. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql22"><span class="cm">// HUNT: Outbound network activity from known agent processes</span>
+<span class="cm">// MITRE: N/A — network baseline</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: high</span>
+<span class="cm">// TIMEFRAME: 7d — network profile and rare destinations</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 plus process correlation</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Baseline vendor APIs, source-control, package registries, proxies, and internal gateways; prioritize rare destinations.</span>
+#event_simpleName = NetworkConnectIP4
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/ | FileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf|ollama|lmstudio)(\.exe)?$/i}, field=[aid, TargetProcessId_decimal], include=[FileName, ImageFileName, CommandLine, UserName], mode=inner)
+| groupBy([ComputerName, UserName, FileName, RemoteAddressIP4, RemotePort], function=[count(as=Connections), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=10000)
+| sort(Connections, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q24 · Executable drops associated with AI and MCP tooling</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql24',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql24')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Executable drops associated with AI and MCP tooling. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql24"><span class="cm">// HUNT: Executable drops associated with AI and MCP tooling</span>
+<span class="cm">// MITRE: N/A — software-introduction inventory</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — finds newly introduced runtime binaries</span>
+<span class="cm">// REQUIRES: NewExecutableWritten / PeFileWritten / ELFFileWritten</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude signed, approved installers and managed software-cache paths after hash review.</span>
+#event_simpleName = /NewExecutableWritten|PeFileWritten|ELFFileWritten/
+| TargetFileName = /(codex|claude|cursor|aider|goose|opencode|cline|roo|ollama|lmstudio|llmster|mcp[-_ ]server)/i
+| table([@timestamp, ComputerName, UserName, TargetFileName, SHA256HashData, ContextBaseFileName, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q25 · Global installation of AI agent packages</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql25',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql25')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Global installation of AI agent packages. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql25"><span class="cm">// HUNT: Global installation of AI agent packages</span>
+<span class="cm">// MITRE: T1105</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — identifies bootstrap and deployment activity</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Exclude approved software deployment accounts and documented developer onboarding windows.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(npm|npx|pip|pip3|pipx|uv|winget|choco)(\.exe)?$/i
+| CommandLine = /(install.*(@openai\/codex|@anthropic-ai\/claude-code|aider|crewai|autogen|openhands|agent-zero|ollama|lmstudio)|tool\s+install.*(aider|agent|mcp))/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q26 · AI agent activity under privileged or service identities</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql26',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql26')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> AI agent activity under privileged or service identities. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql26"><span class="cm">// HUNT: AI agent activity under privileged or service identities</span>
+<span class="cm">// MITRE: N/A — policy-risk inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — service and privileged contexts increase impact</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Allowlist purpose-built automation identities and approved agent hosts; investigate interactive admin use.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf|ollama|lmstudio)(\.exe)?$/i
+| UserName = /^(SYSTEM|root|Administrator|LOCAL SERVICE|NETWORK SERVICE|.*\$$)$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q27 · Rare AI agent executable hashes across the fleet</span><div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql27',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql27')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Rare AI agent executable hashes across the fleet. <strong>FP:</strong> sanctioned developer tools, automation, and approved ai services.</p>
+<pre class="cql" id="cql27"><span class="cm">// HUNT: Rare AI agent executable hashes across the fleet</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — highlights targeted or portable binaries</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned developer tools, automation, and approved AI services</span>
+<span class="cm">// TUNING: Suppress hashes confirmed as approved releases; retain unknown paths and single-host prevalence.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(codex|claude|cursor|cursor-agent|aider|goose|opencode|cline|roo|continue|windsurf|ollama|lmstudio)(\.exe)?$/i
+| SHA256HashData = /^[A-Fa-f0-9]{64}$/
+| groupBy([SHA256HashData, FileName], function=[count(as=Executions), count(aid, distinct=true, as=Hosts), collect(ImageFileName, limit=20), collect(ComputerName, limit=20), collect(UserName, limit=20)], limit=10000)
+| Hosts &lt;= 3
+| sort(Hosts, order=asc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q28 · Expanded AI coding-agent executable inventory</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql28',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql28')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Expanded AI coding-agent executable inventory. <strong>FP:</strong> approved developer assistants and evaluation systems.</p>
+<pre class="cql" id="cql28"><span class="cm">// HUNT: Expanded AI coding-agent executable inventory</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — inventory newer and less-common clients</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved developer assistants and evaluation systems</span>
+<span class="cm">// TUNING: Exclude sanctioned tools only after recording owner, version, path, hash, and host group.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(qwen|qwen-code|gemini|kiro|amazon-q|tabby|tabby-agent|tabnine|cody|sourcegraph|openhands|open-interpreter|interpreter|agent-zero|swe-agent|mini-swe-agent|devika|mentat|plandex|pearai|void)(\.exe)?$/i
+| groupBy([FileName, ImageFileName], function=[count(as=Executions), count(aid, distinct=true, as=Hosts), collect(ComputerName, limit=50), collect(UserName, limit=50), collect(CommandLine, limit=50)], limit=5000)
+| sort(Hosts, order=desc, limit=500)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q29 · Expanded JavaScript agent package wrappers</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql29',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql29')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Expanded JavaScript agent package wrappers. <strong>FP:</strong> approved package testing and developer onboarding.</p>
+<pre class="cql" id="cql29"><span class="cm">// HUNT: Expanded JavaScript agent package wrappers</span>
+<span class="cm">// MITRE: T1059.007</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — wrappers can hide the product filename</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved package testing and developer onboarding</span>
+<span class="cm">// TUNING: Exclude known package versions and managed developer hosts after validating the command line.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(npm|npx|node|bun|bunx|pnpm|pnpx|yarn)(\.exe)?$/i
+| CommandLine = /(@google\/gemini-cli|qwen-code|@github\/copilot|@sourcegraph\/amp|@continuedev|cline|roo-code|openhands|open-interpreter|plandex|mentat|devika)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q30 · Product-like paths with unexpected executable names</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-high">COST HIGH</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql30',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql30')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Product-like paths with unexpected executable names. <strong>FP:</strong> scripts and folders whose names mention ai products.</p>
+<pre class="cql" id="cql30"><span class="cm">// HUNT: Product-like paths with unexpected executable names</span>
+<span class="cm">// MITRE: N/A — heuristic inventory</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: high</span>
+<span class="cm">// TIMEFRAME: 30d — finds portable and renamed installations</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: scripts and folders whose names mention AI products</span>
+<span class="cm">// TUNING: Require corroboration from hash, signer, package metadata, child processes, or network behavior.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName = /(\.codex|\.claude|\.cursor|\.continue|\.cline|\.roo|\.aider|\.goose|\.opencode|gemini-cli|qwen-code|openhands|agent-zero|open-interpreter)/i
+| FileName != /^(codex|claude|cursor|aider|goose|opencode|cline|roo|continue|gemini|qwen|openhands)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q34 · Expanded AI and model container images</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql34',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql34')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Expanded AI and model container images. <strong>FP:</strong> sanctioned ai labs and approved inference hosts.</p>
+<pre class="cql" id="cql34"><span class="cm">// HUNT: Expanded AI and model container images</span>
+<span class="cm">// MITRE: T1610</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — inventories transient and headless workloads</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned AI labs and approved inference hosts</span>
+<span class="cm">// TUNING: Allowlist approved registries, image digests, host groups, published ports, and volume mounts.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(docker|podman|nerdctl|ctr)(\.exe)?$/i
+| CommandLine = /(gemini-cli|qwen-code|openhands|open-interpreter|gpt4all|jan-ai|tabbyml|llama\.cpp|text-generation-inference|localai\/localai|vllm\/vllm-openai)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q35 · CLI-visible model downloads through Hugging Face tooling</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql35',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql35')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> CLI-visible model downloads through Hugging Face tooling. <strong>FP:</strong> approved ml engineering and model evaluation.</p>
+<pre class="cql" id="cql35"><span class="cm">// HUNT: CLI-visible model downloads through Hugging Face tooling</span>
+<span class="cm">// MITRE: T1105</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — model acquisition reveals local AI use</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved ML engineering and model evaluation</span>
+<span class="cm">// TUNING: Exclude sanctioned model repositories, service accounts, and dedicated ML hosts.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(huggingface-cli|hf|python|python3|git|git-lfs)(\.exe)?$/i
+| CommandLine = /(snapshot_download|hf_hub_download|huggingface-cli\s+download|\bhf\s+download|huggingface\.co|git-lfs.*(model|gguf|safetensors))/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q36 · Local model files opened from caches</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-high">COST HIGH</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql36',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql36')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Local model files opened from caches. <strong>FP:</strong> approved ml, analytics, and security research workloads.</p>
+<pre class="cql" id="cql36"><span class="cm">// HUNT: Local model files opened from caches</span>
+<span class="cm">// MITRE: T1083</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: high</span>
+<span class="cm">// TIMEFRAME: 7d — file-open telemetry can be high volume</span>
+<span class="cm">// REQUIRES: FileOpenInfo</span>
+<span class="cm">// FALSE POSITIVES: approved ML, analytics, and security research workloads</span>
+<span class="cm">// TUNING: Restrict to developer workstations or servers of interest and shorten the Falcon time picker first.</span>
+#event_simpleName = FileOpenInfo
+| TargetFileName = /[\\\/](huggingface|ollama|gpt4all|lm[-_ ]?studio|\.lmstudio|jan)[\\\/].*(models|blobs|cache)/i
+| TargetFileName = /(\.gguf|\.safetensors|\.onnx|\.pt|\.pth|\.bin)$/i
+| groupBy([ComputerName, ContextBaseFileName, TargetFileName], function=[count(as=Opens), collect(UserName, limit=20)], limit=10000)
+| sort(Opens, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q37 · Model-family names supplied to local runtimes</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql37',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql37')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Model-family names supplied to local runtimes. <strong>FP:</strong> approved research and evaluation workloads.</p>
+<pre class="cql" id="cql37"><span class="cm">// HUNT: Model-family names supplied to local runtimes</span>
+<span class="cm">// MITRE: N/A — administrative inventory</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 30d — attributes runtimes to model families</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved research and evaluation workloads</span>
+<span class="cm">// TUNING: Baseline approved model families, licenses, users, and inference hosts.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| FileName = /^(ollama|lms|lmstudio|llama-server|llama-cli|vllm|python|python3|local-ai|localai|gpt4all|jan)(\.exe)?$/i
+| CommandLine = /(llama|mistral|mixtral|qwen|deepseek|phi[-_ ]?[234]|gemma|command-r|falcon|vicuna|yi[-_ ]|starcoder|codestral|granite|gpt-oss)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, ImageFileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q38 · Agent-spawned browser automation and remote debugging</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql38',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql38')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Agent-spawned browser automation and remote debugging. <strong>FP:</strong> approved ui testing, playwright, selenium, and developer automation.</p>
+<pre class="cql" id="cql38"><span class="cm">// HUNT: Agent-spawned browser automation and remote debugging</span>
+<span class="cm">// MITRE: T1059</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d — browser control expands an agent's accessible surface</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: approved UI testing, Playwright, Selenium, and developer automation</span>
+<span class="cm">// TUNING: Allowlist known test runners, CI hosts, browser profiles, and approved parent agents.</span>
+#event_simpleName = /ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName = /^(codex|claude|cursor|aider|goose|opencode|cline|roo|continue|gemini|qwen|openhands|interpreter)(\.exe)?$/i
+| FileName = /^(chrome|google-chrome|google-chrome-stable|msedge|microsoft-edge|microsoft-edge-stable|chromium|chromium-browser|firefox|playwright|selenium-manager)(\.exe)?$/i
+| CommandLine = /(--remote-debugging-port|--headless|playwright|selenium|user-data-dir)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div>
+</div></div></div><div class="section" id="s6"><div class="section-hdr"><span class="snum">06</span><h2>Investigation and Validation</h2></div><div class="section-body"><h3>Native Audit-Log Hunts</h3><ul><li>Falcon Discover: inventory installed packages, unsigned/portable binaries, software owners, and host groups.</li><li>Falcon Data Protection: review access to source, secrets, regulated data, and uploads from developer endpoints.</li><li>Windows: audit PowerShell, scheduled-task, service, WSL, firewall, and package-manager logs.</li><li>Linux: review systemd units, shell history, package logs, containers, listening sockets, and user crontabs.</li><li>Proxy/DNS: baseline vendor APIs, model registries, code hosts, and unexpected external tunnels.</li></ul><h3>Custom IOA Candidates</h3><table><tr><th>Candidate</th><th>Detect logic</th><th>Rollout</th></tr><tr><td>Agent launches tunnel</td><td>Known agent parent; ngrok/cloudflared/chisel/ssh child with tunnel flags</td><td>Detect only; canary; exclude approved remote development</td></tr><tr><td>Agent creates persistence</td><td>Known agent parent; schtasks/sc/systemctl with create or enable arguments</td><td>Detect only; peer review</td></tr><tr><td>Agent discovers secrets</td><td>Known agent parent; shell command targets credential/config paths</td><td>Detect only; tune authorized scanning</td></tr><tr><td>AI API exposed</td><td>Ollama/LM Studio runtime listening beyond loopback</td><td>Prefer network policy; IOA applicability tenant-dependent</td></tr></table><h3>Behavioral Quick-Copy Pivots</h3>
+<p>No atomic malicious IOCs are claimed. These are discovery pivots and behavior chains, not block indicators.</p>
+<div class="ioc-grab-grid">
+<div class="ioc-grab"><div class="igh"><span class="igt">Behavioral signatures</span><span class="igc">triage pivots</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button><pre class="code" id="grab-beh">agent -&gt; shell / downloader / remote tool
+MCP client -&gt; npx, uvx, node, or python subprocess
+local model service -&gt; non-loopback listener
+agent -&gt; persistence / secret path / archive / tunnel</pre></div>
+<div class="ioc-grab"><div class="igh"><span class="igt">Discovery terms</span><span class="igc">inventory pivots only</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-tools',this)" style="margin:0 0 6px;">Copy</button><pre class="code" id="grab-tools">codex, claude, cursor, aider, goose, opencode, cline, roo, continue, windsurf
+ollama, lmstudio, llmster, vllm, localai, MCP</pre></div>
+</div><h3>Detection Validation Gates</h3><ol><li>Confirm each event type and field is populated in a one-hour tenant sample.</li><li>Run inventory queries for 30 days and document approved users, hosts, hashes, paths, and parent processes.</li><li>Test alertable behavior with benign commands in an isolated canary endpoint.</li><li>Keep IOAs in Detect for at least 14 days; require measured false-positive rate below 5% before prevention consideration.</li><li>Review Linux and Windows separately; wrappers may obscure the true executable.</li></ol><h3>Deployable Playbooks</h3><pre class="code">INVENTORY / BASELINE — NO PAGE
+Scope: Q1–Q8, Q20, Q22, Q24–Q38
+Cadence: daily or weekly; use each query header lookback
+Disposition: record owner, approved host group, version, hash, path, listener, model and MCP server.
+
+SCHEDULED SEARCH — HIGH-RISK AGENT BEHAVIOR
+Name: HUNT: Local AI Agents - High-Risk Tool Execution
+Scope: Q12, Q13, Q17–Q19, Q40–Q43 after tenant validation
+Cadence: 15 minutes with 20-minute query window and 5-minute overlap
+Dedup: aid + UserName + FileName + CommandLine hash for 24 hours
+Suppress: approved canary/test hosts only; never suppress destructive or permission-bypass modes globally
+Priority: HIGH when persistence, credential targeting, tunneling, encoded execution, or destruction is confirmed
+
+ALERT BODY
+An AI-agent or identified wrapper launched behavior outside the approved baseline. Confirm execution, parent/lineage, user, workspace and command line; then review prompts/tool logs, MCP configuration, network destinations, changed files and exposed credentials.
+
+TRIAGE
+1. Confirm ProcessRollup2 execution and record aid, ComputerName, UserName and timestamp.
+2. Establish lineage with Q42 and identify the owning agent/wrapper.
+3. Preserve command line, hash, signer, prompts/tool logs, MCP config and workspace diff.
+4. Pivot to Q22–Q23 for network activity and Q17–Q19 for persistence.
+5. Isolate and revoke tokens when sensitive access, external exposure or destructive execution is plausible.</pre></div></div><div class="section" id="s7"><div class="section-hdr"><span class="snum">07</span><h2>Governance, Hardening and Containment</h2></div><div class="section-body"><div class="tier-blk"><b>Immediate — owner: Endpoint + SOC</b><br>Inventory agent/runtime owner, version, hash, path, account, workspace, MCP servers, listeners, and unrestricted flags. Block unauthenticated non-loopback model APIs at the host firewall; remove unapproved tunnels; rotate exposed tokens. Verify with Q20–Q23 and Q43. Roll back only through an approved exception.</div><div class="tier-blk"><b>Near term — owner: Platform Engineering</b><br>Publish approved agent and MCP catalogs; require least-privilege accounts, workspace boundaries, tool allowlists, secrets brokers, authenticated inference APIs, egress allowlists, Data Protection policy, and dedicated endpoint groups. Pilot on a canary group before broad enforcement.</div><div class="tier-blk"><b>Strategic — owner: Security Architecture</b><br>Centrally manage agent configuration, retain prompt/tool/MCP audit evidence, validate model provenance and licensing, govern WSL and containers, and test permission boundaries quarterly. Map controls to NIST AI RMF Govern/Map/Measure/Manage and applicable CIS endpoint safeguards.</div><h3>Containment Runbook</h3><table><tr><th>Phase</th><th>Owner</th><th>Action</th><th>Evidence</th></tr><tr><td>Validate</td><td>SOC</td><td>Identify agent, wrapper lineage, owner, task, sensitive resource and destination.</td><td>Process tree, command lines, hashes, network rows</td></tr><tr><td>Preserve</td><td>IR</td><td>Capture prompt/tool logs, MCP JSON, agent config, model manifest, container state, listeners and workspace changes before stopping processes.</td><td>Exported logs, config copies, diffs, container metadata</td></tr><tr><td>Contain</td><td>IR + Endpoint</td><td>Stop agent/runtime, isolate host when warranted, block tunnel and restrict listener.</td><td>Containment timestamps and policy changes</td></tr><tr><td>Credentials</td><td>IAM</td><td>Rotate tokens or keys exposed in command lines, environment, configs or accessed paths; invalidate sessions.</td><td>Revocation and rotation records</td></tr><tr><td>Eradicate</td><td>Endpoint</td><td>Remove unauthorized packages, MCP configs, persistence, containers and downloaded tools.</td><td>Removal logs and post-action inventory</td></tr><tr><td>Recover</td><td>Service owner</td><td>Restore approved configuration, validate controls and re-hunt for 30 days.</td><td>Validation results and closure approval</td></tr></table></div></div><div class="section" id="s8"><div class="section-hdr"><span class="snum">08</span><h2>Coverage Gaps</h2></div><div class="section-body"><table><tr><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr><tr><td>Agent/runtime/model inventory</td><td>Q1–Q8, Q20–Q28, Q30–Q37</td><td>—</td><td>Partial — several product names remain heuristic</td></tr><tr><td>Direct child tool execution</td><td>Q9–Q16, Q38–Q41</td><td>Candidates</td><td>Partial — direct-parent dependency</td></tr><tr><td>Wrapper lineage</td><td>Q42</td><td>—</td><td>Partial — one wrapper generation</td></tr><tr><td>Persistence</td><td>Q17–Q19</td><td>Candidates</td><td>Good Windows / partial Linux</td></tr><tr><td>Local API exposure</td><td>Q20–Q23</td><td>Limited</td><td>Partial — IPv4 and authentication state gaps</td></tr><tr><td>Unrestricted agent modes</td><td>Q43</td><td>Candidate</td><td>Partial — source-verified flags only</td></tr><tr><td>Prompt/tool decision audit</td><td>Product logs</td><td>—</td><td>Gap</td></tr><tr><td>File-content access</td><td>Falcon Data Protection / product telemetry</td><td>—</td><td>Gap pending tenant schema validation</td></tr></table><p><b>Reviewer caution:</b> clean syntax and field linting do not prove live-tenant semantics. Validate each scheduled candidate on canary endpoints.</p></div></div><div class="section" id="s9"><div class="section-hdr"><span class="snum">09</span><h2>Hunt Ticket</h2></div><div class="section-body"><div class="ticket"><pre class="code">TITLE: Local AI Agent Discovery and Risk Hunt
+SEVERITY: Medium; High when sensitive behavior is confirmed
+SCOPE: Windows 10/11, Windows Server, Linux; Falcon Complete / Insight XDR / NG-SIEM
+HYPOTHESIS: Local agents and model runtimes can be inventoried through process and network telemetry; risky use appears in child processes, persistence, secrets, staging, tunnels, or exposed APIs.
+QUERIES: 43
+DO FIRST: Q1, Q4, Q6–Q9, Q12–Q13, Q17–Q19, Q21, Q23, Q31–Q33, Q39–Q43
+FINDINGS: Populate after running queries.
+GAPS: Product audit logs, prompt content, file access, IPv6 listener coverage, wrapper/renamed binaries.
+OWNER: slapopotamus
+VERSION: v0.4 · 2026-08-21</pre></div></div></div><div class="section" id="s10"><div class="section-hdr"><span class="snum">10</span><h2>Sources, References and Changelog</h2></div><div class="section-body"><h3>Source Review</h3><table><tr><th>Source</th><th>Key observable</th></tr><tr><td>OpenAI Codex official repository</td><td><code>codex</code>, npm package <code>@openai/codex</code>, <code>config.toml</code>, <code>codex mcp-server</code></td></tr><tr><td>Anthropic Claude Code documentation</td><td><code>claude</code>, npm package, tool permissions, <code>claude mcp</code>, project <code>.mcp.json</code></td></tr><tr><td>Model Context Protocol specification</td><td>stdio clients launch MCP servers as subprocesses; HTTP is also supported</td></tr><tr><td>Ollama documentation</td><td>default local API at <code>localhost:11434</code></td></tr><tr><td>LM Studio documentation</td><td><code>lms server start</code>, default local API at <code>localhost:1234</code>, optional non-loopback bind</td></tr></table><h3>References</h3><ul><li><a href="https://attack.mitre.org/techniques/T1547/001/">MITRE ATT&amp;CK T1547.001 Registry Run Keys</a> — accessed 2026-08-18</li><li><a href="https://attack.mitre.org/techniques/T1046/">MITRE ATT&amp;CK T1046 Network Service Discovery</a> — accessed 2026-08-18</li><li><a href="https://airc.nist.gov/airmf-resources/airmf/5-sec-core/">NIST AI RMF Core</a> — accessed 2026-08-18</li><li><a href="https://github.com/openai/codex/blob/main/README.md">OpenAI Codex README</a> — accessed 2026-08-18</li><li><a href="https://github.com/openai/codex/blob/main/codex-rs/README.md">OpenAI Codex Rust CLI README</a> — accessed 2026-08-18</li><li><a href="https://docs.anthropic.com/en/docs/claude-code/cli-usage">Anthropic Claude Code CLI reference</a> — accessed 2026-08-18</li><li><a href="https://modelcontextprotocol.io/specification/2024-11-05/basic/transports">MCP transports specification</a> — accessed 2026-08-18</li><li><a href="https://docs.ollama.com/api/introduction">Ollama API introduction</a> — accessed 2026-08-18</li><li><a href="https://lmstudio.ai/docs/cli/serve/server-start">LM Studio server documentation</a> — accessed 2026-08-18</li></ul><h3>Changelog</h3><div class="chg-entry"><span class="chg-ver">v0.4</span><span class="chg-date">2026-08-21</span><span>Special Edition rebuild: moved to a subject-specific ten-section format; split 43 CQL hunts into Core and Extended coverage; reconciled query badges with inline ratings; expanded Linux browser executable coverage; removed the placeholder IOC import row; and retained behavior-only provenance.</span></div><div class="chg-entry"><span class="chg-ver">v0.3</span><span class="chg-date">2026-08-18</span><span>Skeptical multi-agent review: corrected query semantics and ATT&amp;CK labels, added wrapper-lineage and unrestricted-mode hunts, split risky behaviors, repaired alert cadence, and strengthened hardening and containment.</span></div><div class="chg-entry"><span class="chg-ver">v0.2</span><span class="chg-date">2026-08-18</span><span>Added twelve deeper-coverage queries for agents, package wrappers, renamed binaries, IDE-managed MCP, WSL, containers, model acquisition and caches, browser automation, and risky agent commands.</span></div><div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-18</span><span>Initial local-only pack with 27 CQL queries, inventory-to-behavior workflow, IOA candidates, hardening, and response guidance.</span></div></div></div>
+<footer>HuntPack · Special-Edition-Local-AI-Agent-Discovery-Hunt · v0.4 · 2026-08-21 · Author: slapopotamus · Generated 2026-08-21</footer>
+</div>
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
