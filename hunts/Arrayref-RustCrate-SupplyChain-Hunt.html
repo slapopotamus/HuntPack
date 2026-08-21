@@ -1,0 +1,851 @@
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #d9662f;
+  --accent-dim: rgba(217,102,47,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1608 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.ticket { background: #010409; border: 1px solid var(--accent); border-radius: 6px; padding: 4px; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">Rust crates.io Supply-Chain Attack — arrayref / internment / append-only-vec</div>
+    <div class="version">v0.1 · 2026-08-21</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Rust crates.io Supply-Chain Attack — arrayref / internment / append-only-vec</h1>
+  <div class="subtitle">Build-time dropper delivered via the proc-macro1 typosquat (impersonating proc-macro2) · 2026-08-20 · exposure window 07:11–09:25 UTC</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">CRITICAL — NATION-STATE INFRA OVERLAP</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Supply-Chain Compromise — Build-Time Dropper</div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">Automatic on <code>cargo build</code>/<code>cargo update</code> — no user interaction beyond compiling</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) · 2026-08-21</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High — multi-source corroborated, official Rust Security Response Team advisory</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>On 2026-08-20 an attacker compromised or impersonated crates.io maintainer accounts to poison three widely used Rust crates — <code>arrayref</code> (245M all-time downloads), <code>internment</code>, and <code>append-only-vec</code> — with a single new build-time dependency, <code>proc-macro1</code>, a typosquat of the legitimate <code>proc-macro2</code>. The attacker's objective was pure build-time remote code execution: <code>proc-macro1</code>'s <code>build.rs</code> runs automatically the moment Cargo compiles it, before any application code executes, so simply running <code>cargo build</code> or <code>cargo update</code> against a resolved lockfile was enough to detonate the payload on a developer workstation or CI runner. The dropper reconstructs a payload URL from base64 fragments, disables TLS certificate validation, fetches a platform-specific second-stage binary from a Hostwinds VPS, and executes it detached so the build finishes clean and green.</p>
+    <p>The attacker weaponized Cargo's own safety feature against defenders: seconds after publishing the poisoned <code>arrayref 0.3.10</code>, the same account yanked every other recent version in a scripted burst, so the only fix for the resulting "yanked version" warning was to upgrade into the one remaining, malicious release. The Rust Security Response Team pulled the malicious versions and six attacker-owned crates within 86–107 minutes of publication and has since restored the clean, un-yanked versions — but the exposure window means any host that resolved the poisoned versions during that window must be treated as compromised, not just have its dependency updated. Wiz Research further found infrastructure overlap (shared C2 beacon path, shared TLS certificate issuer, and a shared IP also seen in the axios npm compromise) with campaigns Microsoft and Mandiant have separately attributed to DPRK/Sapphire Sleet-linked actors — presented here as attributed infrastructure overlap, not confirmed attribution to a named actor.</p>
+    <p>The best defensive angle for this class of attack is not patching the crate — there is no CVE and no vulnerable version to fix, only a compromised one to detect — it is <strong>catching the moment of detonation</strong>: an unexpected process spawned by the Rust build toolchain, and outbound network traffic from a build process to infrastructure it has no reason to contact. Both are squarely inside CrowdStrike Falcon's process-creation and network-connection telemetry, which is why this pack leads with process-lineage and egress hunts rather than static IOC matching alone.</p>
+    <p class="callout callout-danger"><strong>Defender priority:</strong> Assume any host that ran <code>cargo build</code>/<code>cargo update</code> between <strong>07:11–09:25 UTC on 2026-08-20</strong> and resolved <code>arrayref 0.3.10</code>, <code>internment 0.8.7</code>, <code>append-only-vec 0.1.9</code>, or any version of <code>proc-macro1</code>/<code>proc-macro-en</code> is compromised. Run the cache/lockfile sweep in Section 7 first — deletion from crates.io does not clean local or CI caches, and a deleted registry version produces no <code>cargo audit</code> finding at all.</p>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <p>Seven sources were fetched and saved verbatim to the pack's source-snapshot directory for provenance tracing. All seven were reviewed for prompt-injection or untrusted directives before use; none were found, and no source was dropped.</p>
+    <table>
+      <tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+      <tr><td><span class="badge b-info">1</span></td><td>Rust Security Response Team (official, blog.rust-lang.org)</td><td>Authoritative confirmation of the compromise, per-crate publish/delete timestamps, full list of deleted crates, account-lock decision, credit to Nextron Systems GmbH for discovery</td><td>Yes — primary source of record</td></tr>
+      <tr><td><span class="badge b-info">1</span></td><td>StepSecurity</td><td>Most detailed technical write-up: full minute-by-minute timeline, complete IOC set, static analysis of <code>build.rs</code>, and a live Harden-Runner reproduction proving the C2 connection actually fires and can be blocked at egress</td><td>Yes — primary technical source</td></tr>
+      <tr><td><span class="badge b-info">1</span></td><td>Wiz Research</td><td>Stage-2 backdoor capability analysis (commands, persistence, DGA fallback, encryption), full IOC/hash table, and the DPRK/Sapphire Sleet infrastructure-overlap analysis</td><td>Yes — primary technical source</td></tr>
+      <tr><td><span class="badge b-med">2</span></td><td>SafeDep</td><td>Independent confirmation of the build-time mechanism and the "genuine proc-macro2 source, mechanically renamed" deception detail</td><td>Partial — corroboration only</td></tr>
+      <tr><td><span class="badge b-med">2</span></td><td>Semgrep</td><td>Corroborates package/version list and the yank-and-upgrade lure mechanism</td><td>Partial — corroboration only</td></tr>
+      <tr><td><span class="badge b-purple">3</span></td><td>The Hacker News</td><td>News-aggregator summary; confirms scale (245M downloads) and timeline</td><td>Partial — context only</td></tr>
+      <tr><td><span class="badge b-purple">3</span></td><td>BleepingComputer</td><td>News-aggregator summary; confirms affected-project list (blake3, egui, Solana/Ethereum tooling)</td><td>Partial — context only</td></tr>
+    </table>
+    <p><strong>Note on a source discrepancy:</strong> Wiz's initial published capability analysis stated browser credentials were stolen; Wiz issued an in-line correction stating the backdoor only <em>enumerates</em> saved logins via the browsers' SQLite stores and does not decrypt or exfiltrate the encrypted credential material itself. This pack uses the corrected claim throughout (see Section 6, T1555.003).</p>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <h3>Hunt Hypotheses (ordered by fidelity)</h3>
+    <ol>
+      <li><strong>[High]</strong> The Rust build toolchain (<code>cargo</code>/<code>rustc</code>) spawns the dropped payload or a script interpreter/downloader as a direct child during a build — the moment of detonation. <em>Covers T1195.002. Maps to Q2/Q3.</em></li>
+      <li><strong>[High]</strong> A build process or its child connects to the known C2 IPs or the Hostwinds VPS hostname. <em>Covers T1071.001. Maps to Q4/Q5/Q8.</em></li>
+      <li><strong>[High]</strong> A process image executes from the reported Unix persistence paths (<code>AzureKits</code>/<code>ServiceKit</code>) under a name mimicking a legitimate service (<code>MonoService</code>/<code>MonoXpc</code>). <em>Covers T1543.002, T1036. Maps to Q6.</em></li>
+      <li><strong>[Medium]</strong> Cargo build toolchain spawns a script interpreter or network tool that is not part of a known-good build wrapper — broader behavioral net beyond the exact IOC names. <em>Covers T1195.002, T1059. Maps to Q1.</em></li>
+      <li><strong>[Medium]</strong> A new Registry Run-key entry references the dropper's temp-path naming convention or persistence binary names. <em>Covers T1547.001. Maps to Q7.</em></li>
+      <li><strong>[Medium — non-CQL]</strong> A developer or CI checkout's <code>Cargo.lock</code>/registry cache resolved a poisoned crate version or an attacker-owned crate name, independent of whether the build ever ran. <em>Covers T1195.002. Maps to Section 7 native hunts.</em></li>
+      <li><strong>[Medium — non-CQL]</strong> A host carries an unrecognized systemd user service, LaunchAgent, or scheduled task installed during or after the exposure window. <em>Covers T1543.001, T1543.002, T1053. Maps to Section 7 native hunts.</em></li>
+      <li><strong>[Low-Medium]</strong> A process reads from a Chrome/Brave/Edge profile's saved-login SQLite store outside the browser's own process — proxy signal for the credential-enumeration behavior Wiz documented. <em>Covers T1555.003. Maps to Section 7 native hunts (limited native Falcon telemetry for this behavior — see Section 5 gap).</em></li>
+    </ol>
+    <h3>Attack Chain</h3>
+    <table>
+      <tr><th>Step</th><th>Action</th><th>Telemetry</th><th>Hunt Angle</th></tr>
+      <tr><td>1</td><td>Attacker creates impersonator persona (<code>dtolney</code>) and publishes a clean decoy <code>proc-macro1@1.0.106</code> to build publishing history</td><td>crates.io audit log / index git history (not endpoint-visible)</td><td>Registry-side forensics only; not a Falcon hunt</td></tr>
+      <tr><td>2</td><td>Weaponization: <code>proc-macro1@1.0.107</code> published, adding <code>base64</code>/<code>rustls</code>/<code>ureq</code> build-dependencies and the malicious <code>build.rs</code></td><td>crates.io index git history</td><td>Registry-side forensics only</td></tr>
+      <tr><td>3</td><td>Poisoning: <code>arrayref 0.3.10</code>, <code>internment 0.8.7</code>, <code>append-only-vec 0.1.9</code> published with the new <code>proc-macro1</code> dependency; prior clean versions yanked in a scripted burst to force the upgrade</td><td><code>Cargo.lock</code>/<code>Cargo.toml</code> diffs</td><td>Lockfile/manifest grep sweep (Section 7)</td></tr>
+      <tr><td>4</td><td><strong>Detonation:</strong> <code>cargo build</code>/<code>cargo update</code> resolves the poisoned version; <code>build.rs</code> executes, reassembles the C2 URL from base64 fragments, disables TLS cert validation, fetches the stage-2 payload</td><td><code>ProcessRollup2</code> (cargo/rustc lineage), <code>NetworkConnectIP4</code></td><td>Q1, Q4, Q5</td></tr>
+      <tr><td>5</td><td>Stage-2 payload written and executed detached (<code>/tmp/rust-setup</code> on Unix; <code>rust-setup.ps1</code> via <code>rust-setup-launch.vbs</code>/<code>wscript.exe</code> on Windows), abandoning the child handle to escape Cargo's job object</td><td><code>ProcessRollup2</code>, file-write telemetry</td><td>Q2, Q3</td></tr>
+      <tr><td>6</td><td>Backdoor beacons over HTTPS POST to <code>/49890878</code>; collects host/user/OS info and enumerates browser saved-login stores</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td>Q4, Q8</td></tr>
+      <tr><td>7</td><td>Persistence installed — Registry Run key (Windows), LaunchAgent (macOS), systemd user service (Linux); Linux hosts observed with <code>AzureKits</code>/<code>ServiceKit</code> dirs and <code>MonoService</code>/<code>MonoXpc</code> binaries</td><td><code>RegGenericValueUpdate</code>/<code>AsepValueUpdate</code>, <code>ProcessRollup2</code></td><td>Q6, Q7</td></tr>
+      <tr><td>8</td><td>Ongoing C2: commands <code>kill</code>/<code>minicfg</code>/<code>startup</code>/<code>runscript</code>, or DGA fallback if the primary C2 is unreachable</td><td><code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td>Q4, Q8 + native monitoring</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr>
+      <tr><td>IPv4</td><td>23.254.165.112</td><td>High</td><td>detect</td><td>Build-time payload host (port 9089) and C2 (port 443, passed to dropper as argv[1])</td><td>2027-02-21</td></tr>
+      <tr><td>IPv4</td><td>23.254.167.107</td><td>High</td><td>detect</td><td>Stage-2 C2, reported live at time of publication</td><td>2027-02-21</td></tr>
+      <tr><td>IPv4</td><td>23.254.167.216</td><td>Medium</td><td>detect</td><td>Stage-2 C2 observed on one infected Linux host; third-party report, not independently reproduced by the primary sources. Also cited by Google/Mandiant in the UNC1069 axios npm attack.</td><td>2027-02-21</td></tr>
+      <tr><td>CIDR</td><td>23.254.164.0/23</td><td>Medium</td><td>hunt</td><td>Shared Hostwinds LLC range covering both C2 addresses and the campaign's payload host — hunt/monitor at range level, do not blanket-block the hosting provider's full allocation</td><td>2026-11-21</td></tr>
+      <tr><td>Domain</td><td>hwsrv-798836.hostwindsdns.com</td><td>High</td><td>detect</td><td>Attacker Hostwinds VPS hostname</td><td>2027-02-21</td></tr>
+      <tr><td>Network path</td><td>POST /49890878</td><td>High</td><td>hunt</td><td>Stage-2 C2 beacon path; matches the endpoint used in the Mastra npm / DPRK-Sapphire Sleet campaign</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>25ad700976873c76af785cb99b33c48db7df8b81f21d1e9e06b3676b9a9373ae</td><td>High</td><td>detect</td><td><code>arrayref-0.3.10.crate</code> — malicious release</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>61198155da51b838772eecf5bfaac6cbc4dcc388dccc56658fc28a8e831b34d4</td><td>High</td><td>detect</td><td><code>proc-macro1-1.0.107.crate</code> — weaponized dropper</td><td>2027-02-21</td></tr>
+      <tr><td>SHA256</td><td>b5c1b5b0763a8809a644a8f92224653f0aca623a98eecc714d27f74b80fbe436</td><td>Medium</td><td>enrich</td><td><code>proc-macro1-1.0.106.crate</code> — clean decoy release; benign code but diagnostic of campaign staging if found in a cache</td><td>2026-09-21</td></tr>
+      <tr><td>Filename</td><td>/tmp/rust-setup</td><td>High</td><td>hunt</td><td>Unix dropper payload path</td><td>2026-11-21</td></tr>
+      <tr><td>Filename</td><td>rust-setup.ps1</td><td>High</td><td>hunt</td><td>Windows dropper payload, written to user temp directory</td><td>2026-11-21</td></tr>
+      <tr><td>Filename</td><td>rust-setup-launch.vbs</td><td>High</td><td>hunt</td><td>Hidden Windows launcher, executed via <code>wscript.exe</code> with no window</td><td>2026-11-21</td></tr>
+      <tr><td>Filename</td><td>rust-crate_0.1.0 – rust-crate_0.4.0</td><td>Medium</td><td>hunt</td><td>Platform-specific stage-2 payload names observed on the payload host (Linux/Windows/macOS x86_64/macOS arm64)</td><td>2026-11-21</td></tr>
+      <tr><td>Path</td><td>$HOME/.config/AzureKits, $HOME/.config/ServiceKit</td><td>High</td><td>hunt</td><td>Unix persistence directories (third-party infected-host report)</td><td>2026-11-21</td></tr>
+      <tr><td>Filename</td><td>MonoService, MonoXpc</td><td>High</td><td>hunt</td><td>Unix persistence binary names dropped under the paths above</td><td>2026-11-21</td></tr>
+      <tr><td>Package</td><td>arrayref@0.3.10, internment@0.8.7, append-only-vec@0.1.9</td><td>High</td><td>detect</td><td>Poisoned crates.io releases; deleted from the registry, yanks on prior clean versions reversed. Last safe versions: 0.3.9 / 0.8.6 / 0.1.8.</td><td>2027-02-21</td></tr>
+      <tr><td>Package</td><td>proc-macro1, proc-macro-en, aovine, arone, aronenao, tinymember</td><td>High</td><td>detect</td><td>Attacker-controlled crates.io packages — any version of any of these is malicious or campaign-associated; all deleted from the registry</td><td>2027-02-21</td></tr>
+      <tr><td>Account</td><td>dtolney (crates.io id 438608)</td><td>High</td><td>pivot</td><td>Impersonator of dtolnay (real author of proc-macro2); publisher of proc-macro1</td><td>2027-02-21</td></tr>
+      <tr><td>Account</td><td>droundy</td><td>Low</td><td>pivot</td><td>Legitimate owner of the three poisoned crates; machine/credentials assessed compromised, not acting maliciously — context only, not an indicator to alert on</td><td>2026-09-21</td></tr>
+      <tr><td>Email</td><td>rchaitm@gmail.com</td><td>Medium</td><td>pivot</td><td>Forged "David Tolnay" author metadata on the proc-macro1 decoy release</td><td>2026-11-21</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr>
+      <tr><td>Developer workstations running <code>cargo build</code></td><td><code>ProcessRollup2</code>/<code>SyntheticProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td>Critical</td><td>None — fully covered where the Falcon sensor is deployed</td></tr>
+      <tr><td>Self-hosted CI/CD runners (GitLab, Jenkins, self-hosted GitHub Actions)</td><td>Same as above, if sensor is installed on the runner host</td><td>Critical</td><td>None, contingent on sensor deployment to the runner fleet</td></tr>
+      <tr><td>Ephemeral cloud-hosted CI runners (GitHub-hosted Actions, other SaaS CI)</td><td>Falcon sensor typically not installable on vendor-managed ephemeral compute</td><td>Critical</td><td><strong>GAP</strong> — no endpoint telemetry; rely on CI-provider egress/audit logs and workflow-level network monitoring (e.g. an egress-monitoring GitHub Action) instead of Falcon</td></tr>
+      <tr><td><code>~/.cargo/registry/cache</code> on any endpoint</td><td>No generic archive-write Falcon event covers arbitrary <code>.crate</code> (tar.gz) writes — only the typed <code>*FileWritten</code> events (PE, ELF, ZIP, Jar, Office) apply</td><td>High</td><td><strong>Partial</strong> — not natively expressible as a high-fidelity CQL filter; covered instead via the native filesystem/CLI sweep in Section 7</td></tr>
+      <tr><td>Windows Registry Run keys / Scheduled Tasks</td><td><code>RegGenericValueUpdate</code>, <code>AsepValueUpdate</code>, <code>ScheduledTaskRegistered</code></td><td>Medium</td><td>None</td></tr>
+      <tr><td>macOS LaunchAgents</td><td>No dedicated LaunchAgent-create event confirmed in the current Falcon data-model reference</td><td>Medium</td><td><strong>GAP</strong> — hunt via native <code>launchctl</code>/filesystem sweep (Section 7)</td></tr>
+      <tr><td>Linux systemd user services</td><td>No dedicated systemd-unit-create event confirmed in the current Falcon data-model reference</td><td>Medium</td><td><strong>GAP</strong> — hunt via native <code>systemctl</code>/filesystem sweep (Section 7)</td></tr>
+      <tr><td>Browser credential stores (Chrome/Brave/Edge SQLite profiles)</td><td>No default Falcon telemetry for SQLite file reads by a non-browser process</td><td>Medium</td><td><strong>Partial</strong> — hunt file-access-to-profile-path as an indirect proxy signal; not a native Falcon detection</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed Behavior</th></tr>
+      <tr><td>Initial Access</td><td>T1195.002</td><td>Supply Chain Compromise: Compromise Software Dependencies and Development Tools</td><td>Compromised <code>droundy</code> account published poisoned arrayref/internment/append-only-vec; impersonator account published the typosquat <code>proc-macro1</code> build dependency</td></tr>
+      <tr><td>Execution</td><td>T1059.001</td><td>Command and Scripting Interpreter: PowerShell</td><td><code>build.rs</code> drops and the launcher invokes <code>rust-setup.ps1</code> on Windows</td></tr>
+      <tr><td>Execution</td><td>T1059.005</td><td>Command and Scripting Interpreter: Visual Basic</td><td><code>rust-setup-launch.vbs</code> launched via <code>wscript.exe</code> as a hidden, windowless wrapper</td></tr>
+      <tr><td>Defense Evasion</td><td>T1027</td><td>Obfuscated Files or Information</td><td>C2 URL split into base64-encoded fragments in <code>build.rs</code> source, reassembled only at build time</td></tr>
+      <tr><td>Defense Evasion</td><td>T1036</td><td>Masquerading</td><td>Persistence binaries named <code>MonoService</code>/<code>MonoXpc</code> under directories named <code>AzureKits</code>/<code>ServiceKit</code> — chosen to read as legitimate cloud/service tooling</td></tr>
+      <tr><td>Persistence</td><td>T1547.001</td><td>Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder</td><td>Windows persistence via Registry Run key (backdoor capability confirmed by Wiz; exact value name not publicly documented)</td></tr>
+      <tr><td>Persistence</td><td>T1543.001</td><td>Create or Modify System Process: Launch Agent</td><td>macOS persistence via LaunchAgent</td></tr>
+      <tr><td>Persistence</td><td>T1543.002</td><td>Create or Modify System Process: Systemd Service</td><td>Linux persistence via systemd user service; observed creating <code>$HOME/.config/AzureKits</code> and <code>$HOME/.config/ServiceKit</code> with <code>MonoService</code>/<code>MonoXpc</code> binaries</td></tr>
+      <tr><td>Command and Control</td><td>T1071.001</td><td>Application Layer Protocol: Web Protocols</td><td>HTTPS POST beacon to <code>/49890878</code> on 23.254.165.112:443, 23.254.167.107:443, and 23.254.167.216</td></tr>
+      <tr><td>Command and Control</td><td>T1573</td><td>Encrypted Channel</td><td>Beacon over HTTPS/TLS; backdoor config encrypted with AES-128-GCM; command authentication via embedded RSA-2048 key</td></tr>
+      <tr><td>Command and Control</td><td>T1568.002</td><td>Dynamic Resolution: Domain Generation Algorithms</td><td>Fallback DGA generates 10 algorithmic <code>.com</code> domains every 5 days if the primary C2 is unreachable (none observed registered at time of reporting)</td></tr>
+      <tr><td>Credential Access</td><td>T1555.003</td><td>Credentials from Password Stores: Credentials from Web Browsers</td><td>Enumerates Chrome/Brave/Edge saved-login SQLite stores. <strong>Corrected per Wiz:</strong> enumeration only — does not decrypt or exfiltrate the encrypted credential material itself</td></tr>
+      <tr><td>Discovery</td><td>T1082</td><td>System Information Discovery</td><td>Collects hostname, username, and operating system details</td></tr>
+      <tr><td>Discovery</td><td>T1518</td><td>Software Discovery</td><td>Enumerates installed applications on the host</td></tr>
+      <tr><td>Exfiltration</td><td>T1041</td><td>Exfiltration Over C2 Channel</td><td>Host info and browser-store enumeration results sent as base64-encoded JSON over the same HTTPS beacon channel</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <p>These checks cover surfaces Falcon does not natively tag with a dedicated event (Section 5 gaps) or that are faster to run directly against the filesystem/registry than to wait on telemetry ingestion. Run them alongside the CQL queries in Section 8, not instead of them.</p>
+    <h3>Cargo cache &amp; lockfile sweep (all platforms — run per host or fleet-wide via RTR/EDR script deployment)</h3>
+    <pre class="code"># Local / CI cargo registry cache — Linux, macOS, WSL
+find ~/.cargo/registry/cache -type f \( \
+  -name 'arrayref-0.3.10.crate' -o \
+  -name 'internment-0.8.7.crate' -o \
+  -name 'append-only-vec-0.1.9.crate' -o \
+  -name 'proc-macro1-*.crate' -o \
+  -name 'proc-macro-en-*.crate' -o \
+  -name 'aovine-*.crate' -o \
+  -name 'arone-*.crate' -o \
+  -name 'aronenao-*.crate' -o \
+  -name 'tinymember-*.crate' \
+\) -print
+
+# Windows equivalent (PowerShell)
+Get-ChildItem -Path "$env:USERPROFILE\.cargo\registry\cache" -Recurse -File -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -match '^(arrayref-0\.3\.10|internment-0\.8\.7|append-only-vec-0\.1\.9|proc-macro1-.*|proc-macro-en-.*|aovine-.*|arone-.*|aronenao-.*|tinymember-.*)\.crate$' }
+
+# Lockfile / manifest sweep across repo checkouts — resolved version matters, Cargo.toml pins do NOT protect you
+grep -rEn 'proc-macro1|proc-macro-en|aovine|arone|aronenao|tinymember|arrayref.*0\.3\.10|internment.*0\.8\.7|append-only-vec.*0\.1\.9' \
+  --include=Cargo.lock --include=Cargo.toml .</pre>
+    <h3>macOS LaunchAgent audit</h3>
+    <pre class="code">launchctl list | grep -viE 'com\.apple\.|com\.microsoft\.|com\.google\.|com\.docker\.'
+find ~/Library/LaunchAgents /Library/LaunchAgents -type f -newermt '2026-08-20 07:00:00'</pre>
+    <h3>Linux systemd user-service audit</h3>
+    <pre class="code">systemctl --user list-units --type=service --all
+find ~/.config/systemd/user -type f -newermt '2026-08-20 07:00:00'
+# Cross-reference any unrecognized unit against $HOME/.config/AzureKits and $HOME/.config/ServiceKit</pre>
+    <h3>Windows Run-key &amp; temp-directory audit</h3>
+    <pre class="code">Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' | Format-List
+Get-ChildItem -Path $env:TEMP -Filter 'rust-setup*' -ErrorAction SilentlyContinue
+Get-ChildItem -Path $env:TEMP -Filter '*-launch.vbs' -ErrorAction SilentlyContinue</pre>
+    <h3>CI/CD build-log audit</h3>
+    <p>Search CI logs (GitHub Actions, GitLab CI, Jenkins, self-hosted runners) for jobs that executed <code>cargo build</code>, <code>cargo update</code>, or a fresh <code>cargo build</code> with no committed lockfile between <strong>07:11 and 09:25 UTC on 2026-08-20</strong>. For any match, pull the runner's egress logs and check for connections to the C2 IPs/domain in Section 4 — ephemeral runners destroyed after the job still exfiltrated whatever secrets that job's environment held, so treat every affected job's accessible secrets as compromised regardless of runner lifetime.</p>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · Rust build toolchain spawning script interpreter or downloader (behavioral)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>cargo</code>/<code>rustc</code> spawning a script interpreter, shell, or downloader as a direct child — the general shape of any <code>build.rs</code>-triggered dropper, not just this specific IOC set. <strong>FP:</strong> legitimate build scripts that shell out to <code>curl</code>/<code>git</code> for vendored assets, or internal CI wrappers invoking bash/PowerShell as part of a normal <code>cargo xtask</code>.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Rust build toolchain (cargo/rustc) spawning script interpreter or downloader child process</span>
+<span class="cm">// MITRE: T1195.002, T1059</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2 (process creation telemetry)</span>
+<span class="cm">// FALSE POSITIVES: legitimate build.rs scripts that shell out to curl/git for vendored assets; CI wrappers that call PowerShell/bash as part of a normal build target</span>
+<span class="cm">// TUNING: exclude known-legit build wrappers by ParentCommandLine, and exclude CommandLine hits that reference your own internal package registry/artifact-mirror hostname</span>
+test(@timestamp &gt;= now() - 2592000000)                                   <span class="cm">// 30d retrospective window; narrow before promoting to a scheduled search</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| in(ParentBaseFileName, values=["cargo.exe","cargo","rustc.exe","rustc"], ignoreCase=true)
+| in(FileName, values=["powershell.exe","pwsh.exe","wscript.exe","cscript.exe","cmd.exe","curl.exe","curl","wget","bash","sh"], ignoreCase=true)
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ParentCommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · Dropper artifact execution — image basename match (rust-setup)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a process image whose basename literally matches the proc-macro1 dropper's Unix payload filename (or a process directly named <code>rust-setup.ps1</code>, in case the script is ever registered as a direct execution target rather than invoked through a script host). <strong>FP:</strong> negligible — this exact filename has no legitimate use.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Process execution where the image basename matches the proc-macro1 dropper's payload filename</span>
+<span class="cm">// MITRE: T1195.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^rust-setup(\.ps1)?$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Script host launching the named dropper scripts (Windows, CommandLine IOC)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>wscript.exe</code> or <code>powershell.exe</code> invoked with a command line referencing <code>rust-setup.ps1</code> or <code>rust-setup-launch.vbs</code> — the Windows half of the dropper's stage-2 execution, since the process image on Windows is the script host, not the script file itself. <strong>FP:</strong> negligible — these filenames have no legitimate use.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: wscript.exe / powershell.exe launching the named proc-macro1 dropper scripts</span>
+<span class="cm">// MITRE: T1059.001, T1059.005, T1195.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| in(FileName, values=["wscript.exe","powershell.exe","pwsh.exe"], ignoreCase=true)
+| CommandLine=/rust-setup(\.ps1)?|rust-setup-launch\.vbs/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Outbound connection to known C2 IPs</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any process on any host connecting to the three reported C2 addresses. <strong>FP:</strong> negligible — these are dedicated attacker-controlled hosts.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Outbound connections to arrayref/proc-macro1 build-time dropper C2 infrastructure</span>
+<span class="cm">// MITRE: T1071.001, T1573</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=NetworkConnectIP4
+| in(RemoteAddressIP4, values=["23.254.165.112","23.254.167.107","23.254.167.216"])
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Build-toolchain lineage egress to the Hostwinds /23 range</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a network connection anywhere in the reported <code>23.254.164.0/23</code> Hostwinds range whose initiating process is a direct child of <code>cargo</code>/<code>rustc</code> — tighter proof of build-time detonation than the exact-IP match alone, and resilient if the attacker rotates within the same hosting block. <strong>FP:</strong> negligible against a build-toolchain-scoped join over a specific attacker-controlled /23.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Network egress from a process whose parent is the Rust build toolchain, to the Hostwinds C2 range</span>
+<span class="cm">// MITRE: T1071.001, T1195.002</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 joined to ProcessRollup2</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=NetworkConnectIP4
+| cidr(RemoteAddressIP4, subnet="23.254.164.0/23")
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName=ProcessRollup2 | in(ParentBaseFileName, values=["cargo.exe","cargo","rustc.exe","rustc"], ignoreCase=true)}, field=TargetProcessId_decimal)
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, RemoteAddressIP4, RemotePort])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Unix persistence execution (AzureKits/ServiceKit — MonoService/MonoXpc)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> execution of a process image from the reported Unix persistence directories, named <code>MonoService</code> or <code>MonoXpc</code>. <strong>FP:</strong> negligible — these directory/binary names have no known legitimate origin.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Execution of stage-2 persistence binaries from the arrayref dropper's Unix persistence directories</span>
+<span class="cm">// MITRE: T1543.002, T1036</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / SyntheticProcessRollup2 (Linux/macOS sensor)</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/\.config\/(AzureKits|ServiceKit)\/(MonoService|MonoXpc)$/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Windows Run-key entry referencing the dropper's naming pattern</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a new Run-key value referencing the dropper's filename or the Unix persistence binary names, in case the same naming convention was reused on Windows. Exact Windows registry value/name was not publicly documented at time of writing — this is a best-effort behavioral pattern, not a confirmed Windows IOC. <strong>FP:</strong> legitimate installers occasionally stage from <code>%TEMP%</code> paths that could coincidentally match.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: New Run-key persistence entry referencing the arrayref dropper's naming pattern or temp-directory drop path</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: RegGenericValueUpdate / AsepValueUpdate (Windows Registry Run key telemetry)</span>
+<span class="cm">// FALSE POSITIVES: legitimate installers writing Run keys that happen to reference %TEMP% staging paths (e.g. some browser auto-updaters)</span>
+<span class="cm">// TUNING: allowlist known-good auto-update agents by ImageFileName/publisher once baselined against your fleet; narrow RegStringValue further if noisy</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=/RegGenericValueUpdate|AsepValueUpdate/
+| RegObjectName=/\\Run\\/i
+| RegStringValue=/rust-setup|MonoService|MonoXpc/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · DNS resolution of the Hostwinds VPS hostname</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS queries for the specific Hostwinds VPS hostname tied to this campaign's C2 infrastructure. <strong>FP:</strong> negligible — attacker-registered hostname.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: DNS resolution of the Hostwinds VPS hostname used as arrayref dropper C2 infrastructure</span>
+<span class="cm">// MITRE: T1071.001, T1568.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest</span>
+test(@timestamp &gt;= now() - 2592000000)
+#event_simpleName=DnsRequest
+| DomainName=/hwsrv-798836\.hostwindsdns\.com$/i
+| table([@timestamp, ComputerName, UserName, DomainName])
+| sort(@timestamp, order=desc, limit=500)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <p>Promote the exact-IOC, low-FP queries to real-time Custom IOA rules. Keep the behavioral/joined queries as scheduled hunt searches — IOAs evaluate single-event patterns and can't express the Q5 join, and Q1/Q7 need a human FP review pass before they're safe to run unattended.</p>
+    <table>
+      <tr><th>IOA Name</th><th>Source Query</th><th>Pattern</th><th>Exclusions</th><th>Deployment Path</th></tr>
+      <tr><td>Dropper Artifact — rust-setup Execution</td><td>Q2</td><td>Process creation, <code>FileName</code> matches <code>^rust-setup(\.ps1)?$</code></td><td>None required</td><td>Custom IOA rule group, Severity: Critical, Action: Kill process + Notify</td></tr>
+      <tr><td>Dropper Artifact — Script Host Launch</td><td>Q3</td><td>Process creation, <code>FileName</code> in {wscript.exe, powershell.exe, pwsh.exe} AND <code>CommandLine</code> matches dropper script names</td><td>None required</td><td>Custom IOA rule group, Severity: Critical, Action: Kill process + Notify</td></tr>
+      <tr><td>arrayref Campaign C2 Connection</td><td>Q4</td><td>Network connection, <code>RemoteAddressIP4</code> in the three reported C2 IPs</td><td>None required</td><td>Custom IOA rule group, Severity: Critical, Action: Network-contain + Notify. Pair with a Falcon Custom IOC block on the same three IPs for prevention, not just detection.</td></tr>
+      <tr><td>arrayref Unix Persistence Execution</td><td>Q6</td><td>Process creation, <code>ImageFileName</code> matches the AzureKits/ServiceKit path pattern</td><td>None required</td><td>Custom IOA rule group, Severity: Critical, Action: Kill process + Notify</td></tr>
+      <tr><td>arrayref C2 Hostname Resolution</td><td>Q8</td><td>DNS request, <code>DomainName</code> matches the Hostwinds VPS hostname</td><td>None required</td><td>Custom IOA rule group, Severity: High, Action: Notify (DNS-layer block preferred at the resolver instead of endpoint action)</td></tr>
+    </table>
+    <p class="callout callout-warn">Q1 (behavioral child-process hunt) and Q7 (Run-key naming pattern) stay <strong>Investigate-only</strong> until FP-tuned against your fleet's known build wrappers and update agents. Q5 (joined network+process query) stays a <strong>scheduled search</strong> — Falcon's real-time IOA engine does not evaluate cross-event joins.</p>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <div class="ioc-grab-grid">
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+ipv4,23.254.165.112,detect,high,2027-02-21,arrayref/proc-macro1 build-time payload host and C2 argv,campaign:RustCratesSupplyChain
+ipv4,23.254.167.107,detect,high,2027-02-21,Stage-2 C2 reported live at publication,campaign:RustCratesSupplyChain
+ipv4,23.254.167.216,detect,medium,2027-02-21,Stage-2 C2 observed on one infected host (third-party report),campaign:RustCratesSupplyChain
+domain,hwsrv-798836.hostwindsdns.com,detect,high,2027-02-21,Attacker Hostwinds VPS hostname,campaign:RustCratesSupplyChain
+sha256,25ad700976873c76af785cb99b33c48db7df8b81f21d1e9e06b3676b9a9373ae,detect,critical,2027-02-21,arrayref-0.3.10.crate malicious release,campaign:RustCratesSupplyChain
+sha256,61198155da51b838772eecf5bfaac6cbc4dcc388dccc56658fc28a8e831b34d4,detect,critical,2027-02-21,proc-macro1-1.0.107.crate weaponized dropper,campaign:RustCratesSupplyChain
+sha256,b5c1b5b0763a8809a644a8f92224653f0aca623a98eecc714d27f74b80fbe436,enrich,low,2026-09-21,proc-macro1-1.0.106.crate clean decoy release (benign; diagnostic of staging),campaign:RustCratesSupplyChain
+filename,rust-setup,hunt,high,2026-11-21,Unix dropper payload written to /tmp,campaign:RustCratesSupplyChain
+filename,rust-setup.ps1,hunt,high,2026-11-21,Windows dropper payload in user temp dir,campaign:RustCratesSupplyChain
+filename,rust-setup-launch.vbs,hunt,high,2026-11-21,Hidden Windows launcher executed via wscript.exe,campaign:RustCratesSupplyChain</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">process lineage &amp; paths</span></div>
+        <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behavior"># Process lineage
+cargo(.exe) / rustc(.exe)
+  -&gt; powershell.exe | pwsh.exe | wscript.exe | cscript.exe | cmd.exe | curl | wget | bash | sh   (unexpected build-time child)
+
+# Persistence paths (observed / third-party reported)
+$HOME/.config/AzureKits/MonoService        (Linux)
+$HOME/.config/ServiceKit/MonoXpc           (Linux)
+%TEMP%\rust-setup.ps1                      (Windows)
+%TEMP%\rust-setup-launch.vbs               (Windows, launched via wscript.exe)
+/tmp/rust-setup                            (Unix build host)
+
+# C2 beacon path
+POST /49890878   (also seen in the Mastra npm / DPRK-Sapphire Sleet campaign)</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Packages &amp; Accounts</span><span class="igc">crates.io</span></div>
+        <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-packages',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-packages"># Poisoned legitimate crates (deleted; yanks on clean versions reversed)
+arrayref@0.3.10          (last safe: 0.3.9)
+internment@0.8.7         (last safe: 0.8.6)
+append-only-vec@0.1.9    (last safe: 0.1.8)
+
+# Attacker-controlled crates (ALL versions deleted -- treat any version as malicious)
+proc-macro1        (typosquat of proc-macro2; decoy 1.0.106, weaponized 1.0.107)
+proc-macro-en       (spare dropper, same build.rs as proc-macro1)
+aovine
+arone
+aronenao
+tinymember          (no malicious code; removed by shared-owner association)
+
+# Accounts
+dtolney   (crates.io id 438608 -- impersonator of dtolnay, publisher of proc-macro1)
+droundy   (legitimate owner -- machine/credentials compromised, not malicious; account locked as a precaution)</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Cache &amp; Lockfile Audit</span><span class="igc">CLI one-liners</span></div>
+        <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit"># Local / CI cargo cache sweep (Linux/macOS/WSL)
+find ~/.cargo/registry/cache -type f \( \
+  -name 'arrayref-0.3.10.crate' -o \
+  -name 'internment-0.8.7.crate' -o \
+  -name 'append-only-vec-0.1.9.crate' -o \
+  -name 'proc-macro1-*.crate' -o \
+  -name 'proc-macro-en-*.crate' -o \
+  -name 'aovine-*.crate' -o \
+  -name 'arone-*.crate' -o \
+  -name 'aronenao-*.crate' -o \
+  -name 'tinymember-*.crate' \
+\) -print
+
+# Lockfile / manifest sweep across repo checkouts
+grep -rEn 'proc-macro1|proc-macro-en|aovine|arone|aronenao|tinymember|arrayref.*0\.3\.10|internment.*0\.8\.7|append-only-vec.*0\.1\.9' \
+  --include=Cargo.lock --include=Cargo.toml .</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Gate</th><th>Requirement</th><th>Status / Notes</th></tr>
+      <tr><td>Telemetry ready</td><td><code>ProcessRollup2</code>/<code>SyntheticProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code>, <code>RegGenericValueUpdate</code>/<code>AsepValueUpdate</code> flowing from Rust build hosts and CI runners with a Falcon sensor</td><td>Confirm sensor coverage on developer workstations and self-hosted runners before relying on Q1–Q8; ephemeral cloud CI runners are a known gap (Section 5)</td></tr>
+      <tr><td>Benign baseline</td><td>Run Q1 and Q7 against 7–30 days of history before promoting either to an alerting IOA — both carry medium FP by design</td><td>Not yet run in a live tenant; field names validated against the reference data model, not fired live — validate on first deployment</td></tr>
+      <tr><td>Positive test</td><td>Confirm each query returns the expected shape against a synthetic/lab event before trusting a zero-hit result as "clean"</td><td>Recommended: replay the StepSecurity Harden-Runner GitHub Actions reproduction (cited in Section 18) in a lab to generate a known-positive event for Q1/Q4/Q5</td></tr>
+      <tr><td>Promotion criteria</td><td>Only Q2, Q3, Q4, Q6, Q8 are promoted to Custom IOA (Section 9) — high confidence, low FP, single-event pattern</td><td>Q1, Q7 remain scheduled hunt searches pending fleet-specific tuning; Q5 remains a scheduled search because IOAs cannot express its join</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+  <div class="section-body">
+    <p>This is a build-time supply-chain compromise, not a patchable vulnerability — there is no fixed version of <code>arrayref</code> to upgrade <em>to</em>, only a compromised release window to detect and contain. Hardening here targets the mechanism (unvetted build-time dependency execution), the delivery trick (yank-driven forced upgrades), and the downstream techniques (script-host persistence, C2 egress).</p>
+
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — this week</div>
+      <p><strong>Pin known-good versions.</strong> Where these crates are needed, pin <code>arrayref = "=0.3.9"</code>, <code>internment = "=0.8.6"</code>, <code>append-only-vec = "=0.1.8"</code> in <code>Cargo.toml</code>, and verify the <em>resolved</em> version in <code>Cargo.lock</code> rather than trusting the absence of a yank warning. <em>Authority: Rust Security Response Team advisory (primary source); ⚠ best-practice, no formal CIS/NIST line item for this specific action.</em> <strong>Verify:</strong> <code>grep -A1 '^name = "arrayref"' Cargo.lock</code> shows <code>version = "0.3.9"</code>.</p>
+      <p><strong>Purge caches and rebuild from clean sources.</strong> Delete matching <code>.crate</code> files from every developer and CI cache (Section 7 commands), drop CI cache entries (e.g. <code>actions/cache</code> keys that could hold a warm poisoned cache), and rebuild any artifact produced during the 07:11–09:25 UTC window on clean infrastructure before shipping it. <em>Authority: NIST SP 800-218 (SSDF) PS.3 — Archive and protect each software release; StepSecurity remediation guidance (cited).</em> <strong>Verify:</strong> re-run the Section 7 cache sweep — zero hits.</p>
+      <p><strong>Block the C2 IOCs at egress.</strong> Block 23.254.165.112, 23.254.167.107, 23.254.167.216 and, where feasible, monitor the wider <code>23.254.164.0/23</code> Hostwinds range at the firewall/proxy for any build/CI network segment. <em>Mapped to M1037 (Filter Network Traffic).</em> <strong>Verify:</strong> a blocked test connection from a build host to 23.254.165.112:9089 fails closed; confirm via firewall logs or Q4 returning zero live connections post-block.</p>
+    </div>
+
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — 1–4 weeks</div>
+      <p><strong>Require <code>--locked</code> builds in CI and review lockfile diffs in PR.</strong> Commit <code>Cargo.lock</code> for applications, build with <code>cargo build --locked</code> in every CI pipeline, and require lockfile-diff review on any PR that changes it — a new entry named <code>proc-macro1</code> or any unfamiliar build-dependency is easy to catch in review but invisible without it. <em>Authority: NIST SP 800-218 (SSDF) PS.1.1 — track and secure the components of each release; ⚠ best-practice, no formal CIS benchmark line for Cargo specifically.</em> <strong>Verify:</strong> CI job logs show <code>--locked</code> on every <code>cargo build</code>/<code>cargo test</code> invocation; a manual lockfile edit without a matching PR review is blocked by branch protection.</p>
+      <p><strong>Adopt dependency provenance tooling.</strong> Run <code>cargo audit</code> and <code>cargo vet</code> (or an equivalent SCA tool) in CI, and treat a "yanked version" warning as a release signal requiring investigation, not a routine chore to silence with <code>cargo update</code>. Note the documented gap this incident exposed: a <em>deleted</em> malicious version produces no <code>cargo audit</code> finding at all, so cache/lockfile sweeps (Section 7) remain necessary even with this tooling in place. <em>Authority: CIS Controls v8, Control 16 (Application Software Security); NIST SP 800-218 PS.3.1.</em> <strong>Verify:</strong> <code>cargo vet check</code> exits clean in CI; a new unvetted build-dependency fails the pipeline.</p>
+      <p><strong>Publishing hygiene for your own crates.io-published packages.</strong> If your organization publishes to crates.io, move off long-lived API tokens to scoped, short-lived tokens or trusted-publishing-style OIDC flows — this compromise was enabled by a single long-lived token poisoning three crates in 23 minutes. <em>Authority: NIST SP 800-218 PO.5.2 (implement secure authentication for the software supply chain); ⚠ best-practice, no formal CIS line item for crates.io specifically.</em> <strong>Verify:</strong> crates.io account token list shows no token older than the organization's defined rotation window.</p>
+      <p><strong>Windows script-host and PowerShell hardening on build hosts.</strong> Enable PowerShell Constrained Language Mode, Script Block Logging, and AMSI integration on developer workstations and Windows CI runners; where feasible, restrict or alert on <code>wscript.exe</code>/<code>cscript.exe</code> launches from build-tool parent processes. <em>Mapped to M1038, M1042, M1047; CIS Microsoft Windows Benchmark — PowerShell logging &amp; language-mode sections; Microsoft Security Baseline (SCT) — PowerShell policies.</em> <strong>Verify:</strong> <code>$ExecutionContext.SessionState.LanguageMode</code> returns <code>ConstrainedLanguage</code> on a managed build host; Script Block Logging events (4104) are present in the Windows Event Log.</p>
+    </div>
+
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — 1–3 months</div>
+      <p><strong>Egress allowlisting / anomaly detection on CI runners.</strong> Deploy build-time network monitoring on CI runners (self-hosted egress firewalling, or a runtime-security tool that flags first-seen destinations during a build step, as demonstrated by StepSecurity's own Harden-Runner reproduction of this exact incident) so an unexpected build-time connection is blocked or flagged automatically rather than relying solely on post-hoc hunting. <em>Mapped to M1037; ⚠ best-practice, no formal CIS benchmark for CI-runner egress control.</em> <strong>Verify:</strong> a synthetic connection attempt to a non-allowlisted IP from a CI build step is blocked and generates an alert.</p>
+      <p><strong>Internal registry proxy with a cooldown window.</strong> Route <code>cargo</code> through an internal registry proxy/mirror that only admits crate versions older than N days (e.g. 3–7), turning any single-digit-minute exposure window like this one into a non-event for the organization. <em>Authority: NIST SP 800-218 PO.5.1 — separate and protect environments; ⚠ best-practice, no formal CIS line item.</em> <strong>Verify:</strong> a crate version published within the cooldown window is rejected by the internal proxy when requested from a build host.</p>
+      <p><strong>Linux/macOS build-host persistence baselining.</strong> Establish a known-good baseline of systemd user services and LaunchAgents on developer workstations and self-hosted Linux/macOS CI runners, and alert on drift (new units/agents outside the baseline) given the current Falcon telemetry gap for these events (Section 5). <em>Mapped to M1024, M1038, M1040 (auditing/restricting autostart mechanisms); CIS Distribution Benchmarks (systemd hardening sections); CIS Apple macOS Benchmark / mSCP (LaunchAgent/LaunchDaemon controls).</em> <strong>Verify:</strong> a manually created test systemd user service or LaunchAgent outside the baseline triggers the drift alert within one scan interval.</p>
+      <p><strong>Browser credential-store isolation on build/dev hosts.</strong> Where developer workstations also run build processes, evaluate OS-level app-bound encryption for browser credential stores (e.g. Chrome's App-Bound Encryption on Windows) to raise the cost of the enumeration behavior Wiz documented, even though this backdoor did not decrypt the material directly. <em>Mapped to M1041 (Encrypt Sensitive Information); vendor (Google Chrome enterprise) documentation — ⚠ best-practice, no formal CIS line item specific to this control.</em> <strong>Verify:</strong> confirm App-Bound Encryption (or platform equivalent) is enabled via the browser's enterprise policy readout.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+
+    <h3>Playbook 1 — Pin clean crate versions and purge poisoned caches (all platforms)</h3>
+    <pre class="code">Prerequisites: repo write access; ability to trigger a clean CI rebuild; the Section 7 cache-sweep script available on all developer/CI hosts.
+Reboot required: No.
+Rollback: Remove the explicit "=" version pins once the Rust Security Response Team's un-yanked, clean versions are confirmed safe to track normally again (they already are as of the official advisory) -- rollback is simply reverting the Cargo.toml diff.
+
+1. In Cargo.toml, pin: arrayref = "=0.3.9", internment = "=0.8.6", append-only-vec = "=0.1.8" (only where these crates are actually used).
+2. Run: cargo update -p arrayref --precise 0.3.9 (repeat for internment/append-only-vec) to force Cargo.lock to the clean, resolved versions.
+3. Run the Section 7 cache-sweep `find` command on every developer machine and CI cache; delete any matching .crate file.
+4. Purge CI cache entries (e.g. actions/cache keys) that could hold a warm poisoned cache.
+5. Trigger a clean CI rebuild from the purged state; confirm the build succeeds and Cargo.lock shows only the pinned clean versions.
+6. Re-run the lockfile grep sweep across all repos; zero hits is the exit criterion.</pre>
+
+    <h3>Playbook 2 — Egress block on the reported C2 infrastructure (network/firewall)</h3>
+    <pre class="code">Prerequisites: firewall/proxy admin access covering the network segment(s) developer and CI build hosts sit on.
+Reboot required: No.
+Rollback: Remove the three /32 block rules and the /23 monitor rule; no endpoint state is changed by this control.
+
+1. Add outbound deny rules (all ports) for 23.254.165.112, 23.254.167.107, 23.254.167.216.
+2. Add an outbound alert-only rule (not a hard block, to avoid collateral impact on unrelated Hostwinds-hosted services) for 23.254.164.0/23.
+3. Add a DNS-layer block/sinkhole for hwsrv-798836.hostwindsdns.com at your resolver.
+4. Validate: attempt a test connection from an isolated lab host to 23.254.165.112:9089 -- confirm it fails closed.
+5. Confirm no legitimate business traffic traversed the /23 in the alert-only rule's logs before considering a hard block on the full range.</pre>
+
+    <h3>Playbook 3 — cargo-vet / cargo-audit CI gate (near-term hardening)</h3>
+    <pre class="code">Prerequisites: CI pipeline write access; Rust toolchain available in the CI image; `cargo install cargo-vet cargo-audit` run once to seed the tooling.
+Reboot required: No.
+Rollback: Remove the added CI step(s); no change to the codebase itself beyond the checked-in vet/audit config, which can be deleted.
+
+1. Run `cargo vet init` in the repo root to generate the initial audits.toml / imports.lock.
+2. Add a CI step: `cargo audit` -- fails the build on any known-vulnerable or yanked dependency.
+3. Add a CI step: `cargo vet check` -- fails the build on any unvetted new dependency, including build-dependencies.
+4. Require `cargo build --locked` (not bare `cargo build`) in every CI job so a fresh resolve can never silently pull an unvetted version.
+5. Add branch protection requiring the vet/audit CI checks to pass before merge.
+6. Validate: open a test PR adding a throwaway unvetted crate as a build-dependency; confirm the CI gate fails it.</pre>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence to Preserve</th></tr>
+      <tr><td>Isolate</td><td>Network-contain any host with a positive hit on Q2, Q3, Q4, Q5, Q6, or Q8. Treat the host as compromised, not just its dependency as outdated -- the payload runs with the building user's full privileges.</td><td>IR / SOC on-call</td><td>Falcon process tree and network-connection events for the affected time range; memory/disk image if policy requires</td></tr>
+      <tr><td>Eradicate</td><td>Remove persistence artifacts (Section 7 audit commands): Registry Run key entries, LaunchAgents, systemd user services referencing the dropper naming pattern; delete /tmp/rust-setup, rust-setup.ps1, rust-setup-launch.vbs, and the AzureKits/ServiceKit directories where present. Purge the cargo cache (Playbook 1). Reimage if organizational policy requires for any host with confirmed stage-2 execution.</td><td>IR / Endpoint Engineering</td><td>Before/after listing of persistence locations; hashes of any recovered payload binaries for future signature development</td></tr>
+      <tr><td>Recover</td><td>Rotate every credential reachable from the affected host or CI job: SSH keys, cloud tokens, crates.io/package-registry tokens, signing keys, CI secrets. Rebuild and re-sign any artifact produced during the exposure window from clean infrastructure. Restore the host from a known-clean image where feasible.</td><td>IR + Identity/Secrets owners</td><td>Credential-rotation log; list of artifacts rebuilt and their new signatures/hashes</td></tr>
+      <tr><td>Post-incident</td><td>Confirm all four validation gates (Section 11) are green on the rebuilt/patched fleet. Deploy the Near-term and Strategic hardening tiers (Section 12). File the incident against the CI/CD pipelines and repos identified in the Section 7 build-log audit.</td><td>Security Engineering</td><td>Closure report referencing this pack's version (v0.1, 2026-08-21) and the specific hosts/pipelines remediated</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr>
+      <tr><td>T1195.002</td><td>Poisoned crate resolved into a lockfile / build cache</td><td>&mdash; (native hunt only)</td><td>&mdash;</td><td><span class="badge b-med">Partial</span></td></tr>
+      <tr><td>T1195.002</td><td>Build-time detonation — cargo/rustc spawns unexpected child</td><td>Q1, Q2, Q3</td><td>Dropper Artifact IOAs (Q2, Q3)</td><td><span class="badge b-low">Good</span></td></tr>
+      <tr><td>T1027</td><td>Base64-obfuscated C2 URL reassembly inside build.rs</td><td>&mdash; (source-code-level, not endpoint-visible)</td><td>&mdash;</td><td><span class="badge b-high">GAP</span></td></tr>
+      <tr><td>T1071.001 / T1573</td><td>Build-time and stage-2 C2 beaconing</td><td>Q4, Q5, Q8</td><td>C2 Connection IOA, C2 Hostname IOA (Q4, Q8)</td><td><span class="badge b-low">Good</span></td></tr>
+      <tr><td>T1543.002 (Linux)</td><td>systemd user-service persistence</td><td>Q6 (binary execution proxy only)</td><td>Unix Persistence Execution IOA (Q6)</td><td><span class="badge b-med">Partial</span></td></tr>
+      <tr><td>T1543.001 (macOS)</td><td>LaunchAgent persistence</td><td>&mdash; (native hunt only, Section 7)</td><td>&mdash;</td><td><span class="badge b-high">GAP</span></td></tr>
+      <tr><td>T1547.001 (Windows)</td><td>Registry Run key persistence</td><td>Q7</td><td>&mdash; (Investigate-only pending tuning)</td><td><span class="badge b-med">Partial</span></td></tr>
+      <tr><td>T1555.003</td><td>Browser saved-login enumeration</td><td>&mdash; (no native Falcon telemetry identified)</td><td>&mdash;</td><td><span class="badge b-high">GAP</span></td></tr>
+      <tr><td>T1568.002</td><td>DGA fallback if primary C2 unreachable</td><td>&mdash; (no registered DGA domains observed at time of writing; nothing to hunt yet)</td><td>&mdash;</td><td><span class="badge b-high">GAP</span></td></tr>
+    </table>
+    <p>Three gaps are structural, not a query-writing shortfall: T1027 (source-level obfuscation) and T1568.002 (unregistered DGA domains) have no endpoint telemetry to hunt against by definition. T1555.003 (browser store enumeration) and the macOS/Linux persistence-creation events are genuine Falcon data-model gaps documented in Section 5 — covered today only by the native, non-CQL checks in Section 7. All four validation gates in Section 11 apply to every query above before any is promoted from Investigate to alerting.</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code">TITLE:      Rust crates.io Supply-Chain Attack -- arrayref / internment / append-only-vec (proc-macro1 build-time dropper)
+SEVERITY:   Critical -- build-time RCE, nation-state infrastructure overlap (attributed, not confirmed), 245M+ download blast radius
+SCOPE:      Any host or CI runner that ran `cargo build`/`cargo update` and resolved arrayref 0.3.10, internment 0.8.7,
+            append-only-vec 0.1.9, or any version of proc-macro1/proc-macro-en between 07:11-09:25 UTC on 2026-08-20.
+HYPOTHESIS: Attacker compromised/impersonated crates.io maintainer accounts to inject a typosquat build-time dependency
+            (proc-macro1, impersonating proc-macro2) whose build.rs drops and executes a cross-platform backdoor at
+            `cargo build` time, before any application code runs. Delivery was forced via a yank-burst on all other
+            clean versions immediately after publishing the poisoned release.
+QUERIES:    Q1-Q8 (Section 8) -- process lineage, dropper-artifact execution, C2 egress (exact IP + range + DNS),
+            Unix persistence execution, Windows Run-key pattern. IOA candidates: Q2, Q3, Q4, Q6, Q8.
+DO FIRST:   1) Run the Section 7 cache/lockfile sweep on every dev machine and CI cache -- deletion from crates.io
+               does NOT clean local caches and produces no `cargo audit` finding.
+            2) Run Q4 (exact C2 IP) and Q8 (C2 hostname) fleet-wide -- highest confidence, lowest cost.
+            3) Pin clean versions (arrayref=0.3.9, internment=0.8.6, append-only-vec=0.1.8) per Playbook 1.
+FINDINGS:   [Populate at hunt execution time -- no environment-specific findings in this template release.]
+GAPS:       No native Falcon event for macOS LaunchAgent creation, Linux systemd-unit creation, or browser
+            saved-login-store file access (Section 5, Section 15). Ephemeral cloud CI runners typically carry no
+            Falcon sensor. Stage-2 binaries were not recoverable from public sources -- persistence behavior beyond
+            the Linux report is not independently verified.
+ACTIONS:    Contain and reimage any host with a positive Q2/Q3/Q4/Q5/Q6/Q8 hit (Section 14). Rotate all credentials
+            reachable from any affected build host or CI job, including CI secrets and signing keys.
+OWNER:      HuntPack
+VERSION:    v0.1 -- 2026-08-21</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-21</span><span>Initial gold-standard release. Built from 7 corroborating sources (1 official Rust Security Response Team advisory, 2 primary vendor technical write-ups, 2 secondary vendor analyses, 2 news aggregators); all 7 saved verbatim and none dropped for untrusted content. 8 CQL hunt queries covering build-time detonation, C2 egress, and persistence; 5 promoted to Custom IOA candidates. Documented 4 structural detection gaps (T1027, T1568.002, T1555.003, macOS/Linux persistence-creation telemetry).</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+      <tr><td>1</td><td><a href="https://blog.rust-lang.org/2026/08/20/supply-chain-attack-on-arrayref/" target="_blank" rel="noopener">Rust Security Response Team — official advisory</a></td><td>Authoritative timeline, deleted-crate list, account-lock decision, discovery credit</td><td>2026-08-21</td></tr>
+      <tr><td>1</td><td><a href="https://www.stepsecurity.io/blog/arrayref-rust-crate-supply-chain-attack" target="_blank" rel="noopener">StepSecurity — technical write-up</a></td><td>Full timeline, IOC set, static build.rs analysis, live Harden-Runner reproduction</td><td>2026-08-21</td></tr>
+      <tr><td>1</td><td><a href="https://www.wiz.io/blog/rust-supply-chain-attack-on-arrayref-significant-overlap-with-dprk-campaigns" target="_blank" rel="noopener">Wiz Research</a></td><td>Backdoor capability analysis, IOC/hash table, DPRK/Sapphire Sleet infrastructure-overlap analysis</td><td>2026-08-21</td></tr>
+      <tr><td>2</td><td><a href="https://safedep.io/arrayref-proc-macro1-rust-build-time-malware/" target="_blank" rel="noopener">SafeDep</a></td><td>Corroboration of build-time mechanism and deception detail</td><td>2026-08-21</td></tr>
+      <tr><td>2</td><td><a href="https://semgrep.dev/blog/2026/rust-crates-arrayref-append-only-vec-compromised-proc-macro1/" target="_blank" rel="noopener">Semgrep</a></td><td>Corroboration of package list and yank-lure mechanism</td><td>2026-08-21</td></tr>
+      <tr><td>3</td><td><a href="https://thehackernews.com/2026/08/rust-supply-chain-attack-puts-build.html" target="_blank" rel="noopener">The Hacker News</a></td><td>Context, scale confirmation</td><td>2026-08-21</td></tr>
+      <tr><td>3</td><td><a href="https://www.bleepingcomputer.com/news/security/hackers-poison-arrayref-rust-crate-to-push-infostealer-malware/" target="_blank" rel="noopener">BleepingComputer</a></td><td>Context, affected-project list</td><td>2026-08-21</td></tr>
+    </table>
+    <p>Verbatim source snapshots saved to <code>Arrayref-RustCrate-SupplyChain-Hunt-sources/</code> for provenance verification of every atomic IOC in Section 10.</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
