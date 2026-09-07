@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+<title>CastleRAT — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale CQL hunts, response, and hardening for CastleRAT.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/CastleRAT-Multi-Stage-RAT-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CastleRAT — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale CQL hunts, response, and hardening for CastleRAT.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/CastleRAT-Multi-Stage-RAT-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #7aa2f7;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(122,162,247,0.14);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #111a2d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" type="button" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents" aria-controls="sidebar">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">CastleRAT Multi-Stage RAT</div>
+    <div class="version">v0.1 · 2026-09-07</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 &middot; Native Hunts</a>
+    <a href="#s7">7 &middot; CQL Queries</a>
+    <a href="#s8">8 &middot; Operationalization</a>
+    <a href="#s9">9 &middot; IOC Appendix</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 &middot; Hardening</a>
+    <a href="#s11">11 &middot; Containment</a>
+    <div class="nav-section">Validation &amp; Meta</div>
+    <a href="#s12">12 &middot; Coverage &amp; Validation</a>
+    <a href="#s13">13 &middot; Hunt Ticket</a>
+    <a href="#s14">14 &middot; Changelog</a>
+    <a href="#s15">15 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>CastleRAT Multi-Stage Remote Access Trojan</h1>
+  <div class="subtitle">ClickFix and CastleLoader delivery · Deno/Python runtime abuse · Pythonw dead-drop resolution</div>
+  <div class="meta-grid"><div class="meta-item"><div class="mk"><span class="badge b-purple">Threat</span></div><div class="mv">CastleRAT</div></div><div class="meta-item"><div class="mk"><span class="badge b-purple">Type</span></div><div class="mv">Python and native C remote access trojan</div></div><div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">High</span></div></div><div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 Draft · 2026-09-07</div></div><div class="meta-item"><div class="mk">Author</div><div class="mv">cybersecurity analyst</div></div><div class="meta-item"><div class="mk">Confidence</div><div class="mv">High core-behavior confidence; tenant unverified</div></div></div>
+</div>
+
+<div class="state"><span class="state-dot"></span><strong>STATIC REVIEW PASSED</strong></div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body"><p><span class="badge b-info"><strong>What current reporting adds:</strong></span> Red Canary&#x27;s August 2026 Intelligence Insights placed CastleRAT in its threat rankings and described both compiled Python and native C builds, dead-drop resolution through Pythonw, and bring-your-own-runtime execution. Blackpoint independently reported more than 60 CastleLoader/CastleRAT-related incidents between May and early July, with finger.exe retrieval and caret-obfuscated commands recurring across the chain. Earlier ThreatDown, Splunk, and Recorded Future research supplies the technical depth needed to turn that prevalence signal into a defensible behavior-led hunt.</p><p><span class="badge b-purple"><strong>How the chain works:</strong></span> Observed delivery begins with compromised-site ClickFix prompts or CastleLoader. One chain executes an MSI, provisions the Deno JavaScript runtime, stages an obfuscated Python environment protected with PyArmor, and extracts content from an image before loading the RAT in memory. Other builds use Pythonw for dead-drop resolution against an actor-controlled destination or a public Steam Community page. CastleRAT exists as Python and C variants and supports system discovery, keylogging, screen capture, remote shell access, file operations, and command execution.</p><p><span class="badge b-med"><strong>Why detection belongs in runtime and lineage evidence:</strong></span> Infrastructure rotates and public services can be abused by unrelated users, so the durable signals are the transition points: finger.exe retrieval with command obfuscation, an unexpected Deno runtime launched from a user-writable path, Python or Pythonw executing from a staged environment, and Pythonw-attributed DNS to Steam Community. Q01 and Q02 are the strongest keepers; Q03-Q05 need the same host, parent, path, and owner context before they mean CastleRAT.</p><p><span class="badge b-high"><strong>Operational limit:</strong></span> Endpoint command lines cannot prove in-memory injection, RC4 protocol semantics, screen capture, keylogging, or a remote-shell command. Those require memory acquisition, packet or proxy content, and event-specific follow-up. No fresh atomic IOC set was independently corroborated across the accessible current sources, so this pack deliberately ships none. All CQL remains static-reviewed only: no Falcon tenant parse, benign baseline, positive fixture, scheduled search, IOA, prevention action, or deployment is claimed.</p><div class="callout callout-danger"><strong>Defender priority:</strong> Run Q01 for finger.exe retrieval and Q02 for unexpected Deno execution over 30 days, then correlate Q03-Q05 on the same host before containment. Preserve the process tree, staged runtime, image, MSI, DNS, and memory evidence; do not contact suspected dead-drop or C2 destinations.</div><table><thead><tr><th>Priority</th><th>Why now</th><th>Coverage delivered</th><th>Key limitation</th></tr></thead><tbody><tr><td>Find durable behavior and preserve evidence</td><td>Current and independently corroborated 2026 reporting</td><td>5 CQL designs plus native pivots</td><td>Static-only; tenant, content, and native-log semantics remain unverified</td></tr></tbody></table></div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source and Claim Review</h2></div>
+  <div class="section-body"><p>Current-run sanitized plain-text snapshots were hashed before assembly. Every source was treated as untrusted data; no embedded instruction, command, exploit code, payload, or destination was executed.</p><table><thead><tr><th>ID</th><th>Publisher</th><th>Tier</th><th>Independence</th><th>Accessed</th><th>Status</th></tr></thead><tbody><tr><td><a href="https://redcanary.com/blog/threat-intelligence/intelligence-insights-august-2026/" rel="noopener noreferrer">S01</a></td><td>Red Canary</td><td>T1</td><td>red-canary</td><td>2026-09-07T11:06:52Z</td><td>successful sanitized current detection-report extraction</td></tr><tr><td><a href="https://blackpointcyber.com/blog/blackpoint-soc-threat-pulse-week-of-july-6-2026/" rel="noopener noreferrer">S02</a></td><td>Blackpoint Cyber</td><td>T1</td><td>blackpoint</td><td>2026-09-07T11:06:52Z</td><td>successful sanitized first-hand SOC extraction</td></tr><tr><td><a href="https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/" rel="noopener noreferrer">S03</a></td><td>ThreatDown</td><td>T1</td><td>threatdown</td><td>2026-09-07T11:06:52Z</td><td>successful sanitized technical-research extraction</td></tr><tr><td><a href="https://www.splunk.com/en_us/blog/security/castlerat-malware-detection-splunk-mitre-attck.html" rel="noopener noreferrer">S04</a></td><td>Splunk Threat Research Team</td><td>T1</td><td>splunk</td><td>2026-09-07T11:06:52Z</td><td>successful sanitized malware-analysis extraction</td></tr><tr><td><a href="https://assets.recordedfuture.com/insikt-report-pdfs/2026/cta-2026-0319.pdf" rel="noopener noreferrer">S05</a></td><td>Recorded Future Insikt Group</td><td>T1</td><td>recorded-future</td><td>2026-09-07T11:06:52Z</td><td>successful sanitized annual-report extraction</td></tr><tr><td><a href="https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/wdac" rel="noopener noreferrer">S06</a></td><td>Microsoft Learn</td><td>T1</td><td>microsoft</td><td>2026-09-07T11:06:52Z</td><td>successful sanitized authoritative control extraction</td></tr></tbody></table><table><thead><tr><th>Claim</th><th>Statement</th><th>Sources</th><th>Confidence</th></tr></thead><tbody><tr><td>C01</td><td>Red Canary observed CastleRAT in 2026 as Python and C builds using dead-drop resolution and bring-your-own-runtime execution.</td><td>S01</td><td><span class="badge b-low">high</span></td></tr><tr><td>C02</td><td>Blackpoint linked more than 60 May-July incidents to a CastleLoader/CastleRAT ClickFix chain.</td><td>S02</td><td><span class="badge b-low">high</span></td></tr><tr><td>C03</td><td>Blackpoint repeatedly observed finger.exe retrieval and caret-obfuscated commands in the initial chain.</td><td>S02</td><td><span class="badge b-low">high</span></td></tr><tr><td>C04</td><td>ThreatDown documented a chain that used MSI delivery, Deno, PyArmor-protected Python, image-carried content, and in-memory CastleRAT loading.</td><td>S03</td><td><span class="badge b-low">high</span></td></tr><tr><td>C05</td><td>CastleRAT can use Pythonw for dead-drop resolution through actor infrastructure or Steam Community.</td><td>S01</td><td><span class="badge b-low">high</span></td></tr><tr><td>C06</td><td>Splunk analyzed Python and native C variants that collect host identity and communicate with RC4-protected C2.</td><td>S04</td><td><span class="badge b-low">high</span></td></tr><tr><td>C07</td><td>Reported capabilities include keylogging, screen capture, remote shell, file handling, and command execution.</td><td>S01, S04</td><td><span class="badge b-low">high</span></td></tr><tr><td>C08</td><td>Recorded Future clustered CastleRAT infrastructure by RC4 keys and linked it operationally with CastleLoader while avoiding overclaiming a single controller.</td><td>S05</td><td><span class="badge b-low">high</span></td></tr><tr><td>C09</td><td>Public-service dead drops and rotating infrastructure are insufficient alone for attribution or blocking.</td><td>S01, S05</td><td><span class="badge b-low">high</span></td></tr><tr><td>C10</td><td>The defensible portable hunt focuses on runtime acquisition, execution lineage, user-writable staging, and process-attributed DNS rather than content inspection.</td><td>S01, S02, S03, S04</td><td><span class="badge b-low">high</span></td></tr></tbody></table><div class="callout callout-warn"><strong>Contradictions and gaps:</strong> infrastructure and public services are volatile; native log schemas and Falcon result semantics are tenant-specific; a hit does not prove every described capability or attribution.</div></div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief and Attack Chain</h2></div>
+  <div class="section-body"><p>The scaffold separates queryable endpoint behaviors from application, content, memory, and forensics gaps. Each hypothesis retains evidence and a safe validation plan.</p><table><thead><tr><th>Step</th><th>Claims</th><th>Behavior</th><th>Platform</th><th>Goal</th></tr></thead><tbody><tr><td>1</td><td>C02,C03</td><td>a user follows a ClickFix lure and launches a retrieval command</td><td>Windows</td><td>Find finger.exe retrieval and command obfuscation</td></tr><tr><td>2</td><td>C04</td><td>an MSI or loader provisions a Deno runtime</td><td>Windows</td><td>Find Deno execution from user-writable staging</td></tr><tr><td>3</td><td>C04</td><td>a staged Python/PyArmor environment processes image-carried content</td><td>Windows</td><td>Find unusual Python lineage and image/script arguments</td></tr><tr><td>4</td><td>C01,C05</td><td>Pythonw resolves a dead drop or current C2 location</td><td>Windows</td><td>Correlate process-attributed DNS with the staged host</td></tr><tr><td>5</td><td>C06,C07</td><td>CastleRAT collects host data and provides operator capabilities</td><td>Windows</td><td>Acquire memory and reconstruct process/network behavior</td></tr><tr><td>6</td><td>C08,C09</td><td>infrastructure and payload variants rotate</td><td>Windows</td><td>Prefer behavior, owner context, and same-host correlation</td></tr></tbody></table><table><thead><tr><th>ID</th><th>Behavior</th><th>Telemetry</th><th>Use</th><th>Lookback</th><th>Validation</th></tr></thead><tbody><tr><td>H01</td><td>finger.exe performs retrieval from an obfuscated ClickFix command</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Run finger.exe only against an analyst-controlled inert lab service and baseline any legitimate legacy finger use.</td></tr><tr><td>H02</td><td>Deno executes from a user-writable path after a shell, MSI, or script parent</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Use a signed Deno fixture in a lab user path and baseline approved developer hosts and runtime managers.</td></tr><tr><td>H03</td><td>Python or Pythonw executes from a staged user path with image, packed-script, or loader arguments</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Exercise an inert local script and image path; inventory PyArmor and packaged-Python owners before interpreting hits.</td></tr><tr><td>H04</td><td>Pythonw-attributed DNS reaches Steam Community or a rare newly observed domain</td><td>DnsRequest / SuspiciousDnsRequest</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Confirm process attribution and compare against approved automation; never block Steam Community based on this signal alone.</td></tr><tr><td>H05</td><td>Deno or Python runtime binaries are written into a user-writable staging path</td><td>NewExecutableWritten / PeFileWritten</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Use an approved harmless runtime copy on a test host and baseline developer tooling caches and software deployment.</td></tr><tr><td>H06</td><td>CastleRAT keylogging, screen capture, RC4 C2, or remote-shell commands occur</td><td>memory, packet/proxy content, and host artifacts</td><td><span class="badge b-info">gap</span></td><td>30d</td><td>Acquire memory and approved network content from a corroborated host; portable Falcon fields cannot prove these content-level actions.</td></tr></tbody></table><h4>Affected surface and telemetry</h4><p>Windows Falcon process, file, DNS, and IPv4 network telemetry plus browser/proxy and host-acquisition pivots. Proxy, IPv6, resolver attribution, wrapper depth, memory, packet content, and product-native schema remain repository- and tenant-dependent.</p></div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body"><p><strong>No eligible atomic IOCs were independently corroborated across the accessible primary technical sources as of 2026-09-07.</strong> Public services, technique strings, product names, and MITRE identifiers are not atomic indicators and are not promoted into an IOC list.</p></div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body"><p>Every technique row is an analyst inference from source-backed behavior, not an unsupported actor attribution.</p><table><thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Behavior</th><th>Basis</th><th>Sources</th></tr></thead><tbody><tr><td>Execution</td><td>T1204.004</td><td>Malicious Copy and Paste</td><td>ClickFix delivery</td><td><span class="badge b-med">analyst inference</span></td><td>S02,S03</td></tr><tr><td>Command and Control</td><td>T1105</td><td>Ingress Tool Transfer</td><td>finger.exe and runtime acquisition</td><td><span class="badge b-med">analyst inference</span></td><td>S02,S03</td></tr><tr><td>Execution</td><td>T1059.007</td><td>JavaScript/JScript</td><td>Deno JavaScript runtime stage</td><td><span class="badge b-med">analyst inference</span></td><td>S03</td></tr><tr><td>Execution</td><td>T1059.006</td><td>Python</td><td>staged Python/PyArmor execution</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S03,S04</td></tr><tr><td>Command and Control</td><td>T1102.003</td><td>One-Way Communication</td><td>public-service dead-drop resolution</td><td><span class="badge b-med">analyst inference</span></td><td>S01</td></tr><tr><td>Discovery</td><td>T1082</td><td>System Information Discovery</td><td>host identity collection</td><td><span class="badge b-med">analyst inference</span></td><td>S04</td></tr><tr><td>Collection</td><td>T1056.001</td><td>Keylogging</td><td>reported CastleRAT capability</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S04</td></tr><tr><td>Collection</td><td>T1113</td><td>Screen Capture</td><td>reported CastleRAT capability</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S04</td></tr></tbody></table></div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native / Non-CQL Hunts</h2></div>
+  <div class="section-body"><table><thead><tr><th>Hunt</th><th>Log source</th><th>Logic</th><th>Response</th></tr></thead><tbody><tr><td>ClickFix browser and clipboard reconstruction</td><td>browser history, proxy, clipboard policy, and user interview</td><td>Reconstruct the compromised-site visit and pasted command without replaying it; preserve the original page evidence and timestamps.</td><td>Scope the delivery window and train from the exact lure only after evidence capture.</td></tr><tr><td>Runtime and memory acquisition</td><td>EDR process tree plus approved memory capture</td><td>Preserve Deno/Python/Pythonw binaries, MSI, image, scripts, hashes, parent lineage, loaded modules, and volatile memory before removal.</td><td>Escalate when the runtime is unowned or memory confirms an injected payload.</td></tr><tr><td>RC4/C2 content review</td><td>proxy, packet capture, DNS, and firewall logs</td><td>On a corroborated host, inspect repeated destination changes and application-layer behavior; do not contact or replay suspected C2.</td><td>Block only reviewed dedicated infrastructure and keep public services in detect-only context.</td></tr></tbody></table></div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives &ldquo;Open in Falcon&rdquo;):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <div class="callout callout-info"><strong>Query strategy:</strong> Q01 and Q02 are the strongest keepers. Broader process, file, DNS, and network searches require owner and same-host correlation. Every card remains STATIC-ONLY.</div>
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q01 · finger.exe retrieval with ClickFix-style command obfuscation</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q01-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q01-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> finger.exe invoked with retrieval-shaped arguments, especially from cmd.exe, PowerShell, or the Run-dialog lineage and with caret-heavy command text. <strong>Accomplishes:</strong> targets Blackpoint&#x27;s repeated initial mechanism before CastleLoader or CastleRAT changes payloads.</p><p class="muted">Trace: <a href="#s3">H01</a> · <a href="#s8">A01</a></p><pre class="cql" id="q01-cql" data-lookback="30d"><span class="cm">// HUNT: finger.exe retrieval with ClickFix-style command obfuscation</span>
+<span class="cm">// HYPOTHESIS: H01</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1204.004, T1105</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; FileName, CommandLine, ParentBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: legacy finger diagnostics, network administrators, security labs, and compatibility tests</span>
+<span class="cm">// TUNING: inventory legitimate finger owners and exclude by managed host plus approved parent/path, never by filename alone</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName = /^finger\.exe$/i
+| CommandLine = /(?:@|\/user:|\^.{0,12}\^|\s-[a-z])/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q02 · Deno runtime execution from a user-writable staging path</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q02-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q02-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> deno.exe running from Users, ProgramData, Temp, AppData, or Public and launched by a shell, MSI, or script host. <strong>Accomplishes:</strong> catches the bring-your-own-runtime transition used in the documented in-memory CastleRAT chain.</p><p class="muted">Trace: <a href="#s3">H02</a> · <a href="#s8">A02</a></p><pre class="cql" id="q02-cql" data-lookback="30d"><span class="cm">// HUNT: Deno runtime execution from a user-writable staging path</span>
+<span class="cm">// HYPOTHESIS: H02</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1059.007</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; ImageFileName, CommandLine, ParentBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: developers, CI workers, runtime managers, and approved Deno applications</span>
+<span class="cm">// TUNING: exclude only approved signer/path/host combinations after owner review</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName = /^deno\.exe$/i
+| ImageFileName = /\\(Users|ProgramData|Temp|AppData|Public)\\/i
+| ParentBaseFileName = /^(cmd|powershell|pwsh|msiexec|wscript|cscript)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q03 · Staged Python or Pythonw execution with packed-script or image arguments</span><div class="qc-badges"><span class="badge b-info">CONF medium</span><span class="badge b-med">FP high</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q03-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q03-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> Python or Pythonw running from a user-writable path with PyArmor, image, JavaScript, or loader-oriented arguments. <strong>Accomplishes:</strong> exposes the staged interpreter boundary while keeping packaged applications and research tooling as explicit lookalikes.</p><p class="muted">Trace: <a href="#s3">H03</a> · <a href="#s8">hunt-only</a></p><pre class="cql" id="q03-cql" data-lookback="30d"><span class="cm">// HUNT: Staged Python or Pythonw execution with packed-script or image arguments</span>
+<span class="cm">// HYPOTHESIS: H03</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1059.006</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; ImageFileName, CommandLine, ParentBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: packaged Python applications, PyArmor users, data-science notebooks, and image-processing automation</span>
+<span class="cm">// TUNING: scope to Q01/Q02 hosts or exclude owner-approved signed runtime paths and projects</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName = /^(python|pythonw)(\.exe)?$/i
+| ImageFileName = /\\(Users|ProgramData|Temp|AppData|Public)\\/i
+| CommandLine = /(?:pyarmor|\.jpe?g\b|\.png\b|\.js\b|loader|runtime)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q04 · Pythonw-attributed dead-drop DNS to Steam Community</span><div class="qc-badges"><span class="badge b-info">CONF medium</span><span class="badge b-med">FP high</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q04-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q04-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> DNS requests to Steam Community carrying Python or Pythonw process context. <strong>Accomplishes:</strong> creates a narrow public-service dead-drop pivot that is meaningful only with unowned runtime and same-host delivery evidence.</p><p class="muted">Trace: <a href="#s3">H04</a> · <a href="#s8">hunt-only</a></p><pre class="cql" id="q04-cql" data-lookback="30d"><span class="cm">// HUNT: Pythonw-attributed dead-drop DNS to Steam Community</span>
+<span class="cm">// HYPOTHESIS: H04</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1102.003</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: DnsRequest or SuspiciousDnsRequest; DomainName, ContextBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: game clients, automation, scraping, monitoring, and security research</span>
+<span class="cm">// TUNING: never block the parent service; require Q01-Q03 or an unowned Pythonw path on the same host</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(DnsRequest|SuspiciousDnsRequest)$/
+| DomainName = /(^|\.)steamcommunity\.com$/i
+| ContextBaseFileName = /^(python|pythonw)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, ContextProcessId_decimal, DomainName, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q05 · Deno or Python runtime written into a user-writable staging path</span><div class="qc-badges"><span class="badge b-info">CONF medium</span><span class="badge b-med">FP high</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q05-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q05-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> executable writes named deno.exe, python.exe, or pythonw.exe beneath Users, ProgramData, Temp, AppData, or Public. <strong>Accomplishes:</strong> finds bring-your-own-runtime staging before execution while retaining writer and hash context for same-host correlation.</p><p class="muted">Trace: <a href="#s3">H05</a> · <a href="#s8">hunt-only</a></p><pre class="cql" id="q05-cql" data-lookback="30d"><span class="cm">// HUNT: Deno or Python runtime written into a user-writable staging path</span>
+<span class="cm">// HYPOTHESIS: H05</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1105</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: NewExecutableWritten or PeFileWritten; TargetFileName, ContextBaseFileName, SHA256HashData, aid</span>
+<span class="cm">// FALSE POSITIVES: developer runtime installers, package managers, application bundles, and software deployment</span>
+<span class="cm">// TUNING: baseline approved runtime caches and prioritize Q01/Q02 lineage or unsigned one-off paths</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(NewExecutableWritten|PeFileWritten)$/
+| TargetFileName = /\\(Users|ProgramData|Temp|AppData|Public)\\[^\r\n]*(deno|pythonw?)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>Operationalization and IOA Candidates</h2></div>
+  <div class="section-body"><p>Every query has an explicit operational decision. Alert-candidate rows have complete design-only packages; no schedule, notification, IOA, or prevention rule was created.</p><table><thead><tr><th>Query</th><th>Use</th><th>Decision</th><th>Readiness</th><th>Rationale</th></tr></thead><tbody><tr><td>Q01</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q02</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q03</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q04</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q05</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr></tbody></table><div class="callout callout-warn"><strong>Readiness gate:</strong> every observed baseline is unknown and every positive/benign test is planned-not-run. No alert package is deployable.</div></div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body"><p><strong>No eligible atomic IOCs were independently corroborated as of 2026-09-07.</strong> The pack therefore ships behavior-led queries and no hash, IP, domain, or URL import block. Public service names and runtime strings remain hunt context only.</p><div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Dated IOC status</span><span class="igc">no importable values</span></div><button type="button" class="btn-copy" onclick="copyBlock('grab-ioc-status',this)">Copy status</button><pre class="code" id="grab-ioc-status">As of 2026-09-07, no eligible atomic IOCs were independently corroborated. This pack intentionally provides no hash, IP, domain, or URL import block.</pre></div></div></div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening &mdash; Tiered and Deployable</h2></div>
+  <div class="section-body"><div class="tier-blk tier-imm"><div class="tier-lbl">Immediate — expose and interrupt the active chain</div><ul><li><strong>Hunt finger.exe retrieval and unexpected staged runtimes</strong> (M1047; CTRL01) — run Q01-Q05 over 30 days and preserve every unowned runtime/process tree before changing the host <span class="badge b-info">deployable-design</span> <em>Verify:</em> confirm each hit has an owner, signer/path, parent, destination, and approved purpose <em>Rollback:</em> the hunt is read-only; remove only temporary analyst collection artifacts <em>Authority:</em> Blackpoint and ThreatDown reporting accessed 2026-09-07.</li><li><strong>Pilot malicious-copy-and-paste and script-child protections</strong> (M1040; CTRL02) — place applicable script/download protections in audit for a representative cohort before any block action <span class="badge b-info">deployable-design</span> <em>Verify:</em> approved workflows complete and inert test behavior produces the expected audit event <em>Rollback:</em> restore the exported rule action through the same management channel <em>Authority:</em> Microsoft Defender ASR guidance and Red Canary detection guidance.</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near-term — constrain repeat execution and egress</div><ul><li><strong>Constrain Deno, Pythonw, and packaged runtimes outside approved paths</strong> (M1038; CTRL03) — inventory runtime owners, create audit policy for unapproved signer/path combinations, and pilot before enforcement <span class="badge b-info">deployable-design</span> <em>Verify:</em> approved developer and automation workflows pass; an inert unapproved user-path runtime is audited <em>Rollback:</em> deploy the prepared rollback policy or return the cohort to audit <em>Authority:</em> Microsoft App Control for Business guidance accessed 2026-09-07.</li><li><strong>Restrict public dead-drop access with owner-aware egress policy</strong> (M1037; CTRL04) — monitor Pythonw and staged runtimes reaching public content services; block only dedicated reviewed destinations, not parent services <span class="badge b-info">deployable-design</span> <em>Verify:</em> a benign public-service test remains available while an unapproved dedicated fixture is denied or alerted <em>Rollback:</em> restore the previous scoped egress rule and retain detection <em>Authority:</em> Recorded Future and Red Canary reporting plus Microsoft network-control guidance.</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic — retire unowned trust paths</div><ul><li><strong>Remove legacy finger client where no business owner exists</strong> (M1042; CTRL05) — inventory finger.exe use, assign owners to exceptions, and remove or deny execution only where no supported dependency remains <span class="badge b-info">deployable-design</span> <em>Verify:</em> approved support cases pass and an unowned invocation is prevented or alerted <em>Rollback:</em> reinstall or re-allow only the reviewed signed binary for a time-bounded exception <em>Authority:</em> Blackpoint first-hand incident reporting and Microsoft feature governance.</li><li><strong>Centralize browser, endpoint, DNS, proxy, and software-control evidence</strong> (M1047; CTRL06) — retain process, file, DNS, proxy, browser, application-control, and user-report evidence in a separately administered repository <span class="badge b-info">deployable-design</span> <em>Verify:</em> a tabletop reconstruction links lure, command, runtime, DNS, and host actions across one test case <em>Rollback:</em> restore prior forwarding only after equivalent independent evidence exists <em>Authority:</em> Microsoft security logging and application-control guidance.</li></ul></div><h3>Deployable playbook · PB01 · guarded pilot and rollback</h3><ol><li>Export current application-control, ASR, egress, runtime inventory, and logging state</li><li>inventory approved finger, Deno, Pythonw, PyArmor, browser-automation, and MSI workflows</li><li>apply audit controls to a limited cohort</li><li>run inert local fixtures without contacting source infrastructure</li><li>verify expected telemetry and business health</li><li>expand only when exceptions are owned</li><li>rollback through exported policies if a stop condition fires</li><li>retain configuration, events, decisions, and recovery evidence</li></ol><div class="callout callout-warn"><strong>Design state:</strong> no control was canary-tested or deployed. Complete platform, continuity, sensitive-data, and approval checks first.</div></div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body"><table><thead><tr><th>Phase</th><th>Trigger</th><th>Authority</th><th>Owner</th><th>Evidence</th><th>Recovery</th></tr></thead><tbody><tr><td>1. Validate and preserve</td><td>Q01/Q02 or correlated Q03-Q05 hit</td><td>SOC lead</td><td>SOC analyst</td><td>raw events, process tree, MSI, runtime, image, scripts, hashes, DNS/network</td><td>none; preservation is read-only</td></tr><tr><td>2. Scope delivery</td><td>unapproved runtime chain corroborated</td><td>incident commander</td><td>endpoint and web/proxy responders</td><td>browser history, proxy, copied command, related hosts/users</td><td>document approved test or continue</td></tr><tr><td>3. Isolate affected endpoint</td><td>active RAT or operator behavior confirmed</td><td>incident commander plus business owner</td><td>endpoint operations</td><td>isolation time, exceptions, active sessions, business impact</td><td>temporary access only under continuity plan</td></tr><tr><td>4. Address accounts and destinations</td><td>keylogging/session theft or dedicated C2 evidence</td><td>incident commander plus identity/network owners</td><td>identity and network operations</td><td>revocations, blocks, destination evidence, owner approvals</td><td>restore access through clean reauthentication and reviewed rules</td></tr><tr><td>5. Eradicate, recover, re-hunt</td><td>scope stable and volatile evidence preserved</td><td>incident commander and system owner</td><td>endpoint engineering and SOC</td><td>rebuild/cleanup record, known-good hashes, fresh Q01-Q05 results</td><td>return after no unexplained hits and owner sign-off</td></tr></tbody></table><p><strong>Preservation order:</strong> raw results, application/proxy events, process tree, files and hashes, network/DNS, identity/session state, policy/configuration, analyst notes, and tool logs. <strong>Closure:</strong> known-good recovery, explained re-hunt results, and incident-commander plus system-owner approval.</p></div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage and Validation Evidence</h2></div>
+  <div class="section-body"><p><strong>Validation state:</strong> STATIC REVIEW PASSED only after the complete local gate suite succeeds. This is not Falcon parsing, canary success, schedule creation, or deployment evidence.</p><table><thead><tr><th>Technique</th><th>Coverage</th><th>Query or handoff</th><th>Evidence</th><th>Limitation</th></tr></thead><tbody><tr><td>T1204.004</td><td><span class="badge b-info">Static or gap</span></td><td>Q01</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1105</td><td><span class="badge b-info">Static or gap</span></td><td>Q01, Q05</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1059.007</td><td><span class="badge b-info">Static or gap</span></td><td>Q02</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1059.006</td><td><span class="badge b-info">Static or gap</span></td><td>Q03</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1102.003</td><td><span class="badge b-info">Static or gap</span></td><td>Q04</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1082</td><td><span class="badge b-info">Static or gap</span></td><td>native/memory handoff</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1056.001</td><td><span class="badge b-info">Static or gap</span></td><td>native/memory handoff</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr><tr><td>T1113</td><td><span class="badge b-info">Static or gap</span></td><td>native/memory handoff</td><td>local structure, field, syntax, provenance, and safety review</td><td>tenant parser, positive test, and benign baseline absent</td></tr></tbody></table><h3>Recorded evidence and next tests</h3><ul><li>Every CQL card retains <code>VALIDATION: STATIC-ONLY</code>; no Falcon tenant was contacted.</li><li>The offline tenant dry run checks extraction and profile readiness only.</li><li>Content, memory, product-native, IPv6, proxy, and wrapper-depth gaps remain visible.</li><li>Next: parse Q01 and Q02 in the intended repository over one hour, verify fields, then run approved inert positive and 30-day benign tests.</li></ul></div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body"><div class="ticket"><pre class="code" id="ticket-block">TITLE:        CastleRAT hunt — v0.1 Draft
+SEVERITY:     high — current evidence supports high-impact compromise and downstream control risk
+SCOPE:        Windows Falcon process, file, DNS, and IPv4 network telemetry plus browser/proxy and host-acquisition pivots
+HYPOTHESIS:   H01 alert-candidate — finger.exe performs retrieval from an obfuscated ClickFix command; H02 alert-candidate — Deno executes from a user-writable path after a shell, MSI, or script parent; H03 hunt — Python or Pythonw executes from a staged user path with image, packed-script, or loader arguments; H04 hunt — Pythonw-attributed DNS reaches Steam Community or a rare newly observed domain; H05 hunt — Deno or Python runtime binaries are written into a user-writable staging path; H06 gap — CastleRAT keylogging, screen capture, RC4 C2, or remote-shell commands occur
+QUERIES RUN:  Q01 alert-candidate; Q02 alert-candidate; Q03 hunt; Q04 hunt; Q05 hunt
+DO FIRST:     Q01 and Q02 over 30d
+FINDINGS:
+GAPS:         tenant parsing, native/content/memory evidence, positive and benign tests
+ACTIONS:      SOC validates Q01/Q02; platform and endpoint owners preserve and scope evidence
+OWNER:        Security Operations / Detection Engineering / Platform Owner
+VERSION:      v0.1 Draft · 2026-09-07 · STATIC REVIEW PASSED</pre><button type="button" class="btn-copy" onclick="copyBlock('ticket-block',this)">Copy ticket</button></div></div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body"><div class="chg-entry"><span class="chg-ver">v0.1 Draft</span><span class="chg-date">2026-09-07</span><span>Initial pack with 5 conservative CQL queries, 0 source-tagged atomic indicators, explicit gaps, design-only operationalization, reversible controls, and a five-phase containment runbook. Tenant execution is not claimed.</span></div></div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body"><table><thead><tr><th>ID</th><th>Publisher</th><th>Version/status</th><th>Accessed</th><th>Use</th><th>URL</th></tr></thead><tbody><tr><td>S01</td><td>Red Canary</td><td>successful sanitized current detection-report extraction</td><td>2026-09-07T11:06:52Z</td><td>C01, C05, C07, C09, C10</td><td><a href="https://redcanary.com/blog/threat-intelligence/intelligence-insights-august-2026/" rel="noopener noreferrer">https://redcanary.com/blog/threat-intelligence/intelligence-insights-august-2026/</a></td></tr><tr><td>S02</td><td>Blackpoint Cyber</td><td>successful sanitized first-hand SOC extraction</td><td>2026-09-07T11:06:52Z</td><td>C02, C03, C10</td><td><a href="https://blackpointcyber.com/blog/blackpoint-soc-threat-pulse-week-of-july-6-2026/" rel="noopener noreferrer">https://blackpointcyber.com/blog/blackpoint-soc-threat-pulse-week-of-july-6-2026/</a></td></tr><tr><td>S03</td><td>ThreatDown</td><td>successful sanitized technical-research extraction</td><td>2026-09-07T11:06:52Z</td><td>C04, C10</td><td><a href="https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/" rel="noopener noreferrer">https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/</a></td></tr><tr><td>S04</td><td>Splunk Threat Research Team</td><td>successful sanitized malware-analysis extraction</td><td>2026-09-07T11:06:52Z</td><td>C06, C07, C10</td><td><a href="https://www.splunk.com/en_us/blog/security/castlerat-malware-detection-splunk-mitre-attck.html" rel="noopener noreferrer">https://www.splunk.com/en_us/blog/security/castlerat-malware-detection-splunk-mitre-attck.html</a></td></tr><tr><td>S05</td><td>Recorded Future Insikt Group</td><td>successful sanitized annual-report extraction</td><td>2026-09-07T11:06:52Z</td><td>C08, C09</td><td><a href="https://assets.recordedfuture.com/insikt-report-pdfs/2026/cta-2026-0319.pdf" rel="noopener noreferrer">https://assets.recordedfuture.com/insikt-report-pdfs/2026/cta-2026-0319.pdf</a></td></tr><tr><td>S06</td><td>Microsoft Learn</td><td>successful sanitized authoritative control extraction</td><td>2026-09-07T11:06:52Z</td><td>C10</td><td><a href="https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/wdac" rel="noopener noreferrer">https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/wdac</a></td></tr></tbody></table></div>
+</div>
+
+<footer class="hp-footer"><strong>HuntPack</strong> &middot; Portable, offline-ready defender content &middot; v0.1 Draft · 2026-09-07</footer>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
