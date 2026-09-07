@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Astaroth / Guildma — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale CQL hunts, response, and hardening for Astaroth / Guildma.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Astaroth-WhatsApp-Spambot-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Astaroth / Guildma — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale CQL hunts, response, and hardening for Astaroth / Guildma.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Astaroth-WhatsApp-Spambot-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #ff9e64;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(255,158,100,0.14);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #22150d 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" type="button" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents" aria-controls="sidebar">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">Astaroth WhatsApp Spambot</div>
+    <div class="version">v0.1 · 2026-09-06</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 &middot; Native Hunts</a>
+    <a href="#s7">7 &middot; CQL Queries</a>
+    <a href="#s8">8 &middot; Operationalization</a>
+    <a href="#s9">9 &middot; IOC Appendix</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 &middot; Hardening</a>
+    <a href="#s11">11 &middot; Containment</a>
+    <div class="nav-section">Validation &amp; Meta</div>
+    <a href="#s12">12 &middot; Coverage &amp; Validation</a>
+    <a href="#s13">13 &middot; Hunt Ticket</a>
+    <a href="#s14">14 &middot; Changelog</a>
+    <a href="#s15">15 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>Astaroth WhatsApp Web Spambot</h1>
+  <div class="subtitle">Headless WebDriver automation · browser-profile copying · CrowdStrike CQL hunting and response</div>
+  <div class="meta-grid"><div class="meta-item"><div class="mk"><span class="badge b-info">Threat</span></div><div class="mv">Astaroth / Guildma</div></div><div class="meta-item"><div class="mk"><span class="badge b-info">Type</span></div><div class="mv">Banking malware and propagation module</div></div><div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">High</span></div></div><div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 Draft · 2026-09-06</div></div><div class="meta-item"><div class="mk">Author</div><div class="mv">cybersecurity analyst</div></div><div class="meta-item"><div class="mk">Confidence</div><div class="mv">High behavior confidence; tenant unverified</div></div></div>
+</div>
+
+<div class="state"><span class="state-dot"></span><strong>STATIC REVIEW PASSED</strong></div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body"><p><span class="badge b-info"><strong>What happened:</strong></span> CrowdStrike published a technical analysis on 29 July 2026 of an Astaroth/Guildma component that automates WhatsApp Web to propagate malicious archives. Acronis independently documented the Boto Cor-de-Rosa WhatsApp worm activity in January, and the SANS Internet Storm Center reported a fresh Brazilian Portuguese Guildma infection on 1 September. Together, the sources support both an active malware family and a concrete browser-automation behavior worth hunting.</p><p><span class="badge b-purple"><strong>How the module works:</strong></span> The Windows component copies an existing Chromium user profile into C:\Users\Public\Temp\ChromeAuto_&lt;ID&gt;&lt;date&gt;, selects a random local debugging port from 31175 through 39999, and starts Chrome or Edge headlessly through a downloaded WebDriver with flags such as --headless and --disable-infobars. It loads WPPConnect/WA-JS logic, reads WhatsApp contacts from the authenticated browser session, and sends malicious attachments. Acronis observed a related distribution chain using ZIP/VBS delivery and a Python-based WhatsApp worm before the banking payload.</p><p><span class="badge b-med"><strong>Why detection belongs in browser lineage and filesystem context:</strong></span> Q01 detects the distinctive ChromeAuto profile-copy directory, Q02 and Q03 bind headless browser flags to WebDriver or public-temp context, Q04 hunts WebDriver acquisition, and Q05 provides exact current hash pivots. These behaviors survive domain rotation better than infrastructure alone. A copied browser session also creates account and token exposure risk even when the final banking module is not observed.</p><p><span class="badge b-high"><strong>Operational limit:</strong></span> Directory and command-line events can show automation but cannot prove that WhatsApp messages were sent or credentials were stolen. Browser-extension content, session-token use, and attachment delivery require browser artifacts, identity records, and host acquisition. All CQL remains static-reviewed only: no Falcon parser, positive fixture, benign baseline, scheduled search, IOA, or prevention deployment is claimed.</p><div class="callout callout-danger"><strong>Defender priority:</strong> Run Q01 and Q02 over 30 days, then preserve the copied browser profile and process tree. Isolate only after confirming unapproved automation, revoke exposed browser sessions under identity-owner authority, and scope recipients before deleting evidence.</div><table><thead><tr><th>Priority</th><th>Why now</th><th>Coverage delivered</th><th>Key limitation</th></tr></thead><tbody><tr><td>Find and contain independently corroborated behavior</td><td>Current 2026 technical and government reporting</td><td>5 CQL designs with native pivots</td><td>Static-only; tenant and host-result semantics unverified</td></tr></tbody></table></div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source and Claim Review</h2></div>
+  <div class="section-body"><p>Current-run sanitized plain-text snapshots were hashed before assembly. Every source was treated as untrusted data; no embedded instruction, command, code, payload, or destination was executed.</p><table><thead><tr><th>ID</th><th>Publisher</th><th>Tier</th><th>Independence</th><th>Accessed</th><th>Status</th></tr></thead><tbody><tr><td><a href="https://www.crowdstrike.com/en-us/blog/inside-astaroths-new-spambot-component/" rel="noopener noreferrer">S01</a></td><td>CrowdStrike</td><td>T1</td><td>crowdstrike</td><td>2026-09-06T11:06:41Z</td><td>successful sanitized technical extraction</td></tr><tr><td><a href="https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/" rel="noopener noreferrer">S02</a></td><td>Acronis Threat Research Unit</td><td>T1</td><td>acronis</td><td>2026-09-06T11:06:41Z</td><td>successful sanitized technical extraction</td></tr><tr><td><a href="https://isc.sans.edu/diary/Guildma%20%28Astaroth%29%20malware%20infection%20from%20Brazilian%20Portuguese%20email/33300" rel="noopener noreferrer">S03</a></td><td>SANS Internet Storm Center</td><td>T2</td><td>sans-isc</td><td>2026-09-06T11:06:41Z</td><td>successful sanitized technical diary</td></tr><tr><td><a href="https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/wdac" rel="noopener noreferrer">S04</a></td><td>Microsoft Learn</td><td>T1</td><td>microsoft</td><td>2026-09-06T11:06:41Z</td><td>successful authoritative control summary</td></tr><tr><td><a href="https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference" rel="noopener noreferrer">S05</a></td><td>Microsoft Learn</td><td>T1</td><td>microsoft</td><td>2026-09-06T11:06:41Z</td><td>successful authoritative control summary</td></tr><tr><td><a href="https://learn.microsoft.com/en-us/deployedge/microsoft-edge-browser-policies/extensioninstallblocklist" rel="noopener noreferrer">S06</a></td><td>Microsoft Learn</td><td>T1</td><td>microsoft</td><td>2026-09-06T11:06:41Z</td><td>successful authoritative policy summary</td></tr></tbody></table><table><thead><tr><th>Claim</th><th>Statement</th><th>Sources</th><th>Confidence</th></tr></thead><tbody><tr><td>C01</td><td>CrowdStrike documented an Astaroth component that automates WhatsApp Web for malware propagation.</td><td>S01</td><td><span class="badge b-low">high</span></td></tr><tr><td>C02</td><td>The component copies a Chromium profile to a ChromeAuto directory under Public Temp and uses a random local port between 31175 and 39999.</td><td>S01</td><td><span class="badge b-low">high</span></td></tr><tr><td>C03</td><td>Chrome or Edge is launched headlessly through WebDriver with automation-related flags and WPPConnect/WA-JS logic.</td><td>S01</td><td><span class="badge b-low">high</span></td></tr><tr><td>C04</td><td>The module reads WhatsApp contacts and sends malicious attachments through an authenticated browser session.</td><td>S01, S02</td><td><span class="badge b-low">high</span></td></tr><tr><td>C05</td><td>Acronis independently documented Astaroth WhatsApp worm propagation using ZIP/VBS and Python components in Brazil.</td><td>S02</td><td><span class="badge b-low">high</span></td></tr><tr><td>C06</td><td>SANS ISC documented a current September 2026 Guildma infection from a Brazilian Portuguese email lure.</td><td>S03</td><td><span class="badge b-low">high</span></td></tr><tr><td>C07</td><td>Microsoft App Control guidance supports audit-first restriction of unapproved binaries and scripts.</td><td>S04</td><td><span class="badge b-low">high</span></td></tr><tr><td>C08</td><td>Microsoft ASR guidance includes rules for script-launched downloaded content and credential stealing from LSASS, with prerequisites and audit modes.</td><td>S05</td><td><span class="badge b-low">high</span></td></tr><tr><td>C09</td><td>Microsoft Edge policy supports controlling extension installation through managed allow and block policy.</td><td>S06</td><td><span class="badge b-low">high</span></td></tr></tbody></table><div class="callout callout-warn"><strong>Contradictions and gaps:</strong> indicator reuse and reassignment are possible; tenant fields and result semantics are unverified; a hit does not prove every payload action or attribution.</div></div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief and Attack Chain</h2></div>
+  <div class="section-body"><p>The scaffold separates discrete endpoint and network observables from host-acquisition gaps. Each queryable hypothesis names an event and safe validation plan.</p><table><thead><tr><th>Step</th><th>Claims</th><th>Behavior</th><th>Platform</th><th>Goal</th></tr></thead><tbody><tr><td>1</td><td>C05,C06</td><td>user opens malicious archive or script from localized email</td><td>Windows</td><td>Identify script and archive execution</td></tr><tr><td>2</td><td>C02</td><td>malware copies an authenticated Chromium profile to Public Temp</td><td>Windows</td><td>Find distinctive ChromeAuto directory creation</td></tr><tr><td>3</td><td>C03</td><td>WebDriver starts Chrome or Edge headlessly</td><td>Windows</td><td>Bind browser automation to parent and command line</td></tr><tr><td>4</td><td>C03</td><td>component loads WhatsApp automation logic</td><td>Windows</td><td>Preserve browser and extension artifacts</td></tr><tr><td>5</td><td>C04</td><td>authenticated session enumerates contacts and sends attachments</td><td>Windows</td><td>Scope account, recipients, and downstream infections</td></tr></tbody></table><table><thead><tr><th>ID</th><th>Behavior</th><th>Telemetry</th><th>Use</th><th>Lookback</th><th>Validation</th></tr></thead><tbody><tr><td>H01</td><td>ChromeAuto browser-profile directory under Public Temp</td><td>TargetDirectoryName</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Create and remove an inert ChromeAuto_TEST directory on an isolated host; baseline legitimate test automation directories.</td></tr><tr><td>H02</td><td>Headless Chromium using a copied Public Temp profile</td><td>ProcessRollup2</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Run approved WebDriver against an empty temporary profile; baseline enterprise browser test farms and accessibility tooling.</td></tr><tr><td>H03</td><td>WebDriver parent launching headless browser automation</td><td>ProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Run an approved driver fixture and confirm lineage fields; inventory known Selenium and browser-testing owners.</td></tr><tr><td>H04</td><td>PowerShell or script host obtaining WebDriver binaries</td><td>ProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Use an inert local filename in a lab without a remote download and baseline approved driver-management tools.</td></tr><tr><td>H05</td><td>Execution of current Astaroth hashes</td><td>ProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>90d</td><td>Verify exact-hash matching against an approved harmless fixture hash; baseline security-research systems.</td></tr><tr><td>H06</td><td>Messages or attachments sent through WhatsApp Web</td><td>browser and identity artifacts</td><td><span class="badge b-info">gap</span></td><td>N/A</td><td>Acquire browser databases and session records under authorization; portable Falcon endpoint events cannot prove a sent message.</td></tr></tbody></table><h4>Affected surface and telemetry</h4><p>Windows endpoints with Falcon process, file, DNS, and network telemetry are in scope. Proxy, IPv6, resolver, process-context, browser, memory, and file-integrity evidence remain repository- and tenant-dependent.</p></div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body"><table><thead><tr><th>ID</th><th>Type</th><th>Value</th><th>Source</th><th>Use</th></tr></thead><tbody><tr><td>I01</td><td>sha256</td><td>d891d38b5a15fe750cd48ad29b26d7737c23ef6b47d6ec018dbb74264c578ddb</td><td>S01</td><td>detect and investigate</td></tr><tr><td>I02</td><td>sha256</td><td>c7c62332bb91d144feb53993479244856b4ecfdaed151bab2a1a6a645e4bda5d</td><td>S01</td><td>detect and investigate</td></tr><tr><td>I03</td><td>sha256</td><td>ec43a79fa53b048231cf45f3e7ebee03816d052e280063577f425369ad10a1e2</td><td>S01</td><td>detect and investigate</td></tr><tr><td>I04</td><td>domain</td><td>stretar7.contabilfacil.sbs</td><td>S01</td><td>hunt and enrich</td></tr><tr><td>I05</td><td>domain</td><td>graconxonjal.empresaeficiente.sbs</td><td>S01</td><td>hunt and enrich</td></tr><tr><td>I06</td><td>domain</td><td>plansonval.impostosrapido.top</td><td>S01</td><td>hunt and enrich</td></tr></tbody></table><p class="muted">Values are defanged only in analyst handling; the machine-readable appendix retains exact source text for matching. Revalidate ownership and time context before blocking.</p></div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body"><p>Every technique row is an analyst inference from source-backed behavior, not a vendor attribution statement.</p><table><thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Behavior</th><th>Basis</th><th>Sources</th></tr></thead><tbody><tr><td>Execution</td><td>T1059.005</td><td>Visual Basic</td><td>VBS delivery in independently documented campaign</td><td><span class="badge b-med">analyst inference</span></td><td>S02</td></tr><tr><td>Execution</td><td>T1059.006</td><td>Python</td><td>Python WhatsApp propagation component</td><td><span class="badge b-med">analyst inference</span></td><td>S02</td></tr><tr><td>Credential Access</td><td>T1539</td><td>Steal Web Session Cookie</td><td>copying authenticated Chromium profile material</td><td><span class="badge b-med">analyst inference</span></td><td>S01</td></tr><tr><td>Command and Control</td><td>T1102.002</td><td>Web Service: Bidirectional Communication</td><td>WhatsApp Web automation for propagation</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S02</td></tr><tr><td>Discovery</td><td>T1087.003</td><td>Cloud Account</td><td>enumeration of WhatsApp contacts from authenticated session</td><td><span class="badge b-med">analyst inference</span></td><td>S01</td></tr><tr><td>Execution</td><td>T1204.002</td><td>Malicious File</td><td>user execution of malicious archive or script</td><td><span class="badge b-med">analyst inference</span></td><td>S02,S03</td></tr></tbody></table></div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native / Non-CQL Hunts</h2></div>
+  <div class="section-body"><table><thead><tr><th>Hunt</th><th>Log source</th><th>Logic</th><th>Response</th></tr></thead><tbody><tr><td>WhatsApp Web artifact review</td><td>Acquired Chromium profile and browser history databases</td><td>Inspect the copied profile for WhatsApp Web session, IndexedDB, extension, and download artifacts; preserve hashes and timestamps.</td><td>Coordinate session revocation and recipient scoping with identity and legal owners.</td></tr><tr><td>Script and archive entry review</td><td>Windows Security 4688, PowerShell 4104, email gateway, and archive telemetry</td><td>Correlate ZIP, VBS, Python, or script-host execution to the process tree and localized delivery message.</td><td>Preserve the original email and attachment; do not open or execute it.</td></tr><tr><td>Recipient and session scoping</td><td>Approved WhatsApp account and identity records</td><td>Review authenticated sessions and organization-owned recipient evidence for the bounded incident window.</td><td>Revoke exposed sessions only under account-owner and incident authority.</td></tr></tbody></table></div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives &ldquo;Open in Falcon&rdquo;):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <div class="callout callout-info"><strong>Query strategy:</strong> the first one or two cards are the strongest keepers; broader process searches require owner and same-host correlation. Every card is STATIC-ONLY.</div>
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q01 · ChromeAuto browser-profile directory creation</span><div class="qc-badges"><span class="badge b-info">CONF</span><span class="badge b-med">FP</span><span class="badge b-low">COST</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q01-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q01-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> creation of the distinctive ChromeAuto profile-copy directory beneath Public Temp. <strong>Accomplishes:</strong> catches the spambot&#x27;s browser-session staging before contact enumeration while keeping directory naming and host context for triage.</p><p class="muted">Trace: <a href="#s3">H01</a> · <a href="#s8">A01</a></p><pre class="cql" id="q01-cql" data-lookback="30d"><span class="cm">// HUNT: ChromeAuto browser-profile directory creation</span>
+<span class="cm">// HYPOTHESIS: H01</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1539</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: TargetDirectoryName plus ComputerName, UserName, aid</span>
+<span class="cm">// FALSE POSITIVES: authorized browser-automation research or a deliberately named test directory</span>
+<span class="cm">// TUNING: exclude only owner-approved lab assets and exact documented test windows</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(NewExecutableWritten|PeFileWritten|ZipFileWritten)$/
+| test(@timestamp &gt;= now() - 2592000000)
+| TargetFileName = /\\Users\\Public\\Temp\\ChromeAuto_[^\\]+/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, SHA256HashData, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q02 · Headless Chromium with copied Public Temp profile</span><div class="qc-badges"><span class="badge b-info">CONF</span><span class="badge b-med">FP</span><span class="badge b-low">COST</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q02-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q02-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> Chrome or Edge launched headlessly with a user-data directory under the ChromeAuto Public Temp path. <strong>Accomplishes:</strong> combines two distinctive automation behaviors into a strong process signal without depending on rotating Astaroth infrastructure.</p><p class="muted">Trace: <a href="#s3">H02</a> · <a href="#s8">A02</a></p><pre class="cql" id="q02-cql" data-lookback="30d"><span class="cm">// HUNT: Headless Chromium with copied Public Temp profile</span>
+<span class="cm">// HYPOTHESIS: H02</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1539, T1102.002</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; ImageFileName, CommandLine, ParentBaseFileName</span>
+<span class="cm">// FALSE POSITIVES: authorized Selenium tests, kiosk automation, or accessibility tooling</span>
+<span class="cm">// TUNING: exclude only signed owner-approved automation with fixed host and command evidence</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| test(@timestamp &gt;= now() - 2592000000)
+| ImageFileName = /(?:chrome|msedge)\.exe$/i
+| CommandLine = /--headless/i
+| CommandLine = /--user-data-dir[^
+]*\\Users\\Public\\Temp\\ChromeAuto_/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q03 · WebDriver parent launching headless browser</span><div class="qc-badges"><span class="badge b-info">CONF</span><span class="badge b-med">FP</span><span class="badge b-low">COST</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q03-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q03-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> ChromeDriver or EdgeDriver starting a headless Chromium process with automation flags. <strong>Accomplishes:</strong> exposes the browser-control stage for same-host correlation, while acknowledging legitimate testing frameworks as a substantial benign population.</p><p class="muted">Trace: <a href="#s3">H03</a> · <a href="#s8">hunt-only</a></p><pre class="cql" id="q03-cql" data-lookback="30d"><span class="cm">// HUNT: WebDriver parent launching headless browser</span>
+<span class="cm">// HYPOTHESIS: H03</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1102.002</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; ParentBaseFileName, ImageFileName, CommandLine</span>
+<span class="cm">// FALSE POSITIVES: Selenium grids, QA automation, kiosk management, and accessibility tooling</span>
+<span class="cm">// TUNING: inventory automation owners and exclude by signed parent path plus managed host group</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| test(@timestamp &gt;= now() - 2592000000)
+| ParentBaseFileName = /^(?:chromedriver|msedgedriver)\.exe$/i
+| ImageFileName = /(?:chrome|msedge)\.exe$/i
+| CommandLine = /(?:--headless|--disable-infobars|--remote-debugging-port)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q04 · Script tooling acquiring WebDriver binaries</span><div class="qc-badges"><span class="badge b-info">CONF</span><span class="badge b-med">FP</span><span class="badge b-low">COST</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q04-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q04-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> PowerShell, script host, or Python command lines that reference ChromeDriver or EdgeDriver with retrieval semantics. <strong>Accomplishes:</strong> catches a preparatory stage before browser automation but needs owner and download context to separate driver management.</p><p class="muted">Trace: <a href="#s3">H04</a> · <a href="#s8">hunt-only</a></p><pre class="cql" id="q04-cql" data-lookback="30d"><span class="cm">// HUNT: Script tooling acquiring WebDriver binaries</span>
+<span class="cm">// HYPOTHESIS: H04</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1105</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; ImageFileName, CommandLine, ParentBaseFileName</span>
+<span class="cm">// FALSE POSITIVES: approved browser driver managers, QA bootstrap scripts, and developer tools</span>
+<span class="cm">// TUNING: exclude signed enterprise driver managers only after owner, path, and destination review</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| test(@timestamp &gt;= now() - 2592000000)
+| ImageFileName = /(?:powershell|pwsh|wscript|cscript|python)\.exe$/i
+| CommandLine = /(?:chromedriver|msedgedriver)/i
+| CommandLine = /(?:invoke-webrequest|iwr|curl|downloadfile|downloadstring|https?:)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div><div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q05 · Execution of current Astaroth component hashes</span><div class="qc-badges"><span class="badge b-info">CONF</span><span class="badge b-med">FP</span><span class="badge b-low">COST</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q05-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q05-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> process events carrying one of three SHA-256 values published with the spambot analysis. <strong>Accomplishes:</strong> gives responders an exact current pivot for known samples while keeping hash volatility and research-system exceptions visible.</p><p class="muted">Trace: <a href="#s3">H05</a> · <a href="#s8">hunt-only</a></p><pre class="cql" id="q05-cql" data-lookback="90d"><span class="cm">// HUNT: Execution of current Astaroth component hashes</span>
+<span class="cm">// HYPOTHESIS: H05</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1204.002</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 90d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; SHA256HashData, ImageFileName, CommandLine</span>
+<span class="cm">// FALSE POSITIVES: authorized malware-analysis systems or preserved historical telemetry</span>
+<span class="cm">// TUNING: exclude only isolated research assets with case ownership and a bounded analysis window</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| test(@timestamp &gt;= now() - 7776000000)
+| SHA256HashData = /^(?:d891d38b5a15fe750cd48ad29b26d7737c23ef6b47d6ec018dbb74264c578ddb|c7c62332bb91d144feb53993479244856b4ecfdaed151bab2a1a6a645e4bda5d|ec43a79fa53b048231cf45f3e7ebee03816d052e280063577f425369ad10a1e2)$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>Operationalization and IOA Candidates</h2></div>
+  <div class="section-body"><p>Alert-candidate rows have complete design-only packages. No query was scheduled, no notification route was activated, and no IOA or prevention rule was created.</p><table><thead><tr><th>Query</th><th>Use</th><th>Decision</th><th>Readiness</th><th>Rationale</th></tr></thead><tbody><tr><td>Q01</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q02</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q03</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q04</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr><tr><td>Q05</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr></tbody></table><div class="callout callout-warn"><strong>Readiness gate:</strong> observed baseline is unknown and positive/benign evidence is planned-not-run. Every alert package remains DESIGN ONLY.</div></div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body"><p>Exact current-run values are source tagged and expire for mandatory review on 2026-12-06; expiration is not evidence of safety.</p><div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Source-tagged CSV</span><span class="igc badge b-info">6 values</span></div><button type="button" class="btn-copy" onclick="copyBlock('grab-csv',this)">Copy CSV</button><pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,d891d38b5a15fe750cd48ad29b26d7737c23ef6b47d6ec018dbb74264c578ddb,detect,high,2026-12-06,detect and investigate,source:S01
+sha256,c7c62332bb91d144feb53993479244856b4ecfdaed151bab2a1a6a645e4bda5d,detect,high,2026-12-06,detect and investigate,source:S01
+sha256,ec43a79fa53b048231cf45f3e7ebee03816d052e280063577f425369ad10a1e2,detect,high,2026-12-06,detect and investigate,source:S01
+domain,stretar7.contabilfacil.sbs,detect,high,2026-12-06,hunt and enrich,source:S01
+domain,graconxonjal.empresaeficiente.sbs,detect,high,2026-12-06,hunt and enrich,source:S01
+domain,plansonval.impostosrapido.top,detect,high,2026-12-06,hunt and enrich,source:S01</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Values only</span><span class="igc badge b-info">hunt input</span></div><button type="button" class="btn-copy" onclick="copyBlock('grab-values',this)">Copy values</button><pre class="code" id="grab-values">d891d38b5a15fe750cd48ad29b26d7737c23ef6b47d6ec018dbb74264c578ddb
+c7c62332bb91d144feb53993479244856b4ecfdaed151bab2a1a6a645e4bda5d
+ec43a79fa53b048231cf45f3e7ebee03816d052e280063577f425369ad10a1e2
+stretar7.contabilfacil.sbs
+graconxonjal.empresaeficiente.sbs
+plansonval.impostosrapido.top</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Handling note</span><span class="igc badge b-info">review required</span></div><button type="button" class="btn-copy" onclick="copyBlock('grab-note',this)">Copy note</button><pre class="code" id="grab-note">Current source provenance proves transcription, not maliciousness, ownership, or safe blocking. Corroborate every hit.</pre></div></div></div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening &mdash; Tiered and Deployable</h2></div>
+  <div class="section-body"><div class="tier-blk tier-imm"><div class="tier-lbl">Immediate — expose and interrupt the active chain</div><ul><li><strong>Revoke exposed browser and WhatsApp sessions after evidence capture</strong> (M1018; CTRL01) — capture browser profile and session evidence first, then revoke affected sessions under account-owner authority <span class="badge b-info">deployable-design</span> <em>Verify:</em> verify no unrecognized sessions remain and business access is restored <em>Rollback:</em> restore access only through approved reauthentication, not by reusing copied profile data <em>Authority:</em> Vendor account security and incident-response procedure.</li><li><strong>Audit script-launched downloaded executables</strong> (M1038; CTRL02) — set ASR D3E037E1-3EB8-44C8-A917-57927947596D to Audit for a representative pilot before Block <span class="badge b-info">deployable-design</span> <em>Verify:</em> retain policy state, ASR events, application-owner decisions, and benign fixture result <em>Rollback:</em> return the rule to its exported prior action through the same policy channel <em>Authority:</em> Microsoft ASR reference accessed 2026-09-06.</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near-term — constrain repeat execution and egress</div><ul><li><strong>Constrain unapproved WebDriver and public-temp binaries</strong> (M1038; CTRL03) — build an audit policy for unsigned drivers and executables from Public Temp; enforce only after pilot review <span class="badge b-info">deployable-design</span> <em>Verify:</em> confirm approved Selenium owners still function and retain policy XML plus events <em>Rollback:</em> deploy the prepared rollback policy or return the cohort to audit <em>Authority:</em> Microsoft App Control guidance accessed 2026-09-06.</li><li><strong>Block unapproved browser extensions by managed policy</strong> (M1042; CTRL04) — pilot a default block list with explicit owner-approved extension allow entries <span class="badge b-info">deployable-design</span> <em>Verify:</em> inspect edge://policy and verify required extensions plus rollback on pilot endpoints <em>Rollback:</em> restore the exported policy and verify prior extension behavior <em>Authority:</em> Microsoft Edge ExtensionInstallBlocklist accessed 2026-09-06.</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic — retire unowned exceptions</div><ul><li><strong>Govern browser automation and authenticated messaging clients</strong> (M1018; CTRL05) — assign owners to WebDriver, extension, and messaging automation exceptions with quarterly expiry review <span class="badge b-info">deployable-design</span> <em>Verify:</em> sample ten exceptions for owner, signer, path, purpose, approval, and expiry <em>Rollback:</em> grant a time-bounded emergency exception under change control <em>Authority:</em> Microsoft App Control and Edge policy guidance accessed 2026-09-06.</li></ul></div><h3>Deployable playbook · PB01 · guarded pilot and rollback</h3><ol><li>Export current App Control, ASR, and Edge policy state</li><li>inventory browser automation owners</li><li>apply audit controls to a limited representative cohort</li><li>verify policy convergence with inert browser-automation and script fixtures</li><li>perform application-owner and help-desk checks</li><li>expand only when every exception is owned</li><li>rollback through exported policies if a stop condition fires</li><li>retain configuration, events, decisions, and recovery evidence.</li></ol><div class="callout callout-warn"><strong>Design state:</strong> no control was canary-tested or deployed. Complete platform, sensitive-data, continuity, and approval checks first.</div></div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body"><table><thead><tr><th>Phase</th><th>Trigger</th><th>Authority</th><th>Owner</th><th>Evidence</th><th>Recovery</th></tr></thead><tbody><tr><td>1. Validate and preserve</td><td>Q01 or Q02 plus unapproved automation</td><td>SOC lead</td><td>SOC analyst</td><td>raw rows, directory, process tree, browser profile and hashes</td><td>none; preservation is read-only</td></tr><tr><td>2. Scope delivery and recipients</td><td>malicious automation corroborated</td><td>incident commander</td><td>email and endpoint responders</td><td>email, archive, scripts, browser and recipient evidence</td><td>record approved test explanation or continue</td></tr><tr><td>3. Isolate affected endpoints</td><td>active propagation or banking payload evidence</td><td>incident commander plus service owner</td><td>endpoint operations</td><td>isolation time, network exceptions, business impact</td><td>temporary access only under continuity plan</td></tr><tr><td>4. Revoke exposed sessions</td><td>copied authenticated profile confirmed</td><td>incident commander plus account owner</td><td>identity operations</td><td>session actions, account audit, recipient list</td><td>restore access through approved reauthentication</td></tr><tr><td>5. Eradicate, recover, re-hunt</td><td>scope stable and evidence preserved</td><td>incident commander and system owner</td><td>endpoint engineering and SOC</td><td>rebuild/cleanup record and fresh Q01-Q05 results</td><td>return after no unexplained hits and owner sign-off</td></tr></tbody></table><p><strong>Preservation order:</strong> raw results, events, process tree, files and hashes, network/DNS, identity/session state, relevant policy, analyst notes and tool logs. <strong>Closure:</strong> known-good recovery, explained re-hunt results, and incident-commander plus system-owner approval.</p></div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage and Validation Evidence</h2></div>
+  <div class="section-body"><p><strong>Validation state:</strong> STATIC REVIEW PASSED only after the local gate suite completes. This is not Falcon parsing, canary success, schedule creation, or deployment evidence.</p><table><thead><tr><th>Technique</th><th>Coverage</th><th>Query or handoff</th><th>Evidence</th><th>Limitation</th></tr></thead><tbody><tr><td>T1059.005</td><td><span class="badge b-info">Static or design</span></td><td>Q01, Q02, Q03, Q04, Q05</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, baseline, positive and benign tests absent</td></tr><tr><td>T1059.006</td><td><span class="badge b-info">Static or design</span></td><td>native and same-host correlation</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, baseline, positive and benign tests absent</td></tr><tr><td>T1539</td><td><span class="badge b-info">Static or design</span></td><td>native and same-host correlation</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, baseline, positive and benign tests absent</td></tr><tr><td>T1102.002</td><td><span class="badge b-info">Static or design</span></td><td>native and same-host correlation</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, baseline, positive and benign tests absent</td></tr><tr><td>T1087.003</td><td><span class="badge b-info">Static or design</span></td><td>native and same-host correlation</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, baseline, positive and benign tests absent</td></tr><tr><td>T1204.002</td><td><span class="badge b-info">Static or design</span></td><td>native and same-host correlation</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, baseline, positive and benign tests absent</td></tr></tbody></table><h3>Recorded evidence and next tests</h3><ul><li>Every CQL card retains VALIDATION: STATIC-ONLY; no Falcon tenant was contacted.</li><li>The offline tenant dry run checks extraction and profile readiness only.</li><li>Next: parse the strongest query in the intended repository over one hour, verify fields, then run approved inert positive and 30-day benign tests.</li></ul></div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body"><div class="ticket"><pre class="code" id="ticket-block">TITLE:        Astaroth / Guildma hunt — v0.1 Draft
+SEVERITY:     high — active malware behavior can enable propagation or follow-on compromise
+SCOPE:        Windows Falcon endpoint, DNS, file, and network telemetry plus approved host pivots
+HYPOTHESIS:   H01 alert-candidate — ChromeAuto browser-profile directory under Public Temp; H02 alert-candidate — Headless Chromium using a copied Public Temp profile; H03 hunt — WebDriver parent launching headless browser automation; H04 hunt — PowerShell or script host obtaining WebDriver binaries; H05 hunt — Execution of current Astaroth hashes; H06 gap — Messages or attachments sent through WhatsApp Web
+QUERIES RUN:  Q01 alert-candidate; Q02 alert-candidate; Q03 hunt; Q04 hunt; Q05 hunt
+DO FIRST:     Q01 over 30d
+FINDINGS:
+GAPS:         tenant parsing, baseline, positive/benign tests, and external host semantics
+ACTIONS:      SOC validates the strongest query; endpoint engineering preserves and scopes evidence
+OWNER:        Security Operations / Endpoint Detection Engineering
+VERSION:      v0.1 Draft · 2026-09-06 · STATIC REVIEW PASSED</pre><button type="button" class="btn-copy" onclick="copyBlock('ticket-block',this)">Copy ticket</button></div></div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body"><div class="chg-entry"><span class="chg-ver">v0.1 Draft</span><span class="chg-date">2026-09-06</span><span>Initial pack with 5 conservative CQL queries, 6 source-tagged atomic indicators, design-only operationalization, reversible controls, and a five-phase containment runbook. Tenant execution is not claimed.</span></div></div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body"><table><thead><tr><th>ID</th><th>Publisher</th><th>Version/status</th><th>Accessed</th><th>Use</th><th>URL</th></tr></thead><tbody><tr><td>S01</td><td>CrowdStrike</td><td>successful sanitized technical extraction</td><td>2026-09-06T11:06:41Z</td><td>C01, C02, C03, C04</td><td><a href="https://www.crowdstrike.com/en-us/blog/inside-astaroths-new-spambot-component/" rel="noopener noreferrer">https://www.crowdstrike.com/en-us/blog/inside-astaroths-new-spambot-component/</a></td></tr><tr><td>S02</td><td>Acronis Threat Research Unit</td><td>successful sanitized technical extraction</td><td>2026-09-06T11:06:41Z</td><td>C04, C05</td><td><a href="https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/" rel="noopener noreferrer">https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/</a></td></tr><tr><td>S03</td><td>SANS Internet Storm Center</td><td>successful sanitized technical diary</td><td>2026-09-06T11:06:41Z</td><td>C06</td><td><a href="https://isc.sans.edu/diary/Guildma%20%28Astaroth%29%20malware%20infection%20from%20Brazilian%20Portuguese%20email/33300" rel="noopener noreferrer">https://isc.sans.edu/diary/Guildma%20%28Astaroth%29%20malware%20infection%20from%20Brazilian%20Portuguese%20email/33300</a></td></tr><tr><td>S04</td><td>Microsoft Learn</td><td>successful authoritative control summary</td><td>2026-09-06T11:06:41Z</td><td>C07</td><td><a href="https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/wdac" rel="noopener noreferrer">https://learn.microsoft.com/windows/security/application-security/application-control/windows-defender-application-control/wdac</a></td></tr><tr><td>S05</td><td>Microsoft Learn</td><td>successful authoritative control summary</td><td>2026-09-06T11:06:41Z</td><td>C08</td><td><a href="https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference" rel="noopener noreferrer">https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference</a></td></tr><tr><td>S06</td><td>Microsoft Learn</td><td>successful authoritative policy summary</td><td>2026-09-06T11:06:41Z</td><td>C09</td><td><a href="https://learn.microsoft.com/en-us/deployedge/microsoft-edge-browser-policies/extensioninstallblocklist" rel="noopener noreferrer">https://learn.microsoft.com/en-us/deployedge/microsoft-edge-browser-policies/extensioninstallblocklist</a></td></tr></tbody></table></div>
+</div>
+
+<footer class="hp-footer"><strong>HuntPack</strong> &middot; Portable, offline-ready defender content &middot; v0.1 Draft · 2026-09-06</footer>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
