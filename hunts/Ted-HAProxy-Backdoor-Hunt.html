@@ -1,0 +1,790 @@
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #ff7b72;
+  --accent-dim: rgba(255,123,114,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #2a1410 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { background: #010409; border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div>
+    <div class="pack-name">Ted Backdoor / curlRAT: Trojanized HAProxy</div>
+    <div class="version">v0.1 &middot; 2026-09-13</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; CQL Queries</a>
+    <a href="#s9">9 &middot; Custom IOA Recs</a>
+    <a href="#s10">10 &middot; IOC Appendix</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>Ted Backdoor &amp; curlRAT: Trojanized HAProxy Load-Balancer Toolkit</h1>
+    <div class="subtitle">Linux edge-device implant compiled into HAProxy 2.8.12, paired with trojanized crond/sshd/agetty/atd/polkitd and a curl-based RAT. Reported by Rapid7 Labs, 2026-09-04. Medium-confidence DPRK attribution (APT37 / Lazarus / Kimsuky tooling overlap).</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">Ted backdoor + curlRAT</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">NATION-STATE</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Linux edge implant / backdoor</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Load-balancer + system-daemon compromise</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 &middot; 2026-09-13</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">Medium (attribution) / High (technical findings)</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p>Rapid7 Labs documented a previously undocumented Linux toolkit at two South Korean organizations (automotive, media) in which a custom backdoor, internally referred to as &quot;ted&quot; from debug strings left in the binary, is compiled directly into the victims' own HAProxy 2.8.12 source tree as a native filter-API plugin. It is not a separate process bolted onto HAProxy; it rides HAProxy's own memory pools, event scheduler, and process-management infrastructure, so ordinary load-balancing continues to work while the implant intercepts decrypted HTTP traffic underneath it.</p>
+      <p>The attacker's objective is threefold: (1) a self-erasing command-and-control channel triggered by a request for a specific fake image path, with commands relayed through a named pipe and the triggering request scrubbed from HAProxy's own connection counters and logs before it ever reaches the backend; (2) a watering-hole capability that selectively rewrites or swaps page content for visitors matched by IP, User-Agent, referer, or a credential smuggled in the Accept-Language header; and (3) long-term persistence and credential theft via trojanized replacements of crond, sshd, agetty, atd, and polkitd, including an SSH keylogger and a companion beacon, curlRAT.</p>
+      <p>The single highest-value defensive angle is that this implant's entire design goal is making the load balancer's own logs and counters lie. Any hunt or control that depends solely on HAProxy's own logging, access logs, or connection statistics will not see it. Effective detection has to come from independent telemetry: EDR-visible process and file-write events on the underlying Linux host, binary integrity/hash verification, and out-of-band network egress monitoring, none of which the implant is documented to tamper with.</p>
+      <span class="callout callout-danger">Defender priority: treat every internet-facing HAProxy (or any edge component doing SSL termination and traffic routing) with the same binary-integrity and EDR coverage as an application server. A load balancer that is only monitored through its own logs cannot be trusted to report its own compromise.</span>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+        <tr><td>1</td><td><a href="https://www.rapid7.com/blog/post/tr-dprk-apts-ted-backdoor-curlrat-target-south-korean-media-automotive-sectors/" target="_blank" rel="noopener">Rapid7 Labs (primary research)</a></td><td>Original technical report: ted backdoor architecture, curlRAT, SSH keylogger, timestomping, log/history scrubbing, stager behavior, attribution reasoning</td><td>Yes</td></tr>
+        <tr><td>2</td><td><a href="https://thehackernews.com/2026/09/new-ted-backdoor-hides-inside-victims.html" target="_blank" rel="noopener">The Hacker News</a></td><td>Journalistic synthesis of the Rapid7 report; consolidated IOC list (domains, hashes, file paths) and confirmed all six C2 domains were NXDOMAIN as of publication</td><td>Yes</td></tr>
+        <tr><td>2</td><td><a href="https://securityaffairs.com/198656/apt/north-korea-linked-hackers-hide-a-backdoor-inside-haproxy.html" target="_blank" rel="noopener">Security Affairs</a></td><td>Extended verbatim quotes from the Rapid7 report; confirms C2 trigger endpoint, Accept-Language operator credential, Accept-Ranges header deletion, connection-counter scrubbing</td><td>Yes</td></tr>
+        <tr><td>3</td><td><a href="https://gbhackers.com/haproxy-servers-backdoor/" target="_blank" rel="noopener">GBHackers</a></td><td>Independent summary; corroborates hash 72e70936&hellip;, adds two additional hashes (94630b96&hellip;, a8bfab4d&hellip;) and the &quot;Ricochet Chollima&quot; APT37 alias</td><td>Partial (see hash confidence note below)</td></tr>
+        <tr><td>3</td><td><a href="https://www.hendryadrian.com/dprk-apts-ted-backdoor-and-curlrat-target-south-korean-media-and-automotive-sectors/" target="_blank" rel="noopener">hendryadrian.com (Rapid7 report mirror)</a></td><td>Confirms timestomping detail, log-scrubbing keyword list, and file artifact paths; introduces one hash (5db1b6d5&hellip;) not seen elsewhere</td><td>Partial (see hash confidence note below)</td></tr>
+      </table>
+      <h3>Web Hunter Decisions</h3>
+      <p><strong>Hash confidence tiering.</strong> Five distinct SHA-256 values surfaced across the five sources above. Three are corroborated by two or more independently-fetched snapshots (72e70936&hellip;, 4bb923eb&hellip;, 94630b96&hellip;) and are shipped as high-confidence. Two appear in only a single snapshot each (a8bfab4d&hellip; in GBHackers only, 5db1b6d5&hellip; in the hendryadrian mirror only) and are shipped as single-source/lower-confidence rather than silently dropped or silently trusted: both are still traceable to a saved snapshot, not invented, so they ship with an honest confidence label instead.</p>
+      <p><strong>No hostile or injected content encountered.</strong> All five fetched sources returned ordinary journalistic/technical reporting. None contained instructions directed at the research agent, no prompt-injection attempts, and no request to fetch additional URLs, change output paths, or skip pipeline steps. All five are retained as legitimate citations.</p>
+      <p><strong>Unconfirmed detail flagged, not shipped as fact.</strong> The task brief's claim that curlRAT &quot;aborts on non-virtualized hosts&quot; is confirmed verbatim in the Rapid7 source (it refuses to run unless it detects virtualization signatures, consistent with confirming deployment onto the intended cloud/VM-hosted production infrastructure rather than a bare-metal analysis box). This is stated accurately in Section 6 below rather than assumed to mean conventional sandbox-evasion (which is normally the inverse check).</p>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt Hypotheses</h3>
+      <ol>
+        <li><strong>H1 (high conf).</strong> A host runs a HAProxy, crond, sshd, agetty, atd, or polkitd binary whose SHA-256 matches a known ted/curlRAT sample.</li>
+        <li><strong>H2 (high conf, FP medium).</strong> The HAProxy process itself spawns a shell or network utility as a child process, which a load balancer has no legitimate reason to do outside of a configured external-check script.</li>
+        <li><strong>H3 (medium conf).</strong> A named pipe matching the pattern <code>/tmp/t[ID]_w.pipe</code> is created by a process whose parent is haproxy, consistent with the documented <code>ted_make_pipe_name</code> / <code>ted_create_multi_pipe_file</code> command-relay mechanism.</li>
+        <li><strong>H4 (high conf, perishable).</strong> A host resolves one of the six documented C2 domains. All six were NXDOMAIN as of 2026-09-04, so this is a retrospective/historical-log hunt, not a live-detection control.</li>
+        <li><strong>H5 (medium conf, FP medium).</strong> A cron/at/getty/polkit daemon image makes an outbound network connection directly, which none of these programs do as part of normal operation.</li>
+        <li><strong>H6 (medium conf).</strong> A process executes from one of the documented non-standard artifact paths (<code>/var/lib/snapd/g580</code>, <code>/tmp/jasper-log</code>), consistent with the stager's root-verification / OS-fingerprinting step before dropping the toolkit.</li>
+        <li><strong>H7 (high conf).</strong> A file write occurs at one of the four documented artifact paths (cache file, SSH-keylogger output, stager drop paths).</li>
+        <li><strong>H8 (high conf, requires log ingestion).</strong> HAProxy's own access log records a request for the specific fake image path used to trigger C2 mode. Because the implant is documented to scrub this from HAProxy's live counters and connection logs, this only works against out-of-band-shipped logs (e.g. a syslog/Filebeat forwarder that ships the line before ted can erase it, or an upstream WAF/CDN log that never passed through the compromised HAProxy at all).</li>
+      </ol>
+      <h3>Attack Chain</h3>
+      <table>
+        <tr><th>Step</th><th>Telemetry</th><th>Hunt Angle</th></tr>
+        <tr><td>1. Initial access (assessed, not directly confirmed by Rapid7's public writeup)</td><td>Web/mail server access logs, WAF logs</td><td>Out of scope for this pack; see Gap note in Section 15</td></tr>
+        <tr><td>2. Root-verifying stager profiles host, drops toolkit, verifies root</td><td>Process execution from non-standard paths</td><td>H6 / Q6</td></tr>
+        <tr><td>3. HAProxy binary replaced with ted-compiled build; crond/sshd/agetty/atd/polkitd replaced</td><td>Process execution, file writes, known-bad hash</td><td>H1 / Q1, H7 / Q7</td></tr>
+        <tr><td>4. Indicator removal: crond timestomped to /usr/bin/ssh's creation time; auth.log/audit.log/bash_history keyword-scrubbed</td><td>File metadata, log integrity</td><td>Native hunts, Section 7 (no reliable CQL equivalent)</td></tr>
+        <tr><td>5. Operator sends trigger request for the fake image path; ted enters C2 mode via named pipe</td><td>HAProxy access log (out-of-band), named pipe creation</td><td>H8 / Q8, H3 / Q3</td></tr>
+        <tr><td>6. Operator executes commands, harvests cookies/credentials, selectively rewrites pages for chosen visitors</td><td>Not independently visible to endpoint EDR (in-process HAProxy filter logic)</td><td>GAP: see Section 15</td></tr>
+        <tr><td>7. curlRAT beacons out (12h default / 30s fast-poll) from trojanized daemons; SSH keylogger captures plaintext passwords</td><td>Network connections from daemon images, DNS requests</td><td>H5 / Q5, H4 / Q4</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr>
+        <tr><td>sha256</td><td>72e70936f0dbe459142a1d867617c35f8d0cce5d18c6a49e1090a2a5adc8e558</td><td>high</td><td>detect</td><td>ted backdoor sample; corroborated by 3 independent snapshots</td><td>2027-03-13</td></tr>
+        <tr><td>sha256</td><td>4bb923eb040aa13ca8fd409c31ee4729c60ddff32e350efe1c5a4a9168a065f5</td><td>high</td><td>detect</td><td>ted backdoor sample; corroborated by 2 independent snapshots, matches task-brief intel</td><td>2027-03-13</td></tr>
+        <tr><td>sha256</td><td>94630b96f628c96a6bff7904b40ffc9ad67c86f8a4ff6080c3b524831c93f402</td><td>high</td><td>detect</td><td>ted backdoor sample; corroborated by 2 independent snapshots (Rapid7 direct + GBHackers)</td><td>2027-03-13</td></tr>
+        <tr><td>sha256</td><td>a8bfab4de81a1acb04aacdf757346946b0f5e30f0c9f402004016d0e425119c7</td><td>low</td><td>hunt</td><td>single-source (GBHackers only); ship as hunt-only, not auto-block, until corroborated</td><td>2026-12-13</td></tr>
+        <tr><td>sha256</td><td>5db1b6d52faf60b4f32d6fd0c7c938e4d05d29a14c32ded4a9668357c08b6a91</td><td>low</td><td>hunt</td><td>single-source (hendryadrian mirror only); ship as hunt-only, not auto-block, until corroborated</td><td>2026-12-13</td></tr>
+        <tr><td>domain</td><td>img.monderhouse.space</td><td>medium</td><td>hunt</td><td>ted C2; NXDOMAIN as of 2026-09-04, retrospective log value only</td><td>2026-12-13</td></tr>
+        <tr><td>domain</td><td>img.smartnords.site</td><td>medium</td><td>hunt</td><td>ted C2; NXDOMAIN as of 2026-09-04, retrospective log value only</td><td>2026-12-13</td></tr>
+        <tr><td>domain</td><td>img.darklights.store</td><td>medium</td><td>hunt</td><td>ted C2; NXDOMAIN as of 2026-09-04, retrospective log value only</td><td>2026-12-13</td></tr>
+        <tr><td>domain</td><td>img.responsive.pstatic.autos</td><td>medium</td><td>hunt</td><td>ted C2; NXDOMAIN as of 2026-09-04, retrospective log value only</td><td>2026-12-13</td></tr>
+        <tr><td>domain</td><td>img.socialteams.store</td><td>medium</td><td>hunt</td><td>ted C2; NXDOMAIN as of 2026-09-04, retrospective log value only</td><td>2026-12-13</td></tr>
+        <tr><td>domain</td><td>img.worksongo.store</td><td>medium</td><td>hunt</td><td>ted C2; NXDOMAIN as of 2026-09-04, retrospective log value only</td><td>2026-12-13</td></tr>
+        <tr><td>filename</td><td>~/cache/haproxy-1000.cache</td><td>high</td><td>hunt</td><td>ted configuration cache file</td><td>2026-12-13</td></tr>
+        <tr><td>filename</td><td>/var/lib/sshd/c8c68e629bba773a10ac80012d10bf19</td><td>high</td><td>hunt</td><td>SSH keylogger encrypted credential output</td><td>2026-12-13</td></tr>
+        <tr><td>filename</td><td>/var/lib/snapd/g580</td><td>high</td><td>hunt</td><td>stager / toolkit drop artifact</td><td>2026-12-13</td></tr>
+        <tr><td>filename</td><td>/tmp/jasper-log</td><td>high</td><td>hunt</td><td>toolkit artifact / HAProxy cache reference</td><td>2026-12-13</td></tr>
+        <tr><td>url</td><td>/favorite_list_2x_m500_ico.jpg</td><td>high</td><td>hunt</td><td>C2 activation trigger endpoint; requires HAProxy access-log ingestion to see, since ted scrubs it from live counters/logs</td><td>2026-12-13</td></tr>
+        <tr><td>pattern</td><td>/tmp/t[ID]_w.pipe (e.g. /tmp/t4471_w.pipe)</td><td>medium</td><td>hunt</td><td>named-pipe command-relay naming convention (ted_make_pipe_name / ted_create_multi_pipe_file); [ID] varies per connection, not an exact-match indicator</td><td>2026-12-13</td></tr>
+        <tr><td>behavioral</td><td>haproxy, crond, sshd, agetty, atd, polkitd binaries replaced/trojanized</td><td>high</td><td>hunt</td><td>persistence mechanism across six system binaries</td><td>2026-12-13</td></tr>
+      </table>
+      <p class="callout callout-warn">The named-pipe pattern is not shipped in the machine-readable IOC appendix (Section 10) as an exact-match value because <code>[ID]</code> varies per HAProxy connection; it is hunted via a wildcard query (Q3) instead of an import-ready atomic indicator.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr>
+        <tr><td>Internet-facing HAProxy / load-balancer hosts</td><td>Falcon Linux sensor (process, file, network) + HAProxy access/error logs ingested to NGSIEM</td><td>Critical</td><td>High: the implant erases its own traces from HAProxy's own logs and connection counters, so log-only monitoring is blind to the C2 channel itself</td></tr>
+        <tr><td>System daemons (crond, sshd, agetty, atd, polkitd)</td><td>Falcon Linux sensor process + file-write telemetry</td><td>Critical</td><td>Medium: detection depends on known-bad hash or a file-integrity baseline; a newly recompiled sample defeats hash-only detection</td></tr>
+        <tr><td>DNS resolution / egress</td><td>DNS request telemetry, egress firewall/proxy logs</td><td>High</td><td>Medium: the known C2 domains are NXDOMAIN as of 2026-09-04; live value is retrohunt only, not real-time blocking</td></tr>
+        <tr><td>SSH authentication</td><td>Falcon Linux sensor UserLogon/UserLogoff, auth.log via NGSIEM</td><td>High</td><td>High: the trojanized sshd captures credentials at the application layer, below where normal auth-success/failure logging would show anything unusual</td></tr>
+        <tr><td>Root filesystem / binary integrity</td><td>File-integrity monitoring (AIDE) or package-manager verification baseline</td><td>High</td><td>Medium: most Linux estates do not run FIM by default; without a pre-established baseline, integrity checks have nothing to compare against</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tactic</th><th>Technique ID</th><th>Technique Name</th><th>Observed Behavior</th></tr>
+        <tr><td>Initial Access</td><td>T1190</td><td>Exploit Public-Facing Application</td><td>Rapid7 assesses (not independently confirmed in the public writeup) likely initial entry via an externally accessible Groupware or mail portal; treated here as an operational assumption, not a confirmed fact</td></tr>
+        <tr><td>Persistence / Defense Evasion</td><td>T1554</td><td>Compromise Client Software Binary</td><td>HAProxy, crond, sshd, agetty, atd, and polkitd binaries replaced with trojanized builds that retain original functionality</td></tr>
+        <tr><td>Defense Evasion</td><td>T1070.006</td><td>Indicator Removal: Timestomp</td><td>Trojanized crond binary given the same creation timestamp as /usr/bin/ssh</td></tr>
+        <tr><td>Defense Evasion</td><td>T1070.002</td><td>Indicator Removal: Clear Linux or Mac System Logs</td><td>Keywords tmp, wget, cron, crond stripped from /var/log/messages, audit/audit.log, cmd.log, secure, syslog, auth.log</td></tr>
+        <tr><td>Defense Evasion</td><td>T1070.003</td><td>Indicator Removal: Clear Command History</td><td>Same keyword set stripped from /root/.bash_history</td></tr>
+        <tr><td>Defense Evasion</td><td>T1027</td><td>Obfuscated Files or Information</td><td>Ted configuration protected with chained XOR plus a monoalphabetic substitution cipher; C2 traffic uses feedback XOR with Base64 encoding</td></tr>
+        <tr><td>Credential Access</td><td>T1556</td><td>Modify Authentication Process</td><td>Trojanized sshd captures plaintext passwords at authentication time, encrypts them with a custom substitution cipher, and writes them to a fixed path</td></tr>
+        <tr><td>Command and Control</td><td>T1071.001</td><td>Application Layer Protocol: Web Protocols</td><td>C2 responses disguised as standard HTTP/1.0 200 OK traffic; curlRAT beacons every 12 hours by default, or every 30 seconds in operator-enabled fast-poll mode</td></tr>
+        <tr><td>Command and Control</td><td>T1205</td><td>Traffic Signaling</td><td>A request for a specific non-existent image path (/favorite_list_2x_m500_ico.jpg) silently switches the HAProxy filter into C2 mode</td></tr>
+        <tr><td>Collection</td><td>T1557</td><td>Adversary-in-the-Middle</td><td>Ted hooks HAProxy's HTTP parsing to inspect decrypted traffic before it reaches backend services, harvesting cookies, headers, and selectively injecting or swapping page content for chosen visitors</td></tr>
+        <tr><td>Discovery</td><td>T1082</td><td>System Information Discovery</td><td>Stager profiles hostname, OS distribution, and version before installing the toolkit, and verifies root privileges first</td></tr>
+        <tr><td>Defense Evasion</td><td>T1497.001</td><td>Virtualization/Sandbox Evasion: System Checks</td><td>curlRAT checks for virtualization signatures and refuses to run if it does not find them, consistent with confirming deployment onto the intended cloud/VM-hosted production host rather than a bare-metal analysis environment (the inverse of the more common sandbox-evasion direction)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+      <p>These checks have no reliable CQL equivalent (file birth-time comparison and log-content-gap detection are not standard EDR event fields) and are run directly on the host or via auditd.</p>
+      <h3>1. Timestomp check: crond birth time vs. /usr/bin/ssh</h3>
+      <pre class="code">stat --format='%W %n' /usr/sbin/crond /usr/bin/ssh 2&gt;/dev/null
+# Note: %W (birth/creation time) returns 0 on filesystems/tools that do not expose
+# it. Where that happens, use a forensic tool that reads the statx btime field, or
+# debugfs -R 'stat &lt;inode&gt;' /dev/&lt;device&gt; on ext4. Flag any host where crond's
+# birth time exactly equals ssh's birth time to the second.</pre>
+      <h3>2. Log / history tamper detection via auditctl</h3>
+      <pre class="code">auditctl -w /root/.bash_history -p wa -k ted_history_tamper
+auditctl -w /var/log/auth.log -p wa -k ted_log_tamper
+auditctl -w /var/log/audit/audit.log -p wa -k ted_log_tamper
+# Alert on any write to these paths from a process other than the expected
+# logging daemon (rsyslogd, auditd itself, or the shell's own history-append).</pre>
+      <h3>3. Root-verifying stager / OS-fingerprint sequence</h3>
+      <p>Look for a short-lived process reading <code>/etc/os-release</code>, <code>hostname</code>, and CPU/hypervisor identification (<code>/proc/cpuinfo</code>, <code>dmidecode</code>, <code>systemd-detect-virt</code>) in quick succession, immediately followed by a new file write to <code>/var/lib/snapd/g580</code> or <code>/tmp/jasper-log</code>. See Q6/Q7 in Section 8 for the EDR-side correlation of the resulting artifacts.</p>
+      <h3>4. Live named-pipe enumeration</h3>
+      <pre class="code">find /tmp -type p -name 't*_w.pipe' -newer /var/log/wtmp
+# Any FIFO matching this naming convention under /tmp is worth immediate
+# investigation regardless of age; the -newer filter is a triage convenience,
+# not a requirement.</pre>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives &quot;Open in Falcon&quot;):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first: every "Open in Falcon" button below uses this selection.</span>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 &middot; Known-Bad Hash Execution: Trojanized System Daemon</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> execution of haproxy, crond, sshd, agetty, atd, or polkitd whose SHA-256 matches a documented ted/curlRAT sample. <strong>FP:</strong> effectively none: an exact hash match on these binary names is not expected to occur benignly.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Known-bad hash execution -- trojanized system daemon</span>
+<span class="cm">// MITRE: T1554</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor process telemetry (ProcessRollup2 / SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none expected -- these are exact hash matches on named samples</span>
+<span class="cm">// LOOKBACK: 30d -- set the window with the Falcon time picker</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(haproxy|crond|sshd|agetty|atd|polkitd)$/i
+| in(SHA256HashData, values=["72e70936f0dbe459142a1d867617c35f8d0cce5d18c6a49e1090a2a5adc8e558","4bb923eb040aa13ca8fd409c31ee4729c60ddff32e350efe1c5a4a9168a065f5","94630b96f628c96a6bff7904b40ffc9ad67c86f8a4ff6080c3b524831c93f402","a8bfab4de81a1acb04aacdf757346946b0f5e30f0c9f402004016d0e425119c7","5db1b6d52faf60b4f32d6fd0c7c938e4d05d29a14c32ded4a9668357c08b6a91"])
+| table([@timestamp, aid, ComputerName, FileName, ImageFileName, SHA256HashData, UserName, CommandLine])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 &middot; HAProxy Spawning Shell or Network Utility</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a shell or common network/scripting tool spawned directly by haproxy, which a load balancer has no routine reason to do. <strong>FP:</strong> environments with a configured HAProxy <code>external-check</code> command, or a health-check wrapper script that legitimately shells out, will trigger this.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: HAProxy process spawning shell or network utility</span>
+<span class="cm">// MITRE: T1557, T1071.001</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor process telemetry with parent/child lineage</span>
+<span class="cm">// FALSE POSITIVES: configured HAProxy external-check commands or health-check wrapper scripts that shell out legitimately</span>
+<span class="cm">// TUNING: exclude known-good external-check CommandLine patterns (e.g. your specific health-check script path) by name before promoting this to a blocking Custom IOA</span>
+<span class="cm">// LOOKBACK: 14d -- set the window with the Falcon time picker</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^haproxy$/i
+| FileName=/^(sh|bash|dash|curl|wget|nc|ncat|socat|python3?|perl|busybox)$/i
+| table([@timestamp, aid, ComputerName, ParentBaseFileName, FileName, ImageFileName, CommandLine, UserName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 &middot; Named-Pipe Command-Relay Pattern (ted C2 channel)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a named pipe matching ted's documented <code>/tmp/t[ID]_w.pipe</code> naming convention, opened by a process whose parent is haproxy. <strong>FP:</strong> low; this naming pattern is not a standard Linux or HAProxy convention. <span class="badge b-info">&#9888; Event coverage unverified: validate FIFO/pipe visibility in your tenant</span> Falcon's capture of raw <code>mkfifo()</code> calls on Linux is not independently confirmed against the vendor data dictionary for this pack; treat this as a starting point and confirm against a live tenant before relying on it alone.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Named pipe command-relay pattern consistent with ted backdoor</span>
+<span class="cm">// MITRE: T1071.001, T1205</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux file-open telemetry (FileOpenInfo) -- Field/event unverified, validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: none expected from this naming pattern under normal HAProxy operation</span>
+<span class="cm">// LOOKBACK: 14d -- set the window with the Falcon time picker</span>
+#event_simpleName=/FileOpenInfo/
+| ParentBaseFileName=/^haproxy$/i
+| TargetFileName = "*/tmp/t*_w.pipe"
+| table([@timestamp, aid, ComputerName, ParentBaseFileName, TargetFileName, UserName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 &middot; DNS Resolution to Known ted/curlRAT C2 Domains (retrohunt)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any historical DNS request to the six documented C2 domains. <strong>FP:</strong> none expected: these are campaign-specific subdomains. <strong>Coverage note:</strong> all six domains were confirmed NXDOMAIN as of 2026-09-04, so this query has retrospective/historical value only and will not catch a live, ongoing beacon against current infrastructure.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: DNS resolution to known ted/curlRAT C2 domains (retrohunt)</span>
+<span class="cm">// MITRE: T1071.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor DNS telemetry (DnsRequest)</span>
+<span class="cm">// FALSE POSITIVES: none expected; these are campaign-specific subdomains</span>
+<span class="cm">// LOOKBACK: 90d -- set the window with the Falcon time picker; domains are NXDOMAIN as of 2026-09-04, so this is historical-log value only</span>
+#event_simpleName=/DnsRequest/
+| DomainName=/^img\.(monderhouse\.space|smartnords\.site|darklights\.store|responsive\.pstatic\.autos|socialteams\.store|worksongo\.store)$/i
+| table([@timestamp, aid, ComputerName, DomainName, ContextBaseFileName, UserName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 &middot; Outbound Network Connection Initiated by a Cron/AT/Getty/Polkit Daemon Image</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the daemon image itself (not a child it forked) making a direct outbound connection, consistent with curlRAT's beacon riding inside a trojanized crond/atd/agetty/polkitd. <strong>FP:</strong> some environments configure cron-triggered mail notification (sendmail) or polkit-adjacent directory/LDAP lookups that could appear similar.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Outbound connection initiated directly by cron/at/getty/polkit daemon image</span>
+<span class="cm">// MITRE: T1071.001, T1554</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor network telemetry (NetworkConnectIP4 / NetworkConnectIP6)</span>
+<span class="cm">// FALSE POSITIVES: cron-triggered mail notifications (sendmail) or polkitd directory/LDAP lookups in some environments</span>
+<span class="cm">// TUNING: exclude RemoteAddressIP4 values that resolve to your internal mail relay or directory/LDAP servers before treating a hit as C2</span>
+<span class="cm">// LOOKBACK: 14d -- set the window with the Falcon time picker</span>
+#event_simpleName=/NetworkConnectIP4|NetworkConnectIP6/
+| ContextBaseFileName=/^(crond|atd|agetty|polkitd)$/i
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, UserName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 &middot; Process Execution From Documented Stager Artifact Paths</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any process executing from the two documented non-standard drop paths. <strong>FP:</strong> low: these are not standard executable locations for any legitimate package.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Process execution from documented ted/curlRAT stager artifact paths</span>
+<span class="cm">// MITRE: T1082, T1497.001, T1554</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor process telemetry (ProcessRollup2 / SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none expected; these paths are not standard executable locations</span>
+<span class="cm">// LOOKBACK: 30d -- set the window with the Falcon time picker</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (ImageFileName = "*/var/lib/snapd/g580" or ImageFileName = "*/tmp/jasper-log")
+| table([@timestamp, aid, ComputerName, ImageFileName, CommandLine, UserName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 &middot; File Write at Documented ted/curlRAT Artifact Paths</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> creation of any of the four documented artifact files (config cache, SSH-keylogger output, stager drops). <strong>FP:</strong> none expected; these are highly specific, non-standard paths.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: File write at documented ted/curlRAT artifact paths</span>
+<span class="cm">// MITRE: T1554, T1556</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor file-write telemetry (NewExecutableWritten / ELFFileWritten / FileOpenInfo)</span>
+<span class="cm">// FALSE POSITIVES: none expected; these are highly specific non-standard paths</span>
+<span class="cm">// LOOKBACK: 30d -- set the window with the Falcon time picker</span>
+#event_simpleName=/NewExecutableWritten|ELFFileWritten|FileOpenInfo/
+| (TargetFileName = "*/cache/haproxy-1000.cache" or TargetFileName = "*/var/lib/sshd/c8c68e629bba773a10ac80012d10bf19" or TargetFileName = "*/var/lib/snapd/g580" or TargetFileName = "*/tmp/jasper-log")
+| table([@timestamp, aid, ComputerName, TargetFileName, ContextBaseFileName, UserName])</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q8 &middot; HAProxy Access Log Request for the ted C2 Trigger Endpoint (log source, not endpoint sensor)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a request for the specific fake image path that switches ted into C2 mode. <strong>FP:</strong> none expected: this is not a real asset path on any legitimate site. <strong>Coverage note:</strong> this only works against logs shipped out-of-band (e.g. a forwarder that ships the access-log line before ted can scrub it, or an upstream WAF/CDN that never passed through the compromised HAProxy). If the only log source is the compromised HAProxy's own live output, this query will typically return nothing, by design of the implant. Field names below are illustrative for a generic parsed-access-log schema; adjust to match your actual ingested field names.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: HAProxy access log request for ted C2 trigger endpoint</span>
+<span class="cm">// MITRE: T1205, T1071.001</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: HAProxy access logs ingested into Falcon Next-Gen SIEM via a log connector (NOT Falcon endpoint sensor telemetry) -- Field unverified, validate in tenant against your parser's actual field names</span>
+<span class="cm">// FALSE POSITIVES: none expected; this is not a real asset path</span>
+<span class="cm">// LOOKBACK: 90d -- set the window with the Falcon time picker</span>
+#repo = "haproxy_access_logs"
+| url = "*/favorite_list_2x_m500_ico.jpg*"
+| table([@timestamp, client_ip, http_user_agent, http_referer, url, status])</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>IOA Candidate</th><th>Source Query</th><th>Pattern</th><th>Exclusions</th><th>Deployment Path</th></tr>
+        <tr><td>Known-bad hash execution: system daemon</td><td>Q1</td><td>FileName matches system-daemon basenames AND SHA256HashData in known-bad set</td><td>None known</td><td>Promote directly to a Custom IOA in prevention mode; low FP, high specificity</td></tr>
+        <tr><td>Process execution from stager artifact paths</td><td>Q6</td><td>ImageFileName under /var/lib/snapd/g580 or /tmp/jasper-log</td><td>None known</td><td>Promote to detect-mode Custom IOA; monitor for 2 weeks before considering prevent-mode</td></tr>
+        <tr><td>File write at artifact paths</td><td>Q7</td><td>New executable/file write matching the four documented paths</td><td>None known</td><td>Promote to detect-mode Custom IOA</td></tr>
+        <tr><td>HAProxy spawning shell/network tool</td><td>Q2</td><td>ParentBaseFileName=haproxy AND FileName in shell/net-tool set</td><td>Configured external-check / health-check wrapper scripts: allowlist by CommandLine before promoting</td><td>Keep as investigate-only hunt query until the environment's legitimate external-check commands are enumerated and excluded</td></tr>
+        <tr><td>Daemon-initiated outbound connection</td><td>Q5</td><td>ContextBaseFileName in cron/at/getty/polkit set making a network connection</td><td>Internal mail relay / directory-LDAP destinations</td><td>Investigate-only; FP profile needs a baseline period per environment before any promotion</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,72e70936f0dbe459142a1d867617c35f8d0cce5d18c6a49e1090a2a5adc8e558,detect,critical,2027-03-13,ted backdoor sample,campaign:Ted-HAProxy
+sha256,4bb923eb040aa13ca8fd409c31ee4729c60ddff32e350efe1c5a4a9168a065f5,detect,critical,2027-03-13,ted backdoor sample,campaign:Ted-HAProxy
+sha256,94630b96f628c96a6bff7904b40ffc9ad67c86f8a4ff6080c3b524831c93f402,detect,critical,2027-03-13,ted backdoor sample,campaign:Ted-HAProxy
+sha256,a8bfab4de81a1acb04aacdf757346946b0f5e30f0c9f402004016d0e425119c7,hunt,high,2026-12-13,ted backdoor sample -- single-source (GBHackers),campaign:Ted-HAProxy
+sha256,5db1b6d52faf60b4f32d6fd0c7c938e4d05d29a14c32ded4a9668357c08b6a91,hunt,high,2026-12-13,ted backdoor sample -- single-source (hendryadrian mirror),campaign:Ted-HAProxy
+domain,img.monderhouse.space,hunt,medium,2026-12-13,ted C2 -- NXDOMAIN as of 2026-09-04,campaign:Ted-HAProxy
+domain,img.smartnords.site,hunt,medium,2026-12-13,ted C2 -- NXDOMAIN as of 2026-09-04,campaign:Ted-HAProxy
+domain,img.darklights.store,hunt,medium,2026-12-13,ted C2 -- NXDOMAIN as of 2026-09-04,campaign:Ted-HAProxy
+domain,img.responsive.pstatic.autos,hunt,medium,2026-12-13,ted C2 -- NXDOMAIN as of 2026-09-04,campaign:Ted-HAProxy
+domain,img.socialteams.store,hunt,medium,2026-12-13,ted C2 -- NXDOMAIN as of 2026-09-04,campaign:Ted-HAProxy
+domain,img.worksongo.store,hunt,medium,2026-12-13,ted C2 -- NXDOMAIN as of 2026-09-04,campaign:Ted-HAProxy
+filename,~/cache/haproxy-1000.cache,hunt,high,2026-12-13,ted configuration cache file,campaign:Ted-HAProxy
+filename,/var/lib/sshd/c8c68e629bba773a10ac80012d10bf19,hunt,high,2026-12-13,SSH keylogger encrypted output,campaign:Ted-HAProxy
+filename,/var/lib/snapd/g580,hunt,high,2026-12-13,stager drop artifact,campaign:Ted-HAProxy
+filename,/tmp/jasper-log,hunt,high,2026-12-13,toolkit artifact,campaign:Ted-HAProxy
+url,/favorite_list_2x_m500_ico.jpg,hunt,high,2026-12-13,C2 activation trigger endpoint,campaign:Ted-HAProxy</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt heuristics</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behavioral',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behavioral"># Not atomic indicators -- behavioral patterns to hunt, see Section 8 for full CQL
+haproxy parent process spawning: sh, bash, dash, curl, wget, nc, ncat, socat, python, perl, busybox
+named pipe pattern under /tmp: t[ID]_w.pipe  (e.g. /tmp/t4471_w.pipe)
+cron/at/getty/polkit daemon image initiating outbound network connection directly
+process executing from: /var/lib/snapd/g580, /tmp/jasper-log
+crond binary creation timestamp exactly matching /usr/bin/ssh creation timestamp</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">attribution context</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-tooling',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-tooling">ted backdoor      -- custom HAProxy filter-API plugin, compiled into HAProxy 2.8.12
+curlRAT           -- companion RAT embedded in trojanized crond/atd/agetty/polkitd
+SSH keylogger     -- trojanized sshd, plaintext password capture, substitution-cipher encrypted
+Attribution: medium confidence, DPRK state-sponsored
+  Clusters cited: APT37 (aka Ricochet Chollima), Lazarus Group, Kimsuky
+  Basis: South Korean targeting, XOR/substitution cipher usage, APT37-linked infra,
+  watering-hole delivery pattern; Rapid7 explicitly states further evidence is
+  needed for a stronger linkage (ngx_* routine naming overlap with a Funnull/nginx
+  backdoor is noted but not treated as significant code-level overlap)</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Binary Integrity / Egress Audit Checklist</span><span class="igc">host verification</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit"># Run on every host running HAProxy or any of: crond, sshd, agetty, atd, polkitd
+debsums -c haproxy openssh-server cron util-linux polkitd   # Debian/Ubuntu
+rpm -V haproxy openssh-server cronie util-linux polkit       # RHEL/CentOS/Rocky
+sha256sum /usr/sbin/haproxy /usr/sbin/crond /usr/sbin/sshd /sbin/agetty /usr/sbin/atd /usr/lib/polkit-1/polkitd
+stat --format='%W %n' /usr/sbin/crond /usr/bin/ssh
+find /tmp -type p -name 't*_w.pipe'</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Gate</th><th>Requirement</th><th>Status Guidance</th></tr>
+        <tr><td>Telemetry ready</td><td>Falcon Linux sensor deployed and reporting ProcessRollup2, file-write, network, and DNS events on every HAProxy and system-daemon host in scope</td><td>Confirm sensor coverage before trusting a zero-hit result on Q1/Q2/Q6/Q7</td></tr>
+        <tr><td>Benign baseline</td><td>Run Q2 and Q5 for at least 14 days in investigate-only mode to characterize normal external-check and cron-notification behavior in this environment</td><td>Do not promote to prevention mode until the exclusion list in Section 9 is populated from real baseline data</td></tr>
+        <tr><td>Positive test</td><td>Confirm Q1 fires against a deliberately-labeled test file carrying one of the known-bad hashes in a lab/sandbox host (never on production)</td><td>Validates the query actually executes and the hash comparison syntax is correct in your tenant</td></tr>
+        <tr><td>Promotion criteria</td><td>Zero false positives over the baseline period for Q1, Q6, Q7 before enabling prevention mode; Q2 and Q5 remain investigate-only until an environment-specific exclusion list exists</td><td>See Section 9 for per-query promotion guidance</td></tr>
+      </table>
+      <p>See Section 15 for the full Detection Coverage Map, including attack-chain steps this pack does <strong>not</strong> cover.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <p><strong>1. Verify binary integrity of HAProxy and the five system daemons</strong> against package-manager checksums (M1022 Restrict File and Directory Permissions, M1047 Audit). Authority: CIS Distribution Independent Linux Benchmark, "Filesystem Integrity Checking" control family; DISA Red Hat Enterprise Linux STIG, file-integrity verification requirements. Run <code>debsums -c</code> / <code>rpm -V</code> across the fleet (see Section 10 audit checklist). Read-only check, no deployment risk.</p>
+        <p><strong>2. Capture a SHA-256 baseline</strong> of the live haproxy/crond/sshd/agetty/atd/polkitd binaries on every host, stored off-host, so any future silent replacement is detectable (M1047 Audit). Authority: CIS Controls v8, Control 4 (Secure Configuration of Enterprise Assets and Software).</p>
+        <p><strong>3. Rotate every credential that has ever authenticated over SSH</strong> to a HAProxy or edge host in scope, given the documented plaintext-password-capture capability (M1026 Privileged Account Management, M1032 Multi-factor Authentication). Authority: NIST SP 800-63B, credential-compromise response guidance. Treat this as containment, not a config change: see Section 14.</p>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1&ndash;4 weeks)</div>
+        <p><strong>1. Enforce SSH key-only authentication</strong> and disable password auth on all HAProxy/edge hosts (M1043 Credential Access Protection analog for Linux: PasswordAuthentication no). Authority: CIS Distribution Independent Linux Benchmark, "Ensure SSH PasswordAuthentication is disabled"; DISA Red Hat Enterprise Linux STIG, SSH daemon authentication requirements; OpenSSH <code>sshd_config</code> vendor documentation. This directly closes the credential-capture path documented in this campaign, since a trojanized sshd cannot harvest a plaintext password that is never sent.</p>
+        <p><strong>2. Deploy file-integrity monitoring (AIDE)</strong> against the six critical binaries and their containing directories, alerting on any change outside a change-managed maintenance window (M1047 Audit). Authority: CIS Distribution Independent Linux Benchmark, "Ensure AIDE is installed" and "Ensure filesystem integrity is regularly checked".</p>
+        <p><strong>3. Forward logs off-host in near-real-time</strong> (syslog/Filebeat to a central, append-only sink) so on-host log and history scrubbing cannot erase the record before it is captured (M1029 Remote Data Storage, M1047 Audit). Authority: NIST SP 800-92, Guide to Computer Security Log Management; CIS Distribution Independent Linux Benchmark, "Ensure rsyslog is configured to send logs to a remote log host".</p>
+        <p><strong>4. Enforce egress filtering</strong> on edge/load-balancer hosts, default-deny outbound except to explicitly allowlisted backend/management/DNS destinations (M1037 Filter Network Traffic). Authority: NIST SP 800-41 Rev. 1, Guidelines on Firewalls and Firewall Policy; CIS Controls v8, Control 13 (Network Monitoring and Defense). This directly breaks curlRAT's beacon and any DNS lookup to C2 infrastructure.</p>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1&ndash;3 months)</div>
+        <p><strong>1. Move to an immutable/read-only-root or golden-image redeploy model</strong> for edge load balancers (e.g. a containerized HAProxy pulled from a signed internal registry on every deploy, rather than a long-lived host with an in-place binary) (M1022, M1046 Boot Integrity analog). Authority: CIS Controls v8, Control 4 (Secure Configuration of Enterprise Assets and Software); CIS Docker Benchmark, image-provenance controls where HAProxy is containerized.</p>
+        <p><strong>2. Network-segment edge/DMZ load balancers</strong> from general server egress and from direct SSH management-plane exposure, requiring a bastion/jump host for administrative access (M1030 Network Segmentation, M1035 Limit Access to Resource Over Network). Authority: CIS Controls v8, Control 12 (Network Infrastructure Management); NIST SP 800-207, Zero Trust Architecture, management-plane isolation guidance.</p>
+        <p><strong>3. Establish a build-provenance program</strong> for any internally compiled HAProxy (reproducible builds, binary provenance attestation) so a compile-time trojanization of the kind documented here is independently verifiable against a known-good build artifact (M1045 Code Signing, M1051 Update Software). Authority: NIST SP 800-218, Secure Software Development Framework (SSDF), practices PS.2 and PS.3; SLSA build-provenance levels.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h3>Playbook A: Binary Integrity Verification &amp; Baseline (Immediate)</h3>
+      <pre class="code"># Step 1: verify installed package integrity
+# Debian/Ubuntu:
+debsums -c haproxy openssh-server cron util-linux polkitd 2&gt;&amp;1 | tee /var/log/ted-hunt-debsums.log
+# RHEL/CentOS/Rocky:
+rpm -V haproxy openssh-server cronie util-linux polkit | tee /var/log/ted-hunt-rpmverify.log
+
+# Step 2: capture current binary hashes for the ongoing baseline
+sha256sum /usr/sbin/haproxy /usr/sbin/crond /usr/sbin/sshd /sbin/agetty /usr/sbin/atd /usr/lib/polkit-1/polkitd > /var/log/ted-hunt-binary-hashes.txt</pre>
+      <p><strong>Prerequisites:</strong> debsums or rpm package installed; read access to the package database and the listed binary paths (paths vary by distro: adjust to your layout before running at scale). <strong>Reboot required:</strong> none. <strong>Rollback:</strong> none required: this is a read-only verification and reporting step.</p>
+
+      <h3>Playbook B: Egress Filtering for Edge/Load-Balancer Hosts (Immediate/Near term)</h3>
+      <pre class="code">nft add table inet ted_hunt_egress
+nft add chain inet ted_hunt_egress output { type filter hook output priority 0 \; policy drop \; }
+nft add rule inet ted_hunt_egress output ct state established,related accept
+nft add rule inet ted_hunt_egress output ip daddr { REPLACE_WITH_BACKEND_CIDR, REPLACE_WITH_MGMT_CIDR } accept
+nft add rule inet ted_hunt_egress output udp dport 53 ip daddr REPLACE_WITH_INTERNAL_DNS accept</pre>
+      <p><strong>Prerequisites:</strong> nftables installed; a validated list of legitimate backend/management/DNS destinations for this specific host populated into the REPLACE_WITH_ placeholders before deploying: wrong values will break production load balancing. <strong>Reboot required:</strong> no; rules apply immediately. Persist across reboot with <code>nft list ruleset &gt; /etc/nftables.conf</code> and enable the nftables service. <strong>Rollback:</strong> <code>nft delete table inet ted_hunt_egress</code> removes the entire policy immediately.</p>
+
+      <h3>Playbook C: SSH Hardening: Disable Password Authentication (Near term)</h3>
+      <pre class="code"># /etc/ssh/sshd_config.d/99-ted-hunt-hardening.conf
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+
+# Apply:
+sshd -t &amp;&amp; systemctl reload sshd</pre>
+      <p><strong>Prerequisites:</strong> key-based access already provisioned and tested for every admin and service account that needs to reach this host, before disabling password auth: otherwise you will lock yourself out. <strong>Reboot required:</strong> no; an sshd reload is sufficient. <strong>Rollback:</strong> remove <code>/etc/ssh/sshd_config.d/99-ted-hunt-hardening.conf</code> and run <code>systemctl reload sshd</code>.</p>
+
+      <h3>Playbook D: File Integrity Monitoring via AIDE (Near term)</h3>
+      <pre class="code">apt-get install -y aide   # or: yum install -y aide
+aideinit
+mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+echo "0 */6 * * * root /usr/bin/aide --check | /usr/bin/mail -s 'AIDE report' REPLACE_WITH_SOC_MAILBOX" > /etc/cron.d/ted-hunt-aide</pre>
+      <p><strong>Prerequisites:</strong> the baseline must be captured from a host already verified clean via Playbook A before trusting the AIDE database as a source of truth. <strong>Reboot required:</strong> no. <strong>Rollback:</strong> <code>rm /etc/cron.d/ted-hunt-aide</code> stops scheduled checks immediately; removing the aide package itself is optional and non-disruptive.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence to Preserve</th></tr>
+        <tr><td>1. Isolate</td><td>Network-isolate the affected load balancer(s) via Falcon host containment or an out-of-band edge firewall rule (block all traffic except forensic/management access). Pull the host out of DNS/VIP rotation in favor of a known-clean standby.</td><td>IR lead + Network team</td><td>Memory image of the HAProxy process (e.g. LiME), current iptables/nftables rules, running process list, open files (lsof): captured before any shutdown</td></tr>
+        <tr><td>2. Eradicate</td><td>Rebuild the host from a trusted golden image or verified-clean package repository rather than attempting in-place remediation: the implant is compiled into the binary and process memory, so in-place cleaning cannot be trusted. Rotate every credential that ever authenticated over SSH to the host. Reset any session/auth cookies the load balancer could have harvested for downstream applications.</td><td>IR lead + System owners</td><td>Copy of the trojanized binaries and any recovered artifact files (Section 4) before wipe, for further analysis</td></tr>
+        <tr><td>3. Recover</td><td>Redeploy HAProxy from the verified-clean build pipeline (Playbook A / Strategic tier). Re-enable in DNS/VIP rotation only after the FIM baseline (Playbook D) is clean and egress filtering (Playbook B) is enforced. Add the host to enhanced monitoring for 30 days post-recovery.</td><td>System owners + SOC</td><td>Post-recovery binary hashes and AIDE baseline, filed alongside the pre-incident baseline for comparison</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr>
+        <tr><td>T1554</td><td>Trojanized haproxy/crond/sshd/agetty/atd/polkitd binaries</td><td>Q1, Q6, Q7</td><td>Q1, Q6, Q7 candidates</td><td><span class="badge b-low">Good</span> for known samples; a newly recompiled build defeats hash-only detection</td></tr>
+        <tr><td>T1557</td><td>In-process HAProxy filter interception, header/content manipulation, cookie harvesting</td><td>None</td><td>None</td><td><span class="badge b-high">GAP</span>: not visible to endpoint EDR telemetry; requires network capture, memory forensics, or HAProxy-external traffic comparison</td></tr>
+        <tr><td>T1070.006 (timestomp)</td><td>crond timestomped to /usr/bin/ssh's creation time</td><td>Native hunt only (Section 7)</td><td>None</td><td><span class="badge b-med">Partial</span>: detectable only via direct host inspection, no streaming EDR event for file birth-time comparison</td></tr>
+        <tr><td>T1070.002 / T1070.003 (log &amp; history scrubbing)</td><td>Keyword stripping from auth.log/audit.log/bash_history</td><td>Native hunt only (Section 7)</td><td>None</td><td><span class="badge b-med">Partial</span>: requires off-host log forwarding or auditctl watch rules; on-host-only logging is exactly what the implant defeats</td></tr>
+        <tr><td>T1556</td><td>Trojanized sshd captures plaintext passwords</td><td>Q1 (hash-based), Q7 (keylog artifact path)</td><td>Q1, Q7 candidates</td><td><span class="badge b-med">Partial</span>: a new sshd sample with a different hash and a different output path would evade both queries</td></tr>
+        <tr><td>T1071.001 / T1205</td><td>C2 channel disguised as HTTP/1.0, hidden trigger endpoint, curlRAT beacon</td><td>Q4, Q5, Q8</td><td>None promoted</td><td><span class="badge b-med">Partial</span>: Q4's domains are dead (NXDOMAIN), Q8 requires log ingestion that bypasses the implant's own scrubbing; live beacon interval alone (12h/30s) is not independently queryable without a network baseline</td></tr>
+        <tr><td>T1497.001</td><td>curlRAT virtualization check / conditional execution</td><td>None</td><td>None</td><td><span class="badge b-high">GAP</span>: not visible to process/network telemetry; would require behavioral or memory analysis of the RAT binary itself</td></tr>
+        <tr><td>T1082</td><td>Stager profiles hostname/OS/root before install</td><td>Q6 (post-hoc artifact only)</td><td>Q6 candidate</td><td><span class="badge b-med">Partial</span>: the profiling activity itself is not distinctly queryable; only its resulting artifact drop is</td></tr>
+        <tr><td>T1190 (initial access)</td><td>Assessed Groupware/mail portal exploitation</td><td>None</td><td>None</td><td><span class="badge b-high">GAP</span>: out of scope for this pack; not independently confirmed in public reporting and no specific CVE or exploit chain was documented to hunt against</td></tr>
+      </table>
+      <p>Validation gates for the queries above are detailed in Section 11. In short: confirm sensor coverage before trusting a clean result, baseline Q2/Q5 for at least 14 days before any prevention-mode promotion, and re-run the audit checklist in Section 10 fleet-wide as the first action on any new host brought into scope.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE:      Ted Backdoor / curlRAT -- Trojanized HAProxy &amp; Linux System Daemon Hunt
+SEVERITY:   High (nation-state, medium-confidence DPRK attribution; techniques are
+            portable to any HAProxy 2.8.x deployment, not limited to the two
+            confirmed South Korean victims)
+SCOPE:      Linux hosts running HAProxy (confirmed on 2.8.12) and any host sharing
+            the crond/sshd/agetty/atd/polkitd persistence toolkit
+HYPOTHESIS: The adversary trojanizes a load balancer's HAProxy binary at compile
+            time and replaces core Linux system daemons to gain covert,
+            self-erasing C2 and credential capture that never appears in
+            application or connection logs.
+QUERIES:    Q1-Q8 (Section 8)
+DO FIRST:   Run Playbook A (binary integrity verification) against every
+            HAProxy/edge host in the estate; run Q1, Q6, and Q7 fleet-wide for
+            atomic-IOC and artifact-path hits before anything else.
+FINDINGS:   REPLACE_WITH_HUNT_FINDINGS -- populate after hunt execution
+GAPS:       No EDR visibility into in-process HAProxy filter/C2 logic (T1557) or
+            curlRAT's virtualization check (T1497.001); C2 domains are NXDOMAIN as
+            of 2026-09-04 so Q4 is retrospective only; initial-access vector is
+            assessed, not confirmed.
+ACTIONS:    Escalate any Q1/Q6/Q7 hit as a confirmed compromise; isolate per
+            Containment Runbook Phase 1 immediately -- do not attempt in-place
+            remediation, the implant is compiled into the binary itself.
+OWNER:      REPLACE_WITH_HUNT_OWNER
+VERSION:    v0.1 - 2026-09-13</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-09-13</span><span>Initial release. Built from Rapid7 Labs' primary technical report plus four corroborating/independent sources. 8 CQL hunt queries, 8 hunt hypotheses, tiered hardening, 4 deployable playbooks, and a 3-phase containment runbook.</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+        <tr><td>1</td><td><a href="https://www.rapid7.com/blog/post/tr-dprk-apts-ted-backdoor-curlrat-target-south-korean-media-automotive-sectors/" target="_blank" rel="noopener">Rapid7 Labs: DPRK APTs: Ted backdoor and curlRAT target South Korean media and automotive sectors</a></td><td>Primary technical report: architecture, IOCs, timestomping, log scrubbing, attribution</td><td>2026-09-13</td></tr>
+        <tr><td>2</td><td><a href="https://thehackernews.com/2026/09/new-ted-backdoor-hides-inside-victims.html" target="_blank" rel="noopener">The Hacker News: New Ted Backdoor Hides Inside Victims' Own HAProxy Builds</a></td><td>IOC consolidation, NXDOMAIN confirmation</td><td>2026-09-13</td></tr>
+        <tr><td>2</td><td><a href="https://securityaffairs.com/198656/apt/north-korea-linked-hackers-hide-a-backdoor-inside-haproxy.html" target="_blank" rel="noopener">Security Affairs: North Korea-linked Hackers Hide a Backdoor Inside HAProxy</a></td><td>Extended verbatim quotes, C2 trigger endpoint confirmation</td><td>2026-09-13</td></tr>
+        <tr><td>3</td><td><a href="https://gbhackers.com/haproxy-servers-backdoor/" target="_blank" rel="noopener">GBHackers: DPRK-Linked Hackers Backdoor HAProxy Servers</a></td><td>Additional hash corroboration, APT37/Ricochet Chollima attribution detail</td><td>2026-09-13</td></tr>
+        <tr><td>3</td><td><a href="https://www.hendryadrian.com/dprk-apts-ted-backdoor-and-curlrat-target-south-korean-media-and-automotive-sectors/" target="_blank" rel="noopener">hendryadrian.com: DPRK APTs: Ted backdoor and curlRAT (Rapid7 report mirror)</a></td><td>Timestomping/log-scrub verbatim confirmation, additional hash</td><td>2026-09-13</td></tr>
+      </table>
+      <p>Full fetched-text snapshots of all five sources are saved alongside this pack in <code>Ted-HAProxy-Backdoor-Hunt-sources/</code> for provenance verification.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
