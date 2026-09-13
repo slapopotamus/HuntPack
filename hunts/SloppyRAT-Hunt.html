@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+<title>SloppyRAT — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale CQL hunts, response, and hardening for SloppyRAT, the ClickFix-delivered RAT used for ransomware reconnaissance and lateral movement.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/SloppyRAT-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SloppyRAT — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale CQL hunts, response, and hardening for SloppyRAT, the ClickFix-delivered RAT used for ransomware reconnaissance and lateral movement.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/SloppyRAT-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #c65cff;
+  --accent-dim: rgba(198,92,255,0.14);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #1c1030 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.state { display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin-bottom: 20px; background: rgba(126,231,135,0.09); border: 1px solid rgba(126,231,135,0.35); border-radius: 6px; font-size: 11.5px; color: #7ee787; letter-spacing: 0.04em; }
+.state-dot { width: 8px; height: 8px; border-radius: 50%; background: #7ee787; box-shadow: 0 0 6px #7ee787; flex: none; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 10px; background: var(--surface2); }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" type="button" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents" aria-controls="sidebar">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">SloppyRAT</div>
+    <div class="version">v0.1 · 2026-09-12</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s6">6 &middot; Native Hunts</a>
+    <a href="#s7">7 &middot; CQL Queries</a>
+    <a href="#s8">8 &middot; Operationalization</a>
+    <a href="#s9">9 &middot; IOC Appendix</a>
+    <div class="nav-section">Response</div>
+    <a href="#s10">10 &middot; Hardening</a>
+    <a href="#s11">11 &middot; Containment</a>
+    <div class="nav-section">Validation &amp; Meta</div>
+    <a href="#s12">12 &middot; Coverage &amp; Validation</a>
+    <a href="#s13">13 &middot; Hunt Ticket</a>
+    <a href="#s14">14 &middot; Changelog</a>
+    <a href="#s15">15 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>SloppyRAT</h1>
+  <div class="subtitle">ClickFix &rarr; finger.exe &rarr; CastleLoader/CastleRAT &rarr; reflectively-loaded backdoor for ransomware recon and lateral movement</div>
+  <div class="meta-grid"><div class="meta-item"><div class="mk"><span class="badge b-purple">Threat</span></div><div class="mv">SloppyRAT</div></div><div class="meta-item"><div class="mk"><span class="badge b-purple">Type</span></div><div class="mv">Windows RAT / backdoor (final-stage payload)</div></div><div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">High</span></div></div><div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 Draft &middot; 2026-09-12</div></div><div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div><div class="meta-item"><div class="mk">Confidence</div><div class="mv">High core-IOC confidence (multi-source corroborated); tenant unverified</div></div></div>
+</div>
+
+<div class="state"><span class="state-dot"></span><strong>STATIC REVIEW PASSED</strong></div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><span class="badge b-info"><strong>What it is:</strong></span> SloppyRAT is a Windows RAT/backdoor first documented by Zscaler ThreatLabz on 2026-09-10 (samples first observed by ThreatLabz in June 2026) and assessed as likely leveraged by a ransomware-related threat actor for host reconnaissance, credential/config harvesting, Defender tampering, and lateral movement. It arrives as the <strong>final stage</strong> of a longer chain &mdash; ClickFix lure &rarr; <code>finger.exe</code> retrieval &rarr; batch script &rarr; renamed <code>curl.exe</code> &rarr; IronPython &rarr; CastleLoader &rarr; CastleRAT &rarr; a second Python interpreter &rarr; <code>config.py</code> &rarr; SloppyRAT DLL reflectively loaded in memory. The CastleLoader/CastleRAT delivery mechanics are already covered by the library&#x27;s <a href="https://slapopotamus.github.io/HuntPack/hunts/CastleRAT-Multi-Stage-RAT-Hunt.html">CastleRAT Multi-Stage RAT pack</a>; this pack is scoped to SloppyRAT&#x27;s own distinct C2 infrastructure, protocol, and on-host behaviors.</p>
+    <p><span class="badge b-purple"><strong>Why it&#x27;s notable:</strong></span> SloppyRAT ships 47 built-in commands that mimic PowerShell cmdlets but are implemented natively in C++ against Win32 APIs (no PowerShell process required), three command-execution handlers of increasing noisiness (native built-ins &rarr; in-process PowerShell via CLR/COM &rarr; PPID-spoofed <code>powershell.exe</code>), certificate pinning against a hardcoded SHA256, RC4-encrypted request/response bodies, a reverse-SOCKS proxy for internal pivoting, and an EtherHiding fallback that can resolve C2 from the Polygon blockchain. ThreatLabz explicitly flags the Polygon/EtherHiding path as <strong>likely still in development</strong> &mdash; no sample has shipped an embedded smart-contract address, only the function selector <code>0xd6bd8727</code> has been observed. Treat EtherHiding as an emerging, unconfirmed capability, not a live TTP to hunt today.</p>
+    <p><span class="badge b-med"><strong>Why the IOCs are unusually solid for a fresh disclosure:</strong></span> The primary Zscaler ThreatLabz post publishes 22 SHA256 values (21 SloppyRAT DLL samples + 1 <code>config.py</code> stager), 5 C2/delivery domains, 1 C2 IP:port, 7 HTTP API paths, and 4 payload URLs. This pack independently re-extracted every hash and network indicator directly from the live Zscaler page (not from an AI summary of it) and cross-confirmed the full set against the Security Boulevard syndication (byte-identical) plus partial corroboration from cybersecuritynews.com (22/22 hashes, all 5 domains, the C2 IP) and gbhackers.com (5/22 hashes, 2 domains). All four hashes supplied in the initial tasking were verified character-for-character against the live source and are correct as given.</p>
+    <p><span class="badge b-high"><strong>Operational limit:</strong></span> Endpoint telemetry cannot prove RC4 protocol semantics, reflective in-memory DLL loading, certificate-pinning bypass attempts, keystroke-level content, or blockchain-resolver contract state &mdash; those require memory acquisition, TLS-terminating proxy content, or on-chain lookups. No Falcon tenant was contacted; every CQL card below is <strong>STATIC-ONLY</strong>.</p>
+    <div class="callout callout-danger"><strong>Defender priority:</strong> Run Q01&ndash;Q04 for the ClickFix-through-IronPython delivery chain and Q05&ndash;Q06 for the confirmed C2 domains/IP/hashes over 30 days first; correlate hits on the same host before escalation. Preserve process tree, dropped files, registry values, and network evidence. Do not resolve, browse to, or otherwise contact any listed C2 domain, IP, or blob-storage URL.</div>
+    <table><thead><tr><th>Priority</th><th>Why now</th><th>Coverage delivered</th><th>Key limitation</th></tr></thead><tbody><tr><td>Hunt the delivery chain and the confirmed C2/IOC set</td><td>Fresh (2026-09-10) disclosure, multi-source corroborated hashes and infrastructure, in-the-wild ransomware-adjacent use</td><td>9 CQL designs, IOC quick-copy grid, tiered hardening</td><td>Static-only; tenant parsing, positive/benign testing, memory and TLS-content evidence are absent</td></tr></tbody></table>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source and Claim Review</h2></div>
+  <div class="section-body">
+    <p>Current-run plain-text snapshots were pulled directly from each live page (HTML-stripped, not AI-summarized) so that hashes and IOCs could be regex-verified byte-for-byte rather than trusted to a paraphrase. Every source was treated as untrusted data; no embedded instruction, command, exploit code, payload, or destination was executed or contacted.</p>
+    <table><thead><tr><th>ID</th><th>Publisher</th><th>Tier</th><th>Independence</th><th>Accessed</th><th>Status</th></tr></thead><tbody>
+    <tr><td><a href="https://www.zscaler.com/blogs/security-research/sloppyrat-new-tool-ransomware-attacks" rel="noopener noreferrer">S01</a></td><td>Zscaler ThreatLabz</td><td>T1</td><td>zscaler</td><td>2026-09-13</td><td>successful direct-HTML extraction; primary technical source</td></tr>
+    <tr><td><a href="https://securityboulevard.com/2026/09/sloppyrat-a-new-tool-for-ransomware-attacks/" rel="noopener noreferrer">S02</a></td><td>Security Boulevard</td><td>T2</td><td>security-boulevard</td><td>2026-09-13</td><td>successful direct-HTML extraction; full syndication of S01, byte-identical IOC set</td></tr>
+    <tr><td><a href="https://cybersecuritynews.com/hackers-deploy-new-sloppyrat/" rel="noopener noreferrer">S03</a></td><td>Cyber Security News</td><td>T2</td><td>cybersecuritynews</td><td>2026-09-13</td><td>successful direct-HTML extraction; independently reproduced the full 22-hash set and all 5 domains</td></tr>
+    <tr><td><a href="https://gbhackers.com/hackers-deploy-new-sloppyrat-via-clickfix-to-enable-ransomware-lateral-movement/" rel="noopener noreferrer">S04</a></td><td>GBHackers</td><td>T2</td><td>gbhackers</td><td>2026-09-13</td><td>successful direct-HTML extraction; partial corroboration (5 of 22 hashes, 2 of 5 domains)</td></tr>
+    </tbody></table>
+    <table><thead><tr><th>Claim</th><th>Statement</th><th>Sources</th><th>Confidence</th></tr></thead><tbody>
+    <tr><td>C01</td><td>SloppyRAT is delivered via a ClickFix lure that runs a <code>finger.exe</code> command against <code>finger.linked4x[.]com</code> to retrieve a batch script.</td><td>S01,S02,S03,S04</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C02</td><td>The batch script copies native <code>curl.exe</code> to a numerically-named file with a <code>.com</code> extension in <code>AppData</code> and uses it to download IronPython 3.4.2 from GitHub.</td><td>S01,S02</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C03</td><td>The renamed IronPython interpreter executes a zlib-compressed, Base64-encoded Python one-liner that stages CastleLoader and CastleRAT, downloaded from <code>skipraid[.]com</code> with User-Agent <code>K8VGmQTrzX</code>.</td><td>S01,S02</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C04</td><td>A second Python interpreter downloads and runs <code>config.py</code> from <code>hxxps://stro7121[.]blob[.]core[.]windows[.]net/dpp1/config.py</code>, which reflectively loads a SloppyRAT DLL fetched from the same host (<code>hostfxr.dll</code>) using User-Agent <code>Mozilla/5.0 (compatible; DLLMemLoader/1.0)</code>, invoking export <code>f3b980dea</code>.</td><td>S01,S02</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C05</td><td>SloppyRAT communicates over HTTPS/JSON to <code>api[.]telephoneip[.]net</code> and <code>api[.]truesmart[.]org</code>, and to IP <code>62.106.66[.]148:443</code>, via 7 documented API paths; command results and system info are RC4-encrypted then Base64-encoded.</td><td>S01,S02,S03</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C06</td><td>SloppyRAT implements 47 built-in commands resembling PowerShell cmdlets but backed by native Win32 API calls, plus two escalation handlers (PSInline via CLR/COM, PSSpoof via PPID-spoofed <code>powershell.exe</code>) and WMI-based <code>cmd</code> execution.</td><td>S01,S02,S03,S04</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C07</td><td>Anti-analysis: three XOR/affine string-obfuscation schemes, 13 runtime-decrypted encrypted code blocks, junk code, DJB2 API hashing over 21 NTDLL functions (10 actually used) resolved via a Hell&#x27;s-Gate-style indirect-syscall technique, and SHA256 certificate pinning on the DER-encoded server cert.</td><td>S01,S02,S03,S04</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C08</td><td>Both persistence mechanisms (Run-key value named <code>rundll32</code>; COM hijack via an FNV-1a-derived CLSID) are implemented incorrectly by the malware author and do not function as intended.</td><td>S01,S02</td><td><span class="badge b-low">high</span></td></tr>
+    <tr><td>C09</td><td>SloppyRAT can retrieve C2 configuration from the Polygon blockchain (EtherHiding) as a resilience mechanism, but this capability is likely still in development &mdash; no sample carries an embedded smart-contract address, only the function selector <code>0xd6bd8727</code> has been observed.</td><td>S01,S02,S03</td><td><span class="badge b-med">medium &mdash; capability partially unconfirmed</span></td></tr>
+    <tr><td>C10</td><td>22 SHA256 hashes (21 SloppyRAT DLL samples, 1 <code>config.py</code> script) were independently re-extracted from the live S01 HTML and matched byte-for-byte against S02; S03 reproduces all 22, S04 reproduces 5 of the 22.</td><td>S01,S02,S03,S04</td><td><span class="badge b-low">high</span></td></tr>
+    </tbody></table>
+    <div class="callout callout-warn"><strong>Contradictions and gaps:</strong> No contradictions were found across the four sources &mdash; S02 is a verbatim syndication of S01, and S03/S04 are independent extractions that reproduce a strict subset of the same IOC set with no conflicting values. The EtherHiding/Polygon path (C09) is explicitly flagged by the primary source itself as likely incomplete; do not build blocking controls around it. Infrastructure (domains, the C2 IP, and the Azure blob/S3 hosting) can rotate; the hash set is the most durable indicator today.</div>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief and Attack Chain</h2></div>
+  <div class="section-body">
+    <p>The scaffold separates queryable endpoint/network behaviors from content-, memory-, and blockchain-level gaps. Each hypothesis retains its evidence basis and a safe validation plan.</p>
+    <table><thead><tr><th>Step</th><th>Claims</th><th>Behavior</th><th>Platform</th><th>Goal</th></tr></thead><tbody>
+    <tr><td>1</td><td>C01</td><td>a user runs a ClickFix command that invokes <code>finger.exe</code> against <code>finger.linked4x[.]com</code></td><td>Windows</td><td>Find <code>finger.exe</code> retrieval and Finger-protocol (TCP/79) egress</td></tr>
+    <tr><td>2</td><td>C02</td><td>a batch script copies <code>curl.exe</code> to a numerically-named <code>.com</code> file and downloads IronPython from GitHub</td><td>Windows</td><td>Find the renamed-curl download signature</td></tr>
+    <tr><td>3</td><td>C03</td><td>the renamed IronPython interpreter executes an obfuscated zlib/Base64 Python one-liner, staging CastleLoader/CastleRAT from <code>skipraid[.]com</code></td><td>Windows</td><td>Find the IronPython execution signature</td></tr>
+    <tr><td>4</td><td>C04</td><td>a second Python interpreter fetches and runs <code>config.py</code>, which reflectively loads the SloppyRAT DLL from Azure Blob/S3</td><td>Windows</td><td>Find DNS/network activity to the blob-storage hosts</td></tr>
+    <tr><td>5</td><td>C05</td><td>SloppyRAT authenticates and polls <code>api[.]telephoneip[.]net</code> / <code>api[.]truesmart[.]org</code> / <code>62.106.66[.]148:443</code></td><td>Windows</td><td>Find DNS/network activity to confirmed C2</td></tr>
+    <tr><td>6</td><td>C10</td><td>a dropped or loaded file matches one of the 22 confirmed SHA256 hashes</td><td>Windows</td><td>Match process/file hash telemetry against the IOC set</td></tr>
+    <tr><td>7</td><td>C06</td><td>SloppyRAT escalates to PPID-spoofed <code>powershell.exe</code> (PSSpoof) when the in-process CLR handler fails</td><td>Windows</td><td>Find anomalous <code>explorer.exe</code>-parented PowerShell</td></tr>
+    <tr><td>8</td><td>C08</td><td>SloppyRAT attempts (broken) persistence via a bare <code>rundll32</code> Run-key value</td><td>Windows</td><td>Find the malformed Run-key write</td></tr>
+    <tr><td>9</td><td>C07,C09</td><td>in-memory code decryption, RC4 protocol content, and Polygon C2 resolution occur but leave no portable endpoint signature</td><td>Windows</td><td>Acquire memory / proxy content; treat EtherHiding as unconfirmed</td></tr>
+    </tbody></table>
+    <table><thead><tr><th>ID</th><th>Behavior</th><th>Telemetry</th><th>Use</th><th>Lookback</th><th>Validation</th></tr></thead><tbody>
+    <tr><td>H01</td><td><code>finger.exe</code> retrieves a ClickFix batch script over TCP/79</td><td>ProcessRollup2 / SyntheticProcessRollup2 / NetworkConnectIP4</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Exercise <code>finger.exe</code> only against an analyst-controlled inert lab service; baseline any legitimate legacy Finger use before enabling a block.</td></tr>
+    <tr><td>H02</td><td>native <code>curl.exe</code> is copied to a numerically-named <code>.com</code> file and used to fetch IronPython from GitHub</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Reproduce the copy+rename pattern with an inert binary in a lab path; confirm no legitimate deployment tooling renames curl this way.</td></tr>
+    <tr><td>H03</td><td>a renamed IronPython interpreter runs a zlib/Base64-encoded one-liner</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Baseline legitimate IronPython/embedded-Python tooling before enforcing; the command-line signature is distinctive but not unique.</td></tr>
+    <tr><td>H04</td><td>DNS/network activity reaches <code>stro7121[.]blob[.]core[.]windows[.]net</code>, <code>backup-ubt[.]s3[.]us-east-1[.]amazonaws[.]com</code>, or <code>skipraid[.]com</code></td><td>DnsRequest / SuspiciousDnsRequest / NetworkConnectIP4</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Confirm process attribution before blocking; Azure Blob/S3 are multi-tenant services and the specific hostnames, not the parent domains, are the indicator.</td></tr>
+    <tr><td>H05</td><td>DNS/network activity reaches <code>api[.]telephoneip[.]net</code>, <code>api[.]truesmart[.]org</code>, or <code>62.106.66[.]148:443</code></td><td>DnsRequest / SuspiciousDnsRequest / NetworkConnectIP4</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>Treat any hit as high-confidence given single-purpose registered infrastructure; still confirm host/process attribution before isolation.</td></tr>
+    <tr><td>H06</td><td>a process or written file matches one of the 22 confirmed SloppyRAT SHA256 hashes</td><td>ProcessRollup2 / PeFileWritten / NewExecutableWritten</td><td><span class="badge b-info">alert-candidate</span></td><td>30d</td><td>No live-fire test needed for exact-hash matches; validate field availability (<code>SHA256HashData</code>) against a benign sample.</td></tr>
+    <tr><td>H07</td><td><code>powershell.exe</code> is spawned with <code>explorer.exe</code> as parent but with minimal/absent command-line arguments (PSSpoof signature)</td><td>ProcessRollup2 / SyntheticProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>High false-positive risk &mdash; baseline shell-extension and Explorer-launched PowerShell shortcuts before treating as high confidence.</td></tr>
+    <tr><td>H08</td><td>a Run-key value named <code>rundll32</code> is written with a bare <code>rundll32(.exe)</code> string (no path, no export)</td><td>AsepValueUpdate / RegGenericValueUpdate</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Reproduce in a lab VM by manually writing the malformed value; confirm no legitimate installer uses an unqualified <code>rundll32</code> Run value.</td></tr>
+    <tr><td>H09</td><td>in-memory code decryption, RC4 C2 body content, reverse-SOCKS pivot traffic, and Polygon/EtherHiding resolution occur</td><td>memory acquisition, TLS-terminating proxy content, on-chain lookup</td><td><span class="badge b-info">gap</span></td><td>30d</td><td>Requires memory forensics and approved network content inspection; EtherHiding additionally requires on-chain monitoring the source itself calls unconfirmed.</td></tr>
+    </tbody></table>
+    <h4>Affected surface and telemetry</h4>
+    <p>Windows Falcon process, file, DNS, network (IPv4), and registry telemetry. Memory content, TLS/proxy body inspection, and blockchain-resolver monitoring remain out of scope for portable endpoint CQL and are called out as gaps rather than papered over.</p>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <p class="callout callout-warn"><strong>Provenance:</strong> every row below was re-extracted directly from the live S01 (Zscaler) HTML by regex against the stripped page text, then diffed against S02&ndash;S04. Nothing here was taken from an AI-generated summary of a source.</p>
+    <h4>Network and delivery infrastructure</h4>
+    <table><thead><tr><th>Type</th><th>Value</th><th>Context</th><th>Conf</th><th>Action</th></tr></thead><tbody>
+    <tr><td>domain</td><td>finger.linked4x[.]com</td><td>ClickFix stage-1 batch-script host, retrieved via <code>finger.exe</code> over TCP/79</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>domain</td><td>skipraid[.]com</td><td>CastleLoader/CastleRAT download host, User-Agent <code>K8VGmQTrzX</code></td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>domain</td><td>stro7121[.]blob[.]core[.]windows[.]net</td><td>Azure Blob Storage host serving <code>config.py</code> and the SloppyRAT DLL (<code>hostfxr.dll</code>)</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>domain</td><td>backup-ubt[.]s3[.]us-east-1[.]amazonaws[.]com</td><td>S3 backup host serving the same SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>domain</td><td>api[.]telephoneip[.]net</td><td>SloppyRAT C2 domain</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>domain</td><td>api[.]truesmart[.]org</td><td>SloppyRAT C2 domain</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>ipv4</td><td>62.106.66[.]148:443</td><td>SloppyRAT C2 IP</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>url</td><td>hxxps[://]skipraid[.]com/dsVGmQTrzX/default2</td><td>CastleLoader payload URL</td><td><span class="badge b-low">High</span></td><td>hunt</td></tr>
+    <tr><td>url</td><td>hxxps[://]stro7121[.]blob[.]core[.]windows[.]net/dpp1/config.py</td><td>Python loader/stager URL</td><td><span class="badge b-low">High</span></td><td>hunt</td></tr>
+    <tr><td>url</td><td>hxxps[://]stro7121[.]blob[.]core[.]windows[.]net/dpp1/hostfxr.dll</td><td>SloppyRAT DLL download URL</td><td><span class="badge b-low">High</span></td><td>hunt</td></tr>
+    <tr><td>url</td><td>hxxps[://]backup-ubt[.]s3[.]us-east-1[.]amazonaws[.]com/hostfxr.dll</td><td>SloppyRAT DLL backup download URL</td><td><span class="badge b-low">High</span></td><td>hunt</td></tr>
+    <tr><td>user-agent</td><td>K8VGmQTrzX</td><td>CastleLoader retrieval from skipraid[.]com</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    <tr><td>user-agent</td><td>Mozilla/5.0 (compatible; DLLMemLoader/1.0)</td><td>config.py Python-loader retrieval</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    <tr><td>user-agent</td><td>CommandExecutor/1.0</td><td>SloppyRAT C2 HTTP client identifier</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    <tr><td>uri-pattern</td><td>POST /api/auth &middot; POST /api/systeminfo &middot; POST /api/av_edr &middot; GET /api/poll &middot; GET /api/command/get &middot; POST /api/command/result &middot; POST /api/proxy/ack</td><td>SloppyRAT C2 API surface (see &sect;9 for the full table)</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    <tr><td>dll-export</td><td>f3b980dea</td><td>Export name invoked on the reflectively-loaded SloppyRAT DLL</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    </tbody></table>
+    <h4>File hashes &mdash; SHA256 (22 confirmed, re-verified against live source)</h4>
+    <table><thead><tr><th>Type</th><th>Value</th><th>Context</th><th>Conf</th><th>Action</th></tr></thead><tbody>
+    <tr><td>sha256</td><td>9f84cfcf988530941555d1cb7780a091743cf567396201eff7731f5475768f9a</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>8774533134d9d1514106c4090a0c5bccab4550facdcfe03f4e02b9764343a990</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>ff142fc192daa2a83bc565e5b38ebbe05561f3a19c7fc2d08e38c97e1986bbc5</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>680c3a9f5fdddfcc34856c7a67d21bbdd2b47d70bdfb829ff59cfa0e3bc72d21</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>bdcf8fe230e23692b658b62b6547374e2234f2a497b19d26637018a1839e6dfd</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>607212cfe73c5c84b2dd95b2c0ff37a47f4c8aad08e6d5cbb7c19a62c6b765f9</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>7bb025b426ae6ccbc170fbca58634b8dd77a61447e48dabe9c2e2fb0d339d8b7</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>6d50bb50d4e7d6ac36ca6d2761f382be8e1ddbebf3cdf4733cf989ba291f9013</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>00c116e498799dc831c8aeb602349296c4b9325535d674fe2b6e2e091878dcec</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>93273ea09bd9df881a594db8cfe1b1bbc54f40f623f44427278ae96fb9b46490</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>971f25f84be88c4fd304d555b5e3da12f6b368e4b9ba0943961ff21ba6fa4d4d</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>a13fcbb0870f2fabb7e0a8c757ee3b763bd4a4b0cdf59eeff981d8e307fcf316</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>518cd57a303ff7ac2b5c4c8439aa5bcbf9a287d4653de7b76051bde73a94d064</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>3a8994928f512fffcb32e117ac45e0ee093541d99a9dba5f69a264f7f3054b19</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>2f3d95de716f330fad2330d8787ebdbecb3322453bdc41b2113427f9f92d32d2</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>1439990ff65364a0f608a322aa3a493bc1683cb5fc30cffc44948da29623fffd</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>eaa52d2d6d4daf29157e8e813247fb2e92797324230ee42c79f7861b2f5c341d</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>cb9930d0cde5bf8e8a7ad08fe2c60b937c7beaf9ab51b03191dfcaba40b7b189</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>c0ef62a2d5ca11c2eedad3561d5d1d8b6e9847aa6b8613493e5bc233ece3d189</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>4ecb2d06510dfee1b67f5d9a68c60f6d09ddb5be36cc1766a41d77c5b89d3a56</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>466f9b8dce77b3a026fe4f833aa4949784fb854bea4137e52609e857d439dec8</td><td>SloppyRAT DLL</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    <tr><td>sha256</td><td>f534a957edec74d69081665309311b791b6d11a3221fffa67744812d73ad98eb</td><td><code>config.py</code> Python stager script</td><td><span class="badge b-low">High</span></td><td>detect</td></tr>
+    </tbody></table>
+    <h4>Host artifacts (behavioral &mdash; durable, survive infrastructure rotation)</h4>
+    <table><thead><tr><th>Type</th><th>Value</th><th>Context</th><th>Conf</th><th>Action</th></tr></thead><tbody>
+    <tr><td>registry</td><td>HKCU\Software\Microsoft\Windows\CurrentVersion\Run \ rundll32 = <code>rundll32.exe</code> (bare, no path/export)</td><td>Broken persistence attempt &mdash; the malformed value itself is the signature</td><td><span class="badge b-low">High</span></td><td>hunt</td></tr>
+    <tr><td>registry</td><td>HKLM\Software\Classes\CLSID\{FNV-1a(computer name)}\InprocServer32</td><td>Broken COM-hijack persistence attempt &mdash; CLSID is generated, not an existing one, so it is host-specific and not directly matchable, but the pattern (a newly-created CLSID key under this path with a missing/incorrect DLL path) is huntable</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    <tr><td>file-pattern</td><td>%TEMP%\*.png (PNG-header-prefixed, XOR-encrypted, non-image content)</td><td>PSInline command-result cache file, disguised with a PNG extension</td><td><span class="badge b-med">Medium</span></td><td>hunt</td></tr>
+    </tbody></table>
+    <div class="callout callout-info"><strong>Not promoted to atomic IOC:</strong> the documented example <code>X-API-KEY</code> header value (<code>af4c426b8c4b3b4957875206948eedae09b670f349f2ffb70df7b7a6b06cd588</code>) is shown in the primary source as a single sample HTTP request and may be per-build rather than universal; it is retained in &sect;9 as a hunt-context value, not shipped as a confirmed network IOC.</div>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <p>Technique rows marked "source-stated" reflect ThreatLabz&#x27;s own technical description; rows marked "analyst inference" are this pack&#x27;s mapping of a described behavior onto the closest ATT&amp;CK technique.</p>
+    <table><thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Behavior</th><th>Basis</th><th>Sources</th></tr></thead><tbody>
+    <tr><td>Execution</td><td>T1204.004</td><td>Malicious Copy and Paste</td><td>ClickFix lure runs the initial <code>finger.exe</code> command</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S02,S03,S04</td></tr>
+    <tr><td>Command and Control</td><td>T1105</td><td>Ingress Tool Transfer</td><td>finger.exe/curl.exe/IronPython/CastleLoader/CastleRAT/config.py/hostfxr.dll download chain</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Defense Evasion</td><td>T1036.003</td><td>Rename Legitimate Utilities</td><td>native curl.exe copied to a numerically-named <code>.com</code> file</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S02</td></tr>
+    <tr><td>Execution</td><td>T1059.006</td><td>Python</td><td>IronPython and staged Python interpreter execute obfuscated payload code</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Defense Evasion</td><td>T1620</td><td>Reflective Code Loading</td><td>config.py reflectively loads the SloppyRAT DLL in memory</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Defense Evasion</td><td>T1027</td><td>Obfuscated Files or Information</td><td>stack/global XOR string obfuscation, affine-cipher Polygon strings, 13 runtime-decrypted code blocks, junk code</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02,S03,S04</td></tr>
+    <tr><td>Defense Evasion</td><td>T1027.007</td><td>Dynamic API Resolution</td><td>DJB2 hashing of 21 NTDLL functions before resolving them at runtime</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S02</td></tr>
+    <tr><td>Defense Evasion</td><td>T1106</td><td>Native API</td><td>Hell&#x27;s-Gate-style indirect syscalls (parses <code>B8</code>/<code>mov eax</code> to extract syscall numbers)</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Command and Control</td><td>T1071.001</td><td>Application Layer Protocol: Web Protocols</td><td>HTTPS/JSON C2 over 7 documented API paths</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02,S03</td></tr>
+    <tr><td>Command and Control</td><td>T1573.001</td><td>Encrypted Channel: Symmetric Cryptography</td><td>RC4-encrypted request/response bodies, Base64-encoded</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Command and Control</td><td>T1090.001</td><td>Proxy: Internal Proxy</td><td>reverse SOCKS proxy for internal lateral pivoting via <code>/api/poll</code></td><td><span class="badge b-med">analyst inference</span></td><td>S01,S02</td></tr>
+    <tr><td>Command and Control</td><td>T1102.002</td><td>Web Service: Bidirectional Communication</td><td>EtherHiding &mdash; C2 resolution via Polygon blockchain (<em>unconfirmed / in development</em>)</td><td><span class="badge b-med">analyst inference, flagged unconfirmed</span></td><td>S01,S02,S03</td></tr>
+    <tr><td>Discovery</td><td>T1082</td><td>System Information Discovery</td><td><code>/api/systeminfo</code>, <code>Get-ComputerInfo</code>, <code>whoami</code>, <code>hostname</code>, and related built-ins</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Discovery</td><td>T1057</td><td>Process Discovery</td><td><code>Get-Process</code>/<code>tasklist</code>/<code>ps</code> built-ins</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Discovery</td><td>T1087.001</td><td>Account Discovery: Local Account</td><td><code>Get-LocalUser</code>/<code>Get-LocalGroupMember</code> built-ins</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Discovery</td><td>T1518.001</td><td>Security Software Discovery</td><td><code>/api/av_edr</code> AV/EDR enumeration endpoint</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02,S03</td></tr>
+    <tr><td>Defense Evasion</td><td>T1562.001</td><td>Impair Defenses: Disable or Modify Tools</td><td><code>Set-MpPreference</code>/<code>Add-MpPreference</code> Microsoft Defender tampering built-ins</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Execution</td><td>T1047</td><td>Windows Management Instrumentation</td><td><code>cmd</code> shell_type executes via <code>Win32_Process::Create</code></td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Execution</td><td>T1059.001</td><td>PowerShell</td><td>PSInline handler loads CLR/COM and calls <code>PowerShell.Create().AddScript().Invoke()</code></td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Privilege Escalation</td><td>T1134.004</td><td>Access Token Manipulation: Parent PID Spoofing</td><td>PSSpoof handler spawns <code>powershell.exe</code> with <code>explorer.exe</code> as spoofed parent</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Persistence</td><td>T1547.001</td><td>Registry Run Keys / Startup Folder</td><td>(broken) Run-key value <code>rundll32</code></td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Persistence</td><td>T1546.015</td><td>Component Object Model Hijacking</td><td>(broken) CLSID-based COM hijack fallback</td><td><span class="badge b-low">source-stated</span></td><td>S01,S02</td></tr>
+    <tr><td>Defense Evasion</td><td>T1036.008</td><td>Masquerading: Masquerade File Type</td><td>PSInline command-result cache written with a <code>.png</code> extension</td><td><span class="badge b-med">analyst inference</span></td><td>S01,S02</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>Native / Non-CQL Hunts</h2></div>
+  <div class="section-body">
+    <table><thead><tr><th>Hunt</th><th>Log source</th><th>Logic</th><th>Response</th></tr></thead><tbody>
+    <tr><td>ClickFix lure reconstruction</td><td>browser history, proxy logs, clipboard policy, user interview</td><td>Reconstruct the site visit and pasted <code>finger.exe</code> command without re-executing it; preserve original page and timestamps.</td><td>Scope the delivery window; brief users on this exact lure pattern only after evidence capture.</td></tr>
+    <tr><td>HTTP User-Agent / header pivot</td><td>web proxy or TLS-inspecting gateway logs</td><td>Search proxy logs (not endpoint EDR telemetry, which does not carry HTTP headers) for the User-Agents <code>K8VGmQTrzX</code>, <code>Mozilla/5.0 (compatible; DLLMemLoader/1.0)</code>, and <code>CommandExecutor/1.0</code>, and for the header name <code>X-API-KEY</code> on outbound HTTPS to unfamiliar hosts.</td><td>Escalate any hit combined with a matching internal process/host from &sect;7.</td></tr>
+    <tr><td>Memory acquisition and RC4/TLS content review</td><td>EDR process tree plus approved memory capture and TLS-terminating proxy content</td><td>On a host already corroborated by Q05/Q06, acquire memory to confirm reflective loading and decrypted code blocks; inspect approved TLS-terminated content for the RC4-encrypted JSON body shape. Do not contact or replay any C2 destination.</td><td>Confirm active C2 before isolation; preserve volatile memory ahead of remediation.</td></tr>
+    <tr><td>Polygon/EtherHiding on-chain check (low priority &mdash; source flags as unconfirmed)</td><td>public Polygon block explorer / RPC query</td><td>Only if C2 domains are unreachable and a sample is suspected to use the fallback: look up whether any observed contract address responds to selector <code>0xd6bd8727</code>. ThreatLabz has not observed a populated contract as of publication.</td><td>Document and monitor only; do not build blocking automation on an unconfirmed capability.</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives &ldquo;Open in Falcon&rdquo;):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <div class="callout callout-info"><strong>Query strategy:</strong> Q01&ndash;Q04 cover the delivery chain in order; Q05&ndash;Q06 hunt the confirmed C2 infrastructure and hash set directly (highest confidence in this pack); Q07&ndash;Q09 cover on-host execution/persistence behaviors. Every card remains STATIC-ONLY &mdash; no tenant was contacted, no field was validated against a live schema.</div>
+
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q01 &middot; finger.exe ClickFix retrieval over the Finger protocol</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q01-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q01-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> <code>finger.exe</code> launched with the caret-obfuscated, <code>for /f "delims=@"</code>-style command line documented by ThreatLabz, optionally referencing the <code>linked4x[.]com</code> delivery host. <strong>Accomplishes:</strong> catches the very first observable step of the chain before CastleLoader/CastleRAT/SloppyRAT ever touch disk.</p><p class="muted">Trace: <a href="#s3">H01</a> &middot; <a href="#s8">A01</a></p><pre class="cql" id="q01-cql" data-lookback="30d"><span class="cm">// HUNT: finger.exe ClickFix retrieval over the Finger protocol</span>
+<span class="cm">// HYPOTHESIS: H01</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1204.004, T1105</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; FileName, CommandLine, ParentBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: legacy Finger diagnostics, network engineers, compatibility/interoperability testing</span>
+<span class="cm">// TUNING: inventory legitimate finger.exe owners and exclude by managed host plus approved parent/path, never by filename alone</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName = /^finger\.exe$/i
+| CommandLine = /(?:\^.{0,4}\^|delims=@|linked4x)/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q02 &middot; Renamed curl.exe staging IronPython from GitHub</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q02-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q02-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a process whose image path ends in <code>.com</code> (curl.exe copied and renamed to a numeric filename) invoked with curl-specific flags and a GitHub IronPython release URL. <strong>Accomplishes:</strong> targets the documented stage-2 downloader signature, which is unusual regardless of campaign.</p><p class="muted">Trace: <a href="#s3">H02</a> &middot; <a href="#s8">A02</a></p><pre class="cql" id="q02-cql" data-lookback="30d"><span class="cm">// HUNT: Renamed curl.exe staging IronPython from GitHub</span>
+<span class="cm">// HYPOTHESIS: H02</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1036.003, T1105</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; FileName, ImageFileName, CommandLine, aid</span>
+<span class="cm">// FALSE POSITIVES: legitimate automation that renames curl for portability, rare packaging tools</span>
+<span class="cm">// TUNING: scope to hosts with a preceding Q01 hit; exclude approved deployment-tooling paths and signers</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName = /\.com$/i
+| CommandLine = /--ssl-no-revoke/i
+| CommandLine = /ironpython/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q03 &middot; Renamed IronPython executing an obfuscated zlib/Base64 loader</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q03-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q03-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a process running the documented <code>-c "import base64,zlib,sys,subprocess ... zlib.decompress(base64.b64decode(...))"</code> shape, typically from a numerically-named executable under <code>IronPython.3.4.2\net462</code>. <strong>Accomplishes:</strong> catches stage-3 execution before CastleLoader/CastleRAT are dropped.</p><p class="muted">Trace: <a href="#s3">H03</a> &middot; <a href="#s8">A03</a></p><pre class="cql" id="q03-cql" data-lookback="30d"><span class="cm">// HUNT: Renamed IronPython executing an obfuscated zlib/Base64 loader</span>
+<span class="cm">// HYPOTHESIS: H03</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1059.006, T1027</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; ImageFileName, CommandLine, aid</span>
+<span class="cm">// FALSE POSITIVES: legitimate embedded-Python build/deploy tooling that decompresses payloads at runtime</span>
+<span class="cm">// TUNING: scope to hosts with a preceding Q01/Q02 hit; exclude approved CI/build-agent paths</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine = /base64/i
+| CommandLine = /zlib\.decompress/i
+| CommandLine = /subprocess/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q04 &middot; DNS/network activity to the SloppyRAT delivery/staging hosts</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q04-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q04-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> DNS resolution of the confirmed delivery/staging hostnames (Finger-protocol host, CastleLoader host, and the Azure Blob/S3 hosts serving <code>config.py</code>/<code>hostfxr.dll</code>). <strong>Accomplishes:</strong> catches the chain from stage 1 through the SloppyRAT DLL fetch, independent of process-level obfuscation.</p><p class="muted">Trace: <a href="#s3">H01</a>,<a href="#s3">H04</a> &middot; <a href="#s8">A04</a></p><pre class="cql" id="q04-cql" data-lookback="30d"><span class="cm">// HUNT: DNS/network activity to the SloppyRAT delivery/staging hosts</span>
+<span class="cm">// HYPOTHESIS: H01, H04</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1105, T1071.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: DnsRequest or SuspiciousDnsRequest; DomainName, ContextBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: none expected — these are single-purpose registered hostnames, not shared cloud front-doors</span>
+<span class="cm">// TUNING: none required; escalate any hit directly, then correlate with Q01-Q03 process context</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(DnsRequest|SuspiciousDnsRequest)$/
+| DomainName = /^(finger\.linked4x\.com|skipraid\.com|stro7121\.blob\.core\.windows\.net|backup-ubt\.s3\.us-east-1\.amazonaws\.com)$/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, ContextProcessId_decimal, DomainName, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q05 &middot; DNS/network activity to confirmed SloppyRAT C2 (domains + IP)</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q05-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q05-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> DNS resolution of <code>api[.]telephoneip[.]net</code>/<code>api[.]truesmart[.]org</code>, or a direct network connection to <code>62.106.66.148:443</code>. <strong>Accomplishes:</strong> the single highest-confidence detection in this pack &mdash; live C2 contact.</p><p class="muted">Trace: <a href="#s3">H05</a> &middot; <a href="#s8">A05</a></p><pre class="cql" id="q05-cql" data-lookback="30d"><span class="cm">// HUNT: DNS/network activity to confirmed SloppyRAT C2 (domains + IP)</span>
+<span class="cm">// HYPOTHESIS: H05</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1071.001, T1573.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: DnsRequest, SuspiciousDnsRequest, or NetworkConnectIP4; DomainName / RemoteAddressIP4, RemotePort, ContextBaseFileName, aid</span>
+<span class="cm">// FALSE POSITIVES: none expected — dedicated C2 domain and IP, not shared infrastructure</span>
+<span class="cm">// TUNING: none required; treat any hit as high-confidence C2 contact and proceed directly to containment</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(DnsRequest|SuspiciousDnsRequest|NetworkConnectIP4)$/
+| (DomainName = /^(api\.telephoneip\.net|api\.truesmart\.org)$/i or RemoteAddressIP4 = "62.106.66.148")
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, ContextProcessId_decimal, DomainName, RemoteAddressIP4, RemotePort, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="alert-candidate"><div class="qc-header"><span class="qc-title">Q06 &middot; Process/file hash match against confirmed SloppyRAT SHA256 set</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q06-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q06-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a process execution or written file whose SHA256 matches one of the 22 confirmed hashes in &sect;4/&sect;9. <strong>Accomplishes:</strong> a direct, exact-match hunt independent of any behavioral heuristic; the highest-confidence card in the pack.</p><p class="muted">Trace: <a href="#s3">H06</a> &middot; <a href="#s8">A06</a></p><pre class="cql" id="q06-cql" data-lookback="30d"><span class="cm">// HUNT: Process/file hash match against confirmed SloppyRAT SHA256 set</span>
+<span class="cm">// HYPOTHESIS: H06</span>
+<span class="cm">// USE: alert-candidate</span>
+<span class="cm">// MITRE: T1105, T1620</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2, PeFileWritten, or NewExecutableWritten; SHA256HashData, aid</span>
+<span class="cm">// FALSE POSITIVES: none expected for an exact hash match; confirm SHA256HashData is populated for the event type in your tenant</span>
+<span class="cm">// TUNING: none required; refresh this hash list as new samples are published</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| in(SHA256HashData, values=["9f84cfcf988530941555d1cb7780a091743cf567396201eff7731f5475768f9a","8774533134d9d1514106c4090a0c5bccab4550facdcfe03f4e02b9764343a990","ff142fc192daa2a83bc565e5b38ebbe05561f3a19c7fc2d08e38c97e1986bbc5","680c3a9f5fdddfcc34856c7a67d21bbdd2b47d70bdfb829ff59cfa0e3bc72d21","bdcf8fe230e23692b658b62b6547374e2234f2a497b19d26637018a1839e6dfd","607212cfe73c5c84b2dd95b2c0ff37a47f4c8aad08e6d5cbb7c19a62c6b765f9","7bb025b426ae6ccbc170fbca58634b8dd77a61447e48dabe9c2e2fb0d339d8b7","6d50bb50d4e7d6ac36ca6d2761f382be8e1ddbebf3cdf4733cf989ba291f9013","00c116e498799dc831c8aeb602349296c4b9325535d674fe2b6e2e091878dcec","93273ea09bd9df881a594db8cfe1b1bbc54f40f623f44427278ae96fb9b46490","971f25f84be88c4fd304d555b5e3da12f6b368e4b9ba0943961ff21ba6fa4d4d","a13fcbb0870f2fabb7e0a8c757ee3b763bd4a4b0cdf59eeff981d8e307fcf316","518cd57a303ff7ac2b5c4c8439aa5bcbf9a287d4653de7b76051bde73a94d064","3a8994928f512fffcb32e117ac45e0ee093541d99a9dba5f69a264f7f3054b19","2f3d95de716f330fad2330d8787ebdbecb3322453bdc41b2113427f9f92d32d2","1439990ff65364a0f608a322aa3a493bc1683cb5fc30cffc44948da29623fffd","eaa52d2d6d4daf29157e8e813247fb2e92797324230ee42c79f7861b2f5c341d","cb9930d0cde5bf8e8a7ad08fe2c60b937c7beaf9ab51b03191dfcaba40b7b189","c0ef62a2d5ca11c2eedad3561d5d1d8b6e9847aa6b8613493e5bc233ece3d189","4ecb2d06510dfee1b67f5d9a68c60f6d09ddb5be36cc1766a41d77c5b89d3a56","466f9b8dce77b3a026fe4f833aa4949784fb854bea4137e52609e857d439dec8","f534a957edec74d69081665309311b791b6d11a3221fffa67744812d73ad98eb"])
+| table([@timestamp, ComputerName, UserName, ImageFileName, FileName, SHA256HashData, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q07 &middot; PPID-spoofed powershell.exe (PSSpoof handler)</span><div class="qc-badges"><span class="badge b-info">CONF medium</span><span class="badge b-med">FP high</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q07-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q07-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> <code>powershell.exe</code> reporting <code>explorer.exe</code> as its parent with an empty or near-empty command line &mdash; the documented <code>STARTUPINFOEX</code> / <code>PROC_THREAD_ATTRIBUTE_PARENT_PROCESS</code> PPID-spoofing fallback used when the in-process CLR handler fails. <strong>Accomplishes:</strong> a narrow behavioral pivot for the noisiest of SloppyRAT&#x27;s three command handlers.</p><p class="muted">Trace: <a href="#s3">H07</a> &middot; <a href="#s8">hunt-only</a></p><pre class="cql" id="q07-cql" data-lookback="30d"><span class="cm">// HUNT: PPID-spoofed powershell.exe (PSSpoof handler)</span>
+<span class="cm">// HYPOTHESIS: H07</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1134.004</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: ProcessRollup2 or SyntheticProcessRollup2; FileName, ParentBaseFileName, CommandLine, aid</span>
+<span class="cm">// FALSE POSITIVES: legitimate Explorer shell extensions, shortcuts, and context-menu handlers that launch PowerShell with minimal arguments</span>
+<span class="cm">// TUNING: scope to hosts with a Q01-Q06 hit; exclude known shell-extension GUIDs/paths after owner review</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName = /^powershell\.exe$/i
+| ParentBaseFileName = /^explorer\.exe$/i
+| CommandLine = /^\s*(powershell(\.exe)?)?\s*$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, TargetProcessId, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q08 &middot; Malformed SloppyRAT Run-key persistence write</span><div class="qc-badges"><span class="badge b-info">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q08-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q08-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a Run-key value literally named <code>rundll32</code> whose data is the bare string <code>rundll32.exe</code> (no DLL path, no export) &mdash; the documented broken persistence attempt. <strong>Accomplishes:</strong> the malformed value is itself distinctive; no legitimate installer writes a Run entry this way.</p><p class="muted">Trace: <a href="#s3">H08</a> &middot; <a href="#s8">hunt-only</a></p><pre class="cql" id="q08-cql" data-lookback="30d"><span class="cm">// HUNT: Malformed SloppyRAT Run-key persistence write</span>
+<span class="cm">// HYPOTHESIS: H08</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: AsepValueUpdate or RegGenericValueUpdate; RegObjectName, RegValueName, RegStringValue, aid</span>
+<span class="cm">// FALSE POSITIVES: none expected for the exact bare-value match; a broader RegValueName-only search would need scoping</span>
+<span class="cm">// TUNING: none required for the exact-match form below; widen only with an owner-reviewed baseline</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(AsepValueUpdate|RegGenericValueUpdate)$/
+| RegObjectName = /\\Software\\Microsoft\\Windows\\CurrentVersion\\Run$/i
+| RegValueName = /^rundll32$/i
+| RegStringValue = /^rundll32(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q09 &middot; PSInline command-result cache disguised as a PNG</span><div class="qc-badges"><span class="badge b-info">CONF low</span><span class="badge b-med">FP high</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q09-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q09-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a file written under <code>%TEMP%</code> with a <code>.png</code> extension by <code>powershell.exe</code>, <code>rundll32.exe</code>, or an unsigned process &mdash; the documented XOR-encrypted, PNG-header-prefixed command-result cache used by the PSInline handler. <strong>Accomplishes:</strong> a weak but cheap pivot; genuine PE-file write telemetry does not cover arbitrary non-PE content, so this is necessarily approximate and marked low confidence.</p><p class="muted">Trace: <a href="#s3">H09</a> &middot; <a href="#s8">hunt-only</a></p><pre class="cql" id="q09-cql" data-lookback="30d"><span class="cm">// HUNT: PSInline command-result cache disguised as a PNG</span>
+<span class="cm">// HYPOTHESIS: H09</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1036.008</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d — bounded analyst review window</span>
+<span class="cm">// REQUIRES: TargetFileName and ContextBaseFileName on typed file-write events; coverage of non-PE writes is tenant-dependent</span>
+<span class="cm">// FALSE POSITIVES: genuine screenshot/cache utilities, browsers, and legitimate PowerShell scripts that write PNGs to %TEMP%</span>
+<span class="cm">// TUNING: scope strictly to hosts already flagged by Q01-Q07; treat as corroborating evidence only, never as a standalone alert</span>
+<span class="cm">// FIELD_NOTE: &#9888; validate in tenant &mdash; Falcon exposes no generic untyped file-write event; this checks the closest typed write events as a best-effort, low-yield pivot since the PNG-disguised cache is arbitrary non-PE content</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /^(PeFileWritten|NewExecutableWritten|ZipFileWritten)$/
+| TargetFileName = /\\Temp\\[^\\]+\.png$/i
+| ContextBaseFileName = /^(powershell|rundll32)\.exe$/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, TargetFileName, aid])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>Operationalization and IOA Candidates</h2></div>
+  <div class="section-body">
+    <p>Every query has an explicit operational decision. Alert-candidate rows have complete design-only packages; no schedule, notification, IOA, or prevention rule was created.</p>
+    <table><thead><tr><th>Query</th><th>Use</th><th>Decision</th><th>Readiness</th><th>Rationale</th></tr></thead><tbody>
+    <tr><td>Q01</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Tenant parsing, positive testing, and benign baseline are not recorded.</td></tr>
+    <tr><td>Q02</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Same as above.</td></tr>
+    <tr><td>Q03</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Same as above.</td></tr>
+    <tr><td>Q04</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Same as above.</td></tr>
+    <tr><td>Q05</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Highest-priority candidate for a scheduled search once tenant-validated; still design-only here.</td></tr>
+    <tr><td>Q06</td><td>alert-candidate</td><td>alert-package</td><td><span class="badge b-med">design-only</span></td><td>Exact-hash match; strongest candidate for prevention once field coverage is confirmed.</td></tr>
+    <tr><td>Q07</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>High FP; needs an owner-reviewed shell-extension baseline before any alerting.</td></tr>
+    <tr><td>Q08</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Registry field availability and exact-match behavior unverified against a live tenant.</td></tr>
+    <tr><td>Q09</td><td>hunt</td><td>hunt-only</td><td><span class="badge b-med">design-only</span></td><td>Low confidence, corroborating-evidence use only.</td></tr>
+    </tbody></table>
+    <div class="callout callout-warn"><strong>Readiness gate:</strong> every benign baseline is unknown and every positive/benign test is planned-not-run. No alert package is deployable as shipped.</div>
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <div class="ioc-grab-grid">
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button type="button" class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,9f84cfcf988530941555d1cb7780a091743cf567396201eff7731f5475768f9a,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,8774533134d9d1514106c4090a0c5bccab4550facdcfe03f4e02b9764343a990,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,ff142fc192daa2a83bc565e5b38ebbe05561f3a19c7fc2d08e38c97e1986bbc5,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,680c3a9f5fdddfcc34856c7a67d21bbdd2b47d70bdfb829ff59cfa0e3bc72d21,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,bdcf8fe230e23692b658b62b6547374e2234f2a497b19d26637018a1839e6dfd,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,607212cfe73c5c84b2dd95b2c0ff37a47f4c8aad08e6d5cbb7c19a62c6b765f9,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,7bb025b426ae6ccbc170fbca58634b8dd77a61447e48dabe9c2e2fb0d339d8b7,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,6d50bb50d4e7d6ac36ca6d2761f382be8e1ddbebf3cdf4733cf989ba291f9013,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,00c116e498799dc831c8aeb602349296c4b9325535d674fe2b6e2e091878dcec,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,93273ea09bd9df881a594db8cfe1b1bbc54f40f623f44427278ae96fb9b46490,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,971f25f84be88c4fd304d555b5e3da12f6b368e4b9ba0943961ff21ba6fa4d4d,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,a13fcbb0870f2fabb7e0a8c757ee3b763bd4a4b0cdf59eeff981d8e307fcf316,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,518cd57a303ff7ac2b5c4c8439aa5bcbf9a287d4653de7b76051bde73a94d064,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,3a8994928f512fffcb32e117ac45e0ee093541d99a9dba5f69a264f7f3054b19,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,2f3d95de716f330fad2330d8787ebdbecb3322453bdc41b2113427f9f92d32d2,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,1439990ff65364a0f608a322aa3a493bc1683cb5fc30cffc44948da29623fffd,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,eaa52d2d6d4daf29157e8e813247fb2e92797324230ee42c79f7861b2f5c341d,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,cb9930d0cde5bf8e8a7ad08fe2c60b937c7beaf9ab51b03191dfcaba40b7b189,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,c0ef62a2d5ca11c2eedad3561d5d1d8b6e9847aa6b8613493e5bc233ece3d189,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,4ecb2d06510dfee1b67f5d9a68c60f6d09ddb5be36cc1766a41d77c5b89d3a56,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,466f9b8dce77b3a026fe4f833aa4949784fb854bea4137e52609e857d439dec8,detect,high,2027-03-12,SloppyRAT DLL,campaign:SloppyRAT
+sha256,f534a957edec74d69081665309311b791b6d11a3221fffa67744812d73ad98eb,detect,high,2027-03-12,SloppyRAT config.py stager script,campaign:SloppyRAT
+domain,finger.linked4x.com,detect,high,2026-12-12,ClickFix stage-1 batch script host,campaign:SloppyRAT
+domain,skipraid.com,detect,high,2026-12-12,CastleLoader/CastleRAT download host,campaign:SloppyRAT
+domain,stro7121.blob.core.windows.net,detect,high,2026-12-12,Azure Blob host serving config.py and SloppyRAT DLL,campaign:SloppyRAT
+domain,backup-ubt.s3.us-east-1.amazonaws.com,detect,high,2026-12-12,S3 backup host for SloppyRAT DLL,campaign:SloppyRAT
+domain,api.telephoneip.net,detect,high,2026-12-12,SloppyRAT C2 domain,campaign:SloppyRAT
+domain,api.truesmart.org,detect,high,2026-12-12,SloppyRAT C2 domain,campaign:SloppyRAT
+ipv4,62.106.66.148,detect,high,2026-12-12,SloppyRAT C2 IP (port 443),campaign:SloppyRAT</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">durable — survives rotation</span></div>
+        <button type="button" class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy signatures</button>
+<pre class="code" id="grab-behav"># Delivery chain
+finger.exe with caret-obfuscated command line ("f^i^n^g^e^r"), for /f "delims=@" ... do %o
+curl.exe copied to AppData under a numeric filename with a .com extension
+--ssl-no-revoke plus an IronPython GitHub release URL on the command line
+-c "import base64,zlib,sys,subprocess ... zlib.decompress(base64.b64decode(...))"
+
+# C2 and network
+HTTPS JSON POST/GET to /api/auth, /api/systeminfo, /api/av_edr, /api/poll, /api/command/get,
+  /api/command/result, /api/proxy/ack
+Authorization: Bearer &lt;session_token&gt; on requests after /api/auth
+X-CSRF-Token header on /api/proxy/ack requests
+RC4-then-Base64 encoded request/response bodies ({"...":"[Base64(RC4(...))]","encrypted":true})
+reverse SOCKS proxy broker initiated via the /api/poll response
+
+# Execution and evasion
+powershell.exe with explorer.exe parent and an empty/near-empty command line (PSSpoof)
+System.Management.Automation.dll loaded via CLR/COM without a visible powershell.exe process (PSInline)
+Win32_Process::Create WMI execution for the "cmd" shell_type
+XOR-encrypted, PNG-header-prefixed file written to %TEMP% with a .png extension
+
+# Persistence (both broken/malformed as shipped)
+HKCU\Software\Microsoft\Windows\CurrentVersion\Run \ rundll32 = "rundll32.exe" (bare, no path/export)
+HKLM\Software\Classes\CLSID\{FNV-1a(computer name)}\InprocServer32 with a missing/incorrect DLL path</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling &amp; Infrastructure</span><span class="igc">pivot / enrich</span></div>
+        <button type="button" class="btn-copy" data-label="Copy list" onclick="copyBlock('grab-named',this)" style="margin:0 0 6px;">Copy list</button>
+<pre class="code" id="grab-named"># Malware chain
+SloppyRAT       final-stage RAT/backdoor analyzed in this pack
+CastleLoader    intermediate loader (delivery precursor — see the CastleRAT pack for its own hunt content)
+CastleRAT       intermediate RAT stage (delivery precursor — see the CastleRAT pack for its own hunt content)
+
+# DLL export invoked on the reflectively-loaded SloppyRAT DLL
+f3b980dea
+
+# User-Agents observed across the chain
+K8VGmQTrzX                                CastleLoader retrieval from skipraid.com
+Mozilla/5.0 (compatible; DLLMemLoader/1.0)   config.py Python-loader retrieval
+CommandExecutor/1.0                       SloppyRAT C2 HTTP client identifier
+
+# Documented example X-API-KEY value (hunt-context only — see callout in section 4)
+af4c426b8c4b3b4957875206948eedae09b670f349f2ffb70df7b7a6b06cd588
+
+# EtherHiding / Polygon (source-flagged as likely still in development — do not action as live C2)
+contract function selector: 0xd6bd8727
+build-time / environment override: LOADER_POLYGON_RESOLVER
+no smart-contract address has been observed in any sample as of 2026-09-10
+
+# Zscaler product detections
+Win64.Loader.PSInlineLoader
+Win64.Rat.SloppyRAT
+MDR analytic: WIN-PYTHON-REMOTE-CODE-EXEC</pre>
+      </div>
+
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">SloppyRAT C2 API Surface</span><span class="igc">reference — proxy/TLS hunt only</span></div>
+        <button type="button" class="btn-copy" data-label="Copy table" onclick="copyBlock('grab-api',this)" style="margin:0 0 6px;">Copy table</button>
+<pre class="code" id="grab-api">POST /api/auth            {"machine_id":"...","version":"1.0"}                     -> {"token":"..."}
+POST /api/systeminfo      {"systeminfo":"[Base64(RC4(...))]","encrypted":true}      -> N/A
+POST /api/av_edr          {"...":"[Base64(RC4(av_list))]","encrypted":true}         -> {"success":true|false}
+GET  /api/poll?machine_id=&lt;mid&gt;                                                     -> {} or {"action":"close|open","request_id":"..."}
+GET  /api/command/get                                                               -> {"command":{...|null,"id":N},"shell_type":"cmd|powershell|auto|inline"}
+POST /api/command/result  {"id":N,"status":"...","result":"[Base64(RC4(stdout))]","error":"[Base64(RC4(stderr))]","exit_code":N,"encrypted":true} -> N/A
+POST /api/proxy/ack       {"request_id":"..."}                                      -> N/A</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Hardening &mdash; Tiered and Deployable</h2></div>
+  <div class="section-body">
+    <div class="tier-blk tier-imm"><div class="tier-lbl">Immediate — block the delivery chain and known C2</div>
+    <ul>
+      <li><strong>Block egress on TCP/79 and restrict finger.exe execution</strong> (M1037, M1038; CTRL01) — deny outbound Finger-protocol traffic at the perimeter and constrain <code>finger.exe</code> execution via application control for hosts with no documented Finger use case <span class="badge b-info">deployable-design</span> <em>Verify:</em> confirm no business-critical legacy service depends on Finger before blocking; run an inert lab test against a controlled Finger server <em>Rollback:</em> restore the prior egress rule and application-control policy from the exported baseline <em>Authority:</em> Zscaler ThreatLabz guidance accessed 2026-09-13.</li>
+      <li><strong>Add the confirmed domains/IP/hashes to Falcon IOC Management as detect (then prevent after validation)</strong> (M1031; CTRL02) — import the &sect;9 CSV, start in detect mode, and promote to prevent once a 7-day benign-baseline window shows no legitimate hits <span class="badge b-info">deployable-design</span> <em>Verify:</em> confirm zero benign hits over the baseline window before promoting to prevent <em>Rollback:</em> revert the IOC action to detect via Falcon IOC Management <em>Authority:</em> Zscaler ThreatLabz IOC appendix accessed 2026-09-13.</li>
+    </ul></div>
+    <div class="tier-blk tier-near"><div class="tier-lbl">Near-term — constrain the staging and execution surface</div>
+    <ul>
+      <li><strong>Pilot application-control coverage for renamed/copied system binaries</strong> (M1038, M1040; CTRL03) — audit for <code>curl.exe</code> (or any signed system binary) copied to a user-writable path under a different name/extension before a download, then pilot a blocking policy <span class="badge b-info">deployable-design</span> <em>Verify:</em> approved packaging/deployment tooling continues to function under audit mode; an inert copy-and-rename test is flagged <em>Rollback:</em> return the cohort to audit mode via the exported policy <em>Authority:</em> Microsoft App Control for Business guidance.</li>
+      <li><strong>Constrain unmanaged PowerShell escalation paths</strong> (M1042, M1026; CTRL04) — apply Constrained Language Mode / AppLocker-style controls to reduce the value of the PSInline (CLR/COM) and PSSpoof (PPID-spoofed <code>powershell.exe</code>) handlers, and alert on <code>explorer.exe</code>-parented PowerShell with empty command lines <span class="badge b-info">deployable-design</span> <em>Verify:</em> approved shell-extension and admin workflows continue to pass under the pilot cohort <em>Rollback:</em> restore the previous PowerShell execution policy <em>Authority:</em> Microsoft PowerShell security guidance and Zscaler technical analysis.</li>
+    </ul></div>
+    <div class="tier-blk tier-strat"><div class="tier-lbl">Strategic — reduce structural exposure</div>
+    <ul>
+      <li><strong>Retire legacy Finger client where no business owner exists</strong> (M1042; CTRL05) — inventory <code>finger.exe</code> use across the estate, assign owners to any exception, and remove or deny execution where no supported dependency remains <span class="badge b-info">deployable-design</span> <em>Verify:</em> approved exceptions continue to function; an unowned invocation is prevented or alerted <em>Rollback:</em> reinstall or re-allow only the reviewed signed binary for a time-bounded exception <em>Authority:</em> Zscaler ThreatLabz reporting accessed 2026-09-13.</li>
+      <li><strong>Centralize process, DNS, network, and registry evidence with extended retention</strong> (M1047; CTRL06) — ensure Falcon telemetry (ProcessRollup2, DnsRequest, NetworkConnectIP4, AsepValueUpdate/RegGenericValueUpdate) is retained long enough to reconstruct the full multi-stage chain during an investigation <span class="badge b-info">deployable-design</span> <em>Verify:</em> a tabletop reconstruction links ClickFix lure, finger.exe, curl.exe, IronPython, CastleLoader/CastleRAT, and SloppyRAT C2 contact across one test case <em>Rollback:</em> restore prior retention settings only after equivalent evidence capacity exists <em>Authority:</em> CrowdStrike Falcon logging guidance.</li>
+    </ul>
+    <h3>Deployable playbook &middot; PB01 &middot; guarded pilot and rollback</h3>
+    <ol>
+      <li>Export current egress, application-control, PowerShell, IOC-management, and logging/retention state</li>
+      <li>Import the &sect;9 IOC set in detect mode</li>
+      <li>Inventory approved finger.exe, curl-renaming, and IronPython/embedded-Python workflows</li>
+      <li>Apply audit-mode controls to a limited pilot cohort</li>
+      <li>Run inert lab fixtures without contacting source infrastructure</li>
+      <li>Verify expected telemetry and business continuity for the pilot cohort</li>
+      <li>Promote IOC actions to prevent and expand controls only when exceptions are owned</li>
+      <li>Roll back through exported policies if a stop condition fires</li>
+      <li>Retain configuration, events, decisions, and recovery evidence</li>
+    </ol>
+    <div class="callout callout-warn"><strong>Design state:</strong> no control was canary-tested or deployed. Complete platform, continuity, and approval checks before enforcement.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table><thead><tr><th>Phase</th><th>Trigger</th><th>Authority</th><th>Owner</th><th>Evidence</th><th>Recovery</th></tr></thead><tbody>
+    <tr><td>1. Validate and preserve</td><td>Q05/Q06 hit (confirmed C2 or hash match), or correlated Q01-Q04/Q07-Q09</td><td>SOC lead</td><td>SOC analyst</td><td>raw events, process tree, dropped files/hashes, DNS/network, registry values</td><td>none; preservation is read-only</td></tr>
+    <tr><td>2. Scope delivery</td><td>chain corroborated from ClickFix lure through SloppyRAT C2 contact</td><td>incident commander</td><td>endpoint and web/proxy responders</td><td>browser history, proxy logs, pasted command, related hosts/users</td><td>document approved test or continue</td></tr>
+    <tr><td>3. Isolate affected endpoint</td><td>active C2 contact or command execution confirmed</td><td>incident commander plus business owner</td><td>endpoint operations</td><td>isolation time, exceptions, active sessions, business impact</td><td>temporary access only under continuity plan</td></tr>
+    <tr><td>4. Address accounts, network, and lateral pivot</td><td>Defender-tampering commands, reverse-SOCKS proxy activity, or lateral connections observed</td><td>incident commander plus identity/network owners</td><td>identity and network operations</td><td>revocations, blocks, destination evidence, owner approvals</td><td>restore access through clean reauthentication and reviewed rules</td></tr>
+    <tr><td>5. Eradicate, recover, re-hunt</td><td>scope stable and volatile evidence preserved</td><td>incident commander and system owner</td><td>endpoint engineering and SOC</td><td>rebuild/cleanup record, known-good hashes, fresh Q01-Q09 results</td><td>return after no unexplained hits and owner sign-off</td></tr>
+    </tbody></table>
+    <p><strong>Preservation order:</strong> raw results, process tree, dropped files and hashes, network/DNS, registry values, memory (if approved), analyst notes, and tool logs. <strong>Closure:</strong> known-good recovery, explained re-hunt results, and incident-commander plus system-owner approval. Never resolve, browse to, or otherwise contact any C2 domain, IP, or blob-storage URL from this pack during investigation.</p>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Detection Coverage and Validation Evidence</h2></div>
+  <div class="section-body">
+    <p><strong>Validation state:</strong> STATIC REVIEW PASSED only after the complete local gate suite succeeds (structure/safety, field/event heuristic, CQL heuristic, IOC provenance). This is not Falcon parsing, canary success, schedule creation, or deployment evidence.</p>
+    <table><thead><tr><th>Technique / Behavior</th><th>Coverage</th><th>Query or handoff</th><th>Evidence</th><th>Limitation</th></tr></thead><tbody>
+    <tr><td>T1204.004 / T1105 (ClickFix + finger.exe retrieval)</td><td><span class="badge b-info">Static</span></td><td>Q01</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent</td></tr>
+    <tr><td>T1036.003 / T1105 (renamed curl.exe / IronPython stage)</td><td><span class="badge b-info">Static</span></td><td>Q02</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent</td></tr>
+    <tr><td>T1059.006 / T1027 (obfuscated Python loader)</td><td><span class="badge b-info">Static</span></td><td>Q03</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent</td></tr>
+    <tr><td>T1105 / T1071.001 (delivery/staging hosts)</td><td><span class="badge b-info">Static</span></td><td>Q04</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent</td></tr>
+    <tr><td>T1071.001 / T1573.001 (confirmed C2 domains/IP)</td><td><span class="badge b-info">Static</span></td><td>Q05</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent</td></tr>
+    <tr><td>T1105 / T1620 (confirmed hash set)</td><td><span class="badge b-info">Static</span></td><td>Q06</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent; field availability for SHA256HashData on write events is tenant-dependent</td></tr>
+    <tr><td>T1134.004 (PPID-spoofed PowerShell)</td><td><span class="badge b-info">Static</span></td><td>Q07</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent; high expected FP</td></tr>
+    <tr><td>T1547.001 (malformed Run-key persistence)</td><td><span class="badge b-info">Static</span></td><td>Q08</td><td>local structure, field, syntax, provenance, safety review</td><td>tenant parser, positive test, benign baseline absent</td></tr>
+    <tr><td>T1036.008 (PNG-disguised result cache)</td><td><span class="badge b-info">Static or gap</span></td><td>Q09</td><td>local structure, field, syntax, provenance, safety review</td><td>non-PE file-write coverage is tenant-dependent; low confidence as shipped</td></tr>
+    <tr><td>T1573.001 content, T1620 memory proof, T1090.001 SOCKS content</td><td><span class="badge b-crit">Gap</span></td><td>native/memory handoff (&sect;6)</td><td>none — requires memory acquisition and approved TLS content</td><td>not observable from endpoint metadata alone</td></tr>
+    <tr><td>T1102.002 (EtherHiding / Polygon)</td><td><span class="badge b-crit">Gap — unconfirmed capability</span></td><td>native on-chain check (&sect;6)</td><td>none — source itself reports no populated smart contract observed</td><td>do not build detection/blocking around an unconfirmed capability</td></tr>
+    </tbody></table>
+    <h3>Recorded evidence and next tests</h3>
+    <ul>
+      <li>Every CQL card retains <code>VALIDATION: STATIC-ONLY</code>; no Falcon tenant was contacted.</li>
+      <li>All 22 SHA256 hashes and all 5 core domains/1 IP were re-extracted directly from live source HTML by regex, not summarized, and cross-checked against 3 independent secondary sources with zero contradictions.</li>
+      <li>Content, memory, TLS/proxy-body, and blockchain-resolver gaps remain visible and are not papered over.</li>
+      <li>Next: parse Q05 and Q06 in the intended repository first (highest confidence, lowest FP), verify field availability, then run approved inert positive and 30-day benign tests before promoting any card to prevent.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body"><div class="ticket"><pre class="code" id="ticket-block">TITLE:        SloppyRAT hunt — v0.1 Draft
+SEVERITY:     high — RAT/backdoor with confirmed C2 infrastructure, likely leveraged by a ransomware-related actor for recon and lateral movement
+SCOPE:        Windows Falcon process, file, DNS, IPv4 network, and registry telemetry
+HYPOTHESIS:   H01 alert-candidate — finger.exe ClickFix retrieval over TCP/79; H02 alert-candidate — renamed curl.exe stages IronPython; H03 alert-candidate — IronPython executes an obfuscated zlib/Base64 loader; H04 alert-candidate — DNS/network to delivery/staging hosts; H05 alert-candidate — DNS/network to confirmed C2 domains/IP; H06 alert-candidate — hash match against 22 confirmed SHA256 values; H07 hunt — PPID-spoofed powershell.exe (PSSpoof); H08 hunt — malformed Run-key persistence write; H09 gap — in-memory decryption, RC4/TLS content, reverse-SOCKS content, and EtherHiding/Polygon resolution
+QUERIES RUN:  Q01-Q06 alert-candidate; Q07-Q09 hunt
+DO FIRST:     Q05 and Q06 over 30d, then Q01-Q04 for delivery-chain context
+FINDINGS:
+GAPS:         tenant parsing, native/memory/TLS-content evidence, positive and benign tests, EtherHiding/Polygon on-chain confirmation
+ACTIONS:      SOC validates Q05/Q06 first; platform and endpoint owners preserve and scope evidence for any hit
+OWNER:        Security Operations / Detection Engineering / Platform Owner
+VERSION:      v0.1 Draft · 2026-09-12 · STATIC REVIEW PASSED</pre><button type="button" class="btn-copy" onclick="copyBlock('ticket-block',this)">Copy ticket</button></div></div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Changelog</h2></div>
+  <div class="section-body"><div class="chg-entry"><span class="chg-ver">v0.1 Draft</span><span class="chg-date">2026-09-12</span><span>Initial pack with 9 CQL queries (6 alert-candidate, 3 hunt), 22 source-verified SHA256 hashes plus 5 domains and 1 IP re-extracted directly from live source HTML, full 47-command and anti-analysis technical writeup, IOC quick-copy grid, tiered hardening, and a five-phase containment runbook. Tenant execution is not claimed. EtherHiding/Polygon flagged as an unconfirmed, likely-incomplete capability per the primary source.</span></div></div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>References</h2></div>
+  <div class="section-body"><table><thead><tr><th>ID</th><th>Publisher</th><th>Version/status</th><th>Accessed</th><th>Use</th><th>URL</th></tr></thead><tbody>
+  <tr><td>S01</td><td>Zscaler ThreatLabz</td><td>successful direct-HTML extraction; primary technical source</td><td>2026-09-13</td><td>C01-C10</td><td><a href="https://www.zscaler.com/blogs/security-research/sloppyrat-new-tool-ransomware-attacks" rel="noopener noreferrer">https://www.zscaler.com/blogs/security-research/sloppyrat-new-tool-ransomware-attacks</a></td></tr>
+  <tr><td>S02</td><td>Security Boulevard</td><td>successful direct-HTML extraction; full syndication of S01</td><td>2026-09-13</td><td>C01-C10</td><td><a href="https://securityboulevard.com/2026/09/sloppyrat-a-new-tool-for-ransomware-attacks/" rel="noopener noreferrer">https://securityboulevard.com/2026/09/sloppyrat-a-new-tool-for-ransomware-attacks/</a></td></tr>
+  <tr><td>S03</td><td>Cyber Security News</td><td>successful direct-HTML extraction; independent full-hash corroboration</td><td>2026-09-13</td><td>C01,C05,C06,C07,C10</td><td><a href="https://cybersecuritynews.com/hackers-deploy-new-sloppyrat/" rel="noopener noreferrer">https://cybersecuritynews.com/hackers-deploy-new-sloppyrat/</a></td></tr>
+  <tr><td>S04</td><td>GBHackers</td><td>successful direct-HTML extraction; partial hash/domain corroboration</td><td>2026-09-13</td><td>C01,C06,C07,C10</td><td><a href="https://gbhackers.com/hackers-deploy-new-sloppyrat-via-clickfix-to-enable-ransomware-lateral-movement/" rel="noopener noreferrer">https://gbhackers.com/hackers-deploy-new-sloppyrat-via-clickfix-to-enable-ransomware-lateral-movement/</a></td></tr>
+  <tr><td>REL</td><td>HuntPack library</td><td>related pack — delivery precursor</td><td>&mdash;</td><td>chain context only</td><td><a href="https://slapopotamus.github.io/HuntPack/hunts/CastleRAT-Multi-Stage-RAT-Hunt.html" rel="noopener noreferrer">CastleRAT Multi-Stage RAT Hunt</a></td></tr>
+  </tbody></table></div>
+</div>
+
+<footer class="hp-footer"><strong>HuntPack</strong> &middot; Portable, offline-ready defender content &middot; v0.1 Draft · Generated 2026-09-12</footer>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
