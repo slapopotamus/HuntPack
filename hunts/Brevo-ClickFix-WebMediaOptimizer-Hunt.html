@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brevo CDN Supply-Chain — ClickFix &amp; Web Media Optimizer — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the Brevo (Sendinblue) CDN supply-chain attack: stolen Cloudflare API key, malicious Worker, ClickFix lures, and the Web Media Optimizer WordPress backdoor. MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Brevo-ClickFix-WebMediaOptimizer-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Brevo CDN Supply-Chain — ClickFix &amp; Web Media Optimizer — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Stolen long-lived Cloudflare API key -> malicious Cloudflare Worker -> ClickFix lures + WordPress backdoor across 100,000+ sites embedding Brevo. CQL hunts, IOCs, hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Brevo-ClickFix-WebMediaOptimizer-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #7ee787;
+  --accent-dim: rgba(126,231,135,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+.hp-header { background: linear-gradient(140deg, #0f2418 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+footer.hp-footer { margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">Brevo CDN Supply-Chain · ClickFix + Web Media Optimizer</div>
+    <div class="version">v0.1 · 2026-09-20</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>Brevo (Sendinblue) CDN Supply-Chain Attack — ClickFix Lures &amp; the "Web Media Optimizer" WordPress Backdoor</h1>
+    <div class="subtitle">A stolen long-lived Cloudflare API key with full account permissions let attackers stand up a malicious Cloudflare Worker that rewrote Brevo's CDN-edge JavaScript for ~4-5.5 hours on 2026-09-14, pushing fake "verify you are human" ClickFix prompts and a self-hiding WordPress backdoor plugin to visitors of an estimated 100,000+ sites embedding Brevo forms, chat, or SDK scripts.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">Brevo CDN Supply-Chain / ClickFix / Web Media Optimizer</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">HIGH IMPACT</span> ~100k sites</div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Cloud/SaaS Supply Chain → ClickFix + Web Backdoor</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Third-party script trust boundary · No auth required</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-09-20</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (core facts, 5+ independent sources) / Medium (atomic IOCs, mostly single-sourced)</div></div>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>What happened.</strong> On 2026-09-14 an attacker used a long-lived Cloudflare API key with full account permissions — hardcoded in Brevo's application source code — to create a malicious Cloudflare Worker that rewrote content at the CDN edge for Brevo's own site and for JavaScript files (<code>sdk-loader.js</code>, the Brevo Conversations widget, and the Brevo forms script) embedded on customer websites. Sansec places the active malware-serving window at roughly 16:05-20:13 UTC; Brevo's own stated exposure window is 16:07-20:30 UTC. All attacker-controlled subdomains stopped resolving on 2026-09-15. Sansec estimates <strong>over 100,000 websites</strong> were affected because trust was inherited transitively through a simple <code>&lt;script&gt;</code> tag — no individual customer had to be compromised.</p>
+      <p><strong>The payload had two branches.</strong> (1) Every visitor could be shown a fake "Cloudflare, verify you are human" page that used the <strong>ClickFix</strong> social-engineering technique: copy a command to the clipboard, then walk the victim through Win+R → paste → Enter to execute it via PowerShell or mshta. (2) On WordPress sites embedding an affected Brevo widget, if the visiting browser showed signs of being an authenticated WordPress administrator, the script instead attempted to silently install a plugin called <strong>"Web Media Optimizer"</strong> from an attacker-controlled CDN subdomain. That plugin behaves as a persistent backdoor: it hides itself from the WordPress admin plugin list, copies itself into the <code>mu-plugins</code> (must-use plugins) directory for persistence outside normal plugin management, carries a hardcoded authentication key that lets the attacker generate valid admin sessions without a password, and periodically polls for updated payload URLs.</p>
+      <p><strong>Root cause.</strong> A long-lived Cloudflare API key with full account permissions was stored in Brevo's application source code and obtained by the attacker, letting them create Cloudflare Workers, routes, and DNS records across Brevo's zones without triggering the alerting a short-lived, narrowly-scoped token would have. Evidence (identical <code>Last-Modified</code> timestamps on rewritten assets, unified Cloudflare-DNS control of five Brevo apex domains) points to CDN-edge content rewriting rather than a breach of Brevo's origin servers — meaning file-integrity checks against the origin would not have caught this.</p>
+      <p><strong>Relationship to the prior Sept 10 incident.</strong> Several sources describe a separate, earlier incident on 2026-09-10 in which attackers exploited a SAML SSO misconfiguration to access 138 Brevo customer accounts (including Trezor) and run phishing campaigns; Brevo's own status-page write-up confirms this SSO incident and its remediation. Whether the two incidents are connected is, per SecurityAffairs, a question Brevo had not answered as of the reporting cycle covered by this pack's sources — treat them as two related but distinct events; this pack's detections target the <strong>2026-09-14 Cloudflare Worker / ClickFix / Web Media Optimizer</strong> incident.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> This is a <em>third-party script supply-chain</em> exposure, not a bug in your own code. The two actionable planes are: (1) hunt your own endpoints and WordPress estate for the ClickFix execution chain and the Web Media Optimizer plugin using the queries and log hunts below, and (2) reduce the blast radius of the <em>next</em> compromised third-party script with Subresource Integrity (SRI) and a restrictive Content-Security-Policy on any page that embeds Brevo (or any third-party) JavaScript — see §12.</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry fwd</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">1 Vendor</span></td><td>Brevo status.brevo.com incident write-up</td><td>Brevo's own account of the SEPARATE 2026-09-10 SAML SSO incident (138 accounts, root cause = auth scope bug). No technical indicators for the 09-14 Cloudflare incident are in this write-up; Brevo's words on 09-14 are only available second-hand via direct quotation in SecurityAffairs.</td><td>partial (context only)</td></tr>
+          <tr><td><span class="badge b-med">2 Press</span></td><td>BleepingComputer — "Brevo supply-chain attack injected ClickFix scripts on customer sites"</td><td>Full IOC set: 4 attacker domains, cdn10.sendibt1.com/p/wm.zip, plugin name + SHA-256, root cause, affected properties, "not affected" list.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-med">2 Research</span></td><td>Sansec — "Brevo supply chain attack hits 100k+ sites"</td><td>Minute-level timeline, injection mechanism (appended loader snippet), clean-vs-injected script hashes, C2 API path list, detection log signatures, remediation guidance ("search for POST to /wp-admin/update.php?action=upload-plugin").</td><td>yes</td></tr>
+          <tr><td><span class="badge b-med">2 Press</span></td><td>SecurityWeek — "Brevo Supply Chain Attack Injects Malware Into 100,000 Websites"</td><td>Corroborates timeline, root cause, exposure window, affected pages, prior Sept 10 SSO incident context.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-med">2 Press</span></td><td>SecurityAffairs — "Brevo Supply-Chain Attack Infected Over 100,000 Websites"</td><td>Direct quote of Brevo's own incident notice on root cause; mu-plugins persistence detail; notes the open question of whether the 09-10 and 09-14 incidents are linked.</td><td>yes</td></tr>
+          <tr><td><span class="badge b-low">3 Press</span></td><td>CyberInsider — "100,000+ WordPress sites infected via Brevo supply chain attack"</td><td>Corroborates cdn10.sendibt1.com, /p/wm.zip, f.js loader filename, timeline.</td><td>partial</td></tr>
+          <tr><td><span class="badge b-low">3 Press</span></td><td>IT-Connect.tech — "Brevo ClickFix Attack Hits WordPress Sites"</td><td>Corroborates cdn10.sendibt1.com, "Web Media Optimizer" plugin name, ClickFix Win+R/Ctrl+V instruction wording, timeline.</td><td>partial</td></tr>
+          <tr><td><span class="badge b-low">3 Press</span></td><td>CyberNews — "Brevo hack: 100,000+ websites serve malware for hours" (search-summary; direct fetch returned HTTP 403)</td><td>Corroborates timeline and affected properties narratively; no atomic IOC in this pack traces to this source alone.</td><td>partial (narrative only)</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Intel gaps / perishability:</strong> Of the atomic host indicators, only <code>cdn10.sendibt1.com</code> / <code>/p/wm.zip</code> / "Web Media Optimizer" are corroborated by <strong>two or more</strong> independently fetched sources. The four other attacker domains (<code>glegchner.com</code>, <code>corralos.beer</code>, <code>yelahaye.surf</code>, <code>boiseno.club</code>) and the plugin SHA-256 appear in only one saved snapshot (BleepingComputer) — per this pack's two-source rule for <code>prevent</code>/<code>critical</code>, they ship as <code>detect</code>-tier indicators, not blocklist-tier. All attacker infrastructure stopped resolving on 2026-09-15, so these are historical/retrospective hunting indicators, not a live blocking need — see §4 and §10. No published report recovered the actual "Web Media Optimizer" plugin source code, so its full capability set is described narratively by researchers, not independently verified by this pack's authors.</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hunt hypotheses (fidelity-ordered)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry</th><th>Conf</th></tr></thead>
+        <tbody>
+          <tr><td>H1</td><td>A Windows endpoint's <code>explorer.exe</code> spawns <code>powershell.exe</code>, <code>mshta.exe</code>, or <code>cmd.exe</code> with an encoded or remote-fetch command line shortly after Run-dialog activity — the ClickFix clipboard-paste-and-execute pattern.</td><td>T1204.004 / T1059.001 / T1218.005</td><td>ProcessRollup2</td><td><span class="badge b-high">HIGH</span></td></tr>
+          <tr><td>H2</td><td>A browser process (<code>chrome.exe</code>, <code>msedge.exe</code>, <code>firefox.exe</code>) directly spawns a script host or command interpreter — a browser-triggered ClickFix variant.</td><td>T1204.004 / T1059.001</td><td>ProcessRollup2</td><td><span class="badge b-med">MED</span></td></tr>
+          <tr><td>H3</td><td>An instrumented host issues a DNS query for one of the four attacker domains or an attacker-repurposed <code>sendibt1.com</code> subdomain.</td><td>T1071.001</td><td>DnsRequest</td><td><span class="badge b-high">HIGH</span></td></tr>
+          <tr><td>H4</td><td>A script host (<code>powershell.exe</code>, <code>curl.exe</code>, <code>bitsadmin.exe</code>, <code>certutil.exe</code>) downloads a file referencing <code>wm.zip</code> or <code>sendibt1.com</code>.</td><td>T1105 / T1059.001</td><td>ProcessRollup2</td><td><span class="badge b-high">HIGH</span></td></tr>
+          <tr><td>H5</td><td>A monitored host writes a file matching the Web Media Optimizer plugin filename (<code>wm.zip</code>) or its SHA-256 hash to disk.</td><td>T1505.003</td><td>ZipFileWritten / PeFileWritten</td><td><span class="badge b-high">HIGH</span></td></tr>
+          <tr><td>H6</td><td>A file write lands inside a WordPress <code>wp-content/mu-plugins</code> path — the plugin's persistence mechanism — on a web-server host with Falcon coverage. <span class="badge b-info">⚠ validate in tenant</span></td><td>T1505.003</td><td>PeFileWritten</td><td><span class="badge b-med">MED</span></td></tr>
+          <tr><td>H7</td><td>Native WordPress/web-server access logs show a <code>POST</code> to <code>/wp-admin/update.php?action=upload-plugin</code> followed by a <code>GET</code> to <code>/wp-admin/plugins.php?action=activate</code> on 2026-09-14 — off-sensor for Falcon, the highest-fidelity WordPress-side signal per Sansec.</td><td>T1505.003</td><td>Native web/access log</td><td><span class="badge b-high">HIGH</span></td></tr>
+        </tbody>
+      </table>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Action</th><th>Telemetry / hunt angle</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Initial access (T1552.001)</td><td>Attacker obtains a long-lived, full-permission Cloudflare API key hardcoded in Brevo's own application source code.</td><td>Off-sensor — vendor-side credential exposure. Root-cause lesson for §12.</td></tr>
+          <tr><td>2 · Infrastructure abuse (T1584 / T1195.002)</td><td>Attacker creates a malicious Cloudflare Worker + supporting routes/DNS records to rewrite content at the CDN edge for Brevo's own domains and embedded scripts.</td><td>Off-sensor — Cloudflare account activity, not EDR-visible.</td></tr>
+          <tr><td>3 · Delivery (T1195.002)</td><td>Rewritten <code>sdk-loader.js</code> / <code>brevo-conversations.js</code> / forms script append a loader that pulls <code>f.js</code> from an attacker <code>*.sendibt1.com</code> subdomain, on every page that embeds the affected Brevo widget.</td><td>DNS/network egress from the visitor's browser process. <strong>H3.</strong></td></tr>
+          <tr><td>4a · Visitor branch — ClickFix (T1204.004)</td><td>Regular visitors see a fake "verify you are human" page instructing them to paste a clipboard command into Win+R.</td><td>ProcessRollup2: explorer.exe → powershell/mshta/cmd with suspicious CommandLine. <strong>H1/H2.</strong></td></tr>
+          <tr><td>4b · Admin branch — plugin backdoor (T1505.003)</td><td>If the visiting session looks like a logged-in WordPress admin, the script instead fetches <code>wm.zip</code> ("Web Media Optimizer") from <code>cdn10.sendibt1.com/p/wm.zip</code> and attempts silent plugin installation.</td><td>Native web log: POST to <code>/wp-admin/update.php?action=upload-plugin</code>. Falcon (if sensor on the web host): ZipFileWritten/PeFileWritten. <strong>H4/H5/H7.</strong></td></tr>
+          <tr><td>5 · Persistence (T1505.003)</td><td>Plugin hides from the WordPress plugin list and copies itself into <code>wp-content/mu-plugins</code>, which WordPress auto-loads without appearing as a manageable plugin.</td><td>File write into <code>mu-plugins</code> path. <strong>H6.</strong> Filesystem-vs-admin-panel plugin count mismatch. <strong>H7.</strong></td></tr>
+          <tr><td>6 · Command &amp; control (T1071.001 / T1102)</td><td>Plugin carries a hardcoded auth key for attacker-generated admin sessions and periodically polls for updated payload URLs from its C2.</td><td>Periodic outbound connections from the web host; recurring admin-session creation with no matching interactive login.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Conf</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>Domain</td><td>cdn10.sendibt1.com</td><td><span class="badge b-low">high</span></td><td><strong>prevent</strong></td><td>Hosted the "Web Media Optimizer" plugin archive at <code>/p/wm.zip</code>. Corroborated by 4 independent sources (BleepingComputer, Sansec, CyberInsider, IT-Connect). Attacker-controlled subdomain of a legitimate Brevo apex domain; safe to block — Brevo revoked/cleaned this after 2026-09-15.</td></tr>
+          <tr><td>URL</td><td>https://cdn10.sendibt1.com/p/wm.zip</td><td><span class="badge b-low">high</span></td><td><strong>prevent</strong></td><td>Malicious WordPress plugin archive download. 2+ independent sources.</td></tr>
+          <tr><td>Domain</td><td>glegchner.com</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Web Media Optimizer C2 (<code>/ads.php</code>). Single-sourced (BleepingComputer only) — ships detect-only per two-source rule for prevent/critical.</td></tr>
+          <tr><td>Domain</td><td>corralos.beer</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>ClickFix lure delivery (<code>/a412dkoq.js</code>). Single-sourced (BleepingComputer).</td></tr>
+          <tr><td>Domain</td><td>yelahaye.surf</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Associated malicious domain per BleepingComputer's IOC set. Single-sourced.</td></tr>
+          <tr><td>Domain</td><td>boiseno.club</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Associated malicious domain per BleepingComputer's IOC set. Single-sourced.</td></tr>
+          <tr><td>SHA-256</td><td>f359ab0d2f732b54dd3300065f4d6553f4df1b67454b71fd81197e26f02af4a8</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>"Web Media Optimizer" plugin archive hash (VirusTotal, per BleepingComputer). Single-sourced — ships detect-only per two-source rule.</td></tr>
+          <tr><td>Domain</td><td>cdn.sendibt1.com / cdn2 / cdn3 / cdn4 / cdn9 / cdn11.sendibt1.com</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Additional attacker-repurposed CDN subdomains used to serve the rewritten loader/<code>f.js</code>. Single-sourced (Sansec).</td></tr>
+          <tr><td>Filename</td><td>wm.zip</td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Generic filename — pair with the hash or full URL for fidelity; do not block on filename alone.</td></tr>
+          <tr><td>Artifact (plugin name)</td><td>"Web Media Optimizer"</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Named in 3 independent sources (BleepingComputer, SecurityAffairs, IT-Connect). Not a network-blockable IOC — audit for its presence in the WP plugin directory and <code>mu-plugins</code>.</td></tr>
+          <tr><td>Behavioral</td><td>Injected loader snippet appended to <code>sdk-loader.js</code> / <code>brevo-conversations.js</code> that dynamically creates a <code>&lt;script&gt;</code> tag pointing at an attacker <code>*.sendibt1.com</code> subdomain</td><td><span class="badge b-low">high</span></td><td>detect</td><td>Sansec. See §10 Script Integrity Reference for clean-vs-injected hash comparisons.</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info"><strong>Deliberately excluded from this table:</strong> the Cloudflare-anycast IPs reported for some <code>*.sendibt1.com</code> records (e.g. in the 104.21.x.x and 188.114.x.x ranges). Those are shared Cloudflare edge addresses used by millions of unrelated sites — blocking or alerting on them produces overwhelming false positives and provides no attribution value once the DNS records themselves are gone. Hunt on the domain names and the plugin artifact, not the shared IP space behind Cloudflare's proxy.</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead>
+        <tbody>
+          <tr><td>Windows endpoints of anyone who browsed an affected site 2026-09-14 16:00-21:00 UTC</td><td>ProcessRollup2 / SyntheticProcessRollup2, DnsRequest</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-low">Low</span> — standard Falcon sensor coverage</td></tr>
+          <tr><td>WordPress hosts embedding a Brevo forms/chat/SDK snippet, where the logged-in admin visited the site that day</td><td>ZipFileWritten / PeFileWritten (if Falcon-instrumented), native web/access logs (always)</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-high">High</span> — most WordPress hosting is not Falcon-instrumented; native log hunting (§7) is the primary detection here</td></tr>
+          <tr><td>Web-server / hosting infrastructure behind those WordPress sites</td><td>Native access/error logs, file-integrity monitoring on <code>wp-content</code></td><td><span class="badge b-med">High</span></td><td><span class="badge b-med">Medium</span> — depends on hosting provider log retention</td></tr>
+          <tr><td>Browsers (all, regardless of OS) rendering the ClickFix overlay</td><td>Browser process telemetry (Windows-only for the documented PowerShell/mshta execution path); no equivalent macOS/Linux execution primitive is documented in these sources</td><td><span class="badge b-med">High</span></td><td><span class="badge b-med">Medium</span> — ClickFix as documented here targets Windows clipboard-to-Run; non-Windows visitor impact is a documented gap, not confirmed absent</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Coverage reality:</strong> the highest-fidelity WordPress-side signal (H7 — the admin plugin-upload POST) lives in native web/access logs, not Falcon telemetry, unless the web server itself runs a Falcon sensor with file-write monitoring enabled for PHP/zip writes under <code>wp-content</code> — validate this in your tenant before relying on Q5/Q6 as your only WordPress detection.</p>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query / control</th></tr></thead>
+        <tbody>
+          <tr><td>Resource Development</td><td>T1584 Compromise Infrastructure</td><td>Malicious Cloudflare Worker + routes/DNS created using the stolen API key</td><td>Off-sensor; §12 credential hygiene</td></tr>
+          <tr><td>Initial Access / Credential Access</td><td>T1552.001 Unsecured Credentials: Credentials in Files</td><td>Long-lived full-permission Cloudflare API key hardcoded in application source code</td><td>Off-sensor (vendor-side); §12 secret-scanning + scoped tokens</td></tr>
+          <tr><td>Initial Access</td><td>T1195.002 Supply Chain Compromise: Software Supply Chain</td><td>CDN-edge rewrite of trusted third-party JavaScript served to 100,000+ downstream sites</td><td>§12 SRI / CSP</td></tr>
+          <tr><td>Execution / User Execution</td><td>T1204.004 Malicious Copy and Paste (ClickFix)</td><td>Fake "verify you are human" overlay instructs victim to paste and run a clipboard command</td><td>Q1, Q2, Q3</td></tr>
+          <tr><td>Execution</td><td>T1059.001 Command and Scripting Interpreter: PowerShell</td><td>PowerShell invoked from Run dialog / browser with encoded or remote-fetch command line</td><td>Q2, Q3, Q4</td></tr>
+          <tr><td>Execution</td><td>T1218.005 System Binary Proxy Execution: Mshta</td><td>mshta.exe used as an alternate ClickFix execution vector</td><td>Q2, Q3</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1071.001 Application Layer Protocol: Web Protocols</td><td>DNS/HTTP to attacker domains and C2 API paths</td><td>Q1</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1105 Ingress Tool Transfer</td><td>Script host downloads <code>wm.zip</code> from attacker CDN</td><td>Q4</td></tr>
+          <tr><td>Persistence</td><td>T1505.003 Server Software Component: Web Shell</td><td>"Web Media Optimizer" plugin: hides from plugin list, persists via <code>mu-plugins</code>, hardcoded backdoor auth key</td><td>Q5, Q6, native H7</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (non-CQL)</h2></div>
+    <div class="section-body">
+      <p>The single highest-fidelity WordPress-side signal for this campaign lives in your web server / WAF access logs, not EDR. Run these on every WordPress host that embeds a Brevo forms, Conversations, or SDK-loader snippet.</p>
+      <h3>On the WordPress web/access log</h3>
+      <ul>
+        <li><strong>Plugin upload:</strong> search 2026-09-14 (and a few days either side, given the "late August" key-theft window) for a <code>POST</code> to <code>/wp-admin/update.php?action=upload-plugin</code>.</li>
+        <li><strong>Plugin activation:</strong> a <code>GET</code> to <code>/wp-admin/plugins.php?action=activate</code> shortly after that POST is the confirming second half of the signature (per Sansec's published remediation guidance).</li>
+        <li><strong>Hidden-plugin check:</strong> list the contents of <code>wp-content/plugins/</code> and <code>wp-content/mu-plugins/</code> on disk (SSH/SFTP/hosting file manager) and diff against what the WordPress admin "Plugins" screen shows. Web Media Optimizer is designed to hide from that screen — a plugin present on disk but absent from the admin list is the tell.</li>
+        <li><strong>Injected-script check:</strong> inspect served HTML/JS for <code>script[src*="file.js"]</code> (a commonly reported default loader filename in this campaign family) or a <code>script</code> tag carrying a <code>data-c</code> attribute — both reported as injection artifacts.</li>
+        <li><strong>Script hash check:</strong> compute SHA-256 of the embedded <code>sdk-loader.js</code> / <code>brevo-conversations.js</code> as served to visitors and compare against the clean vs. injected hashes in §10's Script Integrity Reference.</li>
+      </ul>
+      <h3>On the WordPress admin session / auth log</h3>
+      <ul>
+        <li>Review admin login activity around 2026-09-14 16:00-21:00 UTC for sessions with no corresponding interactive login event — a symptom of the plugin's hardcoded backdoor auth key generating sessions without credentials.</li>
+        <li>Force a credential reset and session invalidation for any admin account active on an affected site during the exposure window, out of caution, even without confirmed compromise.</li>
+      </ul>
+      <h3>On the endpoint (non-Falcon fallback — AV/EDR-agnostic)</h3>
+      <ul>
+        <li>Check clipboard history / recent Run-dialog (Win+R) MRU entries for base64 or URL-bearing strings on machines whose users browsed an affected site during the window.</li>
+        <li>Per Sansec's guidance: anyone who followed the ClickFix instructions and executed the pasted command should run a full anti-virus/EDR scan immediately, not wait for a hunt cycle.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+      </div>
+
+      <p class="callout callout-info">All attacker domains stopped resolving 2026-09-15 — these are <strong>retrospective</strong> hunts against the 2026-09-14 window and general-purpose detections for the ClickFix/backdoor-plugin technique class going forward, not a live-blocking need.</p>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · DNS resolution to Brevo ClickFix / Web Media Optimizer attacker infrastructure</span>
+          <div class="qc-badges"><span class="badge b-high">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any instrumented host resolving one of the four attacker domains or an attacker-repurposed <code>sendibt1.com</code> subdomain. <strong>FP:</strong> very low — these are not shared/legitimate hosting domains, just retired campaign infrastructure.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: DNS resolution to Brevo ClickFix / Web Media Optimizer attacker infrastructure</span>
+<span class="cm">// MITRE: T1071.001 | CONF: high  FP: low  COST: low | REQUIRES: DnsRequest</span>
+#event_simpleName=/^DnsRequest$/
+| DomainName=/^(glegchner\.com|corralos\.beer|yelahaye\.surf|boiseno\.club|cdn10\.sendibt1\.com|cdn\.sendibt1\.com|cdn2\.sendibt1\.com|cdn3\.sendibt1\.com|cdn4\.sendibt1\.com|cdn9\.sendibt1\.com|cdn11\.sendibt1\.com)$/i
+| table([ComputerName, aid, UserName, DomainName], limit=200)</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · ClickFix clipboard-to-Run execution chain (explorer.exe → shell/script host)</span>
+          <div class="qc-badges"><span class="badge b-high">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the canonical ClickFix pattern — a user pastes a command into the Win+R Run dialog, so <code>explorer.exe</code> is the direct parent of <code>powershell.exe</code>, <code>mshta.exe</code>, or <code>cmd.exe</code>, carrying an encoded, hidden-window, or remote-fetch command line. <strong>FP:</strong> some IT helpdesk/RMM tools and support scripts legitimately launch PowerShell this way — baseline against your fleet before promoting to Detect.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: ClickFix clipboard-to-Run-dialog execution chain</span>
+<span class="cm">// MITRE: T1204.004 / T1059.001 / T1218.005 | CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+<span class="cm">// TUNING: exclude known signed IT helpdesk / RMM tools that legitimately spawn PowerShell from explorer.exe on your fleet</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^explorer\.exe$/i
+| FileName=/^(powershell|powershell_ise|mshta|cmd)\.exe$/i
+| CommandLine=/(-enc|-e |-en |-w hidden|-windowstyle hidden|frombase64string|iex|invoke-expression|http(s)?:\/\/)/i
+| table([ComputerName, aid, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · Browser-triggered child-process chain (ClickFix browser variant)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a browser process directly spawning a script host or command interpreter — covers ClickFix variants that trigger execution without a visible Run-dialog step. <strong>FP:</strong> browser updaters, native messaging hosts, and some extensions legitimately spawn helper processes; validate your ParentBaseFileName/FileName pairs against known-good browser child processes before promoting.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Browser process spawning script host / command interpreter</span>
+<span class="cm">// MITRE: T1204.004 / T1059.001 / T1218.005 | CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+<span class="cm">// TUNING: exclude signed browser updater/helper binaries and native-messaging hosts observed in your environment</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^(chrome|msedge|firefox|iexplore)\.exe$/i
+| FileName=/^(powershell|mshta|cmd|wscript|cscript)\.exe$/i
+| table([ComputerName, aid, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · Script-host download of the Web Media Optimizer plugin archive</span>
+          <div class="qc-badges"><span class="badge b-high">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> PowerShell or a common LOLBin downloader fetching <code>wm.zip</code> or referencing <code>sendibt1.com</code> in its command line. <strong>FP:</strong> low — these strings are campaign-specific.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Script-host download of the Web Media Optimizer plugin archive (wm.zip)</span>
+<span class="cm">// MITRE: T1105 / T1059.001 | CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^(powershell|curl|bitsadmin|certutil)\.exe$/i
+| CommandLine=/(wm\.zip|sendibt1\.com|cdn10\.sendibt1)/i
+| table([ComputerName, aid, UserName, FileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · Web Media Optimizer plugin archive written to disk (filename or hash match)</span>
+          <div class="qc-badges"><span class="badge b-high">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a file write matching the plugin archive's filename or its published SHA-256. <strong>FP:</strong> low for the hash match; the filename alone (<code>wm.zip</code>) is generic, so treat a filename-only hit as lower fidelity than a hash hit. <strong>Coverage note:</strong> this fires only on hosts with a Falcon sensor and file-write visibility — most WordPress hosting is not Falcon-instrumented; §7's native log hunt is the primary WordPress-side detection.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Web Media Optimizer malicious plugin archive written to disk</span>
+<span class="cm">// MITRE: T1505.003 | CONF: high  FP: low  COST: low | REQUIRES: ZipFileWritten, PeFileWritten</span>
+#event_simpleName=/^(ZipFileWritten|PeFileWritten)$/
+| FileName=/^wm\.zip$/i OR SHA256HashData=/^f359ab0d2f732b54dd3300065f4d6553f4df1b67454b71fd81197e26f02af4a8$/i
+| table([ComputerName, aid, UserName, FileName, FilePath, SHA256HashData], limit=200)</pre>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · File write into WordPress mu-plugins directory (persistence)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> any file write into a <code>wp-content/mu-plugins</code> path — the plugin's documented persistence mechanism. <span class="badge b-info">⚠ validate in tenant</span> — file-write event coverage for PHP content on Linux-hosted WordPress varies by sensor configuration; this is far more reliable on a Windows-hosted CMS. <strong>FP:</strong> legitimate must-use plugins and managed-hosting platform files also live here — baseline your known-good <code>mu-plugins</code> writers first.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: File write into WordPress mu-plugins directory (Web Media Optimizer persistence)</span>
+<span class="cm">// MITRE: T1505.003 | CONF: medium  FP: medium  COST: low | REQUIRES: PeFileWritten ⚠ validate in tenant — Linux/PHP file-write coverage varies by sensor config</span>
+<span class="cm">// TUNING: exclude known-good managed-hosting platform writers and legitimate must-use plugin deployment processes on your fleet</span>
+#event_simpleName=/^PeFileWritten$/
+| FilePath=/wp-content[\\\/]mu-plugins/i
+| table([ComputerName, aid, UserName, FileName, FilePath], limit=200)</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Path</th></tr></thead>
+        <tbody>
+          <tr><td>ClickFix Run-Dialog Execution</td><td>explorer.exe → powershell/mshta/cmd with encoded/hidden-window/remote-fetch CommandLine</td><td>Signed IT helpdesk/RMM tools baselined per-fleet</td><td>Investigate → Detect after baseline (Q2)</td></tr>
+          <tr><td>Brevo Campaign DNS Resolution</td><td>DnsRequest to any of the 11 listed attacker/repurposed domains</td><td>None expected — retired campaign infra only</td><td>Detect immediately (Q1)</td></tr>
+          <tr><td>Web Media Optimizer Artifact Drop</td><td>ZipFileWritten/PeFileWritten matching filename <code>wm.zip</code> or the published SHA-256</td><td>None for the hash match; filename-only hits reviewed manually</td><td>Detect immediately (Q5)</td></tr>
+          <tr><td>Browser-Spawned Shell (ClickFix variant)</td><td>chrome/msedge/firefox → powershell/mshta/cmd/wscript/cscript</td><td>Signed browser updater/helper binaries, native messaging hosts</td><td>Investigate-only (Q3)</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn">The highest-fidelity WordPress-side detection (native H7 — the admin plugin-upload POST) belongs in your <strong>web server/WAF log pipeline</strong>, not a Falcon IOA — most WordPress hosting never reports to the Falcon sensor.</p>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,cdn10.sendibt1.com,prevent,critical,2026-12-20,Brevo ClickFix attack -- attacker-controlled CDN subdomain hosting the Web Media Optimizer malicious WordPress plugin archive; 2+ independent sources,campaign:brevo-clickfix-2026-09
+url,https://cdn10.sendibt1.com/p/wm.zip,prevent,critical,2026-12-20,Brevo ClickFix attack -- malicious WordPress plugin archive download URL; 2+ independent sources,campaign:brevo-clickfix-2026-09
+domain,glegchner.com,detect,high,2026-12-20,Brevo ClickFix attack -- Web Media Optimizer plugin C2 (/ads.php); single-sourced (BleepingComputer) -- detect only per two-source rule,campaign:brevo-clickfix-2026-09
+domain,corralos.beer,detect,high,2026-12-20,Brevo ClickFix attack -- ClickFix lure delivery (/a412dkoq.js); single-sourced (BleepingComputer),campaign:brevo-clickfix-2026-09
+domain,yelahaye.surf,detect,medium,2026-12-20,Brevo ClickFix attack -- associated malicious domain; single-sourced (BleepingComputer),campaign:brevo-clickfix-2026-09
+domain,boiseno.club,detect,medium,2026-12-20,Brevo ClickFix attack -- associated malicious domain; single-sourced (BleepingComputer),campaign:brevo-clickfix-2026-09
+sha256,f359ab0d2f732b54dd3300065f4d6553f4df1b67454b71fd81197e26f02af4a8,detect,high,2026-12-20,Brevo ClickFix attack -- Web Media Optimizer malicious WordPress plugin archive hash (VirusTotal); single-sourced -- detect only per two-source rule,campaign:brevo-clickfix-2026-09
+domain,cdn.sendibt1.com,detect,medium,2026-12-20,Brevo ClickFix attack -- attacker-repurposed CDN subdomain; single-sourced (Sansec),campaign:brevo-clickfix-2026-09
+domain,cdn2.sendibt1.com,detect,medium,2026-12-20,Brevo ClickFix attack -- attacker-repurposed CDN subdomain; single-sourced (Sansec),campaign:brevo-clickfix-2026-09
+domain,cdn3.sendibt1.com,detect,medium,2026-12-20,Brevo ClickFix attack -- attacker-repurposed CDN subdomain; single-sourced (Sansec),campaign:brevo-clickfix-2026-09
+domain,cdn4.sendibt1.com,detect,medium,2026-12-20,Brevo ClickFix attack -- attacker-repurposed CDN subdomain; single-sourced (Sansec),campaign:brevo-clickfix-2026-09
+domain,cdn9.sendibt1.com,detect,medium,2026-12-20,Brevo ClickFix attack -- attacker-repurposed CDN subdomain; single-sourced (Sansec),campaign:brevo-clickfix-2026-09
+domain,cdn11.sendibt1.com,detect,medium,2026-12-20,Brevo ClickFix attack -- attacker-repurposed CDN subdomain; single-sourced (Sansec),campaign:brevo-clickfix-2026-09
+filename,wm.zip,detect,medium,2026-12-20,Brevo ClickFix attack -- malicious WordPress plugin archive filename; generic, pair with hash/URL for fidelity,campaign:brevo-clickfix-2026-09</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">C2 / network</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh"># C2 / loader API paths reported by Sansec (relative to attacker malware hosts;
+# single-sourced -- hunt/enrich only, do not block on generic paths alone):
+#   /f.js                  - main loader
+#   /api/v1/0044d4a        - fingerprint submission (POST)
+#   /api/v1/e08a3c4        - proof-of-work token request
+#   /api/v1/8e4c615        - fingerprint submission variant
+#   /api/v1/f659473        - token request variant
+#   /api/v1/4aff112?tk=    - clipboard command delivery
+#   /api/v1/b832c14?e=     - event beacon (click, copy, fallback, failure, close)
+#   /api/v1/4ead0ff?tk=    - image beacon
+#   /image.php?tk=         - image beacon variant
+# C2 "cloak" response -- identical body returned to non-victims/crawlers/scanners:
+#   response hash: 4af488d79aef7daa12b1c18f0cce28b7edadccb8b6b0fb8d50d1d53a9a7c2df7
+#   body: {"s":0,"r":"https:\/\/www.google.com"}
+# Injection artifacts in served HTML/JS:
+#   script[src*="file.js"]   - commonly reported default loader filename
+#   script[data-c]           - custom attribute set by the injection</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">WordPress Log Hunt Strings</span><span class="igc">native web/access log</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-wp',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-wp"># Search access logs for 2026-09-14 (plus a few days either side):
+#   POST /wp-admin/update.php?action=upload-plugin
+#   GET  /wp-admin/plugins.php?action=activate    (shortly after the POST)
+# Filesystem-vs-admin-panel mismatch check:
+#   ls -la wp-content/plugins/ wp-content/mu-plugins/
+#   # compare against what wp-admin/plugins.php actually lists --
+#   # Web Media Optimizer is designed to hide from that screen
+# Injected-script detection in served pages:
+#   grep -r 'script\[src\*="file.js"\]' .   # or view-source for the pattern
+#   grep -r 'data-c=' .</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Script Integrity Reference</span><span class="igc">SHA-256 -- clean vs. injected</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-sri',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-sri"># Per Sansec. Informational / enrichment only -- NOT for blocking (these are
+# tampered variants of Brevo's own legitimate scripts, already offline since
+# 2026-09-15). Use to verify your embedded scripts weren't served a tampered
+# variant during the exposure window, and as SRI reference hashes going forward.
+#
+# CLEAN (legitimate):
+#   sdk-loader.js            fe8447fd1ec4dca652b71db2c749fcc24a5bec3875f3654042169fb2418aed09
+#   brevo-conversations.js   26166cd87ff07e7a50317a24126d14b262e842c5715585636dee3ab3f227ddca
+#
+# INJECTED VARIANTS observed during the 2026-09-14 exposure window:
+#   sdk-loader.js (-> cdn2)          58a5c601c9df7ca2120435588fc39f97712d9b878795f6ee500590099a432308
+#   sdk-loader.js (-> cdn11)         f67d572d2d30407b3f470904326411450763108980cdad89550fbb221fb06782
+#   brevo-conversations.js (-> cdn4) 9b62c12bc5c7feb9802f58e6cf75a368690df3c754e37cc64483a92acacf87a5</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass criterion</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>ProcessRollup2/SyntheticProcessRollup2 and DnsRequest flowing from endpoint fleet; PeFileWritten/ZipFileWritten confirmed present (or absent, and documented) on any Falcon-instrumented web hosts</td><td>Events queryable in Falcon within last 24h</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q2/Q3/Q6 against 7-30 days of history before promoting to Detect</td><td>Known-good exclusions identified and added via TUNING notes</td></tr>
+          <tr><td>WordPress log access confirmed</td><td>Confirm access to web server/WAF logs covering 2026-09-14 for every WordPress host embedding a Brevo snippet</td><td>Logs retained and searchable for the exposure window</td></tr>
+          <tr><td>Script integrity check run</td><td>Compare live embedded Brevo script hashes against §10 Script Integrity Reference</td><td>No match to a listed injected-variant hash</td></tr>
+          <tr><td>Positive test</td><td>In a lab, replicate the explorer.exe → powershell.exe chain with a benign encoded command; confirm Q2 fires</td><td>Query returns the test event</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <ul>
+          <li><strong>Security awareness: ClickFix-specific warning.</strong> No legitimate site or CAPTCHA will ever ask a user to open Win+R and paste/run a command. This single message closes the highest-volume branch of this attack (the visitor overlay). MITRE M1017 (User Training).</li>
+          <li><strong>Block <code>mshta.exe</code> execution via AppLocker/WDAC</strong> on endpoints that have no legitimate business need for it (most do not). Removes one of the two documented ClickFix execution vectors outright. MITRE M1038 (Execution Prevention).</li>
+          <li><strong>Deploy Q1/Q2/Q4/Q5 as Detect</strong> and run the §7 WordPress log hunts against 2026-09-14 access logs on every host embedding a Brevo snippet, immediately.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1–4 weeks)</div>
+        <ul>
+          <li><strong>Enable PowerShell Script Block Logging + Constrained Language Mode</strong> for non-admin, non-signed scripts, so an encoded ClickFix payload is both logged and constrained even if it runs. MITRE M1040 (Behavior Prevention on Endpoint) / M1042.</li>
+          <li><strong>WordPress hardening:</strong> enforce MFA on <code>wp-admin</code>, restrict access to <code>/wp-admin/update.php</code> and <code>/wp-admin/plugins.php</code> by source IP/VPN at the WAF, and deploy file-integrity monitoring on <code>wp-content/plugins</code> and <code>wp-content/mu-plugins</code> so an unauthorized plugin write alerts even without EDR on the host. MITRE M1032 (Multi-factor Authentication) / M1047 (Audit) / M1022 (Restrict File and Directory Permissions).</li>
+          <li><strong>Third-party script containment — Content-Security-Policy.</strong> Set a <code>script-src</code>/<code>connect-src</code> allowlist on every page embedding third-party JavaScript (Brevo or otherwise), so that if a trusted CDN is tampered with again, the browser itself blocks the injected script from loading new hosts or beaconing to unlisted domains. <span class="badge b-info">⚠ best-practice, no formal CIS/vendor benchmark covers this specific supply-chain scenario</span> — grounded in the W3C CSP specification and standard defense-in-depth practice, not a named framework control.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1–3 months)</div>
+        <ul>
+          <li><strong>Subresource Integrity (SRI) on embedded third-party scripts</strong> where the vendor supports versioned/immutable script URLs — pins the exact byte content expected, so a CDN-edge rewrite (exactly this attack) causes the browser to refuse the script rather than execute it. <span class="badge b-info">⚠ best-practice, no formal benchmark</span> — W3C SRI spec. Requires coordination with any vendor (Brevo or otherwise) whose script URL is not a stable, hashable asset.</li>
+          <li><strong>Vendor / third-party script risk management:</strong> stand up automated monitoring that diffs and hashes every third-party script your sites embed on a recurring basis, alerting on any change outside a known release cadence. MITRE M1047 (Audit) as applied to supply-chain surface.</li>
+          <li><strong>If you manage your own Cloudflare (or any CDN) API credentials:</strong> replace any long-lived, full-permission Global API Key with narrowly-scoped, short-lived Cloudflare API Tokens; never hardcode them in application source — use a secrets manager, and run repository secret-scanning to catch the exact root-cause pattern that enabled this campaign. MITRE M1047 (Audit) / general credential-hygiene best practice for T1552.001.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+
+      <h3>Playbook A — Windows: block mshta.exe and harden PowerShell against ClickFix (AppLocker + registry)</h3>
+      <p><strong>MITRE:</strong> T1204.004 / T1218.005 / T1059.001 → M1038, M1040, M1042 &nbsp;|&nbsp; <strong>Estimated deploy time:</strong> 1-2 hours (Immediate tier), 1 pilot ring for Constrained Language Mode &nbsp;|&nbsp; <strong>Prerequisites:</strong> Windows 10/11 or Server 2016+, Group Policy or Intune management, local admin on target endpoints &nbsp;|&nbsp; <strong>Reboot required:</strong> No (AppLocker/registry changes apply on next policy refresh or PowerShell session; no reboot needed)</p>
+<pre class="code"># Step 1 -- AppLocker deny rule for mshta.exe (GPO path shown; PowerShell equivalent below)
+# GPO path: Computer Configuration > Windows Settings > Security Settings >
+#           Application Control Policies > AppLocker > Executable Rules
+# Add a Deny rule: Path = %SYSTEM32%\mshta.exe, applied to Everyone
+
+# PowerShell equivalent (local testing before GPO rollout):
+New-AppLockerPolicy -RuleType Path -User Everyone -Action Deny `
+  -Path "%SYSTEM32%\mshta.exe" -XMLPolicy | Set-AppLockerPolicy -Merge
+
+# Verify:
+Get-AppLockerPolicy -Effective -Xml | Select-String "mshta"
+
+# Rollback:
+# Remove the Deny rule from the linked GPO (or the local policy) and run:
+gpupdate /force
+# No reboot required; AppLocker re-evaluates on next process launch after policy refresh.</pre>
+<pre class="code"># Step 2 -- Enable PowerShell Script Block Logging (visibility even if execution isn't blocked)
+$path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging'
+New-Item -Path $path -Force | Out-Null
+New-ItemProperty -Path $path -Name 'EnableScriptBlockLogging' -Value 1 -PropertyType DWORD -Force | Out-Null
+Write-Output "PowerShell Script Block Logging enabled."
+
+# Verify:
+(Get-ItemProperty $path -Name EnableScriptBlockLogging -EA SilentlyContinue).EnableScriptBlockLogging
+# Expect: 1
+
+# Rollback:
+Remove-ItemProperty -Path $path -Name 'EnableScriptBlockLogging' -EA SilentlyContinue
+# No reboot required; takes effect for new PowerShell sessions.</pre>
+      <p><strong>Compatibility note:</strong> pilot the mshta.exe deny rule on a small ring first — a small number of legacy line-of-business HTA-based tools may depend on it. Search Event ID 8004 (AppLocker) for blocked launches during pilot.</p>
+
+      <h3>Playbook B — WordPress: lock down plugin installation and monitor mu-plugins (shell / WP-CLI)</h3>
+      <p><strong>MITRE:</strong> T1505.003 → M1022, M1032, M1047 &nbsp;|&nbsp; <strong>Estimated deploy time:</strong> 2-4 hours &nbsp;|&nbsp; <strong>Prerequisites:</strong> SSH/SFTP or hosting-panel file access, WP-CLI installed, ability to edit <code>wp-config.php</code> and web-server config &nbsp;|&nbsp; <strong>Reboot required:</strong> No</p>
+<pre class="code"># Step 1 -- Audit current state: disk vs. admin-panel plugin list
+wp plugin list --path=/var/www/html
+ls -la /var/www/html/wp-content/plugins/ /var/www/html/wp-content/mu-plugins/
+# Any plugin present on disk but NOT in the `wp plugin list` output is a hiding-plugin candidate -- investigate before proceeding.
+
+# Step 2 -- Disable in-dashboard plugin/theme installation and file editing
+# Add to wp-config.php (before "That's all, stop editing!"):
+#   define('DISALLOW_FILE_MODS', true);   // blocks plugin/theme install+update+edit from wp-admin
+# NOTE: this also blocks LEGITIMATE plugin updates from the dashboard -- pair with a
+# controlled update process (WP-CLI, staging-then-deploy, or a managed host's own pipeline).
+
+# Step 3 -- File-integrity baseline for wp-content
+find /var/www/html/wp-content -type f \( -name "*.php" -o -name "*.zip" \) -exec sha256sum {} \; > /var/backups/wp-content-baseline-$(date +%F).sha256
+
+# Step 4 -- Recurring integrity check (cron, e.g. daily)
+sha256sum -c /var/backups/wp-content-baseline-$(date +%F).sha256 2>&1 | grep -v ": OK"
+# Any FAILED or new/missing file warrants investigation.
+
+# Verify Step 2:
+grep DISALLOW_FILE_MODS /var/www/html/wp-config.php
+# Expect: define('DISALLOW_FILE_MODS', true);
+
+# Rollback:
+# Remove (or set to false) the DISALLOW_FILE_MODS line in wp-config.php to restore
+# dashboard-based plugin management. No service restart required.</pre>
+
+      <h3>Playbook C — Any site embedding third-party JavaScript: CSP + SRI containment</h3>
+      <p><strong>MITRE:</strong> T1195.002 → best-practice (W3C CSP/SRI specs; no single CIS control covers third-party-script supply chain) &nbsp;|&nbsp; <strong>Estimated deploy time:</strong> 2-6 hours plus a monitoring period for CSP report-only tuning &nbsp;|&nbsp; <strong>Prerequisites:</strong> ability to edit site HTTP response headers or HTML <code>&lt;head&gt;</code>; an inventory of every third-party script domain the site legitimately loads &nbsp;|&nbsp; <strong>Reboot required:</strong> No (web server / CDN config reload only)</p>
+<pre class="code"># Step 1 -- Ship CSP in Report-Only mode first to avoid breaking legitimate embeds
+# HTTP response header (nginx example):
+add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://sibforms.com https://cdn.brevo.com; connect-src 'self' https://cdn.brevo.com; report-uri /csp-violations;" always;
+
+# Step 2 -- After a monitoring period with no unexpected legitimate violations, enforce it:
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://sibforms.com https://cdn.brevo.com; connect-src 'self' https://cdn.brevo.com;" always;
+# Any future attempt by a tampered/injected script to load a NEW attacker domain (e.g. a
+# repeat of *.sendibt1.com-style abuse or the four ClickFix domains in this pack) is blocked
+# by the browser itself, even though the script content changed at the CDN edge.
+
+# Step 3 -- Where the vendor serves an immutable/versioned script URL, pin it with SRI:
+# &lt;script src="https://cdn.brevo.com/js/sdk-loader.js"
+#         integrity="sha256-BASE64_OF_KNOWN_GOOD_HASH"
+#         crossorigin="anonymous"&gt;&lt;/script&gt;
+# NOTE: SRI requires the vendor to serve a byte-stable script at that URL; if the vendor
+# rotates content at that same URL for legitimate reasons, SRI will break the embed --
+# validate with the vendor before enforcing.
+
+# Verify:
+curl -sI https://your-site.example.com/ | grep -i content-security-policy
+
+# Rollback:
+# Remove the add_header line (or revert to Report-Only) and reload the web server:
+nginx -t && systemctl reload nginx</pre>
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Falcon-contain any endpoint flagged by Q1/Q2/Q3/Q4; take any WordPress host with a confirmed Web Media Optimizer plugin off the public network or place behind maintenance mode pending eradication.</td><td>SOC + Web/IT Ops</td><td>Containment IDs, host list from Q1-Q6</td></tr>
+          <tr><td>Eradicate</td><td>Remove the plugin from both <code>wp-content/plugins</code> and <code>wp-content/mu-plugins</code> (check both — it hides from the admin list but not the filesystem); force-reset all WordPress admin credentials and invalidate sessions for any account active during 2026-09-14 16:00-21:00 UTC; on Windows endpoints, run a full AV/EDR scan and review Run-dialog/clipboard history for anyone who browsed an affected site that day.</td><td>Web/IT Ops + IR</td><td>Removed-file list, credential-reset log, scan results</td></tr>
+          <tr><td>Recover</td><td>Restore plugin/theme state from a known-clean backup predating 2026-09-14 where available; re-enable dashboard plugin management only after DISALLOW_FILE_MODS-gated review; verify embedded Brevo (or other third-party) script hashes against §10's clean references before re-enabling normal operation.</td><td>Web/IT Ops</td><td>Restore logs, script-hash verification record</td></tr>
+          <tr><td>Post-incident</td><td>Deploy CSP/SRI (Playbook C) on all sites embedding third-party scripts; enable file-integrity monitoring on <code>wp-content</code> fleet-wide; if your organization manages its own Cloudflare/CDN API credentials, audit for hardcoded long-lived keys and rotate to scoped tokens (root-cause lesson from this campaign).</td><td>SecEng + Web/IT Ops</td><td>CSP header rollout record, FIM coverage report, credential-rotation log</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1584 / T1552.001</td><td>Stolen Cloudflare API key, malicious Worker creation</td><td>—</td><td>—</td><td><span class="badge b-high">GAP (vendor-side, off-sensor)</span></td></tr>
+          <tr><td>T1071.001</td><td>DNS resolution to attacker/repurposed domains</td><td>Q1</td><td>Brevo Campaign DNS Resolution</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1204.004 / T1059.001 / T1218.005</td><td>ClickFix clipboard-to-Run execution (explorer.exe path)</td><td>Q2</td><td>ClickFix Run-Dialog Execution</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1204.004 / T1059.001</td><td>ClickFix browser-triggered variant</td><td>Q3</td><td>Browser-Spawned Shell</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1105</td><td>wm.zip download via script host</td><td>Q4</td><td>—</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1505.003</td><td>Plugin archive written to disk (hash/filename)</td><td>Q5</td><td>Web Media Optimizer Artifact Drop</td><td><span class="badge b-med">Partial (Falcon-instrumented web hosts only)</span></td></tr>
+          <tr><td>T1505.003</td><td>mu-plugins persistence write</td><td>Q6</td><td>—</td><td><span class="badge b-med">Partial — ⚠ validate in tenant</span></td></tr>
+          <tr><td>T1505.003</td><td>Admin plugin-upload POST / activation GET (native web log)</td><td>—</td><td>—</td><td><span class="badge b-high">GAP (off-sensor; native log hunt §7 is primary)</span></td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Known gaps:</strong> the root cause (stolen Cloudflare API key, malicious Worker) and the highest-fidelity WordPress-side signal (admin plugin-upload POST) are both <em>off-sensor</em> for Falcon — recoverable only from Cloudflare account audit logs and web-server access logs respectively. Closing the primary WordPress gap means running §7's native log hunts on every site embedding a Brevo (or other third-party) snippet, not waiting on EDR coverage.</p>
+      <p>Validation: telemetry-ready and benign-baseline gates (§11) must pass before Q2/Q3/Q6 are promoted from Investigate to Detect.</p>
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE:      Brevo CDN Supply-Chain Attack — ClickFix Lures &amp; Web Media Optimizer WordPress Backdoor
+SEVERITY:   High impact (~100,000 sites, per Sansec) / Critical for confirmed WP plugin installs
+SCOPE:      Windows endpoints of visitors to Brevo-embedding sites 2026-09-14 16:00-21:00 UTC;
+            WordPress hosts embedding Brevo forms/Conversations/SDK-loader scripts
+HYPOTHESIS: Stolen Cloudflare API key -&gt; malicious Worker rewrites trusted 3rd-party JS -&gt;
+            ClickFix clipboard execution (visitors) + silent plugin backdoor (WP admins)
+QUERIES:    Q1 DNS-to-attacker-infra &middot; Q2 ClickFix Run-dialog chain &middot; Q3 browser-spawned shell &middot;
+            Q4 wm.zip download &middot; Q5 plugin artifact drop (hash/filename) &middot; Q6 mu-plugins write
+DO FIRST:   1) Run &sect;7 WordPress log hunts on every Brevo-embedding site for 2026-09-14
+            2) Deploy Q1/Q2/Q4/Q5 as Detect  3) Block mshta.exe via AppLocker (Playbook A)
+            4) Check wp-content/mu-plugins on disk vs. admin panel on every WP host
+FINDINGS:   &lt;record DNS/process hits, plugin artifact matches, WP log signature hits&gt;
+GAPS:       Root cause (stolen API key/Worker) and admin plugin-upload POST are off-sensor;
+            4 of 5 attacker domains + the plugin hash are single-sourced (detect-only, not prevent)
+ACTIONS:    Falcon-contain flagged hosts; force WP admin credential reset for exposure-window
+            sessions; deploy CSP/SRI (Playbook C) on all 3rd-party-script embeds
+OWNER:      &lt;assign&gt;          VERSION: v0.1 · 2026-09-20</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-09-20</span><span>Initial HuntPack — Brevo (Sendinblue) CDN supply-chain attack: stolen Cloudflare API key, malicious Cloudflare Worker, ClickFix lures, and the "Web Media Optimizer" WordPress backdoor plugin. 6 CQL queries (DNS, ClickFix process chains x2, wm.zip download, plugin artifact drop, mu-plugins persistence), native WordPress/web-log hunts, tiered hardening (AppLocker, WP lockdown, CSP/SRI), 3 deployable playbooks with prerequisites/reboot/rollback, and a containment runbook. Two-source rule applied to §4/§10: only <code>cdn10.sendibt1.com</code> and its <code>/p/wm.zip</code> URL are corroborated by 2+ independent snapshots and ship as prevent/critical; the four other attacker domains and the plugin SHA-256 are single-sourced (BleepingComputer only) and ship detect-only.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Accessed</th></tr></thead>
+        <tbody>
+          <tr><td>1 Vendor</td><td><a href="https://status.brevo.com/incidents/01M266V1CZKJQNGZRNEGFD5CQE/write-up">Brevo status.brevo.com incident write-up</a></td><td>Brevo's own account of the related Sept 10 SSO incident (context; no 09-14 technical indicators)</td><td>2026-09-20</td></tr>
+          <tr><td>2 Press</td><td><a href="https://www.bleepingcomputer.com/news/security/brevo-supply-chain-attack-injected-clickfix-scripts-on-customer-sites/">BleepingComputer — Brevo supply-chain attack injected ClickFix scripts on customer sites</a></td><td>Full IOC set (4 domains, cdn10.sendibt1.com/wm.zip, plugin name + hash), root cause, affected properties</td><td>2026-09-20</td></tr>
+          <tr><td>2 Research</td><td><a href="https://sansec.io/research/brevo-supply-chain-attack">Sansec — Brevo supply chain attack hits 100k+ sites with Wordpress backdoors and Clickfix malware</a></td><td>Minute-level timeline, injection mechanism, clean/injected script hashes, C2 API paths, WP log detection signature</td><td>2026-09-20</td></tr>
+          <tr><td>2 Press</td><td><a href="https://www.securityweek.com/brevo-supply-chain-attack-injects-malware-into-100000-websites/">SecurityWeek — Brevo Supply Chain Attack Injects Malware Into 100,000 Websites</a></td><td>Timeline, root cause, scope corroboration</td><td>2026-09-20</td></tr>
+          <tr><td>2 Press</td><td><a href="https://securityaffairs.com/199355/hacking/brevo-supply-chain-attack-infected-over-100000-websites.html">SecurityAffairs — Brevo Supply-Chain Attack Infected Over 100,000 Websites</a></td><td>Direct quote of Brevo's incident notice; mu-plugins persistence detail; Sept 10/14 linkage question</td><td>2026-09-20</td></tr>
+          <tr><td>3 Press</td><td><a href="https://cyberinsider.com/100000-wordpress-sites-infected-via-brevo-supply-chain-attack/">CyberInsider — 100,000+ WordPress sites infected via Brevo supply chain attack</a></td><td>Corroboration: cdn10.sendibt1.com, /p/wm.zip, f.js loader filename</td><td>2026-09-20</td></tr>
+          <tr><td>3 Press</td><td><a href="https://www.it-connect.tech/brevo-scripts-hit-customer-sites-with-clickfix-and-a-wordpress-backdoor/">IT-Connect.tech — Brevo ClickFix Attack Hits WordPress Sites</a></td><td>Corroboration: cdn10.sendibt1.com, plugin name, ClickFix instruction wording</td><td>2026-09-20</td></tr>
+          <tr><td>3 Press</td><td><a href="https://cybernews.com/security/brevo-supply-chain-attack-clickfix-malware/">CyberNews — Brevo hack: 100,000+ websites serve malware for hours</a> (search-summary; direct fetch returned HTTP 403)</td><td>Narrative timeline/scope corroboration only</td><td>2026-09-20</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="hp-footer">Generated 2026-09-20 &middot; HuntPack v0.1 &middot; Brevo (Sendinblue) CDN Supply-Chain Attack — ClickFix &amp; Web Media Optimizer &middot; Defensive use only — no offensive code &middot; Author: HuntPack</footer>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
