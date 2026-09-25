@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitSpawn: multi-agent git-config RCE class — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for GitSpawn: multi-agent git-config RCE class: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/GitSpawn-AICodingAgent-RCE-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GitSpawn: multi-agent git-config RCE class — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for GitSpawn: multi-agent git-config RCE class: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/GitSpawn-AICodingAgent-RCE-Hunt.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for GitSpawn: a booby-trapped repository's .git/config silently executing attacker code inside AI coding agents.">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f778ba;
+  --accent-dim: rgba(247,120,186,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #2a1020 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.ioc-grab .igt { font-size: 11.5px; font-weight: 600; color: var(--text); }
+.ioc-grab .igc { font-size: 10px; color: var(--text-muted); }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+.ticket .ticket-bar { background: var(--accent-dim); color: var(--accent); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library — home">HUNTPACK</a></div>
+    <div class="pack-name">GitSpawn: AI Coding Agent Git-Config RCE</div>
+    <div class="version">v0.1 · 2026-09-25</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>GitSpawn: AI Coding Agent Git-Config RCE</h1>
+    <div class="subtitle">A booby-trapped repository's own <code>.git/config</code> (via <code>core.fsmonitor</code>, <code>core.hooksPath</code>, <code>attr.tree</code>, or clean/process filters) makes an AI coding agent's routine background <code>git status</code>/<code>git diff</code> execute an attacker-supplied program: as the logged-in user, outside the agent's sandbox, with no approval prompt.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">GitSpawn: multi-agent git-config RCE class</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH · Sandbox-Escape RCE (GitSpawn's own CVEs: 7.3 Codex, 7.0 Goose) · Responsible disclosure, no confirmed ITW</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Developer-tooling / supply-chain-adjacent RCE</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Local execution via received repo · no network exploit</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-09-25</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (behavioral) · No atomic infrastructure IOCs published</div></div>
+    </div>
+  </div>
+
+  <!-- 1 EXEC SUMMARY -->
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p>On 2026-09-01, Manifold Security disclosed <strong>GitSpawn</strong>: a vulnerability class affecting seven AI coding agents (Claude Code, OpenAI Codex, Cursor, Goose, Hermes Agent, Qwen Code, Grok Build) across eight distinct findings. Every one of these agents gathers project context by quietly running <code>git status</code> / <code>git diff</code> in the background: often before the user has typed a prompt, accepted a workspace-trust dialog, or authenticated. Git supports <code>core.fsmonitor</code>, a legitimate performance setting naming a helper program that git launches automatically whenever it refreshes its index. That value is read straight out of the repository's own <code>.git/config</code>. A malicious repository can set it (or the related <code>core.hooksPath</code>, <code>attr.tree</code>, or a clean/process filter command) to an attacker-chosen program, and the moment the agent's background git command touches that repo, the program runs: <strong>as the logged-in user, outside the agent's sandbox, and invisible to the agent's own permission/approval system.</strong></p>
+      <p>Four of the eight findings were still unpatched at publication (Claude Code's second "ultrareview" path, Hermes Agent, Qwen Code, Grok Build). Two formal CVEs anchor the disclosure: <strong>CVE-2026-19592</strong> (OpenAI Codex CLI/Desktop, CVSS 7.3, fixed 0.131.0) and <strong>CVE-2026-72718</strong> (Goose, fixed 1.44.0). A related, separately-tracked Claude Code vulnerability, <strong>CVE-2026-55607</strong> (git-worktree path confusion abusing the same fsmonitor execution sink, CVSS 8.8, fixed 2.1.163), shares the mechanism but a different delivery chain (requires a clone plus prompt-injection content, not merely opening a received folder): see §2 for the reconciliation.</p>
+      <p><strong>Delivery reality:</strong> this cannot arrive via an ordinary <code>git clone</code>, <code>fetch</code>, or <code>pull</code>, since none of those transmit a hostile <code>.git/config</code>. The repository has to arrive <em>as files</em> with its <code>.git</code> directory already inside, exactly how developers routinely receive projects: a zipped project handoff from a contractor, a synced cloud-drive share, a "bug report" archive from a stranger, or a USB stick.</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> there are no published C2 domains, IPs, or file hashes for this research: the atomic surface is <em>configuration strings and affected agent version numbers</em>, not infrastructure, and the sensor cannot see the contents of a git config file it did not observe being written. The hunt is therefore behavioral: unexpected process ancestry (agent → git → shell/interpreter/network tool), archive extraction immediately preceding a git/agent launch, and the follow-on credential-access and persistence an attacker would chase once code execution lands. Patch/version-pin every affected agent (§12) and inspect <code>.git/config</code> in any repository received as files before opening it in an agent.</p>
+    </div>
+  </div>
+
+  <!-- 2 SOURCE REVIEW -->
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">Primary</span></td><td>Manifold Security: "GitSpawn" (2026-09-01)</td><td>Original disclosure: mechanism, 8 findings / 7 agents, delivery vector, vendor + recipient mitigation language</td><td>Yes</td></tr>
+          <tr><td><span class="badge b-info">News</span></td><td>The Hacker News (2026-09-02)</td><td>Per-agent affected/fixed version table; timeline; core.hooksPath/attr.tree named as additional sinks</td><td>Yes</td></tr>
+          <tr><td><span class="badge b-info">News</span></td><td>Shattered.io</td><td>Corroborates patch-status table and "does not survive git clone" framing</td><td>Yes</td></tr>
+          <tr><td><span class="badge b-info">News</span></td><td>ByteIota</td><td>Corroborates mechanism and agent list. <strong>Two claims dropped:</strong> an uncorroborated "FakeGit campaign, 7,600+ poisoned repos" statistic and a Codex CLI "0.152.1+" patch figure that conflicts with the formal CVE record (08) and The Hacker News (02): neither ships anywhere in this pack</td><td>Partial</td></tr>
+          <tr><td><span class="badge b-info">News</span></td><td>Cybersecuritynews.com</td><td>Corroborates mechanism, "cannot arrive via clone/fetch/pull" delivery-reality language (used near-verbatim in §1/§3), 77M+ monthly npm downloads context for Claude Code</td><td>Yes</td></tr>
+          <tr><td><span class="badge b-info">News</span></td><td>GBHackers</td><td>Third corroboration of per-agent affected/fixed version numbers</td><td>Yes</td></tr>
+          <tr><td><span class="badge b-info">Vendor CVE</span></td><td>GitLab Advisory DB: CVE-2026-55607</td><td>Claude Code sandbox escape via git-worktree path confusion; CVSS 8.8; affected 2.1.38–2.1.162, fixed 2.1.163; requires clone + prompt injection (different delivery chain than the core GitSpawn disclosure: see reconciliation below)</td><td>Yes, with caveat</td></tr>
+          <tr><td><span class="badge b-info">Vendor CVE</span></td><td>OpenCVE: CVE-2026-19592</td><td>Authoritative Codex CLI/Desktop affected + fixed version numbers, CVSS 7.3, CWE-15</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Reconciliation note: CVE-2026-55607 is related but distinct:</strong> Manifold's GitSpawn disclosure says Claude Code's core.fsmonitor path was fixed in <strong>2.1.196</strong> (with a second "ultrareview" path reportedly still live at 2.1.252). CVE-2026-55607 was fixed earlier, in <strong>2.1.163</strong>, via a different delivery chain: cloning a malicious repo containing prompt-injection content that steers the agent into vulnerable worktree operations, not simply opening a received folder. This pack cites CVE-2026-55607 for its fsmonitor-abuse detection and hardening value (§6, §9, §12) while keeping its version numbers and delivery chain clearly separate from the GitSpawn-labeled Claude Code findings.</p>
+      <p class="callout callout-warn"><strong>IOC provenance note:</strong> no cited source publishes atomic infrastructure indicators (attacker IPs, C2 domains, malware hashes) for GitSpawn: the "indicators" are affected-version strings and the git config keys themselves. §10's Falcon IOC Management CSV block is therefore placeholder-only by design; §4 and §10's behavioral/config blocks are the operative content.</p>
+    </div>
+  </div>
+
+  <!-- 3 HUNT BRIEF -->
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <p>The exploit itself is nothing more than a few text lines in a file the victim already has on disk. All of the detectable behavior happens after an AI coding agent's routine background git command reads that file and launches whatever it names.</p>
+      <h3>Hunt hypotheses (highest fidelity first)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry</th><th>Conf</th></tr></thead>
+        <tbody>
+          <tr><td>H1</td><td>An AI coding agent binary is the grandparent of git, which is the parent of an interactive shell or scripting interpreter: the core fsmonitor/hooksPath/attr.tree execution chain</td><td>T1059 / T1195</td><td>ProcessRollup2</td><td><span class="badge b-low">High</span></td></tr>
+          <tr><td>H2</td><td>git spawns a child that is not one of its own known helpers: curl/wget, a LOLBin, or a shell: matching a config-named helper program rather than a normal git subprocess</td><td>T1059 / T1105</td><td>ProcessRollup2</td><td><span class="badge b-low">High</span></td></tr>
+          <tr><td>H3</td><td>git is invoked with an explicit <code>-c core.fsmonitor=</code>/<code>-c core.hooksPath=</code>/<code>-c attr.tree=</code> override on the command line (attacker automation, or: legitimately: the vendor-recommended mitigation check)</td><td>T1059</td><td>ProcessRollup2</td><td><span class="badge b-med">Medium</span></td></tr>
+          <tr><td>H4</td><td>An archive-extraction utility (tar/unzip/7z/ditto/Expand-Archive) runs immediately before a git or AI-agent process launches on the same host: the only way this payload can be delivered</td><td>T1204.002 / T1027</td><td>ProcessRollup2</td><td><span class="badge b-med">Medium</span></td></tr>
+          <tr><td>H5</td><td>A process descended from git accesses SSH keys, cloud credential files, or git-credential stores shortly after the execution chain fires</td><td>T1552.001 / T1552.004</td><td>ProcessRollup2</td><td><span class="badge b-low">High</span></td></tr>
+          <tr><td>H6</td><td>git is used to create a worktree named/pathed as <code>.git</code> (CVE-2026-55607-class path confusion) ahead of an fsmonitor execution</td><td>T1036.005 / T1211</td><td>ProcessRollup2</td><td><span class="badge b-low">High</span></td></tr>
+          <tr><td>H7</td><td>A shell/interpreter descended from git makes an outbound network connection: staging a second-stage payload or reaching back to attacker infrastructure</td><td>T1105 / T1071</td><td>ProcessRollup2 + NetworkConnectIP4</td><td><span class="badge b-med">Medium</span></td></tr>
+          <tr><td>H8</td><td>A process descended from git or an AI agent rewrites a shell profile / dotfile (<code>.zshenv</code>, <code>.bash_profile</code>, <code>.profile</code>) for persistence: the exact technique CVE-2026-55607 used to escape the sandbox</td><td>T1546.004</td><td>ProcessRollup2</td><td><span class="badge b-low">High</span></td></tr>
+          <tr><td>H9</td><td>A Windows Run-key or scheduled-task entry is created within minutes of a suspicious git-ancestry process on the same host</td><td>T1547.001 / T1053.005</td><td>Reg/Asep + ScheduledTaskRegistered</td><td><span class="badge b-med">Medium</span></td></tr>
+        </tbody>
+      </table>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Action</th><th>Telemetry</th><th>Hunt Angle</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Prepare</td><td>Attacker crafts a repo whose <code>.git/config</code> names a helper under <code>core.fsmonitor</code> (or hooksPath/attr.tree/filter)</td><td>None on the victim's EDR: happens on attacker infrastructure</td><td>No detectable telemetry pre-delivery</td></tr>
+          <tr><td>2 · Deliver</td><td>Repo handed off as a zip/synced-folder/USB with <code>.git</code> intact: not a clone/fetch/pull</td><td>Archive-extraction process; file-system write of the folder</td><td>H4: extraction immediately preceding git/agent launch</td></tr>
+          <tr><td>3 · Trigger</td><td>Victim opens the folder in an AI coding agent; the agent runs a background <code>git status</code>/<code>git diff</code> for context</td><td>ProcessRollup2 (git launch)</td><td>H3: explicit config override on the git command line, where visible</td></tr>
+          <tr><td>4 · Execute</td><td>git reads <code>.git/config</code>, launches the named helper: the RCE moment: as the logged-in user, outside the agent sandbox</td><td>ProcessRollup2 (agent → git → shell/interpreter)</td><td>H1/H2/H6: the core execution-chain hunts</td></tr>
+          <tr><td>5 · Stage/Callback</td><td>Spawned shell/interpreter reaches out for a second-stage payload or C2</td><td>NetworkConnectIP4 from a git-descended shell</td><td>H7</td></tr>
+          <tr><td>6 · Harvest/Persist</td><td>Credential-file access, dotfile rewrite, or Run-key/scheduled-task creation</td><td>ProcessRollup2 / Reg / Asep / ScheduledTaskRegistered</td><td>H5/H8/H9</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4 IOC TABLE -->
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p class="callout callout-warn">No cited source publishes atomic infrastructure indicators (attacker IPs, C2 domains, malware file hashes) for GitSpawn. The "indicators" that exist are <strong>affected-component version numbers</strong> and the <strong>git configuration keys</strong> the attack abuses: both are config/behavioral, and both trace directly to the saved source snapshots. Atomic-IOC rows are intentionally omitted rather than fabricated.</p>
+      <table>
+        <thead><tr><th>Type</th><th>Value / Pattern</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>Config key</td><td><code>core.fsmonitor</code> naming a program in a received repo's <code>.git/config</code></td><td><span class="badge b-low">High</span></td><td>hunt</td><td>Primary GitSpawn sink (source 01/02)</td></tr>
+          <tr><td>Config key</td><td><code>core.hooksPath</code>, <code>attr.tree</code>, or a clean/process filter command in <code>.git/config</code> / <code>.gitattributes</code></td><td><span class="badge b-med">Medium</span></td><td>hunt</td><td>Additional sinks reported by Manifold (source 01/02)</td></tr>
+          <tr><td>Version</td><td>Claude Code (fsmonitor path) &lt; 2.1.196</td><td><span class="badge b-low">High</span></td><td>detect</td><td>Fixed 2.1.196; ultrareview path unpatched at 2.1.252 (source 01/02/03)</td></tr>
+          <tr><td>Version</td><td>Claude Code 2.1.38 – 2.1.162 (CVE-2026-55607)</td><td><span class="badge b-low">High</span></td><td>detect</td><td>Fixed 2.1.163; worktree path-confusion, CVSS 8.8 (source 07)</td></tr>
+          <tr><td>Version</td><td>Goose &lt; 1.44.0 (CVE-2026-72718)</td><td><span class="badge b-low">High</span></td><td>detect</td><td>Fixed 1.44.0, severity 7.0 (source 01/02/06)</td></tr>
+          <tr><td>Version</td><td>Codex CLI 0.102.0 – 0.130.0 (CVE-2026-19592)</td><td><span class="badge b-low">High</span></td><td>detect</td><td>Fixed 0.131.0, CVSS 7.3 (source 02/08)</td></tr>
+          <tr><td>Version</td><td>Codex Desktop macOS ≤ 26.513.31313 / Windows ≤ 26.513.40821</td><td><span class="badge b-low">High</span></td><td>detect</td><td>Fixed 26.519.22136 (macOS) / 26.519.21041 (Windows) (source 02/08)</td></tr>
+          <tr><td>Version</td><td>Hermes Agent 0.18.2 – 0.21.0 (CVE-2026-71963)</td><td><span class="badge b-med">Medium</span></td><td>hunt</td><td>Unpatched at publication, vendor unresponsive (source 01/02/06)</td></tr>
+          <tr><td>Version</td><td>Qwen Code 0.19.6 – 0.22.3</td><td><span class="badge b-med">Medium</span></td><td>hunt</td><td>Unpatched at publication, no CVE assigned (source 01/02/06)</td></tr>
+          <tr><td>Version</td><td>Grok Build 0.2.93 – 1.0.13</td><td><span class="badge b-med">Medium</span></td><td>hunt</td><td>Unpatched at publication, no CVE assigned (source 01/02/06)</td></tr>
+          <tr><td>Behavior</td><td>Archive-extraction process immediately followed by a git/agent launch on the same host</td><td><span class="badge b-med">Medium</span></td><td>hunt</td><td>The only viable delivery path (source 01/02/05)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 AFFECTED SURFACE -->
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+        <tbody>
+          <tr><td>Windows developer endpoints (Claude Code, Codex, Cursor, Grok Build, etc. under Node/Electron)</td><td>ProcessRollup2, NetworkConnectIP4, AsepValueUpdate/RegGenericValueUpdate, ScheduledTaskRegistered</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-low">Low</span>: Falcon-native</td></tr>
+          <tr><td>macOS developer endpoints</td><td>ProcessRollup2 (zsh/bash/osascript ancestry), NetworkConnectIP4</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-low">Low</span>: Falcon-native; sandboxed-app nuances per CVE-2026-55607</td></tr>
+          <tr><td>Linux developer endpoints</td><td>ProcessRollup2 (sh/bash/zsh ancestry), NetworkConnectIP4</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-low">Low</span>: Falcon-native</td></tr>
+          <tr><td>The repository's own <code>.git/config</code> contents</td><td>None: Falcon does not inspect file contents at rest</td><td><span class="badge b-high">Critical</span></td><td><span class="badge b-high">High</span>: sensor sees the process that reads/writes the file, not its contents; no CQL query in §8 can confirm what value <code>core.fsmonitor</code> actually held</td></tr>
+          <tr><td>Archive/zip handling (email gateway, cloud-drive sync, USB)</td><td>Process telemetry for the extraction tool only</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-med">Medium</span>: depends on endpoint coverage of the sync/USB path</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">There is no attacker infrastructure to hunt for and no C2 domain/IP/hash to import. The single most valuable action for this pack is <strong>inventorying which AI coding agents run on which endpoints, at which versions</strong> (§10's audit block): that inventory is what turns §8's queries from "any git process" into "a specific unpatched agent's git process."</p>
+    </div>
+  </div>
+
+  <!-- 6 ATT&CK -->
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr></thead>
+        <tbody>
+          <tr><td>Initial Access / Execution</td><td>T1195 Supply Chain Compromise / T1059 Command &amp; Scripting Interpreter</td><td>Agent's background git command triggers an attacker-named fsmonitor/hooksPath helper</td><td>Q1</td></tr>
+          <tr><td>Execution</td><td>T1059 (LOLBins / interpreters spawned by git)</td><td>git's child process is not a known git helper</td><td>Q2</td></tr>
+          <tr><td>Execution</td><td>T1059 (explicit config override)</td><td>git invoked with <code>-c core.fsmonitor=</code>/hooksPath/attr.tree</td><td>Q3</td></tr>
+          <tr><td>Initial Access</td><td>T1204.002 Malicious File / T1027 Obfuscated Files</td><td>Archive extraction delivering a <code>.git</code> directory just ahead of a git/agent launch</td><td>Q4</td></tr>
+          <tr><td>Credential Access</td><td>T1552.001 Credentials in Files / T1552.004 Private Keys</td><td>Process descended from git touches SSH keys / cloud credential files</td><td>Q5</td></tr>
+          <tr><td>Defense Evasion / Persistence</td><td>T1036.005 Match Legitimate Name / T1211 Exploitation for Defense Evasion</td><td>Worktree created named/pathed <code>.git</code> (CVE-2026-55607-class)</td><td>Q6</td></tr>
+          <tr><td>Command &amp; Control</td><td>T1105 Ingress Tool Transfer / T1071 Application Layer Protocol</td><td>Outbound connection from a shell/interpreter descended from git</td><td>Q7</td></tr>
+          <tr><td>Persistence</td><td>T1546.004 Unix Shell Configuration Modification</td><td>Dotfile (<code>.zshenv</code>/<code>.bash_profile</code>/<code>.profile</code>) rewritten by a git/agent-descended process</td><td>Q8</td></tr>
+          <tr><td>Persistence</td><td>T1547.001 Registry Run Keys / T1053.005 Scheduled Task</td><td>Run-key or scheduled-task creation near a suspicious git-ancestry process</td><td>Q9</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7 NATIVE HUNTS -->
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts (non-CQL)</h2></div>
+    <div class="section-body">
+      <p>These checks give you ground truth on exactly what Falcon cannot see: the actual contents of a repository's <code>.git/config</code>, and which AI coding agent build is installed. Run before, or alongside, the CQL in §8.</p>
+      <h4>Inspect a received repository before opening it in an agent (any platform)</h4>
+<pre class="code">git config --get core.fsmonitor
+git config --get core.hooksPath
+git config --get attr.tree
+grep -nE "fsmonitor|hooksPath|\[filter" .git/config .gitattributes 2&gt;/dev/null
+# Any output naming an external program is a hold-and-review, not an open-in-agent.</pre>
+      <h4>Vendor-recommended safe context-gathering (per Manifold / The Hacker News)</h4>
+<pre class="code"># Strip the sink on any ad hoc background git command:
+git -c core.fsmonitor=false status
+git -c core.fsmonitor=false diff
+# Set a permanent default until every agent in use is confirmed patched:
+git config --global core.fsmonitor false</pre>
+      <h4>Inventory installed AI coding agent versions (run fleet-wide via RMM/MDM)</h4>
+<pre class="code">claude --version
+codex --version
+cursor --version
+goose --version
+grok-build --version 2&gt;/dev/null
+qwen-code --version 2&gt;/dev/null
+# Compare output against the affected/fixed table in Section 4 and the audit block in Section 10.</pre>
+      <h4>macOS-specific: confirm sandbox/seatbelt profile is current (CVE-2026-55607 surface)</h4>
+      <ul>
+        <li>Confirm Claude Code is at 2.1.163+ (CVE-2026-55607) and 2.1.196+ (GitSpawn core.fsmonitor path): both are required; they are different fixes.</li>
+        <li>Review <code>~/.zshenv</code>, <code>~/.zprofile</code>, and <code>~/.bash_profile</code> for unexpected recent modification timestamps.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8 CQL -->
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+      </div>
+
+      <div class="callout callout-info">This is a <strong>behavioral</strong> hunt: there are no atomic IOCs to filter on. Every query below matches process <em>ancestry and command-line shape</em>, not a known-bad hash or address. Developer endpoints are inherently noisy for git activity, so every card with FP medium+ carries a <code>// TUNING:</code> exclusion: read it before you deploy.</div>
+
+      <!-- Q1 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · AI coding agent &rarr; git &rarr; shell/interpreter (core execution chain)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the exact GitSpawn execution chain: an AI coding agent binary as the grandparent, git as the parent, and a shell or scripting interpreter as the child. This is the moment <code>core.fsmonitor</code>/<code>core.hooksPath</code>/<code>attr.tree</code> actually fires. <strong>FP:</strong> git hooks, aliases, and editor integrations legitimately spawn shells; tune the agent-binary and shell lists to your fleet's actual toolset.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: AI coding agent -&gt; git -&gt; shell/interpreter (GitSpawn core execution chain)</span>
+<span class="cm">// MITRE: T1059, T1195</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate git hooks, shell aliases, editor/IDE git integrations spawning a shell</span>
+<span class="cm">// TUNING: narrow GrandparentBaseFileName to the agent binaries actually deployed in your fleet; exclude known internal hook scripts by ParentCommandLine</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| GrandparentBaseFileName=/^(claude|claude-code|node|codex|codex-cli|cursor|cursor-agent|goose|goosed|hermes|hermes-agent|qwen-code|qwen|grok-build|grok)(\.exe)?$/i
+| ParentBaseFileName=/^git(\.exe)?$/i
+| FileName=/^(cmd|powershell|pwsh|wscript|cscript|mshta|rundll32|regsvr32)\.exe$|^(sh|bash|zsh|dash|osascript|python3?|perl|ruby|node)$/i
+| table([ComputerName, UserName, GrandparentBaseFileName, ParentBaseFileName, FileName, CommandLine, ParentCommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · git spawning an unexpected non-helper child</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> git launching a child that is neither an interactive shell (covered by Q1) nor one of git's own known helper binaries: a download tool, LOLBin, or scripting host, which is what a <code>core.fsmonitor</code>/<code>hooksPath</code> program typically resolves to when it isn't a plain shell. <strong>FP:</strong> credential-manager helpers and SSH askpass programs; the explicit helper exclusion keeps this narrow, but confirm your environment's git-credential-manager binary name is covered.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: git spawns a child that is not a known git helper (fsmonitor/hooksPath payload)</span>
+<span class="cm">// MITRE: T1059, T1105</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: git-credential-manager/askpass helpers not covered by the exclusion list below</span>
+<span class="cm">// TUNING: add your credential-manager/askpass binary name to the FileName!= exclusion before deploying as a Detect IOA</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^git(\.exe)?$/i
+| FileName=/^(curl|wget|certutil|bitsadmin|mshta|rundll32|regsvr32|powershell|pwsh|cmd)\.exe$|^(curl|wget|sh|bash|zsh|python3?|osascript|nc|ncat|socat)$/i
+| FileName!=/^git-(remote-https|remote-http|credential-.*|upload-pack|receive-pack|shell|sh)(\.exe)?$/i
+| table([ComputerName, UserName, ParentBaseFileName, FileName, CommandLine, ParentCommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · git invoked with an explicit dangerous config override</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a git command line that sets <code>core.fsmonitor</code>, <code>core.hooksPath</code>, or <code>attr.tree</code> via <code>-c</code>: could be attacker automation staging the sink, or an analyst/engineer legitimately running the vendor-recommended <code>git -c core.fsmonitor=false status</code> mitigation. <strong>FP:</strong> the vendor mitigation itself will match; triage by whether the value is being set to a program (bad) or disabled (expected/good).</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: git invoked with -c core.fsmonitor=/-c core.hooksPath=/-c attr.tree= on the command line</span>
+<span class="cm">// MITRE: T1059</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: the vendor-recommended mitigation "git -c core.fsmonitor=false status" matches this pattern and is expected/benign</span>
+<span class="cm">// TUNING: exclude CommandLine containing "fsmonitor=false" to isolate the risky (non-"false") sets from the benign mitigation runs</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^git(\.exe)?$/i
+| CommandLine=/-c\s+(core\.fsmonitor|core\.hooksPath|attr\.tree)\s*=/i
+| table([ComputerName, UserName, ParentBaseFileName, FileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · Archive extraction immediately followed by a git/agent launch (delivery vector)</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the only viable delivery path for GitSpawn: a repository arriving as an archive (zip, tar, 7z) that already contains a <code>.git</code> directory, unpacked immediately before a git or agent process launches on the same host. This cannot happen via <code>git clone</code>. <strong>FP:</strong> high: routine project setup, dependency installs, and CI runners unpacking build artifacts all match; the join correlates by host only, not by directory, so run it over a narrow window.</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Archive extraction immediately followed by git or AI-agent process launch (delivery vector)</span>
+<span class="cm">// MITRE: T1204.002, T1027</span>
+<span class="cm">// CONF: medium  FP: high  COST: medium | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: routine project setup (dependency installs unpacking archives), CI runners unzipping build artifacts, legitimate contractor handoffs</span>
+<span class="cm">// TUNING: run over a narrow window (console time picker, 30-60 min) so the join only correlates temporally close events; exclude CI/build-agent hosts by ComputerName and known software-distribution paths by CommandLine</span>
+<span class="cm">// LOOKBACK: run over 30-60m, not the default -- see TUNING</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^git(\.exe)?$/i OR GrandparentBaseFileName=/^(claude|claude-code|node|codex|cursor|goose|hermes|qwen-code|grok-build)(\.exe)?$/i
+| join(query={
+    #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+    | FileName=/^(tar|unzip|7z|7za|ditto|winrar)(\.exe)?$/i OR FileName=/^Expand-Archive$/i
+    | rename(field=FileName, as=ExtractTool)
+    | rename(field=CommandLine, as=ExtractCommandLine)
+    | table([aid, ExtractTool, ExtractCommandLine])
+  }, field=aid, include=[ExtractTool, ExtractCommandLine], mode=inner)
+| table([ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, GrandparentBaseFileName, ExtractTool, ExtractCommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · Credential/secret file access by a process descended from git</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the natural next step after landing code execution through GitSpawn: reading SSH private keys, cloud CLI credential files, npm/git credential stores, or netrc. <strong>FP:</strong> low; legitimate tooling rarely references these exact paths on the command line.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Credential/secret file access by a process descended from git (post-compromise credential harvesting)</span>
+<span class="cm">// MITRE: T1552.001, T1552.004, T1555</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^git(\.exe)?$/i OR GrandparentBaseFileName=/^git(\.exe)?$/i
+| (CommandLine="*.ssh/id_rsa*" OR CommandLine="*.ssh\\id_rsa*" OR CommandLine="*.ssh/id_ed25519*" OR CommandLine="*.aws/credentials*" OR CommandLine="*.aws\\credentials*" OR CommandLine="*.config/gcloud*" OR CommandLine="*.npmrc*" OR CommandLine="*.netrc*" OR CommandLine="*.git-credentials*")
+| table([ComputerName, UserName, ParentBaseFileName, GrandparentBaseFileName, FileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · Git worktree path confusion (CVE-2026-55607-class)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a git worktree created with a name/path of <code>.git</code>, which git tooling then interprets as a real git directory rather than a working tree: the CVE-2026-55607 technique that abuses fsmonitor execution via symlink/path confusion. <strong>FP:</strong> low; legitimate workflows do not name a worktree <code>.git</code>.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Git worktree created with a name/path of ".git" (worktree/symlink path confusion)</span>
+<span class="cm">// MITRE: T1036.005, T1211</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^git(\.exe)?$/i
+| CommandLine=/worktree\s+add/i
+| (CommandLine="*worktree add .git*" OR CommandLine="*worktree add \".git\"*" OR CommandLine="*worktree add './.git'*")
+| table([ComputerName, UserName, ParentBaseFileName, GrandparentBaseFileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · Outbound network connection from a shell descended from git</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a shell or scripting interpreter descended from git that also makes an outbound connection off the internal network: staging a second-stage payload after the RCE moment. <strong>FP:</strong> high: this correlates by host, not by exact process, so any unrelated outbound traffic from the host in the same window will match; narrow the window and exclude known-good destinations before trusting hit volume.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Outbound network connection from a shell/interpreter descended from git (post-RCE staging/C2)</span>
+<span class="cm">// MITRE: T1105, T1071</span>
+<span class="cm">// CONF: medium  FP: high  COST: medium | REQUIRES: ProcessRollup2, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: host-level correlation, not process-level -- any unrelated outbound traffic in the same window will match</span>
+<span class="cm">// TUNING: run over a narrow window (console time picker, 15-30 min); exclude allow-listed corporate-egress destinations by RemoteAddressIP4</span>
+<span class="cm">// LOOKBACK: run over 15-30m, not the default -- see TUNING</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(cmd|powershell|pwsh)\.exe$|^(sh|bash|zsh|dash|osascript|python3?|perl|ruby|node|curl|wget)$/i
+| ParentBaseFileName=/^git(\.exe)?$/i OR GrandparentBaseFileName=/^git(\.exe)?$/i
+| join(query={
+    #event_simpleName=NetworkConnectIP4
+    | !cidr(RemoteAddressIP4, subnet="10.0.0.0/8")
+    | !cidr(RemoteAddressIP4, subnet="172.16.0.0/12")
+    | !cidr(RemoteAddressIP4, subnet="192.168.0.0/16")
+    | !cidr(RemoteAddressIP4, subnet="127.0.0.0/8")
+    | table([aid, RemoteAddressIP4, RemotePort])
+  }, field=aid, include=[RemoteAddressIP4, RemotePort], mode=inner)
+| table([ComputerName, UserName, FileName, ParentBaseFileName, GrandparentBaseFileName, CommandLine, RemoteAddressIP4, RemotePort], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q8 · Shell-profile / dotfile persistence (macOS / Linux)</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a process descended from git or an AI coding agent that references a shell profile / dotfile on its command line: the exact technique the public CVE-2026-55607 writeup describes (overwriting <code>~/.zshenv</code>) to gain persistence and code execution outside the sandbox. <strong>FP:</strong> low; legitimate dotfile edits by these ancestry chains are rare.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: Shell-profile / dotfile modification by a process descended from git or an AI coding agent</span>
+<span class="cm">// MITRE: T1546.004</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2, SyntheticProcessRollup2</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (ParentBaseFileName=/^git(\.exe)?$/i OR GrandparentBaseFileName=/^git(\.exe)?$/i OR GrandparentBaseFileName=/^(claude|claude-code|node|codex|cursor|goose|hermes|qwen-code|grok-build)(\.exe)?$/i)
+| (CommandLine="*.zshenv*" OR CommandLine="*.zshrc*" OR CommandLine="*.zprofile*" OR CommandLine="*.bash_profile*" OR CommandLine="*.bashrc*" OR CommandLine="*.profile*")
+| table([ComputerName, UserName, ParentBaseFileName, GrandparentBaseFileName, FileName, CommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q9 · Windows Run-key / scheduled-task persistence near a git-ancestry process</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MED</span><span class="badge b-med">FP MED</span><span class="badge b-med">COST MED</span></div>
+          <div class="qc-actions">
+            <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+            <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+          </div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> a registry Run-key/Asep value or scheduled task created on the same host, in the same narrow window, as a process descended from git: the Windows persistence parallel to Q8. <strong>FP:</strong> medium; installers and legitimate software updates create Run keys and tasks constantly, so this must be scoped tightly. <span class="badge b-med">&#9888; validate in tenant</span>: parent-process linkage on Asep/registry events varies by sensor version; this query correlates by host and time window, not a direct process-id join.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: Registry Run-key or scheduled-task persistence created shortly after a suspicious git-ancestry process</span>
+<span class="cm">// MITRE: T1547.001, T1053.005</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: AsepValueUpdate or RegGenericValueUpdate, ScheduledTaskRegistered, ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: legitimate installers and software updates create Run keys/scheduled tasks constantly</span>
+<span class="cm">// TUNING: run over a narrow window (console time picker, 15-30 min); exclude known installer/update ComputerName groups (e.g. patch-management windows)</span>
+<span class="cm">// LOOKBACK: run over 15-30m, not the default -- see TUNING</span>
+<span class="cm">// NOTE: AsepValueUpdate/RegGenericValueUpdate field availability is sensor-version dependent -- validate in your tenant before deploying as a Detect IOA</span>
+#event_simpleName=/AsepValueUpdate|RegGenericValueUpdate|ScheduledTaskRegistered/
+| join(query={
+    #event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+    | ParentBaseFileName=/^git(\.exe)?$/i OR GrandparentBaseFileName=/^git(\.exe)?$/i
+    | rename(field=CommandLine, as=GitAncestryCommandLine)
+    | table([aid, GitAncestryCommandLine])
+  }, field=aid, include=[GitAncestryCommandLine], mode=inner)
+| table([ComputerName, UserName, RegObjectName, RegStringValue, TaskName, TaskExecutable, GitAncestryCommandLine], limit=200)</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 9 IOA -->
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA Name</th><th>Pattern</th><th>Exclusions</th><th>Deployment</th></tr></thead>
+        <tbody>
+          <tr><td>GitSpawn Execution Chain</td><td>Process · agent-binary grandparent &rarr; git parent &rarr; shell/interpreter child</td><td>Known internal git hooks, editor git integrations</td><td>Detect &rarr; promote from Q1 after a benign-baseline pass</td></tr>
+          <tr><td>Git Non-Helper Child</td><td>Process · git parent spawning curl/wget/LOLBin, excluding known git helpers</td><td>Credential-manager/askpass helpers</td><td>Detect from Q2 after tuning the exclusion list</td></tr>
+          <tr><td>Worktree Path Confusion</td><td>Process · git CommandLine <code>worktree add .git</code></td><td>None recommended</td><td>Prevent/Detect: high confidence (Q6)</td></tr>
+          <tr><td>Post-Git Credential Access</td><td>Process · descendant of git touching SSH keys/cloud creds/netrc</td><td>None recommended</td><td>Detect (high severity) from Q5</td></tr>
+          <tr><td>Post-Git Dotfile Rewrite</td><td>Process · descendant of git/agent referencing shell profile files</td><td>None recommended</td><td>Detect from Q8</td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">Q3, Q4, Q7, and Q9 are best run as <strong>scheduled searches / investigate-only</strong>, not endpoint Prevent IOAs: Q3 matches the vendor's own recommended mitigation command, and Q4/Q7/Q9 use host-level time-window correlation that needs a tenant-specific tuning pass before it can safely block.</p>
+      <h4>L1 triage checklist (for a Q1/Q2/Q6 hit)</h4>
+      <ol>
+        <li>Confirm the AI coding agent's installed version against the affected/fixed table in §4: is this endpoint actually running a vulnerable build?</li>
+        <li>Pull the full command line and working directory of the flagged git process; identify the repository path.</li>
+        <li>If the repository is reachable, inspect its <code>.git/config</code> and <code>.gitattributes</code> for <code>core.fsmonitor</code>, <code>core.hooksPath</code>, <code>attr.tree</code>, or filter commands (§7).</li>
+        <li>Identify how the repository arrived: git log/reflog will show no clone history for a files-delivered repo; check Downloads, sync-folder, or USB provenance.</li>
+        <li>Check the flagged host for Q5 (credential access), Q7 (outbound connections), Q8/Q9 (persistence) hits in the same window.</li>
+        <li>If the helper program executed, treat the endpoint as compromised: rotate any credentials the logged-in user could reach (SSH keys, cloud tokens, git-credential store, saved API tokens).</li>
+        <li>Isolate the host via Falcon RTR pending investigation; preserve the offending repository folder for analysis rather than deleting it.</li>
+        <li>Patch/upgrade the agent to a fixed version (§12) before returning the host to service.</li>
+      </ol>
+      <h4>Pivot queries</h4>
+      <ul>
+        <li><strong>Host-scoped:</strong> re-run Q1, Q5, Q7, Q8, Q9 filtered to the single flagged <code>aid</code> over the preceding 24h to reconstruct the full session.</li>
+        <li><strong>Environment-wide:</strong> re-run Q4 (archive-extraction &rarr; git/agent) across all developer endpoints for the prior 7 days to check for other deliveries of the same repository.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 10 IOC APPENDIX -->
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <p>No atomic infrastructure IOCs are published for GitSpawn, so the Falcon IOC-Management block below uses <code>REPLACE_WITH_*</code> placeholders: populate only from confirmed incident evidence (a recovered helper binary, observed C2). The behavioral, config-key, and version-audit blocks are the operative content for this pack.</p>
+      <div class="ioc-grab-grid">
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">placeholders: populate from incident only</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,REPLACE_WITH_HELPER_BINARY_HASH,detect,high,2027-03-25,GitSpawn fsmonitor/hooksPath helper (confirm in incident),campaign:GitSpawn
+domain,REPLACE_WITH_C2_DOMAIN,detect,high,2026-12-25,GitSpawn post-exploit C2 (confirm in incident),campaign:GitSpawn
+ipv4,REPLACE_WITH_C2_IP,detect,high,2026-12-25,GitSpawn post-exploit callback (confirm in incident),campaign:GitSpawn
+# NOTE: no atomic infrastructure IOCs were published for GitSpawn -- do NOT import blank rows.
+# ACTION COLUMN: every row ships at "detect", matching the Section 4 action vocabulary.
+#   A hash you recovered from your own confirmed incident is the only row worth raising to
+#   "prevent", and only after you have verified the binary is not a renamed legitimate tool.
+#   Never raise the domain or ipv4 rows to "prevent" on one observation: post-exploit
+#   callbacks land on shared and reassigned hosting, so a prevent-mode block there can cut
+#   legitimate traffic. No gate downstream re-checks this column, so it is yours to own.</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral signatures</span><span class="igc">the real indicators</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh"># GitSpawn behavioral indicators
+# 1. AI coding agent binary as grandparent of git, which is parent of a shell/interpreter
+# 2. git spawning a child that is not one of its documented helper binaries
+# 3. git invoked with an explicit "-c core.fsmonitor=" / "-c core.hooksPath=" / "-c attr.tree=" override
+# 4. Archive-extraction tool run immediately before a git/agent process launch, same host
+# 5. Process descended from git touching SSH keys, cloud credential files, or git-credential stores
+# 6. git worktree created named/pathed ".git" (path-confusion, CVE-2026-55607-class)
+# 7. Outbound network connection from a shell/interpreter descended from git
+# 8. Shell-profile/dotfile (.zshenv, .bash_profile, .profile) rewritten by a git/agent-descended process</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Dangerous .git/config keys</span><span class="igc">inspect any received repo</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-keys',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-keys"># Settings a repository's own .git/config can weaponize (GitSpawn sinks):
+core.fsmonitor      # names a helper git runs automatically on every index refresh
+core.hooksPath       # redirects git's hook directory to an attacker-controlled path
+attr.tree             # names a tree-ish used to resolve .gitattributes -- can be abused
+                      # in combination with clean/process/smudge filter commands
+filter.&lt;name&gt;.clean   # arbitrary command run by "git add" for matching paths
+filter.&lt;name&gt;.process # arbitrary long-running command run by git for matching paths
+# Presence of ANY of these naming an executable/script in a received repo = hold and review.</pre>
+        </div>
+
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Agent version / config audit</span><span class="igc">run fleet-wide</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit"># Per-endpoint audit: is the installed agent version fixed for GitSpawn?
+claude --version      # need 2.1.196+ (fsmonitor path) AND 2.1.163+ (CVE-2026-55607, worktree)
+codex --version        # need 0.131.0+ (CLI) / 26.519.22136+ (macOS) / 26.519.21041+ (Windows)
+goose --version         # need 1.44.0+ (CVE-2026-72718)
+cursor --version         # confirm patched build per vendor release notes (no version disclosed publicly)
+qwen-code --version       # UNPATCHED at publication -- treat as vulnerable regardless of version
+grok-build --version       # UNPATCHED at publication -- treat as vulnerable regardless of version
+hermes-agent --version      # UNPATCHED at publication -- treat as vulnerable regardless of version
+# Any repo-inspection command from the "grab-keys" block above should run before opening
+# a received (non-cloned) folder in any of the above, especially the still-unpatched agents.</pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 VALIDATION GATES -->
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass Criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>ProcessRollup2/SyntheticProcessRollup2 flowing from all developer-endpoint platforms (Windows/macOS/Linux); NetworkConnectIP4 present</td><td>All three platforms represented in a 24h sample; EDR latency &lt; 5 min</td></tr>
+          <tr><td>Agent inventory ready</td><td>Fleet-wide agent/version audit (§10 grab-audit) completed and mapped to §4's affected/fixed table</td><td>Every developer endpoint's agent + version documented</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q1/Q2 over a known-clean week; catalog legitimate hook/editor-integration ancestry chains</td><td>FP set documented and added to each query's exclusion list</td></tr>
+          <tr><td>Positive test</td><td>Q1/Q6/Q8 fire on a lab host running a benign script that reproduces the exact ancestry shape (agent-launched shell under git; a worktree literally named test-dot-git; a dotfile edit under a git-descended shell): never a functional fsmonitor payload</td><td>Each query returns the seeded activity</td></tr>
+          <tr><td>Promotion</td><td>Q1, Q2, Q6, Q5, Q8 &rarr; Detect IOA after baseline; Q3/Q4/Q7/Q9 stay scheduled-search/investigate-only</td><td>Promoted with documented exclusions per §9</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12 HARDENING -->
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <ul>
+          <li><strong>Disable the fsmonitor sink globally on every developer endpoint</strong>: <code>git config --global core.fsmonitor false</code>: until every AI coding agent in use is confirmed on a fixed build. <em>(MITRE M1042 Disable or Remove Feature or Program · Manifold/The Hacker News vendor mitigation guidance)</em></li>
+          <li><strong>Version-pin and upgrade every affected agent</strong> to the fixed builds in §4/§10 (Claude Code 2.1.196+ and 2.1.163+, Codex CLI 0.131.0+, Goose 1.44.0+); treat Hermes Agent, Qwen Code, and Grok Build as unpatched regardless of version until vendor fixes ship. <em>(MITRE M1051 Update Software · CVE-2026-19592 / CVE-2026-72718 / CVE-2026-55607 fix records)</em></li>
+          <li><strong>Instruct developers to inspect <code>.git/config</code> before opening any repository received as files</strong> (zip, cloud-drive share, USB, "bug report" archive): never a normal clone/fetch/pull: using the audit commands in §7/§10. <em>(MITRE M1017 User Training · ⚠ best-practice, no formal benchmark)</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1–4 weeks)</div>
+        <ul>
+          <li><strong>Deploy Q1/Q2/Q6 as scheduled searches</strong> (promoting to Detect IOAs after the benign-baseline pass in §11) so the execution chain is caught even if an agent is missed during the version-pin rollout. <em>(MITRE M1040 Behavior Prevention on Endpoint)</em></li>
+          <li><strong>Route archive/zip handoffs (contractor deliverables, "bug report" attachments) through a scan-and-quarantine step</strong> that flags any archive containing a <code>.git</code> directory for manual config review before it reaches a developer's agent. <em>(MITRE M1038 Execution Prevention · ⚠ best-practice, no formal benchmark)</em></li>
+          <li><strong>Set <code>safe.directory</code> scoping</strong> so git does not implicitly trust arbitrary extracted/synced folders, reducing the surface that silently triggers background context-gathering commands. <em>(MITRE M1042 · git-scm.com safe.directory documentation)</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1–3 months)</div>
+        <ul>
+          <li><strong>Standardize on agent versions via a managed software catalog</strong> with automatic update enforcement for AI coding agents, closing the "which build is actually installed" gap that made this class of bug persist across releases. <em>(MITRE M1051 · CIS Control 2: Inventory and Control of Software Assets)</em></li>
+          <li><strong>Application allowlisting / execution control on developer endpoints</strong> for the helper-program shape this bug abuses: an unsigned or unexpected binary/script launched as a child of git should require explicit approval. <em>(MITRE M1038 · NIST SP 800-167 Application Whitelisting)</em></li>
+          <li><strong>Sandbox or VM-isolate first-time-seen repositories</strong> (contractor handoffs, external contributions received as files) before opening them in any AI coding agent, so a live fsmonitor/hooksPath payload cannot reach the primary developer identity/credential set even if it fires. <em>(MITRE M1048 Application Isolation and Sandboxing · NIST SP 800-207 Zero Trust Architecture)</em></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 PLAYBOOKS -->
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h4>Playbook A: Disable the fsmonitor sink fleet-wide (Windows / macOS / Linux, shell)</h4>
+      <p><strong>Prerequisites:</strong> git 2.x installed; ability to push a global gitconfig change via RMM/MDM/Ansible to developer endpoints. <strong>Reboot required:</strong> none. <strong>Rollback:</strong> re-enable with <code>git config --global core.fsmonitor true</code> (or remove the line from the global gitconfig) once every agent in the fleet is confirmed patched.</p>
+<pre class="code"># 1. Push to every developer endpoint's per-user git global config
+git config --global core.fsmonitor false
+
+# 2. Verify it took effect
+git config --get core.fsmonitor
+# expect: false
+
+# 3. (Optional, stronger) also neutralize the other reported sinks globally where supported by your git version:
+git config --global core.hooksPath ""
+# Rollback: git config --global --unset core.fsmonitor
+#           git config --global --unset core.hooksPath</pre>
+
+      <h4>Playbook B: Version-pin and upgrade affected agents</h4>
+      <p><strong>Prerequisites:</strong> package-manager or installer access for each agent (npm/pip/brew/winget/direct installer); a maintenance window is not required since these are user-space CLI tools, but active agent sessions should be closed first. <strong>Reboot required:</strong> none for CLI agents; Codex Desktop / Cursor (Electron apps) require the application to restart, not the OS. <strong>Rollback:</strong> pin back to the prior version only if the upgrade breaks a workflow: re-exposes the vulnerability, so pair any rollback with Playbook A staying active.</p>
+<pre class="code"># Claude Code -- confirm BOTH fixes are present (they are different bugs):
+npm install -g @anthropic-ai/claude-code@latest   # need &gt;=2.1.196 AND &gt;=2.1.163
+claude --version
+
+# OpenAI Codex CLI -- need &gt;=0.131.0
+npm install -g @openai/codex@latest
+codex --version
+
+# Goose -- need &gt;=1.44.0
+# (use your platform's Goose install/update mechanism; verify via)
+goose --version
+
+# Unpatched at publication -- Hermes Agent, Qwen Code, Grok Build:
+# no fixed version exists yet. Apply Playbook A (disable core.fsmonitor) and
+# Playbook C (repo intake review) as compensating controls until a fix ships.
+# Rollback: revert to the previously pinned package version via your package
+# manager's install-specific-version syntax if the new build breaks a workflow.</pre>
+
+      <h4>Playbook C: Repository intake review (any platform received as files, not cloned)</h4>
+      <p><strong>Prerequisites:</strong> none beyond a shell and git itself; suitable for a pre-commit-style local script or a SOAR/EDR RTR script triggered on archive extraction. <strong>Reboot required:</strong> none. <strong>Rollback:</strong> none required: this is a read-only inspection step with no persistent system change.</p>
+<pre class="code">#!/usr/bin/env bash
+# Run against any repository that arrived as a zip/tar/synced-folder/USB copy
+# (never needed for a plain "git clone" -- that path cannot carry these settings).
+REPO_DIR="$1"
+cd "$REPO_DIR" || exit 1
+echo "== Checking $REPO_DIR/.git/config and .gitattributes for named-program sinks =="
+grep -nE "fsmonitor|hooksPath|\[filter" .git/config .gitattributes 2&gt;/dev/null
+if [ $? -eq 0 ]; then
+  echo "HOLD: this repo's config names an external program -- review before opening in any AI coding agent."
+  exit 1
+fi
+echo "No known GitSpawn sink strings found. Still confirm agent version against Section 4/10 before proceeding."</pre>
+
+      <h4>Playbook D: Safe-directory scoping (git &gt;=2.35.2, all platforms)</h4>
+      <p><strong>Prerequisites:</strong> git version supporting <code>safe.directory</code> (2.35.2+, effectively all currently-supported git releases). <strong>Reboot required:</strong> none. <strong>Rollback:</strong> <code>git config --global --unset-all safe.directory</code> restores git's prior implicit-trust behavior.</p>
+<pre class="code"># Scope trust to explicitly-approved project roots instead of trusting every
+# directory git is pointed at (reduces the set of folders where an agent's
+# background git command will silently operate on an unreviewed .git/config):
+git config --global --add safe.directory /Users/*/projects/*
+git config --global --add safe.directory C:/Users/*/source/*
+# Verify:
+git config --get-all safe.directory
+# Rollback: git config --global --unset-all safe.directory</pre>
+    </div>
+  </div>
+
+  <!-- 14 CONTAINMENT -->
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Network-contain the flagged host via Falcon RTR; suspend the offending AI-agent process tree without deleting the source repository folder</td><td>SOC / EDR</td><td>Containment event; process tree snapshot</td></tr>
+          <tr><td>Eradicate</td><td>Kill the helper-program process tree; preserve (do not delete) the malicious repository's <code>.git/config</code> and <code>.gitattributes</code> for analysis; upgrade the agent to a fixed build (§12/§13B); apply <code>core.fsmonitor=false</code> fleet-wide if not already (§13A)</td><td>Platform / SOC</td><td>Preserved config file copy; agent version post-upgrade; git-config audit output</td></tr>
+          <tr><td>Recover</td><td>Rotate SSH keys, cloud CLI credentials, npm/git-credential tokens, and any API tokens reachable by the logged-in user on the affected host; re-run Q5/Q8/Q9 to confirm no residual credential access or persistence</td><td>IAM / SOC</td><td>Credential-rotation record; clean re-run of Q5/Q8/Q9</td></tr>
+          <tr><td>Monitor</td><td>Run Q1–Q9 as scheduled searches for 30 days across all developer endpoints; watch for repeat delivery of the same or a similarly-crafted repository</td><td>SOC</td><td>Scheduled-search results; repeat-offender tracking</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15 COVERAGE MAP -->
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1195 / T1059 GitSpawn execution chain</td><td>Agent &rarr; git &rarr; shell/interpreter</td><td>Q1</td><td>Sched. search &rarr; Detect</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1059 / T1105 Non-helper git child</td><td>git spawns non-helper binary</td><td>Q2</td><td>Detect</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1059 Config override on command line</td><td>Explicit <code>-c core.fsmonitor=</code>/hooksPath/attr.tree</td><td>Q3</td><td>:</td><td><span class="badge b-med">Partial</span>: also matches the benign vendor mitigation</td></tr>
+          <tr><td>T1204.002 / T1027 Delivery via archive</td><td>Extraction &rarr; git/agent launch</td><td>Q4</td><td>:</td><td><span class="badge b-med">Partial</span>: host-level correlation, high FP without tuning</td></tr>
+          <tr><td>T1552.001 / .004 Credential access</td><td>Git-descended process reads SSH/cloud creds</td><td>Q5</td><td>Detect</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1036.005 / T1211 Worktree path confusion</td><td>Worktree named/pathed <code>.git</code></td><td>Q6</td><td>Prevent/Detect</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1105 / T1071 Post-RCE staging/C2</td><td>Outbound from a git-descended shell</td><td>Q7</td><td>:</td><td><span class="badge b-med">Partial</span>: host-level correlation, high FP without tuning</td></tr>
+          <tr><td>T1546.004 Dotfile persistence (macOS/Linux)</td><td>Shell-profile rewrite by git/agent descendant</td><td>Q8</td><td>Detect</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1547.001 / T1053.005 Windows persistence</td><td>Run-key/scheduled-task near git ancestry</td><td>Q9</td><td>:</td><td><span class="badge b-med">Partial</span>: Asep/registry parent linkage is tenant/sensor-version dependent, ⚠ validate</td></tr>
+          <tr><td>T1195 The exploit trigger itself (git reading a malicious .git/config)</td><td>fsmonitor/hooksPath/attr.tree value being read from disk</td><td>:</td><td>:</td><td><span class="badge b-high">GAP</span>: Falcon does not inspect file contents at rest; only the resulting process launch (Q1/Q2/Q3) is visible</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Known gap:</strong> there is no way to detect a malicious <code>.git/config</code> value purely from its presence on disk with EDR telemetry: the sensor sees the process that reads it (the git launch) and the process it spawns, not the file's contents. This pack closes that gap behaviorally (§8 Q1–Q3) rather than via file-content inspection, and closes it operationally via the intake-review playbook (§13C) that DOES read the file. Validation gates for all CQL are in §11.</p>
+    </div>
+  </div>
+
+  <!-- 16 TICKET -->
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+        <div class="ticket-bar">HUNT TICKET · GitSpawn · AI Coding Agent Git-Config RCE</div>
+<pre class="code">TITLE:      GitSpawn -- AI coding agent RCE via a received repository's own .git/config
+SEVERITY:   HIGH (sandbox-escape RCE, CVSS up to 8.8 across component CVEs; no confirmed ITW)
+SCOPE:      All Windows/macOS/Linux developer endpoints running Claude Code, OpenAI Codex,
+            Cursor, Goose, Hermes Agent, Qwen Code, or Grok Build
+HYPOTHESIS: A repository received as files (zip/sync/USB, never a clone) with a malicious
+            core.fsmonitor/hooksPath/attr.tree setting causes an AI coding agent's background
+            git command to execute an attacker-named helper as the logged-in user, outside
+            the agent sandbox, followed by credential access and/or persistence.
+QUERIES:    Q1 execution chain - Q2 non-helper child - Q3 config override - Q4 archive delivery
+            - Q5 credential access - Q6 worktree confusion - Q7 outbound stage/C2
+            - Q8 dotfile persistence (macOS/Linux) - Q9 Run-key/task persistence (Windows)
+DO FIRST:   1) Fleet-wide agent/version audit against Section 4/10; flag every endpoint
+               running an unpatched build (all of Hermes Agent, Qwen Code, Grok Build
+               are unpatched regardless of version)
+            2) Push "git config --global core.fsmonitor false" fleet-wide (Playbook A)
+            3) Run Q1/Q2/Q6 across all developer endpoints for the prior 7 days
+FINDINGS:   &lt;record execution-chain hits, credential-access hits, and any persistence found&gt;
+GAPS:       No EDR visibility into .git/config file contents -- only the resulting process
+            launch is detectable. No atomic infrastructure IOCs published for this research.
+ACTIONS:    Disable fsmonitor sink + version-pin/upgrade agents + repo-intake review process
+            + credential rotation on any confirmed-executed host + 30-day scheduled hunt
+OWNER:      HuntPack
+VERSION:    v0.1 · 2026-09-25</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 CHANGELOG -->
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-09-25</span><span>Initial HuntPack for GitSpawn (multi-agent AI coding agent git-config RCE class). 9 behavioral CQL hunts covering the execution chain, delivery vector, credential access, CVE-2026-55607-class worktree confusion, post-RCE staging, and cross-platform (Windows/macOS/Linux) persistence. IOA recommendations, tiered hardening with deployable playbooks (Prerequisites/Reboot/Rollback per step), and a phased containment runbook. Behavioral pack -- no atomic infrastructure IOCs published for this research; the Falcon IOC Management CSV ships placeholder rows only.</span></div>
+    </div>
+  </div>
+
+  <!-- 18 REFERENCES -->
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr></thead>
+        <tbody>
+          <tr><td>Primary</td><td><a href="https://www.manifold.security/blog/ai-coding-agents-git-hijack" target="_blank" rel="noopener">Manifold Security: "GitSpawn"</a></td><td>Original disclosure: mechanism, 8 findings/7 agents, delivery vector, mitigation language</td><td>2026-09-25</td></tr>
+          <tr><td>News</td><td><a href="https://thehackernews.com/2026/09/malicious-git-configs-can-make-claude.html" target="_blank" rel="noopener">The Hacker News</a></td><td>Per-agent affected/fixed version table, disclosure timeline, additional sink names</td><td>2026-09-25</td></tr>
+          <tr><td>News</td><td><a href="https://shattered.io/gitspawn-ai-coding-agent-vulnerability-2026/" target="_blank" rel="noopener">Shattered.io</a></td><td>Corroborates patch-status table and clone-immunity framing</td><td>2026-09-25</td></tr>
+          <tr><td>News</td><td><a href="https://byteiota.com/gitspawn-ai-coding-agents-hit-by-git-config-rce-flaw/" target="_blank" rel="noopener">ByteIota</a></td><td>Corroborates mechanism/agent list only: two uncorroborated claims from this source were dropped, see §2</td><td>2026-09-25</td></tr>
+          <tr><td>News</td><td><a href="https://cybersecuritynews.com/gitspawn-flaws-execute-code/" target="_blank" rel="noopener">Cybersecuritynews.com</a></td><td>Mechanism detail, "cannot arrive via clone/fetch/pull" delivery-reality language</td><td>2026-09-25</td></tr>
+          <tr><td>News</td><td><a href="https://gbhackers.com/gitspawn-flaw-enables-arbitrary-code-execution/" target="_blank" rel="noopener">GBHackers</a></td><td>Third corroboration of per-agent affected/fixed version numbers</td><td>2026-09-25</td></tr>
+          <tr><td>Vendor CVE</td><td><a href="https://advisories.gitlab.com/npm/@anthropic-ai/claude-code/CVE-2026-55607/" target="_blank" rel="noopener">GitLab Advisory DB: CVE-2026-55607</a></td><td>Claude Code worktree path-confusion sandbox escape: affected/fixed versions, CVSS 8.8, CWE-22/59/78</td><td>2026-09-25</td></tr>
+          <tr><td>Vendor CVE</td><td><a href="https://app.opencve.io/cve/CVE-2026-19592" target="_blank" rel="noopener">OpenCVE: CVE-2026-19592</a></td><td>OpenAI Codex CLI/Desktop affected/fixed versions, CVSS 7.3, CWE-15</td><td>2026-09-25</td></tr>
+        </tbody>
+      </table>
+      <p style="color:var(--text-muted);font-size:11px;margin-top:10px;">Generated 2026-09-25 · HuntPack pipeline (web-hunter-v2 &rarr; threat-hunter-v2 &rarr; crowdstrike-logscale-v3 &rarr; alert-builder-v2 &rarr; threat-hardening-v2 &rarr; review-v2) · Defensive content only.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
