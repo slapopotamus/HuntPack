@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+<title>TWEAKOS Stealer &amp; Telegram C2 Ecosystem &mdash; CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale CQL hunt queries for TWEAKOS: a Windows infostealer with a Telegram-bot C2 and stolen-account marketplace. ATT&amp;CK mapping, IOCs, response, and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/TWEAKOS-Stealer-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TWEAKOS Stealer &amp; Telegram C2 Ecosystem &mdash; CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale CQL hunt queries for TWEAKOS: a Windows infostealer with a Telegram-bot C2 and stolen-account marketplace. ATT&amp;CK mapping, IOCs, response, and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/TWEAKOS-Stealer-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #2ee6ff;
+  --accent-dim: rgba(46,230,255,0.14);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #062730 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.hp-footer { text-align: center; padding: 20px 0; color: var(--text-muted); font-size: 11px; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" type="button" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents" aria-controls="sidebar">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library &mdash; home">HUNTPACK</a></div>
+    <div class="pack-name">TWEAKOS Stealer &amp; Telegram C2</div>
+    <div class="version">v1.0 &middot; 2026-09-27</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; CQL Queries</a>
+    <a href="#s9">9 &middot; Custom IOA Recs</a>
+    <a href="#s10">10 &middot; IOC Appendix</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Validation &amp; Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+
+<div class="hp-header">
+  <h1>TWEAKOS &mdash; Windows Stealer, Telegram-Bot C2 &amp; Stolen-Account Marketplace</h1>
+  <div class="subtitle">Discord token theft &middot; Telegram account hijack via social-engineered login codes &middot; single-bot-token C2 and storefront &middot; detection, response, and hardening</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk"><span class="badge b-purple">Threat</span></div><div class="mv">TWEAKOS infostealer / Telegram C2 ecosystem</div></div>
+    <div class="meta-item"><div class="mk"><span class="badge b-purple">Type</span></div><div class="mv">Windows credential/token stealer, no-admin persistence, monetized marketplace</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">High</span></div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v1.0 &middot; 2026-09-27</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">slapopotamus</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High corroboration across 5 independent sources for mechanics; no published hashes or dedicated C2 infrastructure limits atomic-indicator coverage</div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+    <p><span class="badge b-info"><strong>What happened:</strong></span> Flare published research on 2026-09-24 describing TWEAKOS, a Windows infostealer paired with a Telegram-bot command-and-control channel and a built-in stolen-account marketplace. The operation surfaced after its own source code was posted to Pastebin, which exposed a hardcoded Telegram bot token and two hardcoded admin IDs shared by both the stealer and the backend bot. Cyber Security News, Cyber Press, Security Boulevard, and Cryptika independently corroborated the core mechanics on 2026-09-25 and after.</p>
+    <p><span class="badge b-purple"><strong>Observed tradecraft:</strong></span> TWEAKOS is two components sharing one bot token. The stealer harvests Discord authentication tokens from Local Storage LevelDB files for Discord, Discord PTB, and Chrome's default profile, validates each candidate against the Discord API, and exfiltrates working tokens to the operators. Separately, it social-engineers the victim for a Telegram phone number and login code, uses the Telethon library to mint a brand-new session file, and sends that session to two operator accounts, granting access without ever resetting the victim's password. Persistence needs no admin rights: the packaged build drops itself as <code>SystemHelper.exe</code> in the user Startup folder, and the script build adds an HKCU Run value named <code>SystemHelper</code>. A referenced follow-on payload, <code>WindowsSecurityChecker.exe</code>, was not recovered by researchers. Operators can also push a per-victim <code>blocker_{uid}.vbs</code> script that displays a repeating full-screen Russian-language warning to coerce payment or compliance.</p>
+    <p><span class="badge b-med"><strong>Detection strategy:</strong></span> No file hashes and no dedicated malicious C2 domains or IPs were published for this campaign; every operator-facing network endpoint named in the reporting (Telegram's Bot API, Discord's API) is a legitimate, heavily-used public service. This pack's detection value is therefore behavioral: the two no-admin persistence mechanisms (Q01/Q02/Q03), the coercion script's execution pattern (Q05), a packaging fingerprint for the frozen Python binary (Q04), and clearly-labelled enrichment correlations against the two legitimate APIs (Q06/Q07) that must never be treated as blockable infrastructure on their own.</p>
+    <p><span class="badge b-high"><strong>Operational consequence:</strong></span> A confirmed hit does not mean the endpoint alone is compromised: a stolen Discord token or a hijacked Telegram session is valid until revoked, independent of any local remediation. Response must include out-of-band account recovery (revoke Discord tokens, terminate the victim's active Telegram sessions from a trusted device) in addition to endpoint cleanup, because deleting the local artifact does not undo the account theft.</p>
+    <div class="callout callout-danger"><strong>Defender priority:</strong> Hunt the two no-admin persistence patterns fleet-wide, treat any hit as an account-compromise event (not just a malware event) and drive Discord token revocation plus Telegram session termination in parallel with endpoint remediation.</div>
+    <table>
+      <thead><tr><th>Priority</th><th>Why now</th><th>Coverage delivered</th><th>Key limitation</th></tr></thead>
+      <tbody><tr><td>Hunt SystemHelper.exe/HKCU Run persistence fleet-wide; treat hits as account-compromise, not just malware, events</td><td>Current reporting (2026-09-24/25), no-admin-rights persistence, live account-takeover impact</td><td>7 analyst-authored CQL queries, 5 native hunts, 4 candidate Custom IOAs</td><td>No public hashes or dedicated C2 infrastructure were published; behavioral coverage only</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source and Claim Review</h2></div>
+  <div class="section-body">
+    <p>All five sources were fetched during this run and saved as plain-text snapshots in <code>TWEAKOS-Stealer-Hunt-sources/</code>. Remote content was treated as untrusted data throughout: no source-supplied command, code, or instruction was executed, and no source attempted to direct this pipeline's behavior. The fetch tool declined to reproduce full article text verbatim on two of the five sources (copyright policy) and returned structured summaries plus short quoted fragments instead; both passes are preserved in the snapshot files.</p>
+    <table>
+      <thead><tr><th>ID</th><th>Publisher</th><th>Tier</th><th>Accessed</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://flare.io/learn/resources/blog/tweakos-stealer-telegram-c2-ecosystem-2" rel="noopener noreferrer">S01</a></td><td>Flare</td><td>primary-vendor-research</td><td>2026-09-27</td><td>summary + targeted quotes (copyright-limited)</td></tr>
+        <tr><td><a href="https://cybersecuritynews.com/tweakos-malware/" rel="noopener noreferrer">S02</a></td><td>Cyber Security News</td><td>independent-corroboration</td><td>2026-09-27</td><td>full extraction</td></tr>
+        <tr><td><a href="https://cyberpress.org/tweakos-stealer-harvests-discord-tokens/" rel="noopener noreferrer">S03</a></td><td>Cyber Press</td><td>independent-corroboration</td><td>2026-09-27</td><td>full extraction</td></tr>
+        <tr><td><a href="https://securityboulevard.com/2026/09/tweakos-uncovered-a-telegram-driven-stealer-and-c2-ecosystem-for-discord-and-telegram-tokens/" rel="noopener noreferrer">S04</a></td><td>Security Boulevard</td><td>independent-corroboration</td><td>2026-09-27</td><td>summary + targeted quotes (copyright-limited)</td></tr>
+        <tr><td><a href="https://www.cryptika.com/tweakos-malware-turns-telegram-into-a-stealer-c2-platform-and-stolen-account-marketplace/" rel="noopener noreferrer">S05</a></td><td>Cryptika</td><td>independent-corroboration</td><td>2026-09-27</td><td>full extraction</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Disqualified sources:</strong> none. All five requested URLs returned usable content; no fetched page contained embedded instructions directed at this pipeline.</p>
+    <h3>Claim ledger</h3>
+    <table>
+      <thead><tr><th>Claim</th><th>Statement</th><th>Sources</th><th>Confidence</th><th>Caveat</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">C01</span></td><td>The operation surfaced after its source code was posted to Pastebin, exposing a hardcoded Telegram bot token and two hardcoded admin IDs.</td><td>S01, S02, S04, S05</td><td><span class="badge b-low">high</span></td><td>none</td></tr>
+        <tr><td><span class="mono">C02</span></td><td>TWEAKOS is two components (a Windows stealer and a Telegram-bot backend) sharing the same bot token and admin IDs.</td><td>S01, S02, S03, S04, S05</td><td><span class="badge b-low">high</span></td><td>none</td></tr>
+        <tr><td><span class="mono">C03</span></td><td>The stealer scans Discord, Discord PTB, and Chrome's default-profile Local Storage LevelDB files, validates candidate tokens against the Discord API, and exfiltrates working tokens to the operators; Chrome scanning is limited to LevelDB and does not touch saved passwords or cookies.</td><td>S01, S02, S03, S05</td><td><span class="badge b-low">high</span></td><td>the "no password/cookie access" scope limit is single-sourced (S03)</td></tr>
+        <tr><td><span class="mono">C04</span></td><td>For Telegram, the stealer prompts the victim for a phone number and login code (and a cloud password if 2FA is set), uses Telethon to create a new session file, and sends the session to two operator accounts without resetting the victim's password.</td><td>S01, S02, S03, S04, S05</td><td><span class="badge b-low">high</span></td><td>none</td></tr>
+        <tr><td><span class="mono">C05</span></td><td>Persistence needs no admin rights: the packaged build copies itself into the user Startup folder as <code>SystemHelper.exe</code>; the script build adds an HKCU <code>...\CurrentVersion\Run</code> value named <code>SystemHelper</code>.</td><td>S01, S02, S03, S04, S05</td><td><span class="badge b-low">high</span></td><td>none</td></tr>
+        <tr><td><span class="mono">C06</span></td><td>A referenced follow-on payload, <code>WindowsSecurityChecker.exe</code>, is sent to a victim under a "Critical security update" pretext; researchers did not recover or analyze the binary.</td><td>S01, S03, S04, S05</td><td><span class="badge b-med">medium</span></td><td>functionality unknown; binary unrecovered</td></tr>
+        <tr><td><span class="mono">C07</span></td><td>Operators can push a per-victim <code>blocker_{uid}.vbs</code> script producing a repeating full-screen warning reading &ldquo;&#1042;&#1040;&#1064; &#1050;&#1054;&#1052;&#1055;&#1068;&#1070;&#1058;&#1045;&#1056; &#1047;&#1040;&#1041;&#1051;&#1054;&#1050;&#1048;&#1056;&#1054;&#1042;&#1040;&#1053;!&rdquo; (&ldquo;YOUR COMPUTER IS BLOCKED!&rdquo;), referencing the <code>discord.gg/tweakos</code> invite; the backend deletes the local script after use.</td><td>S01, S04</td><td><span class="badge b-med">medium</span></td><td>the exact Russian string was captured from only 2 of 5 fetch passes; S02/S03/S05 confirm the coercion mechanism but not the literal string in the text captured</td></tr>
+        <tr><td><span class="mono">C08</span></td><td>The backend stores state in an operator-side SQLite database, <code>tweakos_data.db</code>, tracking victims, products, orders, buyers, and admin logs.</td><td>S01, S04, S05</td><td><span class="badge b-low">high</span></td><td>operator-side artifact, not expected on victim endpoints</td></tr>
+        <tr><td><span class="mono">C09</span></td><td>Non-admin document submissions to the bot are treated as session submissions and saved as <code>session_{uid}.session</code>, keyed to the sender's Telegram chat ID.</td><td>S04</td><td><span class="badge b-med">medium</span></td><td>single-sourced; ships as hunt-only, never prevent</td></tr>
+        <tr><td><span class="mono">C10</span></td><td>The marketplace sells &ldquo;telegram&rdquo; and &ldquo;discord&rdquo; accounts under the TWEAKOS brand, priced in Telegram Stars, discounted 5% per day up to 70% off, minimum one Star.</td><td>S01, S02, S03, S05</td><td><span class="badge b-low">high</span></td><td>none</td></tr>
+        <tr><td><span class="mono">C11</span></td><td>A Discord invite, <code>https://discord.gg/tweakos</code>, is referenced in TWEAKOS branding and was reported invalid or expired at analysis time.</td><td>S01, S05</td><td><span class="badge b-med">medium</span></td><td>invite was already dead when researchers checked it; context, not live infrastructure</td></tr>
+        <tr><td><span class="mono">C12</span></td><td>No file hashes and no dedicated malicious C2 domains or IP addresses were published for TWEAKOS; the only network endpoints named are legitimate public APIs (Telegram Bot API, Discord API).</td><td>S01, S02, S03, S04, S05 (absence confirmed across all five snapshots)</td><td><span class="badge b-low">high</span></td><td>this is a statement about the limits of current public reporting, not a claim that no such infrastructure exists</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief and Attack Chain</h2></div>
+  <div class="section-body">
+    <p>Hypotheses are separated into endpoint-hunt candidates and explicit telemetry gaps. Attribution beyond the cited sources is not inferred, and no offensive/weaponized detail (the coercion script's actual payload, the token-harvesting code, or the Telethon sign-in flow) is reproduced here.</p>
+    <table>
+      <thead><tr><th>Step</th><th>Claims</th><th>Behavior</th><th>Platform</th><th>Goal</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>C05</td><td>packaged or script build installs no-admin persistence (Startup-folder copy or HKCU Run value)</td><td>Windows endpoint</td><td>catch installation before first theft cycle</td></tr>
+        <tr><td>2</td><td>C03</td><td>stealer enumerates Discord/Discord PTB/Chrome LevelDB files and validates candidate tokens against the Discord API</td><td>Windows endpoint</td><td>correlate non-browser process activity with Discord API contact</td></tr>
+        <tr><td>3</td><td>C04</td><td>stealer social-engineers a Telegram login code and mints a new Telethon session, exfiltrated via the Telegram Bot API</td><td>Windows endpoint</td><td>correlate non-Telegram-client process activity with Telegram Bot API contact</td></tr>
+        <tr><td>4</td><td>C06</td><td>operator pushes <code>WindowsSecurityChecker.exe</code> as a follow-on payload under a fake update pretext</td><td>Windows endpoint</td><td>flag unsigned executables delivered via the same channel; no hash available</td></tr>
+        <tr><td>5</td><td>C07</td><td>operator triggers <code>blocker_{uid}.vbs</code> to coerce the victim with a full-screen warning</td><td>Windows endpoint</td><td>catch <code>wscript.exe</code>/<code>cscript.exe</code> executing the distinctive filename pattern before the backend deletes it</td></tr>
+      </tbody>
+    </table>
+    <h3>Hypotheses</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Behavior</th><th>Telemetry</th><th>Use</th><th>Lookback</th><th>Validation</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">H01</span></td><td><code>SystemHelper.exe</code> written into the user Startup folder</td><td>PeFileWritten</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Drop a benign, identically-named test binary into a lab Startup folder and confirm the query returns it, then confirm it is absent from a clean baseline host.</td></tr>
+        <tr><td><span class="mono">H02</span></td><td>HKCU Run value named <code>SystemHelper</code> added</td><td>AsepValueUpdate / RegGenericValueUpdate</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Add a benign HKCU Run value literally named <code>SystemHelper</code> in an isolated lab account and confirm the query returns it.</td></tr>
+        <tr><td><span class="mono">H03</span></td><td><code>SystemHelper.exe</code> execution from a Startup-folder or logon context</td><td>ProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Execute the same benign test binary from the lab Startup folder at logon and confirm a matching row.</td></tr>
+        <tr><td><span class="mono">H04</span></td><td>frozen-Python temp-extraction pattern from an unsigned binary</td><td>ProcessRollup2</td><td><span class="badge b-purple">hunt (inference)</span></td><td>14d</td><td>This is an analyst hypothesis based on common frozen-Python packaging behavior, not a vendor-confirmed TWEAKOS artifact &mdash; the reporting mentions <code>sys.frozen</code> packaging but does not name the packer. Validate against a known-benign PyInstaller-built internal tool before trusting the signal.</td></tr>
+        <tr><td><span class="mono">H05</span></td><td><code>wscript.exe</code>/<code>cscript.exe</code> executing a <code>blocker_&lt;id&gt;.vbs</code> file</td><td>ProcessRollup2</td><td><span class="badge b-info">hunt</span></td><td>30d</td><td>Run a benign, inert script named <code>blocker_test123.vbs</code> under <code>wscript.exe</code> in an isolated lab VM and confirm a matching row.</td></tr>
+        <tr><td><span class="mono">H06</span></td><td>non-Discord-client process resolving/contacting Discord's API</td><td>DnsRequest joined to ProcessRollup2</td><td><span class="badge b-med">enrichment only</span></td><td>7d</td><td>api.discord.com / discord.com are legitimate, heavily-used services. This correlation is context for an existing finding, never a standalone alert and never a block candidate.</td></tr>
+        <tr><td><span class="mono">H07</span></td><td>non-Telegram-client process resolving/contacting the Telegram Bot API</td><td>DnsRequest joined to ProcessRollup2</td><td><span class="badge b-med">enrichment only</span></td><td>7d</td><td>api.telegram.org is legitimate, heavily-used infrastructure serving countless bots. This correlation is context for an existing finding, never a standalone alert and never a block candidate.</td></tr>
+        <tr><td><span class="mono">H08</span></td><td>process reading Discord/Chrome Local Storage LevelDB files directly</td><td>generic file-open telemetry</td><td><span class="badge b-purple">gap</span></td><td>n/a</td><td>No generic file-read event exists in the reference Falcon data model used to build this pack; if your tenant has file-open telemetry enabled (an optional/premium sensor policy in some deployments), validate field names locally before building a query.</td></tr>
+        <tr><td><span class="mono">H09</span></td><td>operator-side SQLite database and marketplace activity</td><td>n/a &mdash; not endpoint telemetry</td><td><span class="badge b-purple">gap</span></td><td>n/a</td><td>Entirely infrastructure the victim organization does not control; relevant only for OSINT/takedown correlation, not endpoint hunting.</td></tr>
+      </tbody>
+    </table>
+    <h4>Affected surface and telemetry</h4>
+    <p><strong>Surface:</strong> Windows endpoints running Discord, Discord PTB, or Chrome; Windows endpoints where users sign into personal Telegram accounts; the user Startup folder and HKCU Run hive; <code>wscript.exe</code>/<code>cscript.exe</code> script-execution surface. <strong>Exposure:</strong> user context only &mdash; no privilege escalation or admin rights are required or observed anywhere in this campaign.</p>
+    <h3>Coverage boundaries</h3>
+    <ul>
+      <li>No portable Falcon event proves direct LevelDB file reads; H08 is a documented gap.</li>
+      <li>No file hash exists for any TWEAKOS component; every filename-based query can be defeated by a rename.</li>
+      <li>The backend database, marketplace, and pricing logic (C08, C09, C10) are operator-side and out of scope for endpoint hunting.</li>
+      <li>Account-level remediation (Discord token revocation, Telegram session termination) is outside Falcon's scope entirely and must be tracked as a separate response action.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+    <p>No file hashes and no dedicated C2 domains or IPs were published for TWEAKOS. Every row below is a filename, filename pattern, or a single contextual URL, transcribed only from the saved source snapshots in <span class="mono">TWEAKOS-Stealer-Hunt-sources/</span>. None of these values are unique identifiers on their own; treat every hit as a lead requiring process-context correlation, not as proof of compromise.</p>
+    <table>
+      <thead><tr><th>ID</th><th>Type</th><th>Value</th><th>Context</th><th>Sources</th><th>Confidence</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">I01</span></td><td>filename</td><td><code>SystemHelper.exe</code></td><td>persistence dropper name, both variants</td><td>S01, S02, S03, S04, S05</td><td><span class="badge b-low">high</span></td><td><span class="badge b-info">detect</span></td></tr>
+        <tr><td><span class="mono">I02</span></td><td>filename</td><td><code>tweakos_data.db</code></td><td>operator-side backend SQLite database</td><td>S01, S04, S05</td><td><span class="badge b-med">medium</span></td><td><span class="badge b-info">detect</span></td></tr>
+        <tr><td><span class="mono">I03</span></td><td>filename</td><td><code>blocker_{uid}.vbs</code></td><td>per-victim coercion script, short on-disk dwell time</td><td>S01, S04, S05</td><td><span class="badge b-med">medium</span></td><td><span class="badge b-med">hunt</span></td></tr>
+        <tr><td><span class="mono">I04</span></td><td>filename</td><td><code>WindowsSecurityChecker.exe</code></td><td>referenced follow-on payload, not recovered by researchers</td><td>S01, S03, S04, S05</td><td><span class="badge b-med">medium</span></td><td><span class="badge b-med">hunt</span></td></tr>
+        <tr><td><span class="mono">I05</span></td><td>filename</td><td><code>{phone}.session</code></td><td>Telethon session created on the victim host during Telegram takeover</td><td>S01, S02, S03, S04, S05</td><td><span class="badge b-low">high</span></td><td><span class="badge b-info">detect</span></td></tr>
+        <tr><td><span class="mono">I06</span></td><td>filename</td><td><code>session_{uid}.session</code></td><td>operator-side renamed session copy</td><td>S04</td><td><span class="badge b-med">medium</span></td><td><span class="badge b-med">hunt</span> (single-sourced)</td></tr>
+        <tr><td><span class="mono">I07</span></td><td>url</td><td><code>https://discord.gg/tweakos</code></td><td>brand invite referenced in coercion messaging; reported invalid/expired</td><td>S01, S05</td><td><span class="badge b-med">medium</span></td><td><span class="badge b-info">detect</span> (context only)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-warn"><strong>Never block on these two, even though they appear in the CQL below:</strong> <code>api.telegram.org</code> and <code>discord.com</code>/<code>api.discord.com</code> are legitimate, heavily-used public services named in the TWEAKOS reporting only because the malware abuses them. They do not appear anywhere in &sect;10's importable CSV and must never be added to a Falcon IOC block list.</div>
+  </div>
+</div>
+
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Surface</th><th>Required Telemetry</th><th>Priority</th><th>Gap Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Windows endpoints running Discord, Discord PTB, or Chrome</td><td>ProcessRollup2, DnsRequest, NetworkConnectIP4 (Falcon); file-open/LevelDB access telemetry (native, optional)</td><td>High</td><td>Falcon has no generic file-read event by default; direct LevelDB access is only visible if your sensor policy enables file-open telemetry (&sect;3, H08)</td></tr>
+        <tr><td>Windows endpoints with personal Telegram sign-in</td><td>ProcessRollup2, DnsRequest, NetworkConnectIP4</td><td>High</td><td>Falcon cannot see the interactive phone-number/login-code prompt itself; only the resulting process and network behavior is visible</td></tr>
+        <tr><td>User Startup folder (<code>%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\</code>)</td><td>PeFileWritten (or NewExecutableWritten fallback)</td><td>Critical</td><td>Low &mdash; well covered by Q01, but a renamed dropper defeats a filename-only filter</td></tr>
+        <tr><td>HKCU <code>...\CurrentVersion\Run</code></td><td>AsepValueUpdate / RegGenericValueUpdate</td><td>Critical</td><td>Low &mdash; well covered by Q02, same rename caveat applies to the value name</td></tr>
+        <tr><td>Script-execution surface (<code>wscript.exe</code>/<code>cscript.exe</code>)</td><td>ProcessRollup2</td><td>Medium</td><td>Low while the operator keeps the <code>blocker_&lt;id&gt;.vbs</code> naming convention; the backend deletes the script after use so on-disk forensics is time-limited</td></tr>
+        <tr><td>Fleet-wide DNS/network egress to Telegram and Discord APIs</td><td>DnsRequest, NetworkConnectIP4</td><td>Low (context only)</td><td>High false-positive base rate &mdash; these are two of the most heavily used consumer services on any managed fleet; never a standalone signal</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+    <p>Mappings are analyst inferences from source-backed behavior, not vendor-supplied ATT&amp;CK attribution.</p>
+    <table>
+      <thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Behavior</th><th>Sources</th><th>Claims</th></tr></thead>
+      <tbody>
+        <tr><td>Execution</td><td><span class="mono">T1204.002</span></td><td>User Execution: Malicious File</td><td>victim runs the packaged stealer executable or script build</td><td>S01&ndash;S05</td><td>C02, C05</td></tr>
+        <tr><td>Credential Access</td><td><span class="mono">T1528</span></td><td>Steal Application Access Token</td><td>Discord authentication tokens are harvested from LevelDB and validated against the Discord API</td><td>S01, S02, S03, S05</td><td>C03</td></tr>
+        <tr><td>Credential Access</td><td><span class="mono">T1539</span></td><td>Steal Web Session Cookie (closest analog)</td><td>a freshly-minted Telethon session file grants persistent Telegram account access without a password reset</td><td>S01&ndash;S05</td><td>C04</td></tr>
+        <tr><td>Persistence</td><td><span class="mono">T1547.001</span></td><td>Registry Run Keys / Startup Folder</td><td>SystemHelper.exe dropped to Startup, or an HKCU Run value named SystemHelper</td><td>S01&ndash;S05</td><td>C05</td></tr>
+        <tr><td>Command and Control</td><td><span class="mono">T1102.002</span></td><td>Web Service: Bidirectional Communication</td><td>a single Telegram bot token handles ingestion, victim management, and operator communication</td><td>S01&ndash;S05</td><td>C01, C02</td></tr>
+        <tr><td>Exfiltration</td><td><span class="mono">T1041</span></td><td>Exfiltration Over C2 Channel</td><td>validated Discord tokens and Telegram session files are sent to operators via the Telegram Bot API (sendMessage/sendDocument)</td><td>S01, S02, S03, S05</td><td>C03, C04</td></tr>
+        <tr><td>Impact</td><td><span class="mono">T1491.001</span></td><td>Internal Defacement</td><td>a full-screen Russian-language warning is used to coerce the victim</td><td>S01, S04</td><td>C07</td></tr>
+        <tr><td>Impact</td><td><span class="mono">T1657</span></td><td>Financial Theft</td><td>stolen Discord/Telegram accounts are resold under the TWEAKOS brand for Telegram Stars &mdash; a business-model mapping, not an on-host TTP</td><td>S01, S02, S03, S05</td><td>C10</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native / Non-CQL Hunts</h2></div>
+  <div class="section-body">
+    <p>These close gaps that portable Falcon endpoint telemetry cannot see on its own and should be correlated with the CQL results in &sect;8.</p>
+    <table>
+      <thead><tr><th>#</th><th>Hunt</th><th>Where</th><th>What to look for</th></tr></thead>
+      <tbody>
+        <tr><td>N1</td><td>Discord OAuth/authorized-app audit</td><td>Discord account security settings, org Discord admin console if applicable</td><td>Unrecognized authorized applications or active sessions following a suspected token-theft event; revoke and re-authenticate</td></tr>
+        <tr><td>N2</td><td>Telegram active-sessions review</td><td>Telegram app &rarr; Settings &rarr; Devices, on a trusted device</td><td>Unrecognized active sessions or a newly-created session immediately following a reported phone/code prompt from an untrusted source; terminate and re-authenticate</td></tr>
+        <tr><td>N3</td><td>Script-control / AMSI review for VBScript execution</td><td>EDR script-control telemetry (if enabled), Windows Event Log (Script Block Logging)</td><td><code>wscript.exe</code>/<code>cscript.exe</code> invocations matching <code>blocker_&lt;id&gt;.vbs</code>, captured before the backend's self-delete completes</td></tr>
+        <tr><td>N4</td><td>Help-desk / user-report correlation for "critical security update" social engineering</td><td>Ticketing system, phishing-report mailbox</td><td>User reports of an unsolicited "critical update" file matching the <code>WindowsSecurityChecker.exe</code> pretext</td></tr>
+        <tr><td>N5</td><td>File-open telemetry review (optional/premium sensor policy)</td><td>Falcon file-open telemetry, where enabled</td><td>Non-browser, non-Discord processes opening <code>Local Storage\leveldb</code> paths under Discord/Discord PTB/Chrome profile directories (closes gap H08)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives &ldquo;Open in Falcon&rdquo;):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <div class="callout callout-info"><strong>Query strategy:</strong> Q01&ndash;Q03 are the strongest, lowest-effort persistence keepers. Q05 is a distinctive, low-FP coercion-script catch. Q04 is an unconfirmed packaging inference &mdash; keep it hunt-only. Q06/Q07 are enrichment correlations against legitimate infrastructure and must never be promoted to a standalone alert or a block rule.</div>
+    <p class="muted">All queries are STATIC-ONLY. Validate event population, fields, semantics, and volume in your tenant before operational use.</p>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q01 &middot; SystemHelper.exe written to the Startup folder</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q01-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q01-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a file named <code>SystemHelper.exe</code> written into a user Startup folder path. <strong>Accomplishes:</strong> catches the packaged-build persistence variant at install time, before the first theft cycle runs.</p><p class="muted">Trace: <a href="#s3">H01</a> &middot; <a href="#s9">IOA-1</a></p>
+<pre class="cql" id="q01-cql" data-lookback="30d"><span class="cm">// HUNT: SystemHelper.exe written into a user Startup folder (packaged-build persistence)</span>
+<span class="cm">// HYPOTHESIS: H01</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d</span>
+<span class="cm">// REQUIRES: PeFileWritten with FileName, FilePath, ComputerName, UserName, SHA256HashData &mdash; ⚠ validate in tenant: some sensor versions expose the write-target directory as TargetDirectoryName instead of FilePath</span>
+<span class="cm">// FALSE POSITIVES: any legitimate vendor utility that happens to share the generic name "SystemHelper.exe"</span>
+<span class="cm">// TUNING: exclude hosts and hashes matching a known-vendor, Authenticode-signed "SystemHelper.exe" once your fleet baseline confirms one exists</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = PeFileWritten
+| test(@timestamp &gt;= now() - 2592000000)
+| FileName = /^SystemHelper\.exe$/i
+| FilePath = /\\Start Menu\\Programs\\Startup\\/i
+| table([@timestamp, ComputerName, UserName, FileName, FilePath, SHA256HashData])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q02 &middot; HKCU Run value named SystemHelper</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q02-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q02-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a new HKCU <code>...\CurrentVersion\Run</code> value literally named <code>SystemHelper</code>. <strong>Accomplishes:</strong> catches the script-build persistence variant, the other half of the no-admin persistence pair.</p><p class="muted">Trace: <a href="#s3">H02</a> &middot; <a href="#s9">IOA-2</a></p>
+<pre class="cql" id="q02-cql" data-lookback="30d"><span class="cm">// HUNT: HKCU Run key value named SystemHelper (script-build persistence)</span>
+<span class="cm">// HYPOTHESIS: H02</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d</span>
+<span class="cm">// REQUIRES: AsepValueUpdate or RegGenericValueUpdate with RegObjectName, RegValueName, RegStringValue, ComputerName, UserName</span>
+<span class="cm">// FALSE POSITIVES: any legitimate helper application that happens to register a Run value literally named "SystemHelper"</span>
+<span class="cm">// TUNING: confirm RegStringValue points at a known-bad or unexplained path before escalating; allowlist any confirmed legitimate vendor entry after fleet baseline review</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = /AsepValueUpdate|RegGenericValueUpdate/
+| test(@timestamp &gt;= now() - 2592000000)
+| RegObjectName = /\\Software\\Microsoft\\Windows\\CurrentVersion\\Run$/i
+| RegValueName = /^SystemHelper$/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q03 &middot; SystemHelper.exe execution</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q03-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q03-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> any process execution of <code>SystemHelper.exe</code>, regardless of which persistence variant installed it. <strong>Accomplishes:</strong> a complementary execution-side check that also catches a manually-launched copy outside Startup/Run.</p><p class="muted">Trace: <a href="#s3">H03</a> &middot; <a href="#s9">IOA-3</a></p>
+<pre class="cql" id="q03-cql" data-lookback="30d"><span class="cm">// HUNT: SystemHelper.exe process execution</span>
+<span class="cm">// HYPOTHESIS: H03</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with FileName, ImageFileName, ParentBaseFileName, CommandLine, SHA256HashData</span>
+<span class="cm">// FALSE POSITIVES: same generic-name collision risk as Q01</span>
+<span class="cm">// TUNING: correlate with Q01/Q02 hits on the same host before escalating a standalone Q03 hit; allowlist a confirmed legitimate signed hash after baseline review</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = ProcessRollup2
+| test(@timestamp &gt;= now() - 2592000000)
+| FileName = /^SystemHelper\.exe$/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q04 &middot; Frozen-Python temp extraction from an unsigned binary</span><div class="qc-badges"><span class="badge b-purple">CONF low (inference)</span><span class="badge b-high">FP high</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q04-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q04-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a process running from a PyInstaller-style <code>_MEI&lt;digits&gt;</code> temp-extraction folder with no Authenticode signature. <strong>Accomplishes:</strong> a packaging-level fingerprint for the frozen Python stealer build. <strong>Caveat:</strong> the reporting we captured mentions <code>sys.frozen</code>-style packaging but never names PyInstaller specifically for TWEAKOS &mdash; this query is an analyst hypothesis based on common frozen-Python behavior, not a sourced TWEAKOS artifact, and it will also fire on any other PyInstaller-packaged software on the fleet.</p><p class="muted">Trace: <a href="#s3">H04</a></p>
+<pre class="cql" id="q04-cql" data-lookback="14d"><span class="cm">// HUNT: Unsigned process executing from a PyInstaller-style _MEI temp-extraction path</span>
+<span class="cm">// HYPOTHESIS: H04</span>
+<span class="cm">// USE: hunt (unconfirmed inference, not a sourced TWEAKOS artifact)</span>
+<span class="cm">// MITRE: T1204.002</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 14d</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData, AuthenticodeHashData &mdash; ⚠ validate in tenant: AuthenticodeHashData population depends on sensor policy</span>
+<span class="cm">// FALSE POSITIVES: every other PyInstaller-onefile application on the fleet (internal tools, some commercial software) will also match this path pattern</span>
+<span class="cm">// TUNING: allowlist known-good PyInstaller-built internal tools by hash; require correlation with Q01/Q02/Q03/Q06/Q07 before treating a hit as TWEAKOS-related</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = ProcessRollup2
+| test(@timestamp &gt;= now() - 1209600000)
+| ImageFileName = /\\AppData\\Local\\Temp\\_MEI[0-9]{5,8}\\/i
+| AuthenticodeHashData = ""
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, ImageFileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q05 &middot; wscript/cscript executing blocker_&lt;id&gt;.vbs</span><div class="qc-badges"><span class="badge b-info">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q05-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q05-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> <code>wscript.exe</code> or <code>cscript.exe</code> launched against a command line matching the <code>blocker_&lt;id&gt;.vbs</code> naming pattern. <strong>Accomplishes:</strong> catches the coercion stage while the file still exists on disk; the backend deletes it after use, so alerting speed matters more than lookback depth here.</p><p class="muted">Trace: <a href="#s3">H05</a> &middot; <a href="#s9">IOA-4</a></p>
+<pre class="cql" id="q05-cql" data-lookback="30d"><span class="cm">// HUNT: wscript.exe/cscript.exe executing a blocker_&lt;id&gt;.vbs coercion script</span>
+<span class="cm">// HYPOTHESIS: H05</span>
+<span class="cm">// USE: hunt</span>
+<span class="cm">// MITRE: T1491.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// TIMEFRAME: 30d</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with FileName, ParentBaseFileName, CommandLine</span>
+<span class="cm">// FALSE POSITIVES: an internal script coincidentally named with the same blocker_&lt;id&gt;.vbs pattern (unlikely, but confirm before treating as fatal)</span>
+<span class="cm">// TUNING: exclude any documented internal script inventory that happens to match the naming pattern</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = ProcessRollup2
+| test(@timestamp &gt;= now() - 2592000000)
+| FileName = /^(wscript|cscript)\.exe$/i
+| CommandLine = /blocker_[A-Za-z0-9_-]+\.vbs/i
+| table([@timestamp, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q06 &middot; Non-Discord-client process contacting Discord's API (enrichment only)</span><div class="qc-badges"><span class="badge b-purple">CONF low</span><span class="badge b-high">FP high</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q06-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q06-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a DNS resolution of <code>discord.com</code> attributed to a process that is not a known Discord/browser client. <strong>Accomplishes:</strong> surfaces the token-validation step for correlation with an existing Q01&ndash;Q05 hit. <strong>This is NOT a malicious-infrastructure query</strong> &mdash; Discord's API is legitimate and this signal is meaningless in isolation.</p><p class="muted">Trace: <a href="#s3">H06</a></p>
+<pre class="cql" id="q06-cql" data-lookback="7d"><span class="cm">// HUNT: Non-Discord-client process resolving discord.com (Discord token-validation correlation)</span>
+<span class="cm">// HYPOTHESIS: H06</span>
+<span class="cm">// USE: enrichment only &mdash; NEVER a standalone alert, NEVER a block candidate</span>
+<span class="cm">// MITRE: T1528</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 7d</span>
+<span class="cm">// REQUIRES: DnsRequest with DomainName, ContextProcessId_decimal; ProcessRollup2 with TargetProcessId_decimal, FileName, ImageFileName, CommandLine</span>
+<span class="cm">// FALSE POSITIVES: extremely high &mdash; discord.com is legitimate, widely-used infrastructure; any non-Discord app that embeds Discord's API (bots, integrations, browser extensions) will also match</span>
+<span class="cm">// TUNING: only ever run this joined against a host that already has a Q01/Q02/Q03/Q04 hit; never alert on this query alone; expand the client-exclusion list for your environment's known Discord-adjacent tooling before relying on it</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = DnsRequest
+| test(@timestamp &gt;= now() - 604800000)
+| DomainName = /(^|\.)discord\.com$/i
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName = ProcessRollup2 | FileName != /^(discord|discordptb|discordcanary|chrome|msedge|firefox|brave)\.exe$/i}, field=TargetProcessId_decimal)
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, DomainName])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+    <div class="query-card" data-use="hunt"><div class="qc-header"><span class="qc-title">Q07 &middot; Non-Telegram-client process contacting the Telegram Bot API (enrichment only)</span><div class="qc-badges"><span class="badge b-purple">CONF low</span><span class="badge b-high">FP high</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('q07-cql',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('q07-cql')">Open in Falcon</button></div></div><div class="qc-body"><p class="qc-note"><strong>Looks for:</strong> a DNS resolution of <code>api.telegram.org</code> attributed to a process that is not a known Telegram/browser client. <strong>Accomplishes:</strong> surfaces the exfiltration channel (sendMessage/sendDocument) for correlation with an existing Q01&ndash;Q05 hit. <strong>This is NOT a malicious-infrastructure query</strong> &mdash; the Telegram Bot API is legitimate shared infrastructure serving an enormous number of unrelated bots.</p><p class="muted">Trace: <a href="#s3">H07</a></p>
+<pre class="cql" id="q07-cql" data-lookback="7d"><span class="cm">// HUNT: Non-Telegram-client process resolving api.telegram.org (Bot API exfiltration correlation)</span>
+<span class="cm">// HYPOTHESIS: H07</span>
+<span class="cm">// USE: enrichment only &mdash; NEVER a standalone alert, NEVER a block candidate</span>
+<span class="cm">// MITRE: T1041</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// TIMEFRAME: 7d</span>
+<span class="cm">// REQUIRES: DnsRequest with DomainName, ContextProcessId_decimal; ProcessRollup2 with TargetProcessId_decimal, FileName, ImageFileName, CommandLine</span>
+<span class="cm">// FALSE POSITIVES: extremely high &mdash; api.telegram.org is legitimate infrastructure used by an enormous number of unrelated Telegram bots and integrations</span>
+<span class="cm">// TUNING: only ever run this joined against a host that already has a Q01/Q02/Q03/Q05 hit; never alert on this query alone; expand the client-exclusion list for your environment's known Telegram-adjacent tooling before relying on it</span>
+<span class="cm">// VALIDATION: STATIC-ONLY</span>
+#event_simpleName = DnsRequest
+| test(@timestamp &gt;= now() - 604800000)
+| DomainName = /(^|\.)api\.telegram\.org$/i
+| rename(field=ContextProcessId_decimal, as=TargetProcessId_decimal)
+| join(query={#event_simpleName = ProcessRollup2 | FileName != /^(telegram|updater|chrome|msedge|firefox|brave)\.exe$/i}, field=TargetProcessId_decimal)
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, DomainName])
+| sort(@timestamp, order=desc, limit=1000)</pre></div></div>
+
+  </div>
+</div>
+
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>IOA Name</th><th>Field Patterns</th><th>Benign Exclusions</th><th>Deployment Path</th></tr></thead>
+      <tbody>
+        <tr><td>IOA-1 &middot; SystemHelper.exe write to Startup folder (Q01)</td><td><code>FileName</code> = SystemHelper.exe; <code>FilePath</code> matching <code>\Start Menu\Programs\Startup\</code></td><td>A confirmed legitimate signed vendor utility of the same name, if one is found during baselining</td><td>Custom IOA &rarr; File Write, Detect</td></tr>
+        <tr><td>IOA-2 &middot; HKCU Run value SystemHelper (Q02)</td><td><code>RegObjectName</code> matching <code>...\CurrentVersion\Run</code>; <code>RegValueName</code> = SystemHelper</td><td>Same as IOA-1</td><td>Custom IOA &rarr; Registry Operation, Detect</td></tr>
+        <tr><td>IOA-3 &middot; SystemHelper.exe execution (Q03)</td><td><code>FileName</code> = SystemHelper.exe</td><td>Same as IOA-1</td><td>Custom IOA &rarr; Process Creation, Detect</td></tr>
+        <tr><td>IOA-4 &middot; blocker_&lt;id&gt;.vbs execution (Q05)</td><td><code>FileName</code> is wscript.exe/cscript.exe; <code>CommandLine</code> matching <code>blocker_[A-Za-z0-9_-]+\.vbs</code></td><td>None expected</td><td>Custom IOA &rarr; Process Creation, Detect</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-warn">No IOA in this pack is recommended at Detect+Block. No file hash was published for any TWEAKOS component, and every filename here is generic enough that a name-only block risks disrupting unrelated software. Promote to Block only after your own fleet baseline shows zero legitimate collisions.</div>
+    <div class="callout callout-info">Q04, Q06, and Q07 carry FP high and stay as tuned hunt/enrichment queries indefinitely. Q06 and Q07 must never become IOAs or block rules under any circumstance &mdash; they key on legitimate Discord and Telegram infrastructure, not on TWEAKOS-specific indicators.</div>
+  </div>
+</div>
+
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">Every value below traces to a saved source snapshot in <code>TWEAKOS-Stealer-Hunt-sources/</code> &mdash; see &sect;18. Two rows are <code>REPLACE_WITH_</code> placeholders because no public hash exists for either binary; populate them if a sample is later obtained, do not fabricate a value.</p>
+    <div class="ioc-grab-grid">
+      <div class="ioc-grab"><div class="igh"><span class="igt">FILENAME</span><span class="igc badge b-purple">6 values</span></div><button type="button" class="btn-copy" data-label="Copy values" onclick="copyBlock('grab-filename',this)">Copy values</button><pre class="code" id="grab-filename">SystemHelper.exe
+tweakos_data.db
+blocker_{uid}.vbs
+WindowsSecurityChecker.exe
+{phone}.session
+session_{uid}.session</pre></div>
+      <div class="ioc-grab"><div class="igh"><span class="igt">URL (context only)</span><span class="igc badge b-purple">1 value</span></div><button type="button" class="btn-copy" data-label="Copy values" onclick="copyBlock('grab-url',this)">Copy values</button><pre class="code" id="grab-url">https://discord.gg/tweakos</pre></div>
+      <div class="ioc-grab"><div class="igh"><span class="igt">SHA256 (unresolved placeholders)</span><span class="igc badge b-purple">2 values</span></div><button type="button" class="btn-copy" data-label="Copy values" onclick="copyBlock('grab-sha256',this)">Copy values</button><pre class="code" id="grab-sha256">REPLACE_WITH_SYSTEMHELPER_EXE_SHA256
+REPLACE_WITH_WINDOWSSECURITYCHECKER_EXE_SHA256</pre></div>
+      <div class="ioc-grab"><div class="igh"><span class="igt">Source-tagged IOC CSV</span><span class="igc badge b-purple">9 rows</span></div><button type="button" class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)">Copy CSV</button><pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+filename,SystemHelper.exe,detect,high,review-2026-12-27,Persistence dropper name for both TWEAKOS variants (Startup-folder copy or HKCU Run value); combine with path/registry context before acting,source:S01 source:S02 source:S03 source:S04 source:S05
+filename,tweakos_data.db,detect,medium,review-2026-12-27,Operator-side backend SQLite database name; not expected on victim endpoints but useful for OSINT/infrastructure correlation,source:S01 source:S04 source:S05
+filename,blocker_{uid}.vbs,hunt,medium,review-2026-12-27,Per-victim coercion script pushed by operators on demand; backend deletes it after use so on-disk dwell time is short,source:S01 source:S04 source:S05
+filename,WindowsSecurityChecker.exe,hunt,medium,review-2026-12-27,Referenced follow-on payload sent under a fake security-update pretext; researchers did not recover or analyze the binary,source:S01 source:S03 source:S04 source:S05
+filename,{phone}.session,detect,high,review-2026-12-27,Telethon session file generated on the victim host during interactive Telegram account takeover,source:S01 source:S02 source:S03 source:S04 source:S05
+filename,session_{uid}.session,hunt,low,review-2026-12-27,Operator-side renamed copy of a submitted session file keyed to the sender's Telegram chat ID; single-sourced so it ships as hunt-only,source:S04
+url,https://discord.gg/tweakos,detect,low,review-2026-12-27,Discord invite referenced in TWEAKOS branding and the coercion message; reported invalid/expired at analysis time - context only,source:S01 source:S05
+sha256,REPLACE_WITH_SYSTEMHELPER_EXE_SHA256,hunt,medium,review-2026-12-27,No public hash exists for the packaged SystemHelper.exe stealer binary as of this pack's research date; populate when a sample is obtained,source:S01 source:S02 source:S03 source:S04 source:S05
+sha256,REPLACE_WITH_WINDOWSSECURITYCHECKER_EXE_SHA256,hunt,medium,review-2026-12-27,Follow-on payload referenced in reporting; binary not recovered by researchers so no hash is available,source:S01 source:S03 source:S04 source:S05</pre></div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Requirement</th></tr></thead>
+      <tbody>
+        <tr><td>Telemetry ready</td><td>Confirm <code>PeFileWritten</code> (or <code>NewExecutableWritten</code> as fallback), <code>AsepValueUpdate</code>/<code>RegGenericValueUpdate</code>, <code>ProcessRollup2</code>, and <code>DnsRequest</code> are flowing for every in-scope Windows host; confirm optional file-open telemetry status before relying on N5</td></tr>
+        <tr><td>Benign baseline</td><td>Run Q01, Q02, Q03, Q04, Q06, and Q07 in hunt-only mode for at least 7&ndash;14 days to capture legitimate admin tooling and any organically-installed PyInstaller software before writing exclusions</td></tr>
+        <tr><td>Positive tests</td><td>Lab-verify Q01 (drop a benign, identically-named test binary into a lab Startup folder), Q02 (add a benign HKCU Run value literally named SystemHelper), and Q05 (execute a benign, inert <code>blocker_test123.vbs</code> under <code>wscript.exe</code> in an isolated VM) each return a row before relying on them in production</td></tr>
+        <tr><td>Promotion</td><td>Promote IOA-1 through IOA-4 (&sect;9) only after the above; keep Q04, Q06, and Q07 as tuned hunt/enrichment queries indefinitely &mdash; Q06/Q07 must never be promoted to a standalone alert or block rule</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening &mdash; Tiered and Deployable</h2></div>
+  <div class="section-body">
+    <p>TWEAKOS requires no exploit and no admin rights: every stage depends on the victim running an untrusted file and then typing a login code into it. User education and no-admin-persistence hardening close most of this chain without any product-specific fix.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate &mdash; this week</div>
+      <ul>
+        <li><strong>Train users that no legitimate service ever needs their login code read back to a program or a stranger</strong> &mdash; <em>M1017 (User Training)</em>. The entire Telegram account-theft technique (C04) depends on the victim voluntarily supplying a one-time code; this single behavior change defeats it regardless of any technical control.</li>
+        <li><strong>Enable Telegram two-step verification (cloud password) and Discord multi-factor authentication</strong> organization-wide where these services are sanctioned for business use &mdash; <em>M1032 (Multi-factor Authentication)</em>. Raises the cost of both theft paths, though TWEAKOS's Telegram flow already attempts to solicit a cloud password if 2FA is present, so this must pair with the training control above.</li>
+        <li><strong>Run Q01/Q02/Q03 fleet-wide as an immediate baseline sweep</strong> to establish current exposure before any tuning work begins.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near-term &mdash; pilot first, 1&ndash;4 weeks</div>
+      <ul>
+        <li><strong>Deploy Q01&ndash;Q07 as scheduled hunts</strong>, with FP-medium/high queries (Q01, Q02, Q03, Q04, Q06, Q07) in hunt/detect-only mode pending the &sect;11 baseline.</li>
+        <li><strong>Restrict or monitor personal Discord/Telegram installation on managed endpoints</strong> where these are not business-required &mdash; <em>M1042 (Disable or Remove Feature or Program)</em>. Directly reduces the population of endpoints exposed to Discord-token or Telegram-session theft.</li>
+        <li><strong>Enable script-control/AMSI logging for <code>wscript.exe</code>/<code>cscript.exe</code></strong> fleet-wide &mdash; <em>M1040 (Behavior Prevention on Endpoint)</em>. Improves both detection and forensic capture speed for the short-lived <code>blocker_&lt;id&gt;.vbs</code> coercion script (C07).</li>
+        <li><strong>Document an account-recovery runbook for Discord token revocation and Telegram session termination</strong> so responders can act the moment Q01&ndash;Q05 fires, since deleting the local artifact does not undo the account theft (&sect;1).</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic &mdash; 1&ndash;3 months</div>
+      <ul>
+        <li><strong>Formalize a managed-endpoint policy on personal chat-app usage</strong> (installation, profile isolation from work identities, or removal) &mdash; <em>M1042</em>. TWEAKOS specifically targets the overlap between personal Discord/Telegram use and corporate endpoints.</li>
+        <li><strong>Extend application allow-listing to the user Startup folder and HKCU Run hive</strong> where feasible &mdash; <em>M1038 (Execution Prevention)</em>. Structurally closes both no-admin persistence variants in this campaign, not just the two named artifacts.</li>
+        <li><strong>Recurring user-awareness campaign on login-code and account-takeover social engineering</strong> &mdash; <em>M1017</em>, repeated rather than one-time, since this technique class recurs across many unrelated stealer families beyond TWEAKOS.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+    <h3>Playbook A &middot; SystemHelper.exe persistence sweep and validation</h3>
+    <ol>
+      <li>Run Q01, Q02, and Q03 unfiltered across the fleet for a 30-day lookback; record every host, hash, and registry value returned.</li>
+      <li>For each hit, pull the parent process tree and command line via <code>ProcessRollup2</code> to establish how <code>SystemHelper.exe</code> arrived (download, removable media, email attachment, browser).</li>
+      <li>Correlate each hit's timeframe against Q06/Q07 on the same host as enrichment context only; do not treat a Discord/Telegram API contact alone as confirmation.</li>
+      <li>Where corroborated, begin account-level response in parallel with endpoint remediation: initiate Discord token revocation (N1) and Telegram session termination (N2) immediately, do not wait for full endpoint forensics.</li>
+      <li>Remove the persistence artifact (Startup file or Run value) and the executable; preserve a copy and its hash for the &sect;10 IOC appendix before deletion.</li>
+      <li>Re-run Q01&ndash;Q03 after remediation to confirm no recurrence within one week.</li>
+      <li>Retain hit list, hashes, account-recovery confirmation, and owner sign-off.</li>
+    </ol>
+    <h3>Playbook B &middot; Suspected active coercion screen (blocker_&lt;id&gt;.vbs)</h3>
+    <ol>
+      <li>Do not let the user act on the on-screen message (no payment, no contacting the listed Discord); the backend deletes the local script shortly after triggering it, so evidence capture speed matters.</li>
+      <li>Immediately capture the running <code>wscript.exe</code>/<code>cscript.exe</code> process, its command line, and the referenced <code>.vbs</code> file from disk if still present.</li>
+      <li>Run Q05 with a short lookback (last 24 hours) across the fleet to check for other affected hosts from the same operator campaign.</li>
+      <li>Isolate the host from a user-interaction standpoint (lock screen access is not sufficient if the malware persists); investigate for the full TWEAKOS chain (Q01&ndash;Q03) since the coercion stage implies the operator already has an established channel to this victim.</li>
+      <li>Proceed to account-level response (N1/N2) as in Playbook A, since a coercion trigger implies the operator already holds stolen credentials for this victim.</li>
+    </ol>
+    <div class="callout callout-warn"><strong>Design state:</strong> both playbooks are STATIC-ONLY guidance. Validate every query against your own tenant and complete a benign-baseline period before relying on them operationally.</div>
+  </div>
+</div>
+
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Isolate</td><td>Network-contain any host with a confirmed Q01/Q02/Q03/Q05 hit; do not power off before capturing the running process list if a coercion screen is active</td><td>SOC L2 / IR</td><td>Containment timestamp; process tree; persistence artifact copy and hash</td></tr>
+        <tr><td>Triage</td><td>Determine which persistence variant fired (Startup file vs. Run value); check Q06/Q07 as context only; check for the WindowsSecurityChecker.exe follow-on pretext (N4) and any active coercion (Q05/N3)</td><td>IR</td><td>Q01&ndash;Q05 hit list; N3/N4 correlation notes</td></tr>
+        <tr><td>Eradicate</td><td>Remove <code>SystemHelper.exe</code> and its persistence entry (Startup file or Run value); remove any recovered <code>WindowsSecurityChecker.exe</code> or <code>.vbs</code> artifacts; do not assume removal alone resolves the incident</td><td>IR</td><td>Removal log; before/after file and registry comparison</td></tr>
+        <tr><td>Recover</td><td>Revoke and re-authenticate affected Discord tokens (N1); terminate and re-establish affected Telegram sessions from a trusted device (N2); reset any password the victim may have also disclosed under the fake-update pretext</td><td>IR + account owner</td><td>Token-revocation confirmation; session-termination confirmation</td></tr>
+        <tr><td>Harden</td><td>Apply &sect;12 Immediate and Near-term controls; promote IOA-1 through IOA-4 after &sect;11 baselining; refresh user training on login-code social engineering</td><td>Detection Eng + Security Awareness</td><td>IOAs enabled; training completion record</td></tr>
+      </tbody>
+    </table>
+    <p class="callout callout-danger">&#9888; A confirmed hit is an account-compromise event, not just a malware event. Endpoint remediation without Discord token revocation and Telegram session termination leaves the operator with standing access to the victim's accounts.</p>
+  </div>
+</div>
+
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>Native / IOA</th><th>Coverage</th></tr></thead>
+      <tbody>
+        <tr><td>T1204.002</td><td>victim runs the stealer (packaged or script build)</td><td>&mdash;</td><td>N4</td><td><span class="badge b-high">GAP</span> initial user-execution moment is not independently visible to Falcon</td></tr>
+        <tr><td>T1528</td><td>Discord token harvest and API validation</td><td>Q06 (enrichment)</td><td>N5 (optional telemetry)</td><td><span class="badge b-med">Partial</span> direct LevelDB read is a documented gap (H08); Q06 is context-only, high FP</td></tr>
+        <tr><td>T1539</td><td>Telegram session theft via Telethon</td><td>Q07 (enrichment)</td><td>N2</td><td><span class="badge b-med">Partial</span> the interactive code prompt itself is not Falcon-visible; Q07 is context-only, high FP</td></tr>
+        <tr><td>T1547.001</td><td>SystemHelper.exe Startup-folder copy</td><td>Q01</td><td>IOA-1</td><td><span class="badge b-low">Good</span> while the filename stays unrenamed</td></tr>
+        <tr><td>T1547.001</td><td>HKCU Run value SystemHelper</td><td>Q02</td><td>IOA-2</td><td><span class="badge b-low">Good</span> while the value name stays unrenamed</td></tr>
+        <tr><td>T1547.001</td><td>SystemHelper.exe execution</td><td>Q03</td><td>IOA-3</td><td><span class="badge b-low">Good</span></td></tr>
+        <tr><td>T1204.002 (packaging)</td><td>frozen-Python temp extraction</td><td>Q04</td><td>&mdash;</td><td><span class="badge b-high">GAP-leaning</span> unconfirmed inference, FP high, correlation-only</td></tr>
+        <tr><td>T1491.001</td><td>full-screen coercion warning</td><td>Q05</td><td>IOA-4, N3</td><td><span class="badge b-low">Good</span> while the on-disk window lasts</td></tr>
+        <tr><td>T1041</td><td>Telegram Bot API exfiltration channel</td><td>Q07 (enrichment)</td><td>&mdash;</td><td><span class="badge b-high">GAP-leaning</span> legitimate shared infrastructure, correlation-only, never standalone</td></tr>
+        <tr><td>T1657</td><td>stolen-account monetization via Telegram Stars</td><td>&mdash;</td><td>&mdash;</td><td><span class="badge b-high">GAP</span> entirely operator-side; not endpoint-visible</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:8px;"><strong>Validation gates:</strong> confirm the required telemetry list in &sect;11 is flowing before relying on any query; baseline the FP-medium/high queries for 7&ndash;14 days before promoting; lab-test Q01/Q02/Q05 positive cases. This pack ships no file hashes and no dedicated C2 domain/IP because none were published for TWEAKOS as of the cited reporting; every network-facing query targets legitimate shared infrastructure (Telegram Bot API, Discord API) and is explicitly scoped to enrichment, never to blocking.</p>
+  </div>
+</div>
+
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+    <div class="ticket">
+<pre class="code" id="ticket-block" style="margin:0;border:none;background:transparent;">TITLE:        Hunt - TWEAKOS: Windows infostealer, Telegram-bot C2 &amp; stolen-account marketplace
+SEVERITY:     High (no-admin-rights persistence; live Discord/Telegram account-takeover impact;
+              no published hashes or dedicated C2 infrastructure limits atomic coverage)
+SCOPE:        Windows endpoints running Discord/Discord PTB/Chrome; endpoints with personal
+              Telegram sign-in; user Startup folder and HKCU Run hive; wscript.exe/cscript.exe
+              script-execution surface
+HYPOTHESIS:   H01 hunt; H02 hunt; H03 hunt; H04 hunt (inference); H05 hunt; H06 enrichment-only;
+              H07 enrichment-only; H08 gap; H09 gap
+QUERIES RUN:  Native N1 Discord OAuth audit | N2 Telegram active-sessions review | N3 script-control
+              VBScript review | N4 help-desk social-engineering correlation | N5 file-open telemetry
+              review (optional)
+              CQL Q01 SystemHelper.exe Startup write | Q02 HKCU Run value SystemHelper |
+              Q03 SystemHelper.exe execution | Q04 frozen-Python temp extraction (inference) |
+              Q05 wscript/cscript blocker_&lt;id&gt;.vbs | Q06 Discord API correlation (enrichment) |
+              Q07 Telegram Bot API correlation (enrichment)
+DO FIRST:     Run Q01/Q02/Q03 fleet-wide over 30 days; any hit triggers Playbook A (&sect;13) and
+              parallel account-level response (Discord token revocation, Telegram session
+              termination) alongside endpoint remediation
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         No portable Falcon event proves direct LevelDB file reads (H08); no file hash exists
+              for any TWEAKOS component; the interactive phone/code social-engineering moment is not
+              independently Falcon-visible; the operator-side database, marketplace, and pricing
+              logic (C08-C10) are out of scope for endpoint hunting
+ACTIONS:      Deploy Q01-Q05 as scheduled hunts; baseline Q04/Q06/Q07 for 7-14 days before any
+              promotion; document and rehearse the account-recovery runbook (Discord token
+              revocation, Telegram session termination); train users on login-code social
+              engineering; promote IOA-1 through IOA-4 only after &sect;11 baselining
+OWNER:        HuntPack
+VERSION:      v1.0 - 2026-09-27</pre>
+      <button type="button" class="btn-copy" data-label="Copy ticket" onclick="copyBlock('ticket-block',this)">Copy ticket</button>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+    <div class="chg-entry"><span class="chg-ver">v1.0</span><span class="chg-date">2026-09-27</span><span>Initial release. 5 saved source snapshots, 12 claims, 7 CQL hunt queries (2 of which are legitimate-infrastructure enrichment correlations, never for blocking), 5 native hunts, 4 candidate Custom IOAs (Detect only, no Block recommendations), 7 source-bound atomic indicators plus 2 explicitly-labelled REPLACE_WITH_ hash placeholders. No file hashes or dedicated C2 infrastructure were published for this campaign as of the cited reporting.</span></div>
+  </div>
+</div>
+
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>ID</th><th>Publisher</th><th>Edition/date</th><th>Accessed</th><th>Use</th><th>URL</th></tr></thead>
+      <tbody>
+        <tr><td>S01</td><td>Flare</td><td>2026-09-24</td><td>2026-09-27</td><td>Primary research: two-component architecture, Discord/Telegram theft mechanics, persistence, marketplace</td><td><a href="https://flare.io/learn/resources/blog/tweakos-stealer-telegram-c2-ecosystem-2" rel="noopener noreferrer">https://flare.io/learn/resources/blog/tweakos-stealer-telegram-c2-ecosystem-2</a></td></tr>
+        <tr><td>S02</td><td>Cyber Security News</td><td>2026-09-25</td><td>2026-09-27</td><td>Independent corroboration: persistence mechanisms, detection indicators, mitigation guidance</td><td><a href="https://cybersecuritynews.com/tweakos-malware/" rel="noopener noreferrer">https://cybersecuritynews.com/tweakos-malware/</a></td></tr>
+        <tr><td>S03</td><td>Cyber Press</td><td>2026-09-25 (approx.)</td><td>2026-09-27</td><td>Independent corroboration: Discord LevelDB scanning detail, storefront pricing model</td><td><a href="https://cyberpress.org/tweakos-stealer-harvests-discord-tokens/" rel="noopener noreferrer">https://cyberpress.org/tweakos-stealer-harvests-discord-tokens/</a></td></tr>
+        <tr><td>S04</td><td>Security Boulevard</td><td>2026-09 (approx.)</td><td>2026-09-27</td><td>Independent corroboration: filename inventory, Russian-language coercion string, database schema detail</td><td><a href="https://securityboulevard.com/2026/09/tweakos-uncovered-a-telegram-driven-stealer-and-c2-ecosystem-for-discord-and-telegram-tokens/" rel="noopener noreferrer">https://securityboulevard.com/2026/09/tweakos-uncovered-a-telegram-driven-stealer-and-c2-ecosystem-for-discord-and-telegram-tokens/</a></td></tr>
+        <tr><td>S05</td><td>Cryptika</td><td>2026-09 (approx.)</td><td>2026-09-27</td><td>Independent corroboration: IOC filename/URL inventory, marketplace mechanics</td><td><a href="https://www.cryptika.com/tweakos-malware-turns-telegram-into-a-stealer-c2-platform-and-stolen-account-marketplace/" rel="noopener noreferrer">https://www.cryptika.com/tweakos-malware-turns-telegram-into-a-stealer-c2-platform-and-stolen-account-marketplace/</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer class="hp-footer"><strong>HuntPack</strong> &middot; Portable, offline-ready defender content &middot; v1.0 &middot; Generated 2026-09-27</footer>
+
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
