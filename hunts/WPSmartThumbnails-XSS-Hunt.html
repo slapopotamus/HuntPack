@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordPress Stored-XSS Admin Takeover: Fake wp-smart-thumbnails Plugin and Hidden Administrator | HuntPack</title>
+<meta name="description" content="CrowdStrike CQL hunts, IOCs, native WordPress hunts and hardening for the exploited Ninja Forms (CVE-2026-94504) and WPC Product Bundles (CVE-2026-93836) stored-XSS flaws that install a fake plugin, hidden administrator and backdoors.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/WPSmartThumbnails-XSS-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WordPress Stored-XSS Admin Takeover: Fake wp-smart-thumbnails Plugin and Hidden Administrator | HuntPack">
+<meta property="og:description" content="CrowdStrike CQL hunts, IOCs, native WordPress hunts and hardening for the exploited Ninja Forms (CVE-2026-94504) and WPC Product Bundles (CVE-2026-93836) stored-XSS flaws that install a fake plugin, hidden administrator and backdoors.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/WPSmartThumbnails-XSS-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #39c5cf;
+  --accent-dim: rgba(57,197,207,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #082a2e 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(57,197,207,0.1); color: #39c5cf; border-color: rgba(57,197,207,0.5); }
+.btn-falcon:hover { background: rgba(57,197,207,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.ticket { border: 1px solid var(--border); border-radius: 6px; padding: 4px; background: var(--surface2); }
+.hp-footer { margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); text-align: center; }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div>
+    <div class="pack-name">WordPress Stored-XSS Admin Takeover (wp-smart-thumbnails)</div>
+    <div class="version">v0.1 &middot; 2026-10-07</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; CQL Queries</a>
+    <a href="#s9">9 &middot; Custom IOA Recs</a>
+    <a href="#s10">10 &middot; IOC Appendix</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+<div class="hp-header">
+  <h1>WordPress Stored-XSS Admin Takeover: Fake "WP Smart Thumbnails" Plugin, Hidden Administrator and Backdoor Login</h1>
+  <div class="subtitle">Two unrelated plugin flaws (Ninja Forms CVE-2026-94504, WPC Product Bundles CVE-2026-93836) deliver one JavaScript implant that rides a logged-in administrator's session. Exploited since 2026-10-04. Attribution: not stated by sources.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">CVE-2026-94504, CVE-2026-93836</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">EXPLOITED ITW</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Stored XSS &middot; WordPress post-exploitation implant</div></div>
+    <div class="meta-item"><div class="mk">Access</div><div class="mv">Unauthenticated injection, fires in admin session</div></div>
+    <div class="meta-item"><div class="mk">CVSS</div><div class="mv">7.1 (Patchstack) to 7.2 (SecurityOnline)</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 &middot; 2026-10-07</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (vulnerabilities, behavior) &middot; Medium (atomic IOCs, single primary source)</div></div>
+  </div>
+</div>
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+
+    <p>Two unrelated WordPress plugins, WPC Product Bundles for WooCommerce (CVE-2026-93836, versions up to 8.6.6) and Ninja Forms (CVE-2026-94504, versions up to 3.15.3), carry stored cross-site scripting flaws that are being exploited to deliver one shared JavaScript implant from <code>imgcdn1[.]com</code>. Patchstack first saw it on 2026-10-04 against WPC Product Bundles and on 2026-10-05 through Ninja Forms, and reported it on 2026-10-06. The XSS is only the front door: the payload runs inside a logged-in administrator's browser, rides that authenticated session, scrapes the nonces WordPress requires, and then uses WordPress's own plugin installer to drop a fake plugin.</p>
+    <p>One successful execution leaves the attacker with four independent ways back in: a visible administrator account, an administrator hidden from the Users screen by a must-use plugin, a magic login URL that authenticates as the site's oldest administrator, and an unauthenticated file manager inside the fake plugin. Removing the vulnerable plugin, or even the fake one, closes none of the last three. Patchstack also notes that the installer backdates the files it writes, so a search for recently changed files misses them.</p>
+    <p><strong>Honest endpoint scope.</strong> The exploit, nonce theft, plugin upload, administrator creation and database option writes all happen inside the browser, WordPress and PHP. Falcon endpoint telemetry cannot see them. What Falcon can see is narrower: the administrator workstation looking up the C2 domain, file-integrity events for the dropped PHP files if a FIM policy covers wp-content, shells spawned by the web or PHP worker, and command lines that name the campaign's artifacts. Everything else needs WordPress audit logs, database queries, web server logs, a WAF or a file-integrity tool, and Section 7 and Section 15 say so plainly.</p>
+    <p class="callout callout-danger"><strong>Defender priority:</strong> update both plugins, then treat any site where an administrator opened a WooCommerce order or Ninja Forms submission since 2026-10-04 as potentially compromised. Updating stops new injections but does not clean an existing infection. Enumerate administrators directly in the database, inspect the mu-plugins directory by content rather than date, and rotate credentials and salts.</p>
+
+  </div>
+</div>
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+      <tr><td>1 &middot; Primary research</td><td>Patchstack, "Four ways back in", 2026-10-06 (snapshot 01)</td><td>Full campaign analysis: both CVEs, x.js behavior, plugin and installer analysis, four persistence routes, infrastructure, IOC table, detection and mitigation steps</td><td>Yes: primary source for every indicator</td></tr>
+      <tr><td>1 &middot; Vendor changelog</td><td>Ninja Forms readme changelog (snapshot 04)</td><td>Version 3.15.4 (21 September 2026) lists strengthened output escaping in the admin submission edit screen; confirms 3.15.3 as the preceding release</td><td>Yes: fix version</td></tr>
+      <tr><td>1 &middot; Vendor changelog</td><td>WPC Product Bundles readme changelog (snapshot 05)</td><td>Version 8.6.7 lists a fixed vulnerability; version 8.7.3 separately lists sanitizing bundle ids from request, cart session and order item meta to prevent stored XSS; current listed release is 8.7.4</td><td>Yes: fix version, with the 8.7.3 caveat</td></tr>
+      <tr><td>2 &middot; Security journalism</td><td>BleepingComputer, 2026-10-06 (snapshot 02)</td><td>Independent write-up of Patchstack findings: same two CVEs, 500,000 and 30,000 install counts, four access mechanisms, backdated auxiliary plugins</td><td>Yes: corroborates CVEs and fix versions (derivative of Patchstack, not independent research)</td></tr>
+      <tr><td>2 &middot; Security journalism</td><td>ReconBee, 2026-10-07 (snapshot 06)</td><td>Repeats the CVE pairing and the imgcdn1[.]com domain</td><td>Partial: aggregator</td></tr>
+      <tr><td>3 &middot; CVE listing</td><td>SecurityOnline.info homepage "Active Exploits in the Wild" panel (snapshot 03)</td><td>Lists CVE-2026-94504 and CVE-2026-93836 as active exploits with CVSS 7.2 and short descriptions matching the two plugins</td><td>Partial: confirms CVE numbers and flags a CVSS discrepancy</td></tr>
+      <tr><td>2 &middot; Hardening authority</td><td>WordPress.org developer documentation: Hardening WordPress and wp-config (snapshots 07, 08)</td><td>DISALLOW_FILE_EDIT, DISALLOW_FILE_MODS, file permission guidance, Must-Use Plugins reference</td><td>Yes: hardening controls</td></tr>
+      <tr><td>2 &middot; ATT&amp;CK</td><td>MITRE ATT&amp;CK T1505.003 (snapshot 09)</td><td>Web Shell technique, mitigations M1042 and M1018, detection strategy for file creation in web directories followed by web server child processes</td><td>Yes: mapping and detection logic</td></tr>
+      </table>
+    <h3>Decision log</h3>
+<ul>
+  <li><strong>CVE numbers.</strong> CVE-2026-93836 and CVE-2026-94504 are the only CVE identifiers shipped. Both appear in the Patchstack article, BleepingComputer, ReconBee and the SecurityOnline panel. Other Ninja Forms CVE identifiers circulate in low-quality aggregator posts and search snippets; none of them appears in any saved snapshot, and one that surfaced in a search snippet described a different, earlier Ninja Forms version range, so none is shipped.</li>
+  <li><strong>CVSS discrepancy.</strong> Patchstack lists CVSS 7.1 for both flaws; SecurityOnline lists 7.2. The pack reports "7.1 to 7.2, high" rather than choosing one.</li>
+  <li><strong>"Authenticated" wording.</strong> BleepingComputer and ReconBee say the flaws "require an authenticated session to exploit". Patchstack calls both unauthenticated stored XSS. These reconcile: the attacker injects the payload without logging in, but the script only does damage when an authenticated administrator views the stored content. The pack follows Patchstack.</li>
+  <li><strong>WPC Product Bundles fix version.</strong> Patchstack and BleepingComputer name 8.6.7. The vendor changelog lists a vulnerability fix in 8.6.7 and a separate stored-XSS sanitization fix in 8.7.3. The pack recommends moving to the current release, not stopping at 8.6.7.</li>
+  <li><strong>Single-source indicators ship as detect.</strong> Every hash, the domain and the plugin artifacts originate in the Patchstack analysis. BleepingComputer and ReconBee repeat the domain but do not independently verify it. Under the two-source rule nothing ships at prevent, and no row in the Falcon import CSV is prevent.</li>
+  <li><strong>Hashes that cannot exist.</strong> Patchstack states the two must-use plugins are obfuscated with a fresh key per site, so no fixed hash is published and none is invented here. They are listed by path and detected by behavior.</li>
+  <li><strong>No coined name.</strong> The sources give the campaign no label. The pack uses descriptive wording and the fake plugin identity "WP Smart Thumbnails" exactly as the sources name it.</li>
+  <li><strong>Fetched-content check.</strong> No fetched page contained instructions directed at an automated reader. Pages carried only ordinary site navigation, ads and unrelated headlines, which were ignored.</li>
+</ul>
+  </div>
+</div>
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+<h3>Hypotheses</h3><table>
+      <tr><th>ID</th><th>Hypothesis</th><th>MITRE</th><th>Falcon event</th><th>Query</th><th>Fidelity</th></tr>
+      <tr><td>H1</td><td>An administrator workstation resolved imgcdn1[.]com after opening an order or submission</td><td>T1071.001, T1059.007</td><td>DnsRequest</td><td>Q1</td><td>High</td></tr>
+      <tr><td>H2</td><td>Campaign PHP files were written into the plugins or mu-plugins directory</td><td>T1505.003, T1564</td><td>CriticalFileModified (FIM)</td><td>Q5, Q6</td><td>High (needs FIM)</td></tr>
+      <tr><td>H3</td><td>A shell or downloader ran under the web or PHP worker after the file manager was reached</td><td>T1505.003, T1059</td><td>ProcessRollup2</td><td>Q3</td><td>Medium</td></tr>
+      <tr><td>H4</td><td>Someone ran commands naming the implant files, options or login token</td><td>T1505.003, T1136.001, T1078</td><td>ProcessRollup2</td><td>Q4</td><td>High</td></tr>
+      <tr><td>H5</td><td>The web server fetched a second-stage payload from a rare address</td><td>T1105</td><td>NetworkConnectIP4</td><td>Q2</td><td>Low</td></tr>
+      <tr><td>H6</td><td>The delivery IPs reached the web ports</td><td>T1190</td><td>NetworkReceiveAcceptIP4</td><td>Q7</td><td>Low</td></tr>
+      <tr><td>H7</td><td>Stored payload, hidden administrator, backdoor login and file manager use (WordPress, DB, web log layer)</td><td>T1190, T1136.001, T1078, T1505.003</td><td>None (non-Falcon)</td><td>Section 7 native hunts</td><td>High (off-endpoint)</td></tr>
+      </table><h3>Attack chain</h3><table>
+      <tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt angle</th></tr>
+      <tr><td>1</td><td>Attacker submits a payload through <code>woosb_ids[...][qty]</code> (WPC, from 2026-10-04) or <code>admin-ajax.php</code> with <code>action=nf_ajax_submit</code> (Ninja Forms, from 2026-10-05)</td><td>Web server and WAF logs, WordPress database</td><td>GAP on endpoint. Web logs, WAF, database</td></tr>
+      <tr><td>2</td><td>Payload sits in WooCommerce order metadata or a Ninja Forms submission until an administrator views it</td><td>WordPress database</td><td>GAP on endpoint. DB search for the domain string</td></tr>
+      <tr><td>3</td><td>Administrator opens the content; browser loads <code>/fz/x.js</code> from imgcdn1[.]com</td><td>Admin workstation DNS and proxy</td><td>Q1</td></tr>
+      <tr><td>4</td><td>x.js checks in at <code>/fz/c.php?xa=check&amp;site=</code>, tracks stages in browser Local Storage key prefix <code>__xp_v9_</code></td><td>Admin workstation DNS and proxy; browser storage</td><td>Q1; browser forensics</td></tr>
+      <tr><td>5</td><td>Using the admin session, x.js scrapes the plugin-upload nonce, pulls a ZIP from <code>c.php?xa=pkg</code>, installs <code>wp-smart-thumbnails</code></td><td>Web server file writes, WordPress audit log</td><td>Q5 (FIM); WordPress audit log</td></tr>
+      <tr><td>6</td><td>Visible administrator created via <code>user-new.php</code> with credentials from <code>xa=admin_creds</code></td><td>WordPress audit log, database</td><td>GAP on endpoint. WordPress audit log, DB</td></tr>
+      <tr><td>7</td><td><code>emer-run.php</code> fetched and run in the admin session: hidden administrator, two must-use plugins, magic login token</td><td>File writes in mu-plugins, database options</td><td>Q5, Q6 (FIM); DB options check</td></tr>
+      <tr><td>8</td><td>Installer backdates every file it writes to the oldest timestamp in the WordPress root</td><td>File timestamps</td><td>Q5 and Q6 use event time, not mtime</td></tr>
+      <tr><td>9</td><td>Result reported to the C2 via fetch, sendBeacon and an image-request fallback</td><td>Admin workstation DNS and proxy</td><td>Q1</td></tr>
+      <tr><td>10</td><td>Later: attacker uses <code>/wp-login.php?_wplogin=&lt;token&gt;</code> or hits the file manager directly, uploads a second shell</td><td>Web access logs; web-worker child processes</td><td>Q3, Q4; web logs for the direct requests</td></tr>
+      </table>
+  </div>
+</div>
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr>
+      <tr><td>domain</td><td><code>imgcdn1[.]com</code></td><td>High</td><td>detect</td><td>Serves x.js, c.php, plugin ZIP. Registered 2026-10-01 (Patchstack). Single original source</td><td>+6 months</td></tr>
+      <tr><td>url</td><td><code>https://imgcdn1[.]com/fz/x.js</code></td><td>High</td><td>detect</td><td>Browser implant, 19,378 bytes (Patchstack)</td><td>+6 months</td></tr>
+      <tr><td>url</td><td><code>https://imgcdn1[.]com/fz/c.php</code></td><td>High</td><td>detect</td><td>C2 and payload server; <code>?xa=check</code>, <code>?xa=pkg</code>, <code>?xa=admin_creds</code> endpoints</td><td>+6 months</td></tr>
+      <tr><td>sha256</td><td><code>af803bc822cf9596b1f1785e1d59642f91f6fbc21f8e9943feefa19a6df8c2a4</code></td><td>Medium</td><td>detect</td><td>x.js (single source)</td><td>+6 months</td></tr>
+      <tr><td>md5</td><td><code>8a4413c1aa058179ff54b95571bcf2a3</code></td><td>Medium</td><td>detect</td><td>x.js (single source)</td><td>+6 months</td></tr>
+      <tr><td>sha256</td><td><code>ccc95113334357c2a3671aae12043bff00020858cec115f7e724fe43e9f1fc24</code></td><td>Medium</td><td>detect</td><td>wp-smart-thumbnails.php, packed dropper and file manager</td><td>+6 months</td></tr>
+      <tr><td>md5</td><td><code>da651d4f191a7c363806fe5357752015</code></td><td>Medium</td><td>detect</td><td>wp-smart-thumbnails.php (main plugin file)</td><td>+6 months</td></tr>
+      <tr><td>sha256</td><td><code>ed00234ad2b67dbbc9073e8c711b18b7d39e0a5255b6159189f75cf2ed99cfb9</code></td><td>Medium</td><td>detect</td><td>emer-run.php, persistence installer</td><td>+6 months</td></tr>
+      <tr><td>md5</td><td><code>1024732009983dd5e54b4cf5593f04d4</code></td><td>Medium</td><td>detect</td><td>emer-run.php</td><td>+6 months</td></tr>
+      <tr><td>path</td><td><code>/wp-content/plugins/wp-smart-thumbnails/</code> (wp-smart-thumbnails.php, emer-run.php, readme.txt, includes/class-thumb-cache.php)</td><td>High</td><td>hunt</td><td>Fake plugin "WP Smart Thumbnails" 1.2.4 by "MediaPress Labs". Slug is campaign-specific</td><td>n/a</td></tr>
+      <tr><td>path</td><td><code>/wp-content/mu-plugins/class-wp-query-&lt;8 hex&gt;.php</code></td><td>High</td><td>hunt</td><td>Hides the hidden administrator (hooks pre_user_query, users_list_table_query_args, views_users). Obfuscated, per-site key, no fixed hash</td><td>n/a</td></tr>
+      <tr><td>path</td><td><code>/wp-content/mu-plugins/class-wp-token-validate.php</code></td><td>High</td><td>hunt</td><td>Trades the login token for a session cookie (hooks init at priority 1)</td><td>n/a</td></tr>
+      <tr><td>wp option</td><td><code>fz_emer_done_v1</code>, <code>fz_emer_login_tokens</code></td><td>High</td><td>hunt</td><td>Campaign state. Presence of fz_emer_login_tokens means a backdoor login token is live</td><td>n/a</td></tr>
+      <tr><td>url pattern</td><td><code>/wp-login.php?_wplogin=&lt;token&gt;</code></td><td>High</td><td>hunt</td><td>Backdoor login, authenticates as the oldest administrator</td><td>n/a</td></tr>
+      <tr><td>string</td><td><code>dyiv://</code> stream wrapper; title string "Moon, tell me if I could"; Local Storage prefix <code>__xp_v9_</code></td><td>Medium</td><td>hunt</td><td>Dropper and file manager internals; browser-side state (Patchstack)</td><td>n/a</td></tr>
+      <tr><td>account pattern</td><td>usernames drawn from words such as support, updater, maintenance, backup; <code>@wordpress.org</code> email; 16-character random password</td><td>Medium</td><td>enrich</td><td>Hidden administrator profile. Dictionary of about fifty words, so names vary</td><td>+1 month</td></tr>
+      <tr><td>ipv4</td><td><code>204.8.96.109</code>, <code>147.90.235.22</code>, <code>90.184.10.74</code>, <code>94.16.115.121</code> (WPC, 2026-10-04); <code>43.250.53.42</code> (Ninja Forms, 2026-10-05)</td><td>Low</td><td>hunt</td><td>Observed delivery sources. Four are Tor exit nodes; the fifth is flagged for spam and brute force (Patchstack). Not durable, not exhaustive</td><td>+3 months</td></tr>
+      </table><p class="callout callout-info">Patchstack states these indicators describe the campaign observed in its telemetry and should not be read as exhaustive indicators for exploitation of either CVE.</p>
+  </div>
+</div>
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr>
+      <tr><td>WordPress administrator browser (Windows, macOS, Linux workstations)</td><td>DnsRequest, proxy and DNS logs</td><td>High</td><td><span class="badge b-med">Partial</span> DNS visible; script execution, nonce theft and session riding are NOT visible to Falcon</td></tr>
+      <tr><td>Linux web server (Apache, NGINX, PHP-FPM)</td><td>ProcessRollup2, CriticalFileModified (FIM), NetworkConnectIP4</td><td>High</td><td><span class="badge b-med">Partial</span> file events need a FIM policy covering wp-content; PHP file writes are not a native Falcon file-write type</td></tr>
+      <tr><td>Windows web server (IIS with w3wp.exe, or Apache/PHP on Windows)</td><td>ProcessRollup2, CriticalFileModified (FIM), NetworkConnectIP4</td><td>Medium</td><td><span class="badge b-med">Partial</span> same FIM dependency</td></tr>
+      <tr><td>WordPress application layer (users, options, plugin install)</td><td>WordPress audit log plugin, database queries</td><td>High</td><td><span class="badge b-high">GAP</span> not endpoint-visible. Hidden administrator and fz_emer_* option rows exist only in the database</td></tr>
+      <tr><td>Web access and error logs</td><td>Apache or NGINX logs, WAF, CDN logs</td><td>High</td><td><span class="badge b-high">GAP</span> injection requests, <code>_wplogin</code> logins and direct file-manager hits live here</td></tr>
+      <tr><td>Database</td><td>wp_users, wp_usermeta, wp_options, order and submission tables</td><td>High</td><td><span class="badge b-high">GAP</span> only direct SQL reveals the hidden administrator, because the mu-plugin filters WordPress's own user queries</td></tr>
+      </table>
+  </div>
+</div>
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query / control</th></tr>
+      <tr><td>Initial Access</td><td>T1190 Exploit Public-Facing Application</td><td>Stored XSS injected through WooCommerce order data or Ninja Forms submissions</td><td>GAP (web/WAF/DB); Q7 context</td></tr>
+      <tr><td>Execution</td><td>T1059.007 JavaScript</td><td>x.js runs in the administrator's authenticated browser origin</td><td>GAP on endpoint; Q1 sees the fetch</td></tr>
+      <tr><td>Command and Control</td><td>T1071.001 Web Protocols</td><td>HTTPS check-in and reporting to imgcdn1[.]com/fz/c.php</td><td>Q1</td></tr>
+      <tr><td>Command and Control</td><td>T1105 Ingress Tool Transfer</td><td>Plugin ZIP pulled from <code>c.php?xa=pkg</code>; emer-run.php fetched</td><td>Q1, Q2</td></tr>
+      <tr><td>Persistence</td><td>T1505.003 Web Shell</td><td>Unauthenticated file manager in wp-smart-thumbnails.php; second shells via its upload and save</td><td>Q3, Q4, Q5</td></tr>
+      <tr><td>Persistence</td><td>T1136.001 Create Account: Local Account</td><td>Visible administrator via user-new.php and hidden administrator via emer-run.php</td><td>GAP (WP audit log, DB); Q4 for CLI use</td></tr>
+      <tr><td>Persistence / Defense Evasion</td><td>T1564 Hide Artifacts</td><td>Must-use plugin filters the account out of Users screen, counts and queries</td><td>Q5, Q6; DB cross-check</td></tr>
+      <tr><td>Persistence / Initial Access</td><td>T1078 Valid Accounts</td><td>Magic login URL authenticates as the oldest administrator</td><td>GAP (web logs); Q4</td></tr>
+      <tr><td>Defense Evasion</td><td>T1070.006 Timestomp</td><td>Installed files stamped with the oldest timestamp in the WordPress root</td><td>Q5, Q6 (event time)</td></tr>
+      <tr><td>Defense Evasion</td><td>T1027 Obfuscated Files or Information</td><td>Seven-layer packed dropper, XOR plus gzdeflate must-use plugins, stream wrapper instead of eval()</td><td>Partial: name and path based only</td></tr>
+      <tr><td>Defense Evasion</td><td>T1036 Masquerading</td><td>Fake plugin identity "WP Smart Thumbnails" 1.2.4 by "MediaPress Labs"; decoy readme and class files</td><td>Q5</td></tr>
+      </table>
+  </div>
+</div>
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+
+    <p>Most of this campaign is invisible to the Falcon sensor. These checks run on the WordPress host, the database and the web server, and are the primary hunt for the application-layer steps. Commands come from the Patchstack detection section unless marked as derived guidance.</p>
+    <h3>1. Enumerate administrators in the database, not in wp-admin</h3>
+<pre class="code">SELECT u.user_login, u.user_email, u.user_registered
+FROM wp_users u
+JOIN wp_usermeta m ON m.user_id = u.ID
+WHERE m.meta_key = 'wp_capabilities'
+  AND m.meta_value LIKE '%administrator%';</pre>
+    <p>Compare to Users, All Users. Any account present in SQL but absent in the interface is hidden by a dropped must-use plugin. An <code>@wordpress.org</code> address on a local account, or a routine word such as support, updater, maintenance or backup, is a further signal. Adjust the <code>wp_</code> prefix to your table prefix. Use raw SQL: WP-CLI loads must-use plugins, so <code>wp user list</code> can be filtered by the same hooks.</p>
+    <h3>2. Check the campaign's own options</h3>
+<pre class="code">SELECT option_name FROM wp_options
+WHERE option_name IN ('fz_emer_done_v1', 'fz_emer_login_tokens');</pre>
+    <p>fz_emer_login_tokens present means at least one backdoor login token is live. Deleting the options alone is not enough while the must-use plugins remain.</p>
+    <h3>3. Inspect the mu-plugins directory and the fake plugin</h3>
+<pre class="code">ls -la wp-content/mu-plugins/
+ls -la wp-content/plugins/wp-smart-thumbnails/ 2&gt;/dev/null
+find wp-content/mu-plugins -type f -name 'class-wp-query-*.php' -o -name 'class-wp-token-validate.php'
+grep -rl "dyiv://" wp-content/plugins 2&gt;/dev/null</pre>
+    <p>File modification times are not reliable here, because the installer backdates what it writes. Sort by content and by whether the file belongs to your known-good baseline. The mu-plugins directory should normally be empty or hold only files your host or team placed there. Both campaign must-use plugins are obfuscated, so a plain-text grep for hook names will not find them.</p>
+    <h3>4. Search web server logs</h3>
+<pre class="code">grep -E "imgcdn1|/fz/x\.js|/fz/c\.php" /var/log/apache2/*access* /var/log/nginx/*access*
+grep -E "_wplogin=" /var/log/apache2/*access* /var/log/nginx/*access*
+grep -E "wp-smart-thumbnails" /var/log/apache2/*access* /var/log/nginx/*access*
+grep -E "woosb_ids|nf_ajax_submit" /var/log/apache2/*access* /var/log/nginx/*access*</pre>
+    <p>Requests carrying <code>_wplogin</code> to wp-login.php and direct requests to <code>wp-smart-thumbnails.php</code> outside the plugin screens are usable signals (Patchstack). The last pattern is broad: <code>nf_ajax_submit</code> is a normal Ninja Forms action, so triage hits by looking for markup in the submitted values. POST bodies are usually not in access logs, so a WAF or audit log is needed to see the payload itself.</p>
+    <h3>5. Find stored payloads before an administrator opens them (derived guidance)</h3>
+<pre class="code">wp db query "SELECT meta_id, post_id FROM wp_postmeta WHERE meta_value LIKE '%imgcdn1%'"
+wp db query "SELECT meta_id, order_item_id FROM wp_woocommerce_order_itemmeta WHERE meta_value LIKE '%imgcdn1%'"</pre>
+    <p>This searches the places the sources say the payload is stored (order metadata and form submissions). Table names vary with prefix and WooCommerce storage mode; treat it as a starting point. Remove matching rows without opening them in wp-admin.</p>
+    <h3>6. Review administrator-created accounts and plugin installs around order or submission views</h3>
+    <p>Patchstack advises investigating any administrator account created around the time an administrator viewed WooCommerce orders or Ninja Forms submissions. This needs a WordPress audit-log plugin or equivalent; the stock log does not record it.</p>
+    <h3>7. Administrator workstation (browser)</h3>
+    <p>Search proxy and DNS logs for imgcdn1[.]com. On a workstation known to have opened affected content, check browser Local Storage for keys beginning <code>__xp_v9_</code> (Patchstack). Treat the administrator's WordPress session as compromised.</p>
+
+  </div>
+</div>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <p class="callout callout-warn">Seven endpoint queries cover only the endpoint-visible slice. Q5 and Q6 depend on a Falcon FIM or critical-file policy that includes wp-content, which is not on by default (marked "validate in tenant"). Q7 depends on inbound-accept telemetry. XSS execution, nonce theft, hidden-administrator creation and the database option rows have no Falcon query; see Section 7 and Section 15.</p>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 &middot; imgcdn1[.]com DNS lookup (payload and C2 host)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> any DNS lookup of the single domain that serves every stage: the browser implant, the C2 check-in and the plugin ZIP. The lookup is made by the administrator's browser, so expect hits on admin workstations first. Works on Windows, macOS and Linux sensors.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: DNS lookup of imgcdn1[.]com, the host serving the stored-XSS implant and its C2</span>
+<span class="cm">// MITRE: T1071.001, T1105, T1059.007</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: DnsRequest on admin workstations (Windows, macOS) and on web servers (Windows, Linux)</span>
+<span class="cm">// FALSE POSITIVES: threat-intel sandboxes or DNS-sinkhole testing that deliberately resolves the domain</span>
+<span class="cm">// NOTE: the implant runs in the ADMINISTRATOR'S BROWSER, so the lookup normally comes from an admin workstation, not the web server</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)imgcdn1\.com$/i
+| groupBy([aid, ComputerName, ContextBaseFileName, DomainName], function=[count(as=Lookups), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=20000)
+| sort(FirstSeen, order=asc)
+| table([aid, ComputerName, ContextBaseFileName, DomainName, Lookups, FirstSeen, LastSeen])</pre>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 &middot; Web-server egress to rare external addresses</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> low-count outbound web connections from the web or PHP worker, a follow-on indicator if a second-stage fetch happens server-side. <strong>FP:</strong> plugin and core update checks, payment and shipping APIs and CDNs are normal; baseline before alerting (see the TUNING line in the card).</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Web-server or PHP worker making outbound web connections to rare external addresses</span>
+<span class="cm">// MITRE: T1105, T1071.001</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4 from Linux (httpd, apache2, nginx, php-fpm) and Windows (w3wp.exe) web servers</span>
+<span class="cm">// FALSE POSITIVES: WordPress core and plugin update checks, payment gateway and shipping APIs, license servers, CDN and font fetches, outbound mail APIs</span>
+<span class="cm">// TUNING: baseline for 14 days in investigate mode, then exclude every destination the site legitimately calls, for example by adding: | !in(RemoteAddressIP4, values=["REPLACE_WITH_BASELINED_API_IP"]) and keep only the rare tail (Conns &lt;= 5)</span>
+<span class="cm">// NOTE: Patchstack describes the fetches as browser-side, so this is a second-stage and follow-on hunt, not a primary detection</span>
+#event_simpleName=NetworkConnectIP4
+| ContextBaseFileName=/^(httpd|apache2|nginx|php-fpm[0-9.]*|php-cgi[0-9.]*|lsphp[0-9]*|w3wp\.exe)$/i
+| in(RemotePort, values=[80, 443])
+| !cidr(RemoteAddressIP4, subnet="10.0.0.0/8")
+| !cidr(RemoteAddressIP4, subnet="172.16.0.0/12")
+| !cidr(RemoteAddressIP4, subnet="192.168.0.0/16")
+| !cidr(RemoteAddressIP4, subnet="127.0.0.0/8")
+| groupBy([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4], function=[count(as=Conns), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=20000)
+| Conns &lt;= 5
+| sort(Conns, order=asc)
+| table([aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, Conns, FirstSeen, LastSeen])</pre>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 &middot; Shell or downloader spawned by a web or PHP worker</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the classic web-shell follow-on. The fake plugin's file manager cannot execute commands itself but can write a second shell. <strong>FP:</strong> image and PDF plugins that shell out; exclude their helper commands (see TUNING).</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: Shell, downloader or recon utility spawned by a web-server or PHP worker process</span>
+<span class="cm">// MITRE: T1505.003, T1059</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 on Linux (apache2, httpd, nginx, php-fpm) and Windows (w3wp.exe) web servers</span>
+<span class="cm">// FALSE POSITIVES: image and PDF plugins that shell out to convert, gs or wkhtmltopdf; backup and cache plugins; hosting-panel helpers</span>
+<span class="cm">// TUNING: after a baseline, exclude known plugin helper commands, for example: | !(FileName=/^(sh|bash)$/i CommandLine=/convert|gs |wkhtmltopdf|ffmpeg/i) ; escalate when the parent is a PHP worker and the child is a downloader (curl, wget) or an interactive shell with no helper pattern</span>
+<span class="cm">// NOTE: the fake plugin's file manager has no command-execution primitive (Patchstack), so this catches the SECOND shell an attacker drops through it, not the file manager itself</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^(httpd|apache2|nginx|php-fpm[0-9.]*|php-cgi[0-9.]*|lsphp[0-9]*|w3wp\.exe)$/i
+| FileName=/^(sh|bash|dash|zsh|ash|nc|ncat|netcat|socat|curl|wget|python[0-9.]*|perl|ruby|whoami|id|uname|cmd\.exe|powershell\.exe|pwsh\.exe|certutil\.exe|bitsadmin\.exe|whoami\.exe|curl\.exe|mshta\.exe)$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 &middot; Command lines naming the campaign's files, options or login token</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> shell or WP-CLI activity touching the plugin slug, the installer, the two must-use plugin names, the two option names or the <code>_wplogin</code> token. Also fires on your own responders, so tune by parent process. <strong>FP:</strong> IR triage and cleanup scripts (see TUNING).</p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: Process command line referencing the campaign's plugin, installer, must-use plugin, option or login-token names</span>
+<span class="cm">// MITRE: T1505.003, T1136.001, T1078</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 on Linux and Windows web servers</span>
+<span class="cm">// FALSE POSITIVES: your own incident-response triage (grep, find, ls, rm, wp db query) and file-integrity or backup tooling that names these paths while cleaning up</span>
+<span class="cm">// TUNING: exclude your IR toolkit and approved admin sessions, for example: | !(ParentBaseFileName=/^(REPLACE_WITH_IR_WRAPPER)$/i) ; treat any hit whose parent is a web or PHP worker, or whose command line does not come from a known responder, as hostile</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine=/(wp-smart-thumbnails|emer-run\.php|class-wp-token-validate|class-wp-query-[0-9a-f]{8}\.php|fz_emer_(done_v1|login_tokens)|_wplogin=)/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])</pre>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 &middot; Campaign-named PHP files written (FIM)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> the four filenames Patchstack lists. Depends on a Falcon FIM or critical-file policy that covers wp-content. This is the best endpoint-side proof the implant landed, and it is not on by default.</p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: Campaign-named PHP files written to a WordPress host (dropper, installer, token-validate and query must-use plugins)</span>
+<span class="cm">// MITRE: T1505.003, T1564, T1070.006</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: CriticalFileModified (Falcon File Integrity Monitoring / critical-file policy covering wp-content) -- ⚠ validate in tenant: wp-content is NOT monitored by default and the policy must be scoped to plugins and mu-plugins</span>
+<span class="cm">// FALSE POSITIVES: none expected; these filenames are not part of WordPress core or any legitimate plugin Patchstack describes</span>
+<span class="cm">// NOTE: the event time is the write time as the sensor saw it, so the installer's file-timestamp backdating does not hide it here</span>
+#event_simpleName=CriticalFileModified
+| FileName=/^(class-wp-token-validate\.php|class-wp-query-[0-9a-f]{8}\.php|emer-run\.php|wp-smart-thumbnails\.php)$/i
+| table([@timestamp, aid, ComputerName, FileName, FilePath, ContextBaseFileName, ContextProcessId, UserName])</pre>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 &middot; Any PHP written into mu-plugins (FIM)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> new files in the must-use directory, which the Plugins screen never lists and which survive removal of the fake plugin. <strong>FP:</strong> managed hosts and security suites that ship their own mu-plugins (see TUNING).</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: Any PHP file created or changed in a WordPress mu-plugins directory</span>
+<span class="cm">// MITRE: T1505.003, T1564</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: CriticalFileModified scoped to wp-content/mu-plugins -- ⚠ validate in tenant: add the mu-plugins path to your FIM policy first</span>
+<span class="cm">// FALSE POSITIVES: managed WordPress hosts and caching or security suites that ship their own mu-plugins, and deliberate deploys from CI</span>
+<span class="cm">// TUNING: exclude the filenames your host or deploy pipeline legitimately writes, for example: | !FileName=/^(REPLACE_WITH_HOST_MU_PLUGIN)\.php$/i ; keep every other write, especially one made by a web or PHP worker process (ContextBaseFileName) with no matching change ticket</span>
+<span class="cm">// NOTE: both campaign must-use plugins are obfuscated per site with a fresh key, so no fixed hash exists; the directory itself is the signal</span>
+#event_simpleName=CriticalFileModified
+| FilePath=/mu-plugins/i
+| FileName=/\.php$/i
+| table([@timestamp, aid, ComputerName, FileName, FilePath, ContextBaseFileName, ContextProcessId, UserName])</pre>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 &middot; Inbound connections from the observed delivery IPs</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> contact from the five addresses in the source table. Mostly Tor exits, so this is context for scoping, never a verdict.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: Inbound web connections from the five source IPs Patchstack observed delivering the payload</span>
+<span class="cm">// MITRE: T1190</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: NetworkReceiveAcceptIP4 on web servers -- ⚠ validate in tenant: inbound-accept telemetry coverage differs by sensor version and OS</span>
+<span class="cm">// FALSE POSITIVES: four of the five addresses are Tor exit nodes (Patchstack) shared with unrelated traffic, so a hit shows contact, not compromise</span>
+<span class="cm">// NOTE: hunt and enrich only, the addresses are not durable and the list is not exhaustive (Patchstack)</span>
+#event_simpleName=NetworkReceiveAcceptIP4
+| in(RemoteAddressIP4, values=["204.8.96.109", "147.90.235.22", "90.184.10.74", "94.16.115.121", "43.250.53.42"])
+| in(LocalPort, values=[80, 443, 8080, 8443])
+| table([@timestamp, aid, ComputerName, RemoteAddressIP4, LocalPort, ContextBaseFileName])</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Deployment path</th></tr>
+      <tr><td>Web worker spawns shell or downloader (from Q3)</td><td>Process creation. Parent image matches httpd, apache2, nginx, php-fpm, php-cgi or w3wp.exe; child matches sh, bash, curl, wget, cmd.exe, powershell.exe</td><td>Exclude known image and PDF helper commands after baseline</td><td>Detect-only first; promote to Prevent only after a clean baseline window. Confirm Linux rule-type availability in your tenant</td></tr>
+      <tr><td>imgcdn1[.]com domain lookup (from Q1)</td><td>Domain name rule, <code>imgcdn1.com</code> and subdomains</td><td>None expected</td><td>Detect (single-source indicator, so not prevent). Prefer the IOC Management entry in Section 10 for the same domain</td></tr>
+      <tr><td>Campaign command-line artifacts (from Q4)</td><td>Process creation. Command line contains <code>wp-smart-thumbnails</code>, <code>emer-run.php</code> or <code>class-wp-token-validate</code></td><td>Exclude your IR tooling by parent process</td><td>Detect. FP medium, so no automated action</td></tr>
+      </table><p>File-based Q5 and Q6 are FIM-dependent and not IOA candidates. IOA rule-type support differs between Windows and Linux sensors, so confirm each rule type exists for your sensor version before building.</p>
+  </div>
+</div>
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+<div class="ioc-grab-grid">
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import, detect only</span></div>
+    <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,imgcdn1.com,detect,high,2027-04-07,Payload and C2 host for WordPress stored-XSS implant (Patchstack),wordpress;stored-xss;imgcdn1
+sha256,af803bc822cf9596b1f1785e1d59642f91f6fbc21f8e9943feefa19a6df8c2a4,detect,high,2027-04-07,x.js browser implant 19378 bytes,wordpress;stored-xss;imgcdn1
+md5,8a4413c1aa058179ff54b95571bcf2a3,detect,high,2027-04-07,x.js browser implant,wordpress;stored-xss;imgcdn1
+sha256,ccc95113334357c2a3671aae12043bff00020858cec115f7e724fe43e9f1fc24,detect,high,2027-04-07,wp-smart-thumbnails.php packed dropper and file manager,wordpress;stored-xss;imgcdn1
+md5,da651d4f191a7c363806fe5357752015,detect,high,2027-04-07,wp-smart-thumbnails.php main plugin file,wordpress;stored-xss;imgcdn1
+sha256,ed00234ad2b67dbbc9073e8c711b18b7d39e0a5255b6159189f75cf2ed99cfb9,detect,high,2027-04-07,emer-run.php persistence installer,wordpress;stored-xss;imgcdn1
+md5,1024732009983dd5e54b4cf5593f04d4,detect,high,2027-04-07,emer-run.php persistence installer,wordpress;stored-xss;imgcdn1
+# No row is action=prevent: every indicator is single-sourced to the Patchstack analysis (two-source rule).
+# The two mu-plugins are obfuscated per site with a fresh key, so no hash exists. Detect them by path (Q5, Q6).</pre>
+  </div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">paths, options, request patterns</span></div>
+    <button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy signatures</button>
+<pre class="code" id="grab-behav"># Filesystem (hunt by path and content, not by mtime)
+wp-content/plugins/wp-smart-thumbnails/wp-smart-thumbnails.php
+wp-content/plugins/wp-smart-thumbnails/emer-run.php
+wp-content/plugins/wp-smart-thumbnails/readme.txt              (46 bytes, decoy)
+wp-content/plugins/wp-smart-thumbnails/includes/class-thumb-cache.php   (41 bytes, decoy)
+wp-content/mu-plugins/class-wp-query-&lt;8 hex&gt;.php
+wp-content/mu-plugins/class-wp-token-validate.php
+
+# Plugin identity (fake)
+"WP Smart Thumbnails" 1.2.4 by "MediaPress Labs"
+
+# WordPress options rows
+fz_emer_done_v1
+fz_emer_login_tokens
+
+# Web request patterns
+GET /fz/x.js, /fz/c.php?xa=check|pkg|admin_creds  (to imgcdn1[.]com, from admin browsers)
+GET /wp-login.php?_wplogin=&lt;token&gt;
+Direct request to wp-content/plugins/wp-smart-thumbnails/wp-smart-thumbnails.php
+POST /wp-admin/admin-ajax.php action=nf_ajax_submit (markup in submitted fields)
+Request parameter woosb_ids[...][qty] with a numeric prefix followed by markup
+
+# Code and browser artifacts
+stream wrapper scheme dyiv://
+webshell title "Moon, tell me if I could"
+Local Storage key prefix __xp_v9_
+mu-plugin hooks: pre_user_query, users_list_table_query_args, views_users, init (priority 1)
+
+# Hidden administrator profile
+username from: support, updater, maintenance, backup (and about fifty similar words)
+email domain: @wordpress.org      password: 16 random characters</pre>
+  </div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Observed Delivery IPs</span><span class="igc">hunt / enrich only</span></div>
+    <button class="btn-copy" data-label="Copy IPs" onclick="copyBlock('grab-ips',this)" style="margin:0 0 6px;">Copy IPs</button>
+<pre class="code" id="grab-ips"># Observed delivery sources (Patchstack). HUNT / ENRICH ONLY, not for blocking.
+# Four are Tor exit nodes; blocking addresses is not a durable mitigation (Patchstack).
+2026-10-04  CVE-2026-93836 (WPC Product Bundles)
+204.8.96.109
+147.90.235.22
+90.184.10.74
+94.16.115.121
+2026-10-05  CVE-2026-94504 (Ninja Forms)
+43.250.53.42</pre>
+  </div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Patch / Compromise Audit</span><span class="igc">WP-CLI and SQL checks</span></div>
+    <button class="btn-copy" data-label="Copy checks" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checks</button>
+<pre class="code" id="grab-audit"># Version audit (WP-CLI). Fixed: Ninja Forms 3.15.4+, WPC Product Bundles 8.6.7+ (move to the current release)
+wp plugin get ninja-forms --fields=name,version,status
+wp plugin get woo-product-bundle --fields=name,version,status
+wp plugin list --fields=name,version,status,update
+
+# Fake plugin and must-use plugin presence
+wp plugin is-installed wp-smart-thumbnails &amp;&amp; echo "FAKE PLUGIN PRESENT"
+ls -la wp-content/mu-plugins/
+
+# Raw SQL checks (do not use wp user list, mu-plugins can filter it)
+wp db query "SELECT u.user_login,u.user_email,u.user_registered FROM wp_users u JOIN wp_usermeta m ON m.user_id=u.ID WHERE m.meta_key='wp_capabilities' AND m.meta_value LIKE '%administrator%'"
+wp db query "SELECT option_name FROM wp_options WHERE option_name IN ('fz_emer_done_v1','fz_emer_login_tokens')"</pre>
+  </div>
+</div>
+  </div>
+</div>
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Gate</th><th>Requirement</th><th>Status in this pack</th></tr>
+      <tr><td>Telemetry ready</td><td>Falcon sensor on every web server host and every WordPress administrator workstation; a FIM or critical-file policy covering wp-content/plugins and wp-content/mu-plugins before Q5 and Q6 are relied on</td><td><span class="badge b-med">Verify per-tenant</span> FIM coverage is the usual gap</td></tr>
+      <tr><td>Benign baseline</td><td>Run Q2, Q3, Q4 and Q6 in investigate mode for at least 14 days before any automated action. Record legitimate outbound APIs, plugin helper commands and host-managed mu-plugins</td><td><span class="badge b-med">Required before go-live</span></td></tr>
+      <tr><td>Positive tests</td><td>Q1: resolve a harmless test hostname in a controlled lab and confirm the query shape; do not resolve the live domain from a production host. Q5: create a file named class-wp-token-validate.php under a monitored lab path and confirm the FIM event</td><td><span class="badge b-med">Pending tenant validation</span></td></tr>
+      <tr><td>Promotion criteria</td><td>Zero unexplained hits over the baseline window before any Q3, Q4 or IOA is moved from audit to enforce. Q1 and Q5 may be promoted to alert earlier because their false-positive surface is small</td><td><span class="badge b-med">Pending</span></td></tr>
+      </table>
+  </div>
+</div>
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+
+    <p>Authorities: MITRE ATT&amp;CK mitigations (the why), the WordPress.org Hardening WordPress and wp-config documentation (snapshots 07, 08), and the CIS Apache HTTP Server and NGINX Benchmarks for the web tier. No formal CIS WordPress benchmark was consulted for this pack, so WordPress controls cite the WordPress.org documentation and are marked where they are best practice only.</p>
+    <div class="tier-blk tier-imm">
+      <div class="tier-lbl">Immediate (this week)</div>
+      <ul>
+        <li><strong>Update Ninja Forms to 3.15.4 or later and WPC Product Bundles to the current release.</strong> Patchstack names 8.6.7; the vendor changelog lists a further stored-XSS sanitization fix in 8.7.3. MITRE M1051 (Update Software), T1190. Verify: <code>wp plugin list --fields=name,version,update</code>.</li>
+        <li><strong>Clean stored payloads and assume prior compromise.</strong> Search order and submission data for the domain string (Section 7, check 5), remove matches without opening them in wp-admin, then run the administrator, option and mu-plugins checks (checks 1 to 3). Updating does not clean an existing infection (BleepingComputer, Patchstack). MITRE M1047 (Audit).</li>
+        <li><strong>Sinkhole imgcdn1[.]com for administrator workstations and web servers</strong> at DNS or the web proxy. MITRE M1037 (Filter Network Traffic), M1031 (Network Intrusion Prevention). Verify: Q1 returns only the sinkhole lookups and a resolver query returns the sinkhole address.</li>
+        <li><strong>Block the backdoor login and the fake plugin at the web server.</strong> Reject any request whose query string contains <code>_wplogin=</code> and deny the <code>wp-smart-thumbnails</code> plugin path (playbook step 3). MITRE M1050 (Exploit Protection), T1078. Verify: <code>curl -I "https://site.example.com/wp-login.php?_wplogin=x"</code> returns 403.</li>
+        <li><strong>Stop reviewing orders and form submissions as an administrator.</strong> Give order and submission reviewers a role without <code>install_plugins</code> (for example Shop Manager). The implant needs administrator rights to install the plugin. MITRE M1026 (Privileged Account Management), M1018. Source: WordPress.org hardening guidance on least privilege (snapshot 07). Verify: <code>wp user list --role=administrator --fields=user_login</code> contains only people who must administer.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-near">
+      <div class="tier-lbl">Near term (1 to 4 weeks)</div>
+      <ul>
+        <li><strong>Set DISALLOW_FILE_MODS in wp-config.php.</strong> It blocks plugin and theme installation and update from the admin area, which removes the step the implant uses to land the fake plugin. Trade-off: updates must then come through WP-CLI, Composer or CI. MITRE M1054 (Software Configuration), M1042. Source: WordPress.org wp-config documentation (snapshot 08). Verify: <code>wp config get DISALLOW_FILE_MODS</code> returns 1. Pilot on one site first.</li>
+        <li><strong>Make plugin and mu-plugins directories non-writable by the web user.</strong> Files owned by a deploy account, directories 755 and files 644, web user read-only (WordPress.org File Permissions guidance, snapshot 07). The installer cannot write its must-use plugins if PHP cannot write the directory. MITRE M1022 (Restrict File and Directory Permissions). Verify: <code>sudo -u www-data touch wp-content/mu-plugins/t</code> fails. Pilot first, because dashboard auto-updates stop working.</li>
+        <li><strong>Restrict wp-login.php and wp-admin to a VPN or office range.</strong> This does not stop the XSS, which fires from an allowed administrator's browser, but it stops attackers from using the magic login URL and a created account from their own network. MITRE M1030 (Network Segmentation). CIS Apache HTTP Server and NGINX Benchmarks cover access restriction. Verify: external request to wp-login.php returns 403.</li>
+        <li><strong>File-integrity monitoring on wp-content/plugins and wp-content/mu-plugins</strong> (Falcon FIM policy, AIDE or auditd) so Q5 and Q6 have data. MITRE M1047 (Audit). Verify: create a test file in a lab copy and confirm an event.</li>
+        <li><strong>Deploy a WAF rule or virtual patch</strong> for markup in <code>woosb_ids</code> quantity values and in Ninja Forms AJAX submissions, in detection-only mode first. MITRE M1050. &#9888; best-practice: OWASP Core Rule Set covers generic XSS, tune for these fields.</li>
+        <li><strong>Add a WordPress audit-log plugin</strong> that records user creation, role changes and plugin installs, and ship it to your SIEM. MITRE M1047. &#9888; best-practice, no formal benchmark.</li>
+        <li><strong>Be clear what MFA does not fix.</strong> The implant never reads the session cookie; it rides the live session, so MFA and HttpOnly cookies do not stop it (Patchstack). Keep MFA for the credential-theft cases it does address (M1032) but do not count it as a control for this attack.</li>
+      </ul>
+    </div>
+    <div class="tier-blk tier-strat">
+      <div class="tier-lbl">Strategic (1 to 3 months)</div>
+      <ul>
+        <li><strong>Immutable, CI-driven WordPress deployment.</strong> Read-only application filesystem, plugins and mu-plugins deployed from a reviewed repository, so an unreviewed PHP file cannot persist. MITRE M1022, M1054. &#9888; best-practice, no formal benchmark.</li>
+        <li><strong>Content-Security-Policy for wp-admin, Report-Only first.</strong> A policy that blocks third-party script origins would stop a script tag pointing at an attacker domain. WordPress admin uses inline scripts, so expect a long tuning phase. MITRE M1021 (Restrict Web-Based Content). &#9888; best-practice, no formal benchmark.</li>
+        <li><strong>Plugin vulnerability feed with a patch SLA.</strong> Subscribe to a WordPress vulnerability intelligence source and hold an SLA for exploited flaws measured in days. Patchstack notes the domain appeared roughly ten days after public disclosure of both flaws. MITRE M1051, M1016 (Vulnerability Scanning).</li>
+        <li><strong>Reduce the plugin estate and the number of administrators.</strong> Remove unused plugins (WordPress.org guidance) and keep administrator accounts to the minimum, reviewed quarterly against a database query, not the Users screen. MITRE M1018, M1026.</li>
+        <li><strong>Harden the web tier to CIS.</strong> Apply the CIS Apache HTTP Server Benchmark or CIS NGINX Benchmark and a CIS Linux benchmark for the host OS. Verify with the benchmark's own assessment tooling.</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+
+    <p>Linux examples use Apache or NGINX with a Debian-style layout. Replace <code>/var/www/html</code>, <code>www-data</code>, <code>deploy</code> and <code>192.0.2.0/24</code> with your own values. Test each change on a staging copy first.</p>
+<h3>Step 1: Compromise triage (read-only)</h3>
+<p><strong>Prerequisites:</strong> Shell access and WP-CLI on the WordPress host; database credentials from wp-config.php<br><strong>Reboot required:</strong> No</p>
+<pre class="code">cd /var/www/html
+# 1. administrators straight from the database (not filtered by mu-plugins)
+wp db query "SELECT u.user_login,u.user_email,u.user_registered FROM wp_users u JOIN wp_usermeta m ON m.user_id=u.ID WHERE m.meta_key='wp_capabilities' AND m.meta_value LIKE '%administrator%'"
+# 2. campaign options
+wp db query "SELECT option_name FROM wp_options WHERE option_name IN ('fz_emer_done_v1','fz_emer_login_tokens')"
+# 3. must-use and fake plugin
+ls -la wp-content/mu-plugins/ wp-content/plugins/wp-smart-thumbnails/ 2&gt;/dev/null
+# 4. take evidence before changing anything
+tar -czf /root/wp-evidence-$(date +%F).tgz wp-content/mu-plugins wp-content/plugins/wp-smart-thumbnails 2&gt;/dev/null</pre>
+<p><strong>Rollback:</strong></p>
+<p>none required: every command in this step only reads state, except the evidence archive, which can be deleted with rm /root/wp-evidence-*.tgz</p>
+<h3>Step 2: Lock down wp-config.php</h3>
+<p><strong>Prerequisites:</strong> Staging validated; an alternative update path (WP-CLI, Composer or CI) exists because dashboard installs stop working<br><strong>Reboot required:</strong> No (PHP-FPM reload not needed; the constant is read per request)</p>
+<pre class="code">cd /var/www/html
+cp wp-config.php wp-config.php.bak-$(date +%F)
+# add above the "That's all, stop editing" line
+sed -i "/stop editing/i define( 'DISALLOW_FILE_MODS', true );\ndefine( 'DISALLOW_FILE_EDIT', true );\ndefine( 'FORCE_SSL_ADMIN', true );" wp-config.php
+wp config get DISALLOW_FILE_MODS</pre>
+<p><strong>Rollback:</strong></p>
+<pre class="code"># restore the previous file
+cp wp-config.php.bak-YYYY-MM-DD wp-config.php</pre>
+<h3>Step 3: Block the backdoor login, the fake plugin and (optionally) restrict admin access at the web server</h3>
+<p><strong>Prerequisites:</strong> Apache 2.4 with mod_rewrite, or NGINX; an admin network range to allow<br><strong>Reboot required:</strong> No (graceful reload of the web server)</p>
+<pre class="code"># --- Apache 2.4 (vhost or .htaccess, outside the WordPress BEGIN/END block) ---
+RewriteEngine On
+RewriteCond %{QUERY_STRING} (^|&amp;)_wplogin= [NC]
+RewriteRule ^ - [F,L]
+RewriteRule ^wp-content/plugins/wp-smart-thumbnails/ - [F,L]
+&lt;Files "wp-login.php"&gt;
+    Require ip 192.0.2.0/24
+&lt;/Files&gt;
+
+# --- NGINX ---
+location ~* ^/wp-content/plugins/wp-smart-thumbnails/ { return 403; }
+location = /wp-login.php {
+    if ($arg__wplogin) { return 403; }
+    allow 192.0.2.0/24;
+    deny all;
+    include fastcgi_params;
+    fastcgi_pass unix:/run/php/php-fpm.sock;
+}
+# check config, then reload
+# apachectl configtest &amp;&amp; systemctl reload apache2
+# nginx -t &amp;&amp; systemctl reload nginx</pre>
+<p><strong>Rollback:</strong></p>
+<pre class="code"># remove the added lines (or restore your backup of the vhost/.htaccess/server block), then:
+# apachectl configtest &amp;&amp; systemctl reload apache2
+# nginx -t &amp;&amp; systemctl reload nginx</pre>
+<h3>Step 4: Make plugin and must-use directories read-only to PHP</h3>
+<p><strong>Prerequisites:</strong> Root or deploy-account access; a deployment path that does not depend on PHP writing to these directories; staging pilot<br><strong>Reboot required:</strong> No</p>
+<pre class="code">cd /var/www/html
+chown -R deploy:deploy wp-content/plugins wp-content/mu-plugins
+find wp-content/plugins wp-content/mu-plugins -type d -exec chmod 755 {} \;
+find wp-content/plugins wp-content/mu-plugins -type f -exec chmod 644 {} \;
+# keep uploads writable, but never executable PHP
+# verify: this must FAIL
+sudo -u www-data touch wp-content/mu-plugins/.write-test</pre>
+<p><strong>Rollback:</strong></p>
+<pre class="code"># restore the previous ownership recorded before the change (example)
+chown -R www-data:www-data wp-content/plugins wp-content/mu-plugins</pre>
+<h3>Step 5: File-integrity watches and DNS sinkhole</h3>
+<p><strong>Prerequisites:</strong> auditd installed; dnsmasq or your resolver supports local overrides; Falcon FIM policy configured separately in the console for Q5 and Q6<br><strong>Reboot required:</strong> No</p>
+<pre class="code"># /etc/audit/rules.d/wordpress-persistence.rules
+-w /var/www/html/wp-content/mu-plugins -p wa -k wp_mu_plugins
+-w /var/www/html/wp-content/plugins -p wa -k wp_plugins
+# load: augenrules --load   verify: auditctl -l | grep wp_
+
+# /etc/dnsmasq.d/sinkhole-imgcdn1.conf   (the domain is the Patchstack-published payload and C2 host)
+address=/imgcdn1.com/0.0.0.0
+# reload: systemctl restart dnsmasq   verify: dig +short imgcdn1.com @127.0.0.1  returns 0.0.0.0</pre>
+<p><strong>Rollback:</strong></p>
+<pre class="code"># remove the rule files, then reload:
+# rm /etc/audit/rules.d/wordpress-persistence.rules &amp;&amp; augenrules --load
+# rm /etc/dnsmasq.d/sinkhole-imgcdn1.conf &amp;&amp; systemctl restart dnsmasq</pre>
+<h3>Step 6: ModSecurity detection-only rules for the two delivery fields</h3>
+<p><strong>Prerequisites:</strong> ModSecurity v2 or v3 with the OWASP Core Rule Set already in DetectionOnly; unique rule ids from your local range<br><strong>Reboot required:</strong> No (web server reload)</p>
+<pre class="code"># DetectionOnly first. Promote to deny only after reviewing a week of audit logs.
+SecRule ARGS_NAMES "@rx ^woosb_ids" \
+  "id:9100101,phase:2,t:none,log,auditlog,pass,chain,msg:'Markup in WPC Product Bundles quantity'"
+  SecRule ARGS "@rx (?i)&lt;\s*(script|img|svg)|onerror\s*=" "t:none"
+
+SecRule REQUEST_URI "@contains admin-ajax.php" \
+  "id:9100102,phase:2,t:none,log,auditlog,pass,chain,msg:'Markup in Ninja Forms AJAX submission'"
+  SecRule ARGS:action "@streq nf_ajax_submit" "chain"
+  SecRule ARGS "@rx (?i)&lt;/textarea&gt;|&lt;\s*(script|img|svg)|onerror\s*=" "t:none"</pre>
+<p><strong>Rollback:</strong></p>
+<pre class="code"># delete the two SecRule blocks above and reload the web server</pre>
+
+  </div>
+</div>
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr>
+      <tr><td>0 &middot; Scope</td><td>List every WordPress site with Ninja Forms or WPC Product Bundles. For each, note version and whether an administrator opened an order or form submission since 2026-10-04. Run Section 7 checks 1 to 4. Identify the administrator workstations involved</td><td>IR lead, WordPress owner</td><td>Plugin version inventory; admin list from SQL; access-log extracts</td></tr>
+      <tr><td>1 &middot; Isolate</td><td>Put the site in maintenance mode or restrict access to responders. Sinkhole imgcdn1[.]com. Block <code>_wplogin</code> requests and the fake plugin path. Do not delete implant files yet. Treat the administrator's browser session as compromised and sign administrators out. Capture a disk snapshot, the database dump and the tar archive from playbook step 1</td><td>Platform engineer, IR lead</td><td>Snapshot IDs; hash of archive; web logs for the exposure window</td></tr>
+      <tr><td>2 &middot; Eradicate</td><td>Delete unauthorized administrator accounts found by SQL, including the hidden one. Remove <code>wp-smart-thumbnails</code>, every unknown file in mu-plugins (not just the two named ones, the file manager can write anywhere) and the fz_emer_done_v1 and fz_emer_login_tokens options. Search the whole web root for other recently added PHP, remembering timestamps are backdated, so compare against known-good code. Update both plugins. Reinstall WordPress core and all plugins from clean sources</td><td>WordPress owner</td><td>Before and after file listings; SQL output; list of removed accounts</td></tr>
+      <tr><td>2b &middot; Rotate</td><td>Reset passwords for every administrator, and treat the oldest administrator's password as compromised, since the magic URL authenticated as that account. Rotate WordPress authentication keys and salts (this logs everyone out), database credentials, SFTP or SSH keys and API keys stored in the site. Remove stored payload rows from order and submission data</td><td>WordPress owner, IAM</td><td>Rotation record; new wp-config salts hash (not the values)</td></tr>
+      <tr><td>3 &middot; Recover</td><td>Re-enable access behind the Section 12 controls (DISALLOW_FILE_MODS, read-only plugin directories, login restriction). Restore from a backup taken before 2026-10-04 only if the clean rebuild is not possible, then re-run checks. Watch Q1, Q5 and Q6 and the audit log for re-infection for at least 30 days</td><td>Platform engineer</td><td>Post-clean SQL and file checks; monitoring dashboard</td></tr>
+      <tr><td>4 &middot; Review</td><td>Record which administrator views triggered execution, whether any other data was touched through the file manager, and notify per your breach obligations if user data was reachable. Feed gaps back into Section 15</td><td>IR lead, Security</td><td>Incident report; closed gaps</td></tr>
+      </table>
+  </div>
+</div>
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+<p>This pack is intentionally candid: more of the attack chain is outside Falcon endpoint visibility than inside it. The endpoint adds value on the administrator workstation and, with FIM enabled, on the web server file system.</p><table>
+      <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr>
+      <tr><td>T1190</td><td>Stored XSS injection via order data or form submission</td><td>-</td><td>-</td><td><span class="badge b-high">GAP</span> not endpoint-visible; web/WAF/DB only. Q7 gives IP context only</td></tr>
+      <tr><td>T1059.007</td><td>x.js executes in the administrator's browser; nonce scraping and session riding</td><td>Q1 (DNS)</td><td>-</td><td><span class="badge b-high">GAP</span> execution and nonce theft invisible to Falcon; the lookup is the only trace</td></tr>
+      <tr><td>T1071.001 / T1105</td><td>C2 check-in, plugin ZIP and installer fetched from imgcdn1[.]com</td><td>Q1, Q2</td><td>Q1 domain IOA</td><td><span class="badge b-med">Partial</span> admin-workstation DNS is solid; server-side fetch is unconfirmed</td></tr>
+      <tr><td>T1505.003</td><td>Fake plugin and file manager written to wp-content/plugins; second shells</td><td>Q3, Q4, Q5</td><td>Q3 IOA</td><td><span class="badge b-med">Partial</span> Q5 depends on a FIM policy; PHP file writes are not a native Falcon file-write type; direct hits on the file manager are web-log only</td></tr>
+      <tr><td>T1136.001</td><td>Visible and hidden administrator accounts created</td><td>Q4 (CLI only)</td><td>-</td><td><span class="badge b-high">GAP</span> creation happens inside WordPress and the database; needs the WordPress audit log and SQL</td></tr>
+      <tr><td>T1564</td><td>Hidden administrator via mu-plugins hooks</td><td>Q5, Q6</td><td>-</td><td><span class="badge b-med">Partial</span> file side only; the hook behavior is not observable</td></tr>
+      <tr><td>T1078</td><td>Magic login URL as the oldest administrator</td><td>Q4</td><td>-</td><td><span class="badge b-high">GAP</span> web access logs and WAF; a login by this route is indistinguishable by user ID</td></tr>
+      <tr><td>Database state</td><td>fz_emer_done_v1 and fz_emer_login_tokens options rows</td><td>-</td><td>-</td><td><span class="badge b-high">GAP</span> database only (Section 7, check 2)</td></tr>
+      <tr><td>T1070.006</td><td>Timestamp backdating of dropped files</td><td>Q5, Q6</td><td>-</td><td><span class="badge b-med">Partial</span> FIM event time defeats it; mtime-based hunts do not</td></tr>
+      <tr><td>T1027 / T1036</td><td>Packed dropper, obfuscated must-use plugins, fake plugin identity</td><td>Q5</td><td>-</td><td><span class="badge b-med">Partial</span> name and path only; no fixed hashes exist for the mu-plugins</td></tr>
+      </table><p>Validation gates (Section 11): sensor and FIM coverage must be confirmed before Q5 and Q6 are trusted; run Q2, Q3, Q4 and Q6 for at least 14 days in investigate mode before enforcement; promote only after a clean baseline.</p>
+  </div>
+</div>
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+<div class="ticket"><pre class="code">TITLE: WordPress stored-XSS admin takeover: fake wp-smart-thumbnails plugin, hidden administrator, backdoor login (Ninja Forms CVE-2026-94504, WPC Product Bundles CVE-2026-93836)
+SEVERITY: High (exploited in the wild since 2026-10-04; CVSS 7.1 to 7.2 per sources)
+SCOPE: WordPress sites running Ninja Forms 3.15.3 or earlier or WPC Product Bundles 8.6.6 or earlier where an administrator viewed an order or form submission; administrator workstations; Linux and Windows web servers
+HYPOTHESIS: Attacker-stored script ran in an administrator's session, installed the fake plugin, created visible and hidden administrators, dropped two must-use plugins and a magic login token, and left an unauthenticated file manager
+QUERIES: Q1-Q7 (Section 8); IOA candidates Q1, Q3, Q4 (Section 9); native DB, filesystem and log hunts (Section 7)
+DO FIRST:
+  1. Update both plugins, then run the SQL administrator and option checks (Section 7, checks 1 and 2)
+  2. Run Q1 across 30 days for administrator workstations resolving imgcdn1[.]com
+  3. List mu-plugins and the fake plugin directory on every WordPress host (Section 7, check 3)
+FINDINGS: [populate per engagement]
+GAPS: XSS execution, nonce theft, hidden-administrator creation, option rows and magic-login use are not endpoint-visible; Q5 and Q6 need a FIM policy on wp-content; PHP file writes are not a native Falcon file-write type (Section 5, Section 15)
+ACTIONS: patch; clean stored payloads; remove implants; rotate credentials and salts; DISALLOW_FILE_MODS; read-only plugin directories; sinkhole the domain
+OWNER: [assign per engagement]
+VERSION: v0.1, 2026-10-07</pre></div>
+  </div>
+</div>
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-07</span><span>Initial release. Built from the Patchstack analysis of 2026-10-06 (primary source for all indicators), BleepingComputer and ReconBee coverage, the SecurityOnline CVE panel, the Ninja Forms and WPC Product Bundles vendor changelogs, WordPress.org hardening documentation and MITRE ATT&amp;CK T1505.003. 7 CQL hunt queries (several FIM-dependent), 3 IOA candidates, 7 atomic IOCs shipped as detect only, native DB/filesystem/log hunts, tiered hardening, 6-step playbook and phased containment. Endpoint coverage gaps stated plainly in Section 15.</span></div>
+  </div>
+</div>
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+<table>
+      <tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+      <tr><td>1</td><td><a href="https://patchstack.com/articles/four-ways-back-in-the-wordpress-xss-campaign-that-hides-its-own-admin-account/" target="_blank" rel="noopener">Patchstack, "Four ways back in: the WordPress XSS campaign that hides its own admin account"</a></td><td>Primary analysis, all indicators, detection steps</td><td>2026-10-07</td></tr>
+      <tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/ninja-forms-plugin-flaw-exploited-to-hack-wordpress-sites/" target="_blank" rel="noopener">BleepingComputer, "Ninja Forms plugin flaw exploited to hack WordPress sites"</a></td><td>Corroboration of CVEs, fix versions, four access mechanisms</td><td>2026-10-07</td></tr>
+      <tr><td>2</td><td><a href="https://www.reconbee.com/ninja-forms-plugin-flaw-exploited-to-hack-wordpress-sites/" target="_blank" rel="noopener">ReconBee, "Ninja Forms plugin flaw exploited to hack WordPress sites"</a></td><td>Aggregator corroboration of CVE pairing and domain</td><td>2026-10-07</td></tr>
+      <tr><td>3</td><td><a href="https://securityonline.info/" target="_blank" rel="noopener">SecurityOnline.info, Active Exploits in the Wild panel</a></td><td>CVE numbers and CVSS 7.2 listing</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://plugins.svn.wordpress.org/ninja-forms/trunk/readme.txt" target="_blank" rel="noopener">Ninja Forms readme changelog (wordpress.org plugin repository)</a></td><td>Fix version 3.15.4, 21 September 2026</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://plugins.svn.wordpress.org/woo-product-bundle/trunk/readme.txt" target="_blank" rel="noopener">WPC Product Bundles for WooCommerce readme changelog (wordpress.org plugin repository)</a></td><td>Fix versions 8.6.7 and 8.7.3</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://developer.wordpress.org/advanced-administration/security/hardening/" target="_blank" rel="noopener">WordPress.org, Hardening WordPress</a></td><td>File permissions, DISALLOW_FILE_EDIT, least privilege</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://developer.wordpress.org/advanced-administration/wordpress/wp-config/" target="_blank" rel="noopener">WordPress.org, Editing wp-config.php</a></td><td>DISALLOW_FILE_MODS, FORCE_SSL_ADMIN</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://attack.mitre.org/techniques/T1505/003/" target="_blank" rel="noopener">MITRE ATT&amp;CK T1505.003 Server Software Component: Web Shell</a></td><td>Mapping, mitigations M1042 and M1018, detection strategy</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://attack.mitre.org/techniques/T1190/" target="_blank" rel="noopener">MITRE ATT&amp;CK T1190 Exploit Public-Facing Application</a></td><td>Initial access mapping</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://attack.mitre.org/mitigations/M1051/" target="_blank" rel="noopener">MITRE ATT&amp;CK M1051 Update Software</a></td><td>Mitigation citation</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://www.cisecurity.org/benchmark/apache_http_server" target="_blank" rel="noopener">CIS Apache HTTP Server Benchmark</a></td><td>Web-tier hardening authority</td><td>2026-10-07</td></tr>
+      <tr><td>1</td><td><a href="https://www.cisecurity.org/benchmark/nginx" target="_blank" rel="noopener">CIS NGINX Benchmark</a></td><td>Web-tier hardening authority</td><td>2026-10-07</td></tr>
+      </table>
+  </div>
+</div>
+
+<div class="hp-footer">Generated: 2026-10-07 &middot; HuntPack v0.1 &middot; WordPress Stored-XSS Admin Takeover &middot; Defensive use only</div>
+
+</div>
+<script>
+
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+</body>
+</html>
