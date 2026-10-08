@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PoeLLM / Canto Incognito: CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the PoeLLM malware and Canto Incognito campaign on Linux: GitHub poem C2, LiteLLM exploitation, Kryptex mining, scanner fan-out, MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/PoeLLM-CantoIncognito-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PoeLLM / Canto Incognito: CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the PoeLLM malware and Canto Incognito campaign on Linux: GitHub poem C2, LiteLLM exploitation, Kryptex mining, scanner fan-out, MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/PoeLLM-CantoIncognito-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #c084fc;
+  --accent-dim: rgba(192,132,252,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #1f1230 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.igc { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+<style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div>
+    <div class="pack-name">PoeLLM / Canto Incognito: Poem-C2 Mining Botnet</div>
+    <div class="version">v0.1 · 2026-10-08</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · SIEM Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>PoeLLM / Canto Incognito: Poem-C2 Mining Botnet on Exposed AI Servers</h1>
+    <div class="subtitle">3,400+ internet-facing Linux servers (LiteLLM, Ollama, Gotenberg, Gitea) enrolled in a Kryptex mining botnet whose C2 address is encoded in a GitHub poem · Lumen Black Lotus Labs</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">PoeLLM (campaign: Canto Incognito)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Botnet / Cryptojacking / Dead-drop C2 (Linux ELF)</div></div>
+      <div class="meta-item"><div class="mk">Entry</div><div class="mv">Exploited internet-facing services</div></div>
+      <div class="meta-item"><div class="mk">CVEs</div><div class="mv">CVE-2026-42271 · CVE-2026-10520</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-10-08</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High on infrastructure, medium on attribution</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p><strong>PoeLLM</strong> is a Linux ELF botnet implant tracked by <strong>Lumen Black Lotus Labs</strong> as the <strong>Canto Incognito</strong> campaign. It has been active since at least <strong>April 2026</strong> (first poem commit 2026-04-13) and has impacted <strong>3,400+ victim servers</strong>, with a mid-June peak of nearly 2,200 affected servers and roughly 800 active per day. Victims are mostly in the United States and Western Europe. Lumen assesses with moderate confidence that an Italian-speaking, financially motivated actor is behind it.</p>
+      <p><strong>Entry and targets:</strong> the actor scans for and exploits <strong>internet-facing open-source and AI services</strong>: LiteLLM (default port 4000), Ollama, Gotenberg (port 3000) and Gitea, with possible targeting of Ivanti Sentry. The LiteLLM path is a crafted POST to <code>/mcp-rest/test/connection</code> (command injection, CVE-2026-42271) that tells the target to download the payload from port 81 on the C2. Lumen first found the infrastructure while investigating Ivanti Sentry <strong>CVE-2026-10520</strong>.</p>
+      <p><strong>Tradecraft:</strong> the payload is an ELF named <code>libgcrypt</code> with a remote shell, <strong>XMRig</strong> and <strong>Iron</strong> miners, HTTP/S scanning and exploit delivery. Victims mine to <strong>Kryptex</strong> endpoints and are reused as <strong>scanners and exploit servers</strong>, which is how the botnet grows. Its signature trick is the <strong>C2 dead drop</strong>: the current C2 IPv4 address is derived from four words in a poem titled "On the Nature of Connection" in <code>dash.css</code> of a GitHub repo owned by <code>ejejejdfbbebe</code> (a fork of the nodejs.org source). Changing four words rotates every victim to a new C2, so IP blocklists age quickly. Many C2s were compromised routers running Boa web servers with vulnerable admin pages (CVE-2018-21027 and CVE-2018-21028 are named for the first C2 router; Lumen saw no direct evidence they were exploited by the actor).</p>
+      <p class="callout callout-danger"><strong>Defender priority:</strong> this pack is built for the <strong>Falcon Linux sensor</strong>. First find every internet-reachable LiteLLM, Gotenberg, Gitea, Ollama and Ivanti Sentry instance and patch or hide it (Q10, section 12). Then hunt the host-side signals that survive C2 rotation: a service process spawning a shell or downloader (Q5), a fetch from port 81 (Q6), a server talking to a mining pool (Q3, Q9), and a server fanning out to many public hosts on 3000, 4000 or 22 (Q8). Treat the IP list (Q1) as a retro-hunt, not the defence.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-info">Primary</span></td><td><a href="https://www.lumen.com/blog/en-us/canto-incognito-tracking-the-poellm-malware">Lumen Black Lotus Labs: Canto incognito: tracking the PoeLLM malware</a></td><td>Original research. Campaign and malware names, poem C2 mechanism, 12 C2 IPs with dates, Kryptex endpoints, sample hash, targets, CVEs, ports, attribution.</td><td><span class="badge b-low">yes</span></td></tr>
+          <tr><td><span class="badge b-med">Corroborating</span></td><td><a href="https://thehackernews.com/2026/10/poellm-malware-infects-3400-servers-to.html">The Hacker News (2026-10-07)</a></td><td>Reports Lumen's findings plus a Lumen engineer quote on poem rotation. Confirms 3,400+ victims, GitHub repo name, targets, XMRig and Iron, Kryptex.</td><td><span class="badge b-med">partial</span></td></tr>
+          <tr><td><span class="badge b-med">Corroborating</span></td><td><a href="https://www.helpnetsecurity.com/2026/10/08/poellm-malware-github-poem-ai-servers/">Help Net Security (2026-10-08)</a></td><td>Reports Lumen's findings. Confirms dash.css, the endpoint path, ports 3000 and 4000, the Ivanti Sentry CVE and the 11 poem edits.</td><td><span class="badge b-med">partial</span></td></tr>
+        </tbody>
+      </table>
+      <h3>Web-hunter notes and decisions</h3>
+      <ul>
+        <li><strong>Independence:</strong> both news articles derive from the Lumen report and add no atomic indicators of their own. Every atomic IOC is therefore <strong>single-sourced</strong>, so every indicator in this pack ships <strong>detect</strong>. None is eligible for prevent or critical.</li>
+        <li><strong>Raw text, not summaries:</strong> the three pages were fetched and their plain text saved verbatim as source snapshots (<code>PoeLLM-CantoIncognito-Hunt-sources/</code>); the provenance gate reads those files.</li>
+        <li><strong>Corrections to the request brief, after checking the primary source:</strong> (1) port 81 is the <em>payload download</em> port, not a beacon port; the beacon ports are 3778, 5001, 5002 and 9999. (2) CVE-2018-21027 and CVE-2018-21028 are flaws in the router admin pages of C2 hosts; Lumen reports no direct evidence the actor exploited them, so they are not listed as PoeLLM exploits. (3) Ivanti Sentry is "possible targeting" in Lumen's words, tied to CVE-2026-10520 through one compromised victim. (4) Lumen's own text gives both "more than 3,400 victim servers" and "almost 2,200" for the mid-June peak; both figures are reported as stated.</li>
+        <li><strong>Not in the sources:</strong> no persistence mechanism, no Iron miner binary name or hash, no fixed-version numbers for CVE-2026-42271 or CVE-2026-10520, and no Ollama CVE. These are flagged as gaps rather than filled in.</li>
+        <li><strong>Prompt-injection check:</strong> no embedded instructions or requests directed at an AI agent were found in any fetched page. No source was disqualified.</li>
+        <li><strong>Actor admin host:</strong> Lumen assesses, with moderate confidence, that an Italy-hosted server running Prometheus and Uptime Kuma is the operator's management interface. No victim contacts it, so it has no endpoint-detection value and its address is deliberately not shipped as an indicator.</li>
+        <li><strong>Dedupe:</strong> name and IOC checks against the published library were clear. The published LiteLLM and Ivanti Sentry packs cover the CVEs; this pack covers the PoeLLM campaign and shares none of their indicators.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hypotheses (ordered by fidelity)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td>H1</td><td>A Linux host executes an ELF named <code>libgcrypt</code> or the Lumen sample hash.</td><td>T1059.004, T1036.005</td><td>ProcessRollup2</td><td>High (Q4)</td></tr>
+          <tr><td>H2</td><td>A server connects to a Kryptex mining endpoint or resolves the Kryptex node.</td><td>T1496</td><td>NetworkConnectIP4, DnsRequest</td><td>High (Q3, Q2)</td></tr>
+          <tr><td>H3</td><td>A command or shell fetches a payload from a C2 port 81 or the /private/ tool paths.</td><td>T1105</td><td>ProcessRollup2</td><td>High (Q6)</td></tr>
+          <tr><td>H4</td><td>An exposed AI or dev service is exploited and spawns a shell or downloader.</td><td>T1190, T1059.004</td><td>ProcessRollup2</td><td>Medium (Q5)</td></tr>
+          <tr><td>H5</td><td>A compromised server fans out to many public hosts on 3000, 4000 or 22.</td><td>T1595.002, T1110</td><td>NetworkConnectIP4</td><td>Medium (Q8)</td></tr>
+          <tr><td>H6</td><td>A server contacts known C2 or supporting infrastructure.</td><td>T1071, T1584.008</td><td>NetworkConnectIP4, DnsRequest</td><td>High for active IPs, lower once rotated (Q1, Q2, Q7)</td></tr>
+          <tr><td>H7</td><td>A miner runs on the host (XMRig, stratum command lines).</td><td>T1496</td><td>ProcessRollup2</td><td>Medium (Q9)</td></tr>
+          <tr><td>H8</td><td>The vulnerable services are reachable on their default ports.</td><td>T1190</td><td>NetworkListenIP4</td><td>Low, posture only (Q10)</td></tr>
+        </tbody>
+      </table>
+      <h3>Attack chain</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt angle</th></tr></thead>
+        <tbody>
+          <tr><td>1 Dead drop</td><td>Malware reads the poem in <code>dash.css</code> on GitHub and derives the C2 IPv4 from four words</td><td>Proxy, TLS or DNS logs (not endpoint)</td><td>Section 7 native hunt; gap in Falcon</td></tr>
+          <tr><td>2 Scan</td><td>Infected servers and the operator scan the internet, mainly ports 3000 and 4000</td><td>NetworkConnectIP4</td><td>Q8</td></tr>
+          <tr><td>3 Exploit</td><td>Crafted POST to <code>/mcp-rest/test/connection</code> (LiteLLM) tells the target to download from C2 port 81</td><td>Web/app logs; ProcessRollup2 for aftermath</td><td>Section 7, Q5, Q6</td></tr>
+          <tr><td>4 Install</td><td>ELF <code>libgcrypt</code> downloaded and run</td><td>ProcessRollup2</td><td>Q4, Q6</td></tr>
+          <tr><td>5 C2 beacon</td><td>Beacons to a C2 on 3778, 5001, 5002 or 9999</td><td>NetworkConnectIP4</td><td>Q1, Q7</td></tr>
+          <tr><td>6 Monetise</td><td>XMRig and Iron miners connect to Kryptex</td><td>NetworkConnectIP4, DnsRequest, ProcessRollup2</td><td>Q2, Q3, Q9</td></tr>
+          <tr><td>7 Reuse</td><td>Victim becomes scanner and exploit server; SSH and login-portal brute force experiments</td><td>NetworkConnectIP4</td><td>Q8</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p>All indicators trace to the Lumen report (snapshot 01). Action vocabulary: <code>detect</code> alerts, <code>hunt</code> is run manually. <strong>Nothing is prevent</strong>: every atomic indicator is single-sourced because the news articles only restate Lumen. The poem rotates the C2, so treat IPs as perishable.</p>
+      <table>
+        <thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th><th>Expiry</th></tr></thead>
+        <tbody>
+          <tr><td>IPv4</td><td><code>92.119.164.50</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Active C2 per Lumen (first seen 2026-07-23). Single source</td><td>2027-04-08</td></tr>
+          <tr><td>IPv4</td><td><code>103.249.201.108</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Active C2 per Lumen (first seen 2026-08-13). Single source</td><td>2027-04-08</td></tr>
+          <tr><td>IPv4</td><td><code>178.128.14.204</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Active C2 per Lumen (first seen 2026-06-16). Single source</td><td>2027-04-08</td></tr>
+          <tr><td>IPv4</td><td><code>191.37.28.160</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active April 13 to May 16, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>89.39.253.46</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active April 14 to June 24, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>120.224.114.212</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active May 9 to September 8, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>5.78.73.122</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active June 8 to August 22, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>15.204.178.28</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active June 14 to August 17, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>92.119.165.74</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active July 1 to July 23, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>45.133.73.28</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active July 18 to July 22, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>185.132.53.158</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active July 19 to September 12, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>136.148.69.233</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Historical C2, active September 12 to September 25, 2026. Router or VPS, may be reassigned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>57.131.5.211</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Server on port 80 hosting malwarescan.xyz, contacted by the first C2</td><td>2027-01-08</td></tr>
+          <tr><td>Domain</td><td><code>malwarescan.xyz</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Registered February 2026; likely operator-owned</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>5.180.174.162</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Kryptex endpoint, port 8029. Shared third-party service</td><td>2027-01-08</td></tr>
+          <tr><td>IPv4</td><td><code>46.21.245.211</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Kryptex endpoint, port 7029. Shared third-party service</td><td>2027-01-08</td></tr>
+          <tr><td>Domain</td><td><code>edge-ru-07.kryptex.network</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Kryptex node hostname for the endpoint above</td><td>2027-01-08</td></tr>
+          <tr><td>SHA256</td><td><code>6fab94577364beec314afae3b082dd680933f08a8349b9f35b92667e8231b501</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>ELF sample named libgcrypt analysed by Lumen. Single source, so detect not prevent</td><td>2027-04-08</td></tr>
+          <tr><td>Filename</td><td><code>libgcrypt</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>ELF basename with no extension; the genuine library is libgcrypt.so.N</td><td>2027-01-08</td></tr>
+          <tr><td>Ports</td><td><code>3778, 5001, 5002, 9999</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Beacon ports to the C2. 5001 and 9999 are common, so behavioral only</td><td>n/a</td></tr>
+          <tr><td>Port</td><td><code>81</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Payload download port on the C2</td><td>n/a</td></tr>
+          <tr><td>URL path</td><td><code>hxxp://5.78.73[.]122:81/private/bins.sh</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Malicious URL listed in VirusTotal for the early C2 (per Lumen)</td><td>2027-01-08</td></tr>
+          <tr><td>URL path</td><td><code>hxxp://5.78.73[.]122:81/private/python3.6</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>As above; both /private/ paths recurred on later C2s</td><td>2027-01-08</td></tr>
+          <tr><td>GitHub account</td><td><code>github.com/ejejejdfbbebe</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Hosts the poem in dash.css (fork of the nodejs.org site source). Do not block GitHub; hunt for fetches of this repo</td><td>n/a</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Surface</th><th>Required telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead>
+        <tbody>
+          <tr><td>Linux servers running LiteLLM, Ollama, Gotenberg, Gitea (VM, bare metal, container host)</td><td>Falcon Linux sensor: ProcessRollup2, NetworkConnectIP4, NetworkListenIP4, DnsRequest</td><td><span class="badge b-high">High</span></td><td>Containers: the sensor sees the host kernel, so confirm container processes appear with the host aid; DnsRequest coverage varies by sensor version</td></tr>
+          <tr><td>Ivanti Sentry appliance</td><td>Appliance logs and netflow</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-high">No sensor</span> on the appliance; use native logs and network telemetry</td></tr>
+          <tr><td>Routers with vulnerable admin pages used as C2 (Boa web server)</td><td>Netflow, firewall logs</td><td><span class="badge b-low">Low</span></td><td>Unmanaged third-party devices; only your side of the traffic is visible</td></tr>
+          <tr><td>Proxy, DNS and egress firewall</td><td>Web proxy URL logs, DNS logs, flow logs</td><td><span class="badge b-med">Medium</span></td><td>The GitHub poem fetch is only visible here, if TLS inspection or URL logging exists</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query or control</th></tr></thead>
+        <tbody>
+          <tr><td>Initial Access</td><td>T1190 Exploit Public-Facing Application</td><td>LiteLLM CVE-2026-42271 via <code>/mcp-rest/test/connection</code>; Gotenberg, Gitea, Ollama, Ivanti Sentry targeted</td><td>Q5, Q10, section 7, section 12</td></tr>
+          <tr><td>Execution</td><td>T1059.004 Unix Shell</td><td>Remote shell in the ELF; shell spawned by the exploited service</td><td>Q4, Q5</td></tr>
+          <tr><td>Command and Control</td><td>T1105 Ingress Tool Transfer</td><td>Payload fetched from C2 port 81</td><td>Q6</td></tr>
+          <tr><td>Command and Control</td><td>T1102.001 Dead Drop Resolver</td><td>C2 IPv4 derived from poem words on GitHub</td><td>Section 7 (gap in Falcon)</td></tr>
+          <tr><td>Command and Control</td><td>T1071 / T1571</td><td>Beacons on 3778, 5001, 5002, 9999</td><td>Q1, Q7</td></tr>
+          <tr><td>Resource Development</td><td>T1584.008 Network Devices</td><td>Compromised Boa routers reused as C2 and malware hosts</td><td>Section 7 netflow</td></tr>
+          <tr><td>Reconnaissance</td><td>T1595.002 Vulnerability Scanning</td><td>Infected hosts scan for ports 3000 and 4000</td><td>Q8</td></tr>
+          <tr><td>Credential Access</td><td>T1110 Brute Force</td><td>Experimental distributed brute force at SSH and login portals (maturity uncertain)</td><td>Q8</td></tr>
+          <tr><td>Impact</td><td>T1496 Resource Hijacking</td><td>XMRig and Iron mining to Kryptex</td><td>Q2, Q3, Q9</td></tr>
+          <tr><td>Defense Evasion</td><td>T1036.005 Match Legitimate Name</td><td>Payload named <code>libgcrypt</code>, mimicking a real library</td><td>Q4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Source</th><th>What to check</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Web proxy / TLS inspection / egress logs</td><td>Server-class hosts requesting <code>dash.css</code> from the <code>ejejejdfbbebe</code> GitHub repo (github.com or raw.githubusercontent.com). Servers should not read this file.</td><td>Direct sign of the poem dead drop. Do not block GitHub itself.</td></tr>
+          <tr><td>LiteLLM access logs / reverse proxy</td><td>POST requests to <code>/mcp-rest/test/connection</code>, especially from unknown public sources or followed within seconds by a new outbound connection</td><td>CVE-2026-42271 exploitation path named by Lumen</td></tr>
+          <tr><td>Gotenberg, Gitea, Ollama access logs</td><td>Unexpected POSTs from scanning IPs; requests on ports 3000 and 4000 from many unrelated sources</td><td>Initial scan and exploit traffic</td></tr>
+          <tr><td>Ivanti Sentry (MICS) logs and appliance egress</td><td>Outbound connections from the appliance to unfamiliar public hosts and new scanning behavior after patch-level checks for CVE-2026-10520</td><td>Lumen discovered PoeLLM through a compromised Sentry that began scanning</td></tr>
+          <tr><td>NetFlow / firewall</td><td>Any flow to the Section 4 addresses; internal servers sending port 81 flows to public hosts; high-fan-out sources</td><td>Retro-hunt where there is no sensor</td></tr>
+          <tr><td>External attack-surface scan</td><td>Ports 3000, 4000 and the Ollama listener reachable from the internet; Boa web servers on unusual ports such as 2222 on your edge routers</td><td>Gotenberg's own guide warns against exposure; Lumen found a Boa router on port 2222</td></tr>
+          <tr><td>Linux host (read-only)</td><td><code>ss -ltnp</code> for unexpected listeners; look for an executable named <code>libgcrypt</code> outside library directories; review crontab and systemd units (the sources document no persistence, so this is a precaution)</td><td>Triage on hosts without full sensor coverage</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first: every "Open in Falcon" button below uses this selection.</span>
+      </div>
+      <p class="callout callout-info">All queries target the <strong>Falcon Linux sensor</strong> (<code>event_platform=Lin</code>) and use only documented events: ProcessRollup2, SyntheticProcessRollup2, NetworkConnectIP4, NetworkListenIP4 and DnsRequest. Set the time window in the console; each query records its intended lookback in a <code>// LOOKBACK</code> comment.</p>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · PoeLLM C2 and supporting infrastructure sweep (Linux outbound)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Any Linux sensor outbound connection to the 12 Lumen-published C2 addresses or the supporting server that hosts malwarescan.xyz. <strong>FP:</strong> the nine historical C2s were compromised routers or short-lived VPS hosts and may have been reassigned since; judge hits against the active windows in section 4.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A connection through a proxy or NAT the agent did not observe as a direct IP Connect is not captured.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: PoeLLM C2 and supporting infrastructure sweep (Linux outbound)</span>
+<span class="cm">// MITRE: T1071.001, T1571, T1584.008</span>
+<span class="cm">// CONF: high  FP: medium  COST: low | REQUIRES: Falcon Linux sensor, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: historical C2 addresses were compromised routers and rented servers that may now belong to unrelated owners</span>
+<span class="cm">// TUNING: for the nine historical addresses compare the hit timestamp to the active window in section 4 and escalate only inside that window; the three active addresses and the supporting server need no exclusion</span>
+<span class="cm">// LOOKBACK: 30d (set in the console time picker)</span>
+#event_simpleName=NetworkConnectIP4 event_platform=Lin
+| in(field=RemoteAddressIP4, values=["92.119.164.50", "103.249.201.108", "178.128.14.204", "191.37.28.160", "89.39.253.46", "120.224.114.212", "5.78.73.122", "15.204.178.28", "92.119.165.74", "45.133.73.28", "185.132.53.158", "136.148.69.233", "57.131.5.211"])
+| table([@timestamp, aid, ComputerName, RemoteAddressIP4, RemotePort, ContextProcessId_decimal])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>dst.ip.address</code> — Remote address</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>src.process.name</code> — Connecting process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>dst.port.number</code> — Remote port</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Changes the host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.ip.address = *
+| limit 5
+| columns event.time, endpoint.os, dst.ip.address</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1">// HUNT: PoeLLM C2 and supporting infrastructure sweep (Linux outbound)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1071.001, T1571, T1584.008
+// CONF: high | FP: medium
+// FALSE POSITIVES: historical C2 addresses were compromised routers and rented servers that may now belong to unrelated owners
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: Linux outbound connections to the thirteen published PoeLLM C2 and supporting addresses, on the SentinelOne IP Connect event.
+// REQUIRES: SentinelOne agent on Linux with network (IP Connect) telemetry in the Singularity Data Lake
+// TUNING: For the nine historical addresses compare the hit time to the active window in section 4 and escalate only inside that window; the three active addresses and the supporting server need no exclusion.
+// LOOKBACK: 30d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: A connection through a proxy or NAT the agent did not observe as a direct IP Connect is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.ip.address in (&#x27;92.119.164.50&#x27;, &#x27;103.249.201.108&#x27;, &#x27;178.128.14.204&#x27;, &#x27;191.37.28.160&#x27;, &#x27;89.39.253.46&#x27;, &#x27;120.224.114.212&#x27;, &#x27;5.78.73.122&#x27;, &#x27;15.204.178.28&#x27;, &#x27;92.119.165.74&#x27;, &#x27;45.133.73.28&#x27;, &#x27;185.132.53.158&#x27;, &#x27;136.148.69.233&#x27;, &#x27;57.131.5.211&#x27;)
+| columns event.time, endpoint.name, agent.uuid, dst.ip.address, dst.port.number, src.process.name, src.process.pid
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · DNS lookups for malwarescan.xyz and the Kryptex node</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Linux hosts resolving the operator-linked domain or the Kryptex node hostname that PoeLLM victims contacted.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Lookups made over DNS-over-HTTPS or by a resolver the agent does not observe are not captured.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: DNS lookups for the operator domain and the Kryptex node</span>
+<span class="cm">// MITRE: T1071.004, T1496</span>
+<span class="cm">// CONF: medium  FP: low  COST: low | REQUIRES: Falcon Linux sensor with DnsRequest telemetry</span>
+<span class="cm">// FALSE POSITIVES: researchers or sandboxes resolving the published indicators; a sanctioned Kryptex user on the same host would also match the second name</span>
+<span class="cm">// LOOKBACK: 30d (set in the console time picker)</span>
+#event_simpleName=DnsRequest event_platform=Lin
+| DomainName=/(^|\.)(malwarescan\.xyz|edge-ru-07\.kryptex\.network)$/i
+| table([@timestamp, aid, ComputerName, DomainName, ContextProcessId_decimal])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>event.dns.request</code> — Looked-up name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>src.process.name</code> — Requesting process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>event.dns.request</code> → <code>dns.request</code> — Same value under the alternate field name used by some schema versions.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; endpoint.os = &#x27;linux&#x27; event.dns.request = *
+| limit 5
+| columns event.time, endpoint.os, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2">// HUNT: DNS lookups for the operator domain and the Kryptex node
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1071.004, T1496
+// CONF: medium | FP: low
+// FALSE POSITIVES: researchers or sandboxes resolving the published indicators; a sanctioned Kryptex user on the same host would also match the second name
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: Linux DNS lookups for malwarescan.xyz, edge-ru-07.kryptex.network or any subdomain, on the SentinelOne DNS Resolved event.
+// REQUIRES: SentinelOne agent on Linux with DNS Resolved telemetry in the Singularity Data Lake
+// TUNING: Exclude analyst sandboxes and research hosts that resolve the published indicators on purpose.
+// LOOKBACK: 30d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: Lookups made over DNS-over-HTTPS or by a resolver the agent does not observe are not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27; endpoint.os = &#x27;linux&#x27; event.dns.request matches &#x27;(^|\\.)(malwarescan\\.xyz|edge-ru-07\\.kryptex\\.network)$&#x27;
+| columns event.time, endpoint.name, agent.uuid, event.dns.request, src.process.name, src.process.pid
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Kryptex mining endpoint egress from servers</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Server connections to the two Kryptex endpoint and port pairs Lumen observed from PoeLLM victims (5.180.174.162:8029, 46.21.245.211:7029). A server talking to a mining pool is the payoff signal.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Mining traffic relayed through a proxy the agent did not observe as a direct connection is not captured.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: Kryptex mining endpoint egress from servers</span>
+<span class="cm">// MITRE: T1496, T1071</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Falcon Linux sensor, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: an authorised mining rig or a lab host; neither belongs on a production server</span>
+<span class="cm">// LOOKBACK: 30d (set in the console time picker)</span>
+#event_simpleName=NetworkConnectIP4 event_platform=Lin
+| (RemoteAddressIP4=5.180.174.162 RemotePort=8029) or (RemoteAddressIP4=46.21.245.211 RemotePort=7029)
+| table([@timestamp, aid, ComputerName, RemoteAddressIP4, RemotePort, ContextProcessId_decimal])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>dst.ip.address</code> — Remote address</li><li><code>dst.port.number</code> — Remote port</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>src.process.name</code> — Connecting process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Changes the host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.ip.address = * dst.port.number = *
+| limit 5
+| columns event.time, endpoint.os, dst.ip.address, dst.port.number</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3">// HUNT: Kryptex mining endpoint egress from servers
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1496, T1071
+// CONF: high | FP: low
+// FALSE POSITIVES: an authorised mining rig or a lab host; neither belongs on a production server
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: Linux connections to the two Kryptex mining endpoints, each pinned to its published port.
+// REQUIRES: SentinelOne agent on Linux with network (IP Connect) telemetry in the Singularity Data Lake
+// TUNING: No exclusion expected; an authorised mining rig or lab host is the only legitimate source.
+// LOOKBACK: 30d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: Mining traffic relayed through a proxy the agent did not observe as a direct connection is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27;
+((dst.ip.address = &#x27;5.180.174.162&#x27; dst.port.number = 8029) or (dst.ip.address = &#x27;46.21.245.211&#x27; dst.port.number = 7029))
+| columns event.time, endpoint.name, agent.uuid, dst.ip.address, dst.port.number, src.process.name, src.process.pid
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · libgcrypt ELF execution or PoeLLM sample hash</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Execution of a process whose basename is exactly <code>libgcrypt</code> (no .so suffix, so not the legitimate shared library) or whose SHA256 matches the Lumen-analysed sample.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: If tgt.process.image.sha256 is not populated on the tenant, a renamed copy of the sample is missed by the hash arm.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: libgcrypt ELF execution or PoeLLM sample hash</span>
+<span class="cm">// MITRE: T1059.004, T1036.005</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Falcon Linux sensor, ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: the genuine libgcrypt is a shared object named libgcrypt.so.N and is loaded, not executed; an exact-name executable is not expected</span>
+<span class="cm">// LOOKBACK: 30d (set in the console time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/ event_platform=Lin
+| (FileName=/^libgcrypt$/i or SHA256HashData=6fab94577364beec314afae3b082dd680933f08a8349b9f35b92667e8231b501)
+| table([@timestamp, aid, ComputerName, FileName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>tgt.process.name</code> — Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>src.process.name</code> — Creator process</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code> — Hash — Unverified on a tenant; the name arm works without it.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>tgt.process.image.sha256</code> → <code>src.process.image.sha256</code> — The src form is attested but describes the creating process, so it only helps for the hash on a different event type.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name = *
+| limit 5
+| columns event.time, endpoint.os, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4">// HUNT: libgcrypt ELF execution or PoeLLM sample hash
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1059.004, T1036.005
+// CONF: high | FP: low
+// FALSE POSITIVES: the genuine libgcrypt is a shared object named libgcrypt.so.N and is loaded, not executed; an exact-name executable is not expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: a Linux process whose own name is exactly libgcrypt, or whose image hash is the published PoeLLM sample. On Process Creation the new process is tgt.process.*.
+// REQUIRES: SentinelOne agent on Linux with Process Creation telemetry in the Singularity Data Lake
+// TUNING: No exclusion expected: the genuine libgcrypt is a shared object that is loaded, not executed.
+// LOOKBACK: 30d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: If tgt.process.image.sha256 is not populated on the tenant, a renamed copy of the sample is missed by the hash arm.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27;
+(tgt.process.name matches &#x27;^libgcrypt$&#x27; or tgt.process.image.sha256 = &#x27;6fab94577364beec314afae3b082dd680933f08a8349b9f35b92667e8231b501&#x27;)
+| columns event.time, endpoint.name, agent.uuid, tgt.process.name, tgt.process.image.path, tgt.process.cmdline, src.process.name, tgt.process.image.sha256
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · AI/dev service spawning a shell or downloader (exploitation aftermath)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> A LiteLLM (Python/uvicorn), Gotenberg, Gitea or Ollama parent spawning <code>sh</code>, <code>bash</code>, <code>curl</code>, <code>wget</code> or <code>chmod</code>. This is what a command-injection hit such as CVE-2026-42271 looks like on the host after the crafted POST tells the target to fetch a payload. <strong>FP:</strong> Gitea legitimately spawns <code>sh</code> for git hooks, and Python apps shell out for health checks; scope to hosts running the exposed AI services and exclude known hook and health-check command lines.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A shell spawned by a grandchild of the service (for example through an intermediate wrapper) is not matched because only the direct creator is tested.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: AI or dev service spawning a shell or downloader</span>
+<span class="cm">// MITRE: T1190, T1059.004, T1105</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: Falcon Linux sensor, ProcessRollup2 with ParentBaseFileName</span>
+<span class="cm">// FALSE POSITIVES: Gitea git hooks, Python health checks, container entrypoint scripts</span>
+<span class="cm">// TUNING: scope to a host group of exposed AI service servers and add a line such as | CommandLine!=/healthcheck|githooks/i after reviewing 7 days of hits; keep curl, wget and chmod children unexcluded</span>
+<span class="cm">// LOOKBACK: 14d (set in the console time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/ event_platform=Lin
+| ParentBaseFileName=/^(python3?(\.[0-9]+)?|uvicorn|gunicorn|litellm|gotenberg|gitea|ollama)$/i
+| FileName=/^(sh|bash|dash|curl|wget|chmod|busybox)$/i
+| table([@timestamp, aid, ComputerName, ParentBaseFileName, FileName, CommandLine, SHA256HashData])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>src.process.name</code> — Creator process name</li><li><code>tgt.process.name</code> — Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code> — Hash — Unverified on a tenant; triage column only.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Changes the host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; src.process.name = * tgt.process.name = *
+| limit 5
+| columns event.time, endpoint.os, src.process.name, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5">// HUNT: AI or dev service spawning a shell or downloader
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1190, T1059.004, T1105
+// CONF: medium | FP: medium
+// FALSE POSITIVES: Gitea git hooks, Python health checks, container entrypoint scripts
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: a shell or downloader created by an AI or dev service. On Process Creation the creator is src.process.* and the new process is tgt.process.*, so the CQL parent process maps to src.process.name and the child to tgt.process.name.
+// REQUIRES: SentinelOne agent on Linux with Process Creation telemetry in the Singularity Data Lake
+// TUNING: Scope to a host group of exposed AI service servers and exclude health-check and git-hook command lines after reviewing 7 days of hits; keep curl, wget and chmod children unexcluded.
+// LOOKBACK: 14d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: A shell spawned by a grandchild of the service (for example through an intermediate wrapper) is not matched because only the direct creator is tested.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27;
+src.process.name matches &#x27;^(python3?(\\.[0-9]+)?|uvicorn|gunicorn|litellm|gotenberg|gitea|ollama)$&#x27;
+tgt.process.name matches &#x27;^(sh|bash|dash|curl|wget|chmod|busybox)$&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.name, tgt.process.name, tgt.process.cmdline, tgt.process.image.sha256
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · Payload fetch from a C2 on port 81 or the /private/ tool paths</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> <code>curl</code>, <code>wget</code>, shells or Python fetching from <code>host:81/</code> or the <code>/private/bins.sh</code> and <code>/private/python3.6</code> paths Lumen saw on PoeLLM C2s. Victims are told to download from port 81 on the C2.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A fetch performed in-process by a language runtime without a curl or wget command line is not captured.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: Payload fetch from a C2 on port 81 or the /private/ tool paths</span>
+<span class="cm">// MITRE: T1105, T1059.004</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Falcon Linux sensor, ProcessRollup2 with CommandLine</span>
+<span class="cm">// FALSE POSITIVES: an internal web service legitimately served on port 81</span>
+<span class="cm">// LOOKBACK: 30d (set in the console time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/ event_platform=Lin
+| FileName=/^(curl|wget|sh|bash|dash|busybox|python3?)$/i
+| CommandLine=/:81\/|\/private\/(bins\.sh|python3\.6)/i
+| table([@timestamp, aid, ComputerName, FileName, CommandLine, ParentBaseFileName, SHA256HashData])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>src.process.name</code> — Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code> — Hash — Unverified on a tenant; triage column only.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Changes the host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name = * tgt.process.cmdline = *
+| limit 5
+| columns event.time, endpoint.os, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6">// HUNT: Payload fetch from a C2 on port 81 or the /private/ tool paths
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1105, T1059.004
+// CONF: high | FP: low
+// FALSE POSITIVES: an internal web service legitimately served on port 81
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: a downloader or shell on Linux whose own command line references a port 81 URL or the /private/ tool paths. The command line of the new process is tgt.process.cmdline.
+// REQUIRES: SentinelOne agent on Linux with Process Creation telemetry in the Singularity Data Lake
+// TUNING: Exclude an internal web service that is legitimately served on port 81 by its destination host.
+// LOOKBACK: 30d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: A fetch performed in-process by a language runtime without a curl or wget command line is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27;
+tgt.process.name matches &#x27;^(curl|wget|sh|bash|dash|busybox|python3?)$&#x27;
+tgt.process.cmdline matches &#x27;:81/|/private/(bins\\.sh|python3\\.6)&#x27;
+| columns event.time, endpoint.name, agent.uuid, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.sha256
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · Egress to the PoeLLM beacon ports on public addresses</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Outbound Linux connections to ports 3778, 5001, 5002, 9999 or 81 on non-private addresses, grouped per host and destination. Lumen lists these as the beacon ports and the payload download port, but 5001 and 9999 are common, so use this to find rare destinations, not as an alert. <strong>FP:</strong> 5001 and 9999 are used by many legitimate services; review only destinations seen from one or a few hosts and exclude your own vendor and cloud ranges.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Low-confidence, high-noise hunt by design: legitimate services on these ports will appear until a baseline exclusion is applied.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: Egress to PoeLLM beacon ports on public addresses</span>
+<span class="cm">// MITRE: T1571, T1071</span>
+<span class="cm">// CONF: low  FP: high  COST: medium | REQUIRES: Falcon Linux sensor, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: legitimate services on 5001, 9999 and 81 (storage gateways, admin consoles, internal tools)</span>
+<span class="cm">// TUNING: after a 14 day baseline exclude each sanctioned destination with | !in(field=RemoteAddressIP4, values=["REPLACE_WITH_SANCTIONED_IP"]) and keep only destinations contacted by fewer than 3 hosts</span>
+<span class="cm">// LOOKBACK: 14d (set in the console time picker)</span>
+#event_simpleName=NetworkConnectIP4 event_platform=Lin
+| RemotePort=/^(3778|5001|5002|9999|81)$/
+| !cidr(RemoteAddressIP4, subnet=["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","127.0.0.0/8","169.254.0.0/16"])
+| groupBy([RemoteAddressIP4, RemotePort], function=[count(as=connections), dcount(aid, as=hosts)])
+| sort(hosts, order=asc)
+| table([RemoteAddressIP4, RemotePort, hosts, connections])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>dst.ip.address</code> — Remote address</li><li><code>dst.port.number</code> — Remote port</li><li><code>agent.uuid</code> — Host identity for counting</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Host counts then depend on hostnames being unique.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.ip.address = * dst.port.number = * agent.uuid = *
+| limit 5
+| columns event.type, endpoint.os, dst.ip.address, dst.port.number, agent.uuid</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7">// HUNT: Egress to PoeLLM beacon ports on public addresses
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1571, T1071
+// CONF: low | FP: high
+// FALSE POSITIVES: legitimate services on 5001, 9999 and 81 (storage gateways, admin consoles, internal tools)
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same analytic as the CQL: Linux connections to the five beacon ports on public addresses, grouped per destination and sorted so rarely contacted destinations come first. Distinct hosts use estimate_distinct instead of an exact count.
+// REQUIRES: SentinelOne agent on Linux with network (IP Connect) telemetry in the Singularity Data Lake
+// TUNING: After a 14 day baseline exclude each sanctioned destination with a negated in-list on dst.ip.address and keep only destinations contacted by fewer than 3 hosts.
+// LOOKBACK: 14d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: Low-confidence, high-noise hunt by design: legitimate services on these ports will appear until a baseline exclusion is applied.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.port.number in (3778, 5001, 5002, 9999, 81)
+!(net_ipsubnet(dst.ip.address, &#x27;10.0.0.0/8&#x27;) or net_ipsubnet(dst.ip.address, &#x27;172.16.0.0/12&#x27;) or net_ipsubnet(dst.ip.address, &#x27;192.168.0.0/16&#x27;) or net_ipsubnet(dst.ip.address, &#x27;127.0.0.0/8&#x27;) or net_ipsubnet(dst.ip.address, &#x27;169.254.0.0/16&#x27;))
+| group connections = count(), hosts = estimate_distinct(agent.uuid) by dst.ip.address, dst.port.number
+| sort +hosts
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Compromised host acting as scanner or exploit worker (fan-out to 3000, 4000, 22)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> A single Linux host contacting many distinct public addresses on 3000 (Gotenberg), 4000 (LiteLLM) or 22 (SSH). PoeLLM turns victims into scanning and exploit workers and has been seen directing distributed brute force at SSH and login portals. <strong>FP:</strong> legitimate scanners, bastion or jump hosts and CI runners fan out the same way; exclude them by aid or host group.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A slow scan spread over more than the lookback window stays under the threshold.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: Scanner or exploit worker fan-out to ports 3000, 4000 and 22</span>
+<span class="cm">// MITRE: T1595.002, T1046, T1110</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: Falcon Linux sensor, NetworkConnectIP4</span>
+<span class="cm">// FALSE POSITIVES: sanctioned vulnerability scanners, jump hosts, CI runners, uptime monitors</span>
+<span class="cm">// TUNING: exclude sanctioned scanner and jump host aids with | !in(aid, values=["REPLACE_WITH_AID"]) and raise the threshold if the baseline is higher</span>
+<span class="cm">// LOOKBACK: 24h (set in the console time picker)</span>
+#event_simpleName=NetworkConnectIP4 event_platform=Lin
+| RemotePort=/^(22|3000|4000)$/
+| !cidr(RemoteAddressIP4, subnet=["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","127.0.0.0/8","169.254.0.0/16"])
+| groupBy([aid, ComputerName, RemotePort], function=[dcount(RemoteAddressIP4, as=distinctTargets), count(as=connections)])
+| distinctTargets &gt; 24
+| sort(distinctTargets, order=desc)
+| table([aid, ComputerName, RemotePort, distinctTargets, connections])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>dst.ip.address</code> — Remote address</li><li><code>dst.port.number</code> — Remote port</li><li><code>agent.uuid</code> — Host identity</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code> — Hostname</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Grouping then depends on hostnames being unique.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.ip.address = * dst.port.number = * agent.uuid = *
+| limit 5
+| columns event.type, endpoint.os, dst.ip.address, dst.port.number, agent.uuid</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8">// HUNT: Scanner or exploit worker fan-out to ports 3000, 4000 and 22
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1595.002, T1046, T1110
+// CONF: medium | FP: medium
+// FALSE POSITIVES: sanctioned vulnerability scanners, jump hosts, CI runners, uptime monitors
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same analytic as the CQL: a Linux host reaching more than 24 distinct public addresses on one of ports 22, 3000 or 4000. Distinct targets use estimate_distinct instead of an exact count.
+// REQUIRES: SentinelOne agent on Linux with network (IP Connect) telemetry in the Singularity Data Lake
+// TUNING: Exclude sanctioned scanner and jump host agent.uuid values with a negated in-list and raise the threshold if the baseline is higher.
+// LOOKBACK: 24h; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: A slow scan spread over more than the lookback window stays under the threshold.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27; dst.port.number in (22, 3000, 4000)
+!(net_ipsubnet(dst.ip.address, &#x27;10.0.0.0/8&#x27;) or net_ipsubnet(dst.ip.address, &#x27;172.16.0.0/12&#x27;) or net_ipsubnet(dst.ip.address, &#x27;192.168.0.0/16&#x27;) or net_ipsubnet(dst.ip.address, &#x27;127.0.0.0/8&#x27;) or net_ipsubnet(dst.ip.address, &#x27;169.254.0.0/16&#x27;))
+| group target_count = estimate_distinct(dst.ip.address), connections = count() by agent.uuid, endpoint.name, dst.port.number
+| filter target_count &gt; 24
+| sort -target_count
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 · Cryptominer execution on Linux (XMRig and stratum command lines)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Processes named <code>xmrig</code> or command lines with <code>stratum+tcp</code>, <code>stratum+ssl</code> or XMRig-only flags. PoeLLM ships XMRig and a second miner called Iron; Lumen publishes no Iron binary name, so only XMRig is matched by name. XMRig is a public tool, so this is detect only.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql9"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A miner renamed and launched with a configuration file instead of command-line flags matches neither arm.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql9-tab" aria-controls="cql9-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery9-tab" aria-controls="powerquery9-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql9-pane" role="tabpanel" aria-labelledby="cql9-tab"><pre class="cql" id="cql9"><span class="cm">// HUNT: Cryptominer execution on Linux (XMRig and stratum command lines)</span>
+<span class="cm">// MITRE: T1496</span>
+<span class="cm">// CONF: medium  FP: low  COST: low | REQUIRES: Falcon Linux sensor, ProcessRollup2</span>
+<span class="cm">// FALSE POSITIVES: sanctioned mining or benchmarking on a lab host</span>
+<span class="cm">// LOOKBACK: 30d (set in the console time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/ event_platform=Lin
+| (FileName=/^xmrig$/i or CommandLine=/stratum\+(tcp|ssl)|--donate-level|--cpu-priority/i)
+| table([@timestamp, aid, ComputerName, FileName, CommandLine, ParentBaseFileName, SHA256HashData])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery9-pane" role="tabpanel" aria-labelledby="powerquery9-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>endpoint.os</code> — Operating system</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Hostname</li><li><code>src.process.name</code> — Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code> — Hash — Unverified on a tenant; triage column only.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Changes the host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name = * tgt.process.cmdline = *
+| limit 5
+| columns event.time, endpoint.os, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery9" data-language="powerquery" data-rosetta-query-id="cql9">// HUNT: Cryptominer execution on Linux (XMRig and stratum command lines)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1496
+// CONF: medium | FP: low
+// FALSE POSITIVES: sanctioned mining or benchmarking on a lab host
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate as the CQL: a Linux process named xmrig, or a command line carrying stratum URLs or XMRig-specific flags. The command line of the new process is tgt.process.cmdline.
+// REQUIRES: SentinelOne agent on Linux with Process Creation telemetry in the Singularity Data Lake
+// TUNING: Exclude lab hosts where mining or benchmarking is sanctioned.
+// LOOKBACK: 30d; set the console time picker or the LRQ window
+// CONFIGURATION: No custom detection or lookup objects required.
+// KNOWN GAPS: A miner renamed and launched with a configuration file instead of command-line flags matches neither arm.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27;
+(tgt.process.name matches &#x27;^xmrig$&#x27; or tgt.process.cmdline matches &#x27;stratum\\+(tcp|ssl)|--donate-level|--cpu-priority&#x27;)
+| columns event.time, endpoint.name, agent.uuid, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.sha256
+| sort -event.time
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q10 · Exposure inventory: Linux hosts listening on 3000, 4000 or 11434</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Which Linux hosts listen on Gotenberg (3000), LiteLLM (4000) or the Ollama default (11434, not named in the cited sources, included for exposure checking only) on a non-loopback address. This finds the attack surface, not compromise. <strong>FP:</strong> every legitimate instance matches; use the result as an inventory to check against what is actually reachable from the internet.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql10"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: unsupported-without-redesign</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: SentinelOne listening-port inventory is not covered by this pack; run the CQL tab on Falcon or query the application inventory.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql10-tab" aria-controls="cql10-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery10-tab" aria-controls="powerquery10-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql10-pane" role="tabpanel" aria-labelledby="cql10-tab"><pre class="cql" id="cql10"><span class="cm">// HUNT: Exposure inventory of hosts listening on 3000, 4000 or 11434</span>
+<span class="cm">// MITRE: T1190</span>
+<span class="cm">// CONF: low  FP: high  COST: low | REQUIRES: Falcon Linux sensor, NetworkListenIP4</span>
+<span class="cm">// FALSE POSITIVES: every sanctioned LiteLLM, Gotenberg, Gitea or Ollama instance, and unrelated apps on port 3000</span>
+<span class="cm">// TUNING: compare the list to your external attack-surface scan and exclude hosts that are provably internal-only</span>
+<span class="cm">// LOOKBACK: 7d (set in the console time picker)</span>
+#event_simpleName=NetworkListenIP4 event_platform=Lin
+| LocalPort=/^(3000|4000|11434)$/
+| LocalAddressIP4!=127.0.0.1
+| groupBy([aid, ComputerName, LocalAddressIP4, LocalPort], function=count(as=listenEvents))
+| table([aid, ComputerName, LocalAddressIP4, LocalPort, listenEvents])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery10-pane" role="tabpanel" aria-labelledby="powerquery10-tab" hidden><details class="rosetta-requirements"><summary>1 required field · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect (nearest available event; it does not record listeners)</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; endpoint.os = &#x27;linux&#x27;
+| limit 5
+| columns event.type, endpoint.os</pre></section></div></details><pre class="siem-code powerquery" id="powerquery10" data-language="powerquery" data-rosetta-query-id="cql10">// HUNT: Exposure inventory of hosts listening on 3000, 4000 or 11434
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1190
+// CONF: low | FP: high
+// FALSE POSITIVES: every sanctioned LiteLLM, Gotenberg, Gitea or Ollama instance, and unrelated apps on port 3000
+// EQUIVALENCE: unsupported-without-redesign - The CQL inventories listening sockets from the Falcon NetworkListenIP4 sensor event. The SentinelOne event types in the field model have no attested listen or bind event, and IP Connect records outbound or accepted connections, not listeners. A faithful port needs a different source such as a vulnerability or application inventory, or a Remote Ops script.
+// REQUIRES: A listening-socket inventory source; none is attested in the SentinelOne endpoint event model
+// TUNING: Use the CQL tab, or compare the external attack-surface scan to the hosts running LiteLLM, Gotenberg, Gitea or Ollama.
+// LOOKBACK: 7d on the CQL tab
+// CONFIGURATION: Use the CQL tab for this exposure inventory.
+// KNOWN GAPS: SentinelOne listening-port inventory is not covered by this pack; run the CQL tab on Falcon or query the application inventory.
+// VALIDATION LEVEL: static-reviewed</pre></div></div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Deployment</th></tr></thead>
+        <tbody>
+          <tr><td>PoeLLM-libgcrypt-Exec</td><td>Linux process creation where the image file name is an exact <code>libgcrypt</code> with no <code>.so</code> suffix</td><td>None expected</td><td>Host group: Linux servers; Action: <strong>Detect</strong></td></tr>
+          <tr><td>PoeLLM-ServiceSpawnsShell</td><td>Linux process creation of <code>sh</code>, <code>bash</code>, <code>curl</code> or <code>wget</code> whose parent is the LiteLLM Python process, Gotenberg, Gitea or Ollama</td><td>Gitea git hooks; sanctioned health checks</td><td>Host group: exposed AI service servers; Action: <strong>Detect</strong></td></tr>
+          <tr><td>PoeLLM-C2-Port81-Fetch</td><td>Process creation of <code>curl</code> or <code>wget</code> with a command line containing <code>:81/</code></td><td>Internal services on port 81</td><td>Host group: Linux servers; Action: <strong>Detect</strong></td></tr>
+          <tr><td>PoeLLM-Miner-Cmdline</td><td>Command line containing <code>stratum+tcp</code> or <code>stratum+ssl</code></td><td>Sanctioned mining lab</td><td>Host group: all Linux; Action: <strong>Detect</strong></td></tr>
+          <tr><td>PoeLLM-Kryptex-Egress</td><td>Network connection to the two Kryptex endpoint and port pairs in section 4</td><td>None expected on servers</td><td>Host group: Linux servers; Action: <strong>Detect</strong></td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-info">All IOAs ship as Detect. Promoting any of them to Prevent needs a second, independent source or confirmed hits from your own telemetry. XMRig is a public miner and must never be prevented by name or hash.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import · 18 rows · all detect</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+ipv4,92.119.164.50,detect,high,2027-04-08,PoeLLM active C2 as of Lumen publication (first seen 2026-07-23),campaign:CantoIncognito;malware:PoeLLM
+ipv4,103.249.201.108,detect,high,2027-04-08,PoeLLM active C2 as of Lumen publication (first seen 2026-08-13),campaign:CantoIncognito;malware:PoeLLM
+ipv4,178.128.14.204,detect,high,2027-04-08,PoeLLM active C2 as of Lumen publication (first seen 2026-06-16),campaign:CantoIncognito;malware:PoeLLM
+ipv4,191.37.28.160,detect,medium,2027-01-08,PoeLLM historical C2 (April 13 to May 16, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,89.39.253.46,detect,medium,2027-01-08,PoeLLM historical C2 (April 14 to June 24, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,120.224.114.212,detect,medium,2027-01-08,PoeLLM historical C2 (May 9 to September 8, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,5.78.73.122,detect,medium,2027-01-08,PoeLLM historical C2 (June 8 to August 22, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,15.204.178.28,detect,medium,2027-01-08,PoeLLM historical C2 (June 14 to August 17, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,92.119.165.74,detect,medium,2027-01-08,PoeLLM historical C2 (July 1 to July 23, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,45.133.73.28,detect,medium,2027-01-08,PoeLLM historical C2 (July 18 to July 22, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,185.132.53.158,detect,medium,2027-01-08,PoeLLM historical C2 (July 19 to September 12, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,136.148.69.233,detect,medium,2027-01-08,PoeLLM historical C2 (September 12 to September 25, 2026). Compromised router or VPS: may be reassigned,campaign:CantoIncognito;malware:PoeLLM;status:historical
+ipv4,57.131.5.211,detect,medium,2027-01-08,Server hosting malwarescan.xyz contacted by the first C2 (port 80),campaign:CantoIncognito;malware:PoeLLM
+domain,malwarescan.xyz,detect,medium,2027-01-08,Domain registered February 2026 on likely operator-owned infrastructure,campaign:CantoIncognito;malware:PoeLLM
+ipv4,5.180.174.162,detect,medium,2027-01-08,Kryptex mining endpoint (port 8029) contacted by PoeLLM victims. Shared third-party service,campaign:CantoIncognito;role:mining-pool
+ipv4,46.21.245.211,detect,medium,2027-01-08,Kryptex mining endpoint (port 7029) contacted by PoeLLM victims. Shared third-party service,campaign:CantoIncognito;role:mining-pool
+domain,edge-ru-07.kryptex.network,detect,medium,2027-01-08,Kryptex node hostname for 46.21.245.211 contacted by PoeLLM victims,campaign:CantoIncognito;role:mining-pool
+sha256,6fab94577364beec314afae3b082dd680933f08a8349b9f35b92667e8231b501,detect,high,2027-04-08,PoeLLM ELF sample named libgcrypt (single source: Lumen),campaign:CantoIncognito;malware:PoeLLM</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt, not import</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behav"># Poem dead drop (Lumen)
+repo        : github.com/ejejejdfbbebe  (fork of the nodejs.org source)
+file        : dash.css
+poem title  : On the Nature of Connection
+anchors     : "In the silent hum of " | "each pulse of " | "Beyond the wall of " | "of distant servers"
+rotation    : only the four key words change; the parsing pattern stays fixed
+
+# Exploit and staging
+LiteLLM path: /mcp-rest/test/connection   (CVE-2026-42271)
+download    : target told to fetch from C2 port 81
+URL paths   : hxxp://5.78.73[.]122:81/private/bins.sh
+              hxxp://5.78.73[.]122:81/private/python3.6
+
+# Network
+beacon ports: 3778, 5001, 5002, 9999
+scan ports  : 3000 (Gotenberg), 4000 (LiteLLM), plus SSH and login portals
+miner pools : 5.180.174.162:8029, 46.21.245.211:7029</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Named Malware and Tooling</span><span class="igc">context</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-tool',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-tool">campaign    : Canto Incognito   (Lumen Black Lotus Labs)
+malware     : PoeLLM
+payload     : ELF named libgcrypt  (sha256 in the CSV)
+capabilities: remote shell, HTTP/S scanning, exploit delivery
+miners      : XMRig (public tool, detect only), Iron (no binary name published)
+pool        : Kryptex
+attribution : Italian-speaking actor, moderate confidence</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Patch and Exposure Audit</span><span class="igc">checklist</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit">[ ] LiteLLM: patched for CVE-2026-42271 (confirm fixed version in the vendor advisory)
+[ ] Ivanti Sentry: patched for CVE-2026-10520
+[ ] Gotenberg on 3000, LiteLLM on 4000, Ollama listener: not reachable from the internet
+[ ] Gitea: current release, not exposed without authentication and MFA
+[ ] Boa-based edge routers: admin pages not exposed (CVE-2018-21027, CVE-2018-21028
+    are named for the first C2 router, not as actor exploits)
+[ ] Egress from AI service hosts restricted to required destinations
+[ ] SSH: key-only auth, source-restricted</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Gate</th><th>Check</th><th>Pass criteria</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetry ready</td><td>Falcon Linux sensor reporting ProcessRollup2, NetworkConnectIP4, NetworkListenIP4 and DnsRequest for the AI and dev service hosts (container hosts included)</td><td>Each event type returns rows for those aids in the last 24h</td></tr>
+          <tr><td>Benign baseline</td><td>Run Q5, Q7, Q8 and Q10 for 7 to 14 days; build the allowlist for Gitea hooks, jump hosts, scanners and sanctioned destinations</td><td>Documented exclusions before any alerting</td></tr>
+          <tr><td>Positive test</td><td>On a lab Linux host copy a harmless binary to a file named <code>libgcrypt</code> and run it; run <code>curl</code> against a lab web server on port 81; run a sleep via a shell launched from a Python parent</td><td>Q4, Q6 and Q5 fire</td></tr>
+          <tr><td>Atomic sweep</td><td>Run Q1, Q2 and Q3 over 30 days</td><td>Zero hits in a clean estate; any hit on an active IP is an incident</td></tr>
+          <tr><td>Promotion</td><td>Move IOAs from Detect only after the baseline; keep every PoeLLM IOA at Detect unless a second independent source confirms</td><td>Written sign-off per IOA</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (0 to 72h)</div>
+        <ul>
+          <li><strong>Remove internet exposure</strong> of LiteLLM (4000), Gotenberg (3000), Ollama and Gitea admin surfaces: bind to loopback or a private interface and publish only through an authenticating reverse proxy or VPN. <em>M1035 Limit Access to Resource Over Network, M1030 Network Segmentation; CIS Controls v8 4.4 (server firewall); Gotenberg's own install guide warns against internet exposure.</em></li>
+          <li><strong>Patch</strong> LiteLLM for CVE-2026-42271 and Ivanti Sentry for CVE-2026-10520, and update Gitea, Gotenberg and Ollama to current releases. Take the fixed version from the vendor advisory (not stated in the cited sources). <em>M1051 Update Software, M1016 Vulnerability Scanning.</em></li>
+          <li><strong>Interim LiteLLM control</strong> until patched: deny <code>/mcp-rest/test/connection</code> at the reverse proxy (playbook 3). <em>M1050 Exploit Protection; ⚠ best-practice, no formal benchmark.</em></li>
+          <li>Run Q1 to Q10; if any host hits, treat it as compromised and rotate the LiteLLM master key and every upstream model-provider key stored on it.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (this week)</div>
+        <ul>
+          <li><strong>Egress control:</strong> default-deny outbound for AI service hosts with an allowlist for the model providers and package mirrors they truly need. This removes mining-pool, C2 and scan traffic regardless of which IP the poem names. <em>M1037 Filter Network Traffic; CIS Controls v8 13.4 and 4.4.</em></li>
+          <li><strong>Container and process hardening:</strong> non-root user, read-only root filesystem, <code>noexec</code> temp storage, dropped capabilities, <code>no-new-privileges</code> (playbook 2). <em>M1038 Execution Prevention, M1048 Application Isolation and Sandboxing; NIST SP 800-190, CIS Docker Benchmark.</em></li>
+          <li>Deploy the section 9 IOAs in Detect on the Linux fleet.</li>
+          <li><strong>SSH:</strong> key-only authentication, restrict by source, disable root login. This blunts the experimental brute-force capability. <em>M1032 Multi-factor Authentication, M1036 Account Use Policies; CIS Linux Benchmark SSH section.</em></li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic</div>
+        <ul>
+          <li>Add AI/LLM and developer tooling to attack surface management and the patch cycle with named owners, as Lumen recommends. <em>M1016 Vulnerability Scanning; CIS Controls v8 7.1 and 12.</em></li>
+          <li>Consider a managed SASE or private access layer so self-hosted AI services never face the internet. <em>M1035.</em></li>
+          <li>Keep edge routers and IoT devices patched and rebooted on a schedule; PoeLLM reused routers with vulnerable admin pages as C2 hosts. <em>M1051; vendor hardening guidance.</em></li>
+          <li>Automate egress allowlist drift review and alert on first-time public destinations from AI service hosts.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <h3>1 · Exposure inventory (read-only)</h3>
+<pre class="code">#!/bin/bash
+# Prerequisites: shell on the host; iproute2 (ss); docker CLI if containers are used.
+# Reboot required: no
+# Rollback: none required, read-only.
+ss -H -ltn | awk '$4 ~ /:(3000|4000|11434)$/ {print "LISTEN", $4}'
+docker ps --format '{{.Names}} {{.Ports}}' 2&gt;/dev/null | grep -E '(3000|4000|11434)'
+# Anything shown as 0.0.0.0 or [::] is reachable from every network the host is on.</pre>
+      <h3>2 · Harden the container for LiteLLM or Gotenberg (compose fragment)</h3>
+<pre class="code"># Prerequisites: a copy of the current compose file (cp compose.yml compose.yml.bak); a reverse proxy
+#   with authentication already in front of the service; test in staging, the app may need extra writable paths.
+# Reboot required: no (container is recreated, brief service interruption).
+# Rollback: cp compose.yml.bak compose.yml &amp;&amp; docker compose up -d
+services:
+  litellm:
+    ports:
+      - "127.0.0.1:4000:4000"      # loopback only; publish through the authenticating proxy
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true</pre>
+      <h3>3 · Interim deny for the LiteLLM test-connection endpoint (nginx reverse proxy)</h3>
+<pre class="code"># Prerequisites: LiteLLM sits behind nginx; confirm nobody legitimately uses the MCP test-connection feature.
+#   This is a stop-gap for CVE-2026-42271, not a patch.
+# Reboot required: no (nginx reload).
+# Rollback: remove the location block, then nginx -t &amp;&amp; systemctl reload nginx
+location = /mcp-rest/test/connection {
+    return 403;
+}</pre>
+      <h3>4 · Restrict the service ports to an admin range (nftables)</h3>
+<pre class="code"># Prerequisites: nftables; out-of-band or console access (a wrong rule can lock you out);
+#   replace REPLACE_WITH_ADMIN_CIDR. Docker-published ports bypass INPUT: bind to 127.0.0.1 (playbook 2) or use DOCKER-USER.
+# Reboot required: no (runtime rules; persist in /etc/nftables.conf after testing).
+# Rollback: nft delete table inet poellm_expose
+nft add table inet poellm_expose
+nft add chain inet poellm_expose input '{ type filter hook input priority -10; policy accept; }'
+nft add rule inet poellm_expose input tcp dport '{ 3000, 4000, 11434 }' ip saddr != REPLACE_WITH_ADMIN_CIDR drop</pre>
+      <h3>5 · Log-only watch on the three active C2 addresses (no blocking)</h3>
+<pre class="code"># Prerequisites: nftables; kernel log or journald collected by your SIEM.
+# Reboot required: no.
+# Rollback: nft delete table inet poellm_watch
+# Log only, not drop: these indicators are single-sourced (Lumen). Promote to drop after a second
+# independent source or your own confirmed hits.
+cat &lt;&lt;'EOF' | nft -f -
+table inet poellm_watch {
+  chain out {
+    type filter hook output priority 0; policy accept;
+    ip daddr { 92.119.164.50, 103.249.201.108, 178.128.14.204 } log prefix "poellm-c2 " counter
+  }
+}
+EOF</pre>
+      <h3>6 · Verify</h3>
+<pre class="code"># Exposure gone: from an external vantage point, ports 3000, 4000 and the Ollama listener must not answer.
+# Hardening in place:
+docker inspect --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}}' litellm
+# Behavior gone: re-run Q5 and Q10 in Falcon; Q10 should list only intended listeners.</pre>
+      <p class="callout callout-info">Nothing in these playbooks blocks a PoeLLM indicator by IP, domain or hash. That is deliberate: every indicator is single-sourced, so network blocking of them is left to your own judgment and to Lumen's disruption of the C2s.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate</td><td>Network-contain the host in Falcon; remove public exposure of the service (playbooks 2 and 4); do not power off, to keep memory</td><td>SOC + Infra</td><td>Containment timestamp, firewall change record</td></tr>
+          <tr><td>Preserve</td><td>Capture process list, <code>ss -tanp</code>, the executable behind any suspect PID (<code>/proc/PID/exe</code>), reverse-proxy and application logs, and the exploit request (POST to <code>/mcp-rest/test/connection</code> or the equivalent)</td><td>IR</td><td>Hashes of artifacts, log exports</td></tr>
+          <tr><td>Scope</td><td>Run Q1 to Q10 estate-wide for 30 days; check which other hosts show fan-out (Q8) or Kryptex contact (Q3); the infected host may have been used to attack others</td><td>IR + Threat hunting</td><td>Affected aid list</td></tr>
+          <tr><td>Eradicate</td><td>Kill the miner and <code>libgcrypt</code> process, remove the binary, review cron, systemd and shell profiles even though the sources document no persistence; rebuild from a clean image rather than clean in place when root was obtained</td><td>Infra</td><td>Rebuild record, clean verification scan</td></tr>
+          <tr><td>Credentials</td><td>Rotate the LiteLLM master key, upstream model-provider API keys, Gitea tokens, and any secret stored on or reachable from the host; review provider billing for unauthorised usage</td><td>Platform + Security</td><td>Rotation log, billing review</td></tr>
+          <tr><td>Recover</td><td>Redeploy patched and hardened (section 12), behind an authenticating proxy, with egress allowlist; confirm Q5 and Q10 are clean</td><td>Infra</td><td>Version and config proof</td></tr>
+          <tr><td>Monitor</td><td>Keep IOAs in Detect; re-run Q1 weekly since the poem rotates C2s; watch Lumen's GitHub IOC page for new addresses</td><td>SOC</td><td>Weekly hunt results</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>T1059.004 / T1036.005</td><td>libgcrypt ELF or known hash executes</td><td>Q4</td><td>PoeLLM-libgcrypt-Exec</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1496</td><td>Mining pool egress, DNS, miner process</td><td>Q2, Q3, Q9</td><td>PoeLLM-Kryptex-Egress, PoeLLM-Miner-Cmdline</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1105</td><td>Fetch from C2 port 81 or /private/ paths</td><td>Q6</td><td>PoeLLM-C2-Port81-Fetch</td><td><span class="badge b-low">Good</span></td></tr>
+          <tr><td>T1190 / T1059.004</td><td>Service spawns shell or downloader after exploitation</td><td>Q5</td><td>PoeLLM-ServiceSpawnsShell</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1071 / T1571 / T1584.008</td><td>C2 IP contact and beacon ports</td><td>Q1, Q7</td><td>IOC import</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1595.002 / T1046 / T1110</td><td>Scanner and brute-force fan-out</td><td>Q8</td><td>n/a</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1190 (exposure)</td><td>Vulnerable services reachable</td><td>Q10</td><td>n/a</td><td><span class="badge b-med">Partial</span></td></tr>
+          <tr><td>T1190 (the exploit request itself)</td><td>Crafted POST to the service</td><td>none</td><td>n/a</td><td><span class="badge b-high">GAP</span></td></tr>
+          <tr><td>T1102.001</td><td>Poem fetch from GitHub</td><td>none</td><td>n/a</td><td><span class="badge b-high">GAP</span></td></tr>
+          <tr><td>Persistence / file write</td><td>Not documented in sources; no ELF-write query shipped</td><td>none</td><td>n/a</td><td><span class="badge b-high">GAP</span></td></tr>
+          <tr><td>Iron miner, Ivanti Sentry host</td><td>No binary name published; appliance has no sensor</td><td>none</td><td>n/a</td><td><span class="badge b-high">GAP</span></td></tr>
+        </tbody>
+      </table>
+      <p class="callout callout-warn"><strong>Coverage gaps:</strong> the exploit request and the GitHub poem fetch are network and application events that the Falcon sensor does not record; close them with reverse-proxy logs and proxy or TLS-inspection URL logs (section 7). Lumen documents no persistence mechanism and no Iron binary name, and the Ivanti Sentry appliance cannot run a sensor, so those are open. Because the poem rotates the C2 address, Q1 is a retro-hunt; Q3, Q4, Q5, Q6 and Q8 are the durable detections. Validation: see section 11.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE      : PoeLLM / Canto Incognito (Lumen Black Lotus Labs)
+SEVERITY   : High. Active botnet, 3,400+ victims, exploits internet-facing AI and dev services (Linux)
+SCOPE      : Linux servers running LiteLLM, Ollama, Gotenberg, Gitea; Ivanti Sentry (no sensor)
+HYPOTHESIS : Exposed service exploited (LiteLLM CVE-2026-42271) -&gt; payload from C2 port 81 -&gt; ELF libgcrypt -&gt; XMRig/Iron to Kryptex -&gt; host reused as scanner
+QUERIES    : Q1 C2 sweep | Q2 DNS | Q3 Kryptex egress | Q4 libgcrypt/hash | Q5 service spawns shell | Q6 port-81 fetch | Q7 beacon ports | Q8 fan-out | Q9 miner | Q10 exposure
+DO FIRST   : Find and hide exposed 3000/4000/Ollama/Gitea/Sentry; patch CVE-2026-42271 and CVE-2026-10520; run Q3-Q6 and Q8 over 30d
+FINDINGS   : &lt;fill from hunt&gt;
+GAPS       : Exploit request and GitHub poem fetch not in Falcon; no persistence or Iron binary published; Sentry has no sensor
+ACTIONS    : Deploy IOAs (sect 9, all Detect); import CSV as detect only; egress allowlist; rotate LiteLLM and provider keys on any hit
+OWNER      : HuntPack
+VERSION    : v0.1 · 2026-10-08</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-08</span><span>Initial HuntPack for the PoeLLM malware and Canto Incognito campaign. 10 CQL queries built on Falcon Linux sensor telemetry (ProcessRollup2, NetworkConnectIP4, NetworkListenIP4, DnsRequest), native hunts, five detect-only custom IOA recommendations, tiered hardening, playbooks and containment. Ships 18 atomic indicators, all detect, all traced to the Lumen report; none prevent because every indicator is single-sourced. SentinelOne PowerQuery tabs added to Q1-Q10: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-purple">Research</span></td><td><a href="https://www.lumen.com/blog/en-us/canto-incognito-tracking-the-poellm-malware">Lumen Black Lotus Labs: Canto incognito: tracking the PoeLLM malware</a></td><td>Primary intel: campaign, mechanism, IOCs, ports, CVEs</td><td>2026-10-08</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://thehackernews.com/2026/10/poellm-malware-infects-3400-servers-to.html">The Hacker News: PoeLLM infects 3,400+ servers</a></td><td>Corroboration: victim count, targets, repo name, attribution</td><td>2026-10-08</td></tr>
+          <tr><td><span class="badge b-info">Reporting</span></td><td><a href="https://www.helpnetsecurity.com/2026/10/08/poellm-malware-github-poem-ai-servers/">Help Net Security: cryptomining botnet hides C2 in a GitHub poem</a></td><td>Corroboration: dash.css, endpoint path, ports, CVEs</td><td>2026-10-08</td></tr>
+          <tr><td><span class="badge b-info">Framework</span></td><td><a href="https://attack.mitre.org/techniques/T1102/001/">MITRE ATT&amp;CK T1102.001 Dead Drop Resolver</a></td><td>Technique mapping for the poem C2</td><td>2026-10-08</td></tr>
+          <tr><td><span class="badge b-info">Framework</span></td><td><a href="https://attack.mitre.org/techniques/T1496/">MITRE ATT&amp;CK T1496 Resource Hijacking</a></td><td>Technique mapping for mining</td><td>2026-10-08</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p style="margin-top:18px;font-size:11px;color:var(--text-muted)">Generated 2026-10-08 by HuntPack · defensive hunt, detection and hardening content only</p>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var cleaned = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(cleaned);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+<script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+</script>
+</body>
+</html>

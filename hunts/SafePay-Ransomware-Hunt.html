@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafePay Ransomware: CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for SafePay ransomware: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/SafePay-Ransomware-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SafePay Ransomware: CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for SafePay ransomware: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/SafePay-Ransomware-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f0a500;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(240,165,0,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1d00 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.igt { font-size: 12px; font-weight: 600; color: var(--text); }
+.igc { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+<style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div>
+    <div class="pack-name">SafePay Ransomware</div>
+    <div class="version">v0.1 · 2026-10-08</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · SIEM Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+<div class="hp-header">
+  <h1>SafePay Ransomware: Closed-Group Double Extortion Against Windows Estates</h1>
+  <div class="subtitle">Operator-run ransomware group active since late 2024, entering through valid VPN and RDP credentials. Defensive hunt and harden pack, no exploit code.</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="mk">Threat</div><div class="mv">SafePay</div></div>
+    <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE RANSOMWARE</span></div></div>
+    <div class="meta-item"><div class="mk">Type</div><div class="mv">Ransomware · Double extortion</div></div>
+    <div class="meta-item"><div class="mk">Initial access</div><div class="mv">Valid VPN / RDP credentials</div></div>
+    <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) · 2026-10-08</div></div>
+    <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+    <div class="meta-item"><div class="mk">Confidence</div><div class="mv"><span class="badge b-med">MEDIUM-HIGH</span></div></div>
+  </div>
+</div>
+
+<div class="section" id="s1">
+  <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+  <div class="section-body">
+<p>SafePay is a closed, operator-run double-extortion ransomware group first seen in September to October 2024. Bitdefender, CloudSEK and Picus report it runs no affiliate program and says so on its leak site, though Blackpoint describes it as a private or semi-private operation, so treat the "no RaaS" framing as the majority view rather than settled fact. Its encryptor shares large parts of the leaked LockBit Black codebase, but researchers stress that code lineage does not establish who the operators are.</p><p>Tempo is the story. CloudSEK cites 569 leak-site victims across 47 countries as of 2026-09-17, with Germany and the United States dominant, and Halcyon reports a Q2 2026 rebound that more than doubled the prior quarter's claim total. Several vendors report initial access to encryption in 24 hours or less, though the NCC Group and Huntress cases span two to several days.</p><p><strong>Hunt value is the Windows endpoint chain.</strong> Entry is valid credentials on VPN gateways and RDP (including a FortiGate local-account MFA bypass), help-desk impersonation over Teams, then <code>ShareFinder.ps1</code>, ScreenConnect and the QDoor loader, WinRAR/FileZilla/Rclone staging, Defender tampering, shadow copy deletion, and an encryptor launched with a distinctive <code>-pass=</code> argument, sometimes through regsvr32.exe. Encrypted files get <code>.safepay</code> and each folder gets <code>readme_safepay.txt</code>. NCC Group also saw hypervisors encrypted.</p><div class="callout callout-danger"><strong>Defender priority:</strong> enforce phishing-resistant MFA on every VPN, RDP and local-account path, turn on EDR and Defender tamper protection, and alert on the pre-encryption chain (ShareFinder, archive staging, Defender tamper, service stops). Regsvr32, rundll32, vssadmin, bcdedit, wevtutil, PsExec and AnyDesk are legitimate tools: hunt their arguments and context, never block the binaries.</div>
+  </div>
+</div>
+<div class="section" id="s2">
+  <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+  <div class="section-body">
+<p>Nine sources were fetched and snapshotted in full (<code>SafePay-Ransomware-Hunt-sources/</code>). First-party incident or malware research carries the weight: NCC Group (incident response, IOCs) and Bitdefender (group profile, hashes). Vendor and aggregator profiles are used for corroboration only.</p><table>
+<thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>NCC Group incident analysis (01)</td><td>FortiGate local-auth MFA bypass, ScreenConnect service, QDoor <code>soc.dll</code> run via regsvr32 with C2 <code>88.119.167.239:443</code>, <code>1.exe -pass= -path= -enc=1</code>, shadow/boot commands, hypervisor encryption, full argument table, hashes</td><td>yes</td></tr>
+<tr><td>1</td><td>Bitdefender group profile (02)</td><td>Non-RaaS, LockBit Black overlap, ShareFinder, PsExec, WinRAR + FileZilla, 24h pattern, ransom note, SHA256 hashes</td><td>yes</td></tr>
+<tr><td>2</td><td>ThreatLocker (03)</td><td>Edge-device and leaked-credential entry, ShareFinder, token impersonation, 10 SHA256 hashes, 4 mutexes</td><td>yes</td></tr>
+<tr><td>2</td><td>Xcitium ThreatLabs (04)</td><td>CMSTPLUA UAC bypass, token impersonation, SystemSettingsAdminFlows Defender disable, EDR kill with stolen domain admin rights, MD5/SHA256, IPs</td><td>partial (aggregates NCC/Bitdefender; EDR-kill claim single-sourced)</td></tr>
+<tr><td>2</td><td>Halcyon threat group page (05)</td><td>Regsvr32 + CMSTPLUA + SeDebugPrivilege list, security log clearing, hypervisor targeting, 4 C2 IPs, hashes, Q2 2026 rebound</td><td>partial</td></tr>
+<tr><td>2</td><td>Red Piranha (06)</td><td>RDP entry, DllHost.exe CMSTPLUA parent pattern, three IPs, hash</td><td>partial</td></tr>
+<tr><td>2</td><td>CloudSEK / Huntress analysis (07)</td><td><code>regsvr32.exe /n /i:</code> with <code>-pass=</code>, <code>locker.dll</code>, 8 flags, Teams/Quick Assist lure, 569 victims as of 2026-09-17, detection guidance</td><td>yes</td></tr>
+<tr><td>2</td><td>Picus Labs (08)</td><td>Closed group, CMSTPLUA, regsvr32/rundll32 DLL execution, WinRAR exclusion command, kill lists</td><td>partial</td></tr>
+<tr><td>2</td><td>Blackpoint Cyber profile PDF (09)</td><td>Private/semi-private operation, LockBit 3.0 builder lineage, TTP list incl. Regsvr32/Rundll32, T1134.001, T1548.002</td><td>partial</td></tr>
+</tbody></table><h3>Decisions and disqualified sources</h3><ul><li><strong>GuidePoint GRIT Q3 2026 report (https://guidepointsecurity.com/blog/ransomware-insights-q3-2026): not cited.</strong> The fetched page text contains no SafePay content, so it cannot back any SafePay claim.</li><li><strong>ransom-db October 2026 analysis (https://www.ransom-db.com/blog/ransomware-threat-landscape-october-2026-analysis): not cited.</strong> Returned HTTP 403 to every fetch, nothing could be read or snapshotted.</li><li><strong>SOCRadar group profile (https://socradar.io/blog/dark-web-profile-safepay-ransomware/): not cited.</strong> HTTP 403. Surefire Cyber and Barracuda pages were fetched but yielded no usable SafePay body text and were dropped.</li><li><strong>The "up roughly 1,300%, 3 to 42 victims in 30 days" figure is NOT stated in any retained source and is not repeated as fact.</strong> Retained numbers: 73 claims in June 2025 and 42 in July 2025 (Bitdefender), 569 victims as of 2026-09-17 (CloudSEK), Q2 2026 claims more than doubled quarter on quarter (Halcyon).</li><li><strong>"Conti-derived TTPs" is not claimed.</strong> Sources tie the code to LockBit Black, and some researchers suggest recruits from Conti and Black Basta (CloudSEK, Blackpoint). No Conti-cluster indicators are shipped.</li><li>No retained page contained instructions directed at an AI agent.</li></ul>
+  </div>
+</div>
+<div class="section" id="s3">
+  <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+  <div class="section-body">
+<p>Hypotheses are ordered by fidelity. The chain is hands-on-keyboard, so the best hunt window is the staging period before the encryptor runs.</p><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Query</th><th>Confidence</th></tr></thead>
+<tbody>
+<tr><td>H1</td><td>An encryptor or loader is run with SafePay's <code>-pass=</code> plus path/enc/network flags</td><td>T1486, T1218.010</td><td>Q1, Q2, Q14</td><td>high</td></tr>
+<tr><td>H2</td><td>Operators map shares with ShareFinder before staging</td><td>T1135</td><td>Q7</td><td>high</td></tr>
+<tr><td>H3</td><td>Recovery is sabotaged: shadow copies deleted, boot recovery disabled</td><td>T1490</td><td>Q3</td><td>high</td></tr>
+<tr><td>H4</td><td>Defender is disabled through SystemSettingsAdminFlows or Set-MpPreference</td><td>T1562.001</td><td>Q4</td><td>medium</td></tr>
+<tr><td>H5</td><td>Data is archived (WinRAR split volumes) and exfiltrated (FileZilla, Rclone)</td><td>T1560.001, T1048</td><td>Q8, Q9</td><td>medium</td></tr>
+<tr><td>H6</td><td>Backup, database and security services are stopped before encryption</td><td>T1489</td><td>Q11</td><td>medium</td></tr>
+<tr><td>H7</td><td>One stolen account RDPs across many hosts; remote tools appear after a help-desk lure</td><td>T1021.001, T1219</td><td>Q12, Q10</td><td>medium</td></tr>
+<tr><td>H8</td><td>UAC bypass through a COM surrogate; logs cleared afterwards</td><td>T1548.002, T1070.001</td><td>Q6, Q5</td><td>medium</td></tr>
+<tr><td>H9</td><td>Known SafePay infrastructure is contacted</td><td>T1071.001</td><td>Q13</td><td>high</td></tr>
+</tbody></table><h3>Attack chain</h3><table>
+<thead><tr><th>Step</th><th>Behavior (source)</th><th>Telemetry</th><th>Hunt angle</th></tr></thead>
+<tbody>
+<tr><td>1 Access</td><td>Valid VPN/RDP credentials; FortiGate local accounts bypassing MFA (NCC, CloudSEK, Halcyon); email bombing then Teams/Quick Assist (CloudSEK, Blackpoint)</td><td>VPN logs, M365, UserLogon</td><td>Native hunts N1, N3, N4; Q12</td></tr>
+<tr><td>2 Foothold</td><td>ScreenConnect service, QDoor <code>soc.dll</code> via regsvr32, batch files <code>C:\ProgramData\&lt;digit&gt;.bat</code> (NCC)</td><td>ProcessRollup2, CreateService</td><td>Q2, Q10, Q14</td></tr>
+<tr><td>3 Discovery</td><td><code>ShareFinder.ps1</code>, net view/use (Bitdefender, Xcitium)</td><td>ProcessRollup2</td><td>Q7</td></tr>
+<tr><td>4 Priv-esc / evasion</td><td>CMSTPLUA UAC bypass, token impersonation with SeDebugPrivilege, Defender disable, EDR kill (Xcitium, Halcyon, CloudSEK)</td><td>ProcessRollup2</td><td>Q6, Q4, Q11; token abuse is a GAP</td></tr>
+<tr><td>5 Lateral</td><td>RDP, SMB admin shares, PsExec, <code>1.exe</code> pushed to servers (NCC, Bitdefender)</td><td>UserLogon, ProcessRollup2</td><td>Q12, Q1</td></tr>
+<tr><td>6 Exfil</td><td>WinRAR <code>a -v5g -ed -r ...</code>, FileZilla, Rclone, RDP clipboard</td><td>ProcessRollup2</td><td>Q8, Q9</td></tr>
+<tr><td>7 Impact</td><td>Service/process kill, <code>vssadmin</code>, <code>wmic</code>, <code>bcdedit</code>, <code>.safepay</code>, <code>readme_safepay.txt</code>, admin password resets, hypervisor encryption</td><td>ProcessRollup2</td><td>Q11, Q3, Q1; file artifacts and hypervisors via N8, N9</td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s4">
+  <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+  <div class="section-body">
+<p><strong>Prevent was granted only to two hashes that two or more independent sources publish for the SafePay encryptor.</strong> Everything else ships as detect or hunt. IPs are perishable and hashes change per build. Onion addresses and attacker email addresses are published by the sources but omitted here as not actionable on endpoints.</p><table>
+<thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead>
+<tbody>
+<tr><td>sha256</td><td>a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526</td><td><span class="badge b-low">HIGH</span></td><td>prevent</td><td>SafePay encryptor (Bitdefender, ThreatLocker, Xcitium, Halcyon, Red Piranha, CloudSEK)</td></tr>
+<tr><td>sha256</td><td>327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917</td><td><span class="badge b-low">HIGH</span></td><td>prevent</td><td>SafePay sample (Bitdefender, ThreatLocker)</td></tr>
+<tr><td>sha256</td><td>921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae</td><td><span class="badge b-med">MED</span></td><td>detect</td><td><code>soc.dll</code> QDoor loader from a SafePay intrusion (NCC Group; also listed by ThreatLocker, Halcyon)</td></tr>
+<tr><td>sha256</td><td>6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a</td><td><span class="badge b-med">MED</span></td><td>detect</td><td>RunPE bundled DLL (NCC Group, Halcyon)</td></tr>
+<tr><td>sha256</td><td>e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346</td><td><span class="badge b-med">MED</span></td><td>detect</td><td>Injected PE (NCC Group only)</td></tr>
+<tr><td>sha256 x6</td><td>fd509df7..., 625abbf8..., 22df7d07..., 12139246..., 241c3b02..., 654c1193..., 96134647... (see grab-csv)</td><td><span class="badge b-med">MED</span></td><td>detect</td><td>ThreatLocker sample list, single-sourced</td></tr>
+<tr><td>sha1</td><td>07353237350c35d6dc2c8f143b649cd07c71f62b</td><td><span class="badge b-med">MED</span></td><td>detect</td><td><code>1.exe</code> ransomware binary (NCC Group only)</td></tr>
+<tr><td>md5</td><td>d1f621b82822b544153f6b531e51a611</td><td><span class="badge b-high">LOW</span></td><td>detect</td><td>Sample MD5 (Xcitium only)</td></tr>
+<tr><td>ipv4</td><td>88.119.167.239</td><td><span class="badge b-low">HIGH</span></td><td>detect</td><td>QDoor C2 port 443 (NCC Group, Xcitium, Halcyon)</td></tr>
+<tr><td>ipv4</td><td>45.91.201.247</td><td><span class="badge b-med">MED</span></td><td>detect</td><td>C2/exfil (Halcyon, Xcitium, Red Piranha)</td></tr>
+<tr><td>ipv4</td><td>77.37.49.40</td><td><span class="badge b-med">MED</span></td><td>detect</td><td>C2/exfil (Halcyon, Xcitium, Red Piranha)</td></tr>
+<tr><td>ipv4</td><td>80.78.28.63</td><td><span class="badge b-med">MED</span></td><td>detect</td><td>C2/exfil (Halcyon, Xcitium, Red Piranha)</td></tr>
+<tr><td>filename</td><td>readme_safepay.txt</td><td><span class="badge b-low">HIGH</span></td><td>hunt</td><td>Ransom note, every vendor</td></tr>
+<tr><td>extension</td><td>.safepay</td><td><span class="badge b-low">HIGH</span></td><td>hunt</td><td>Appended to encrypted files</td></tr>
+<tr><td>filename</td><td>ShareFinder.ps1 / soc.dll / locker.dll / 1.exe</td><td><span class="badge b-med">MED</span></td><td>hunt</td><td>Tooling names; generic names, never block</td></tr>
+<tr><td>mutex</td><td>Global\DB1D-19B4-5094-D570-9841-E4BC-8ABD-29AA-03BB-84AD-C61B-1355-4FF2-194B-96BD-7E49 (+3 in grab-names)</td><td><span class="badge b-high">LOW</span></td><td>hunt</td><td>ThreatLocker; per-victim mutexes</td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s5">
+  <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead>
+<tbody>
+<tr><td>Windows endpoints and servers</td><td>Falcon ProcessRollup2 (command line), NetworkConnectIP4, UserLogon</td><td>high</td><td><span class="badge b-low">Low</span></td></tr>
+<tr><td>VPN / FortiGate / remote gateways</td><td>Appliance auth logs (native)</td><td>high</td><td><span class="badge b-high">High: outside Falcon, MFA-bypass config lives here</span></td></tr>
+<tr><td>Active Directory / identity</td><td>Windows 4624/4625/4720/4724, Identity Protection</td><td>high</td><td><span class="badge b-med">Medium</span></td></tr>
+<tr><td>Microsoft 365 (email, Teams)</td><td>Mail flow, Teams external access audit (native)</td><td>medium</td><td><span class="badge b-high">High: lure stage is outside Falcon</span></td></tr>
+<tr><td>Hypervisors (VMware ESXi and similar)</td><td>Hypervisor syslog / audit (native)</td><td>high</td><td><span class="badge b-high">High: no Falcon coverage assumed</span></td></tr>
+<tr><td>Backup infrastructure</td><td>Backup console audit, VSS state</td><td>high</td><td><span class="badge b-med">Medium</span></td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s6">
+  <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query / control</th></tr></thead>
+<tbody>
+<tr><td>Initial Access</td><td>T1078, T1133, T1190</td><td>Valid VPN/RDP creds, FortiGate local-auth MFA bypass</td><td>N1, Q12, hardening</td></tr>
+<tr><td>Initial Access</td><td>T1566.004</td><td>Teams help-desk impersonation after email flood</td><td>N4</td></tr>
+<tr><td>Execution</td><td>T1059.001, T1059.003</td><td>ShareFinder.ps1, batch files in ProgramData</td><td>Q7</td></tr>
+<tr><td>Persistence</td><td>T1543.003, T1219</td><td>ScreenConnect service, QDoor</td><td>Q10, Q14, N5</td></tr>
+<tr><td>Privilege Escalation</td><td>T1548.002</td><td>CMSTPLUA COM UAC bypass</td><td>Q6</td></tr>
+<tr><td>Privilege Escalation</td><td>T1134.001</td><td>Token impersonation, SeDebugPrivilege</td><td>GAP (no Falcon event)</td></tr>
+<tr><td>Defense Evasion</td><td>T1218.010 / .011</td><td>Encryptor and loader through regsvr32 / rundll32</td><td>Q1, Q2</td></tr>
+<tr><td>Defense Evasion</td><td>T1562.001</td><td>Defender disabled, EDR/AV killed</td><td>Q4, Q11</td></tr>
+<tr><td>Defense Evasion</td><td>T1070.001 / .004</td><td>Log clearing, tool uninstall, self-delete</td><td>Q5</td></tr>
+<tr><td>Discovery</td><td>T1135</td><td>ShareFinder</td><td>Q7</td></tr>
+<tr><td>Lateral Movement</td><td>T1021.001 / .002</td><td>RDP, SMB admin shares, PsExec</td><td>Q12, Q1</td></tr>
+<tr><td>Collection / Exfil</td><td>T1560.001, T1048, T1567.002</td><td>WinRAR, FileZilla, Rclone</td><td>Q8, Q9</td></tr>
+<tr><td>Impact</td><td>T1490, T1489, T1486, T1531</td><td>Shadow/boot, service stop, <code>.safepay</code>, admin password resets</td><td>Q3, Q11, Q1, N7</td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s7">
+  <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>#</th><th>Hunt</th><th>Where</th><th>What to look for</th></tr></thead>
+<tbody>
+<tr><td>N1</td><td>VPN local-account auth</td><td>FortiGate / gateway logs</td><td>Local or LDAP-group logins that skipped MFA; logins from cloud-VPS hostnames (NCC saw a Vultr-hosted <code>vultr-guest</code> device) and default <code>WIN-</code> style hostnames (CloudSEK)</td></tr>
+<tr><td>N2</td><td>RDP from VPN ranges</td><td>Windows Security 4624 type 10</td><td>Admin logons to servers users do not normally touch</td></tr>
+<tr><td>N3</td><td>Failed logons for non-existent accounts</td><td>Security 4625 / identity logs</td><td>Sudden failures from a host that just authenticated as admin (CloudSEK)</td></tr>
+<tr><td>N4</td><td>Email flood then external Teams call</td><td>M365 mail flow, Teams audit</td><td>Spam burst followed by external-tenant call or Quick Assist session</td></tr>
+<tr><td>N5</td><td>Service install</td><td>System 7045</td><td>ScreenConnect Client or unexpected user-mode services (NCC)</td></tr>
+<tr><td>N6</td><td>Defender events</td><td>Defender/Operational 5001, 5007</td><td>Real-time protection disabled or config changed (CloudSEK)</td></tr>
+<tr><td>N7</td><td>Mass admin password resets</td><td>Security 4723/4724</td><td>Bulk resets after encryption (T1531, NCC)</td></tr>
+<tr><td>N8</td><td>Ransom note / extension sweep</td><td>EDR file search, RTR</td><td>Search for <code>readme_safepay.txt</code> and <code>*.safepay</code> (no Falcon CQL query is shipped for this, see coverage map)</td></tr>
+<tr><td>N9</td><td>Hypervisor tampering</td><td>ESXi / hypervisor syslog</td><td>Unexpected shell or SSH enablement, VM power-off, datastore file changes (NCC, Halcyon)</td></tr>
+<tr><td>N10</td><td>Log clearing</td><td>Security 1102, System 104</td><td>Cleared logs outside change windows</td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s8">
+  <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+  <div class="section-body">
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first: every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 · SafePay encryptor launch flags (-pass= plus path/enc/network)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> The encryptor is launched with a mandatory <code>-pass=</code> argument plus <code>-path=</code>, <code>-enc=</code>, <code>-network</code>, <code>-netdrive</code>, <code>-uac</code> or <code>-selfdelete</code>. Sources show it run as an EXE (<code>1.exe -pass= -path= -enc=1</code>) and as a DLL through regsvr32.exe. Matches the argument pattern on any process, so a renamed binary still fires.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The CQL SHA256 column is not projected: tgt.process.image.sha256 is unattested on this schema, so the image path is shown instead.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: SafePay encryptor launch flags (-pass= with -path/-enc/-network/-uac)</span>
+<span class="cm">// MITRE: T1486, T1218.010, T1218.011</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: none known. -pass= alone is common in unrelated tools, so a second SafePay flag is required.</span>
+<span class="cm">// NOTE: regsvr32.exe and rundll32.exe are legitimate Windows binaries. This matches the argument pattern, never the binary name. Alert only, do not block the binaries.</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine=/\s-pass=\S+/i
+| CommandLine=/\s-(path=|enc=|network\b|netdrive\b|uac\b|selfdelete\b)/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine, SHA256HashData], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.image.path</code> — Created image path</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.image.path, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1">// HUNT: SafePay encryptor launch flags (-pass= with -path/-enc/-network/-uac)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1486, T1218.010, T1218.011
+// CONF: high | FP: low
+// FALSE POSITIVES: none known. -pass= alone is common in unrelated tools, so a second SafePay flag is required.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: two regex tests on the command line (a -pass= argument plus a second SafePay flag). Command-line regexes match case-insensitively by default, as the CQL /i flags do.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: None required. -pass= alone is common in unrelated tools, so the second SafePay flag stays mandatory.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the Singularity Data Lake PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: The CQL SHA256 column is not projected: tgt.process.image.sha256 is unattested on this schema, so the image path is shown instead.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.cmdline matches &#x27;\\s-pass=\\S+&#x27;
+tgt.process.cmdline matches &#x27;\\s-(path=|enc=|network\\b|netdrive\\b|uac\\b|selfdelete\\b)&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline, tgt.process.image.path
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 · regsvr32 / rundll32 loading a DLL from a writable path</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> regsvr32.exe or rundll32.exe running a DLL out of ProgramData, Temp, Public or PerfLogs, with the silent <code>/n</code> and <code>/i:</code> switch pattern. NCC Group saw the QDoor <code>soc.dll</code> (DllRegisterServer export) built for regsvr32, and CloudSEK reports the encryptor <code>locker.dll</code> run through <code>regsvr32.exe /n /i:</code>. <strong>FP:</strong> Software installers and legacy COM registration occasionally use these switches from Temp.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The CQL SHA256 column is not projected because tgt.process.image.sha256 is unattested on this schema.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: regsvr32 / rundll32 proxy execution of a DLL in a writable path</span>
+<span class="cm">// MITRE: T1218.010, T1218.011, T1202</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: installers and legacy COM registration run from Temp</span>
+<span class="cm">// TUNING: exclude known installer parents (msiexec.exe, vendor setup executables) and signed vendor DLL paths after a 7 day baseline</span>
+<span class="cm">// NOTE: regsvr32.exe and rundll32.exe are legitimate Windows binaries. Hunt the argument and path context only. Never block the binaries.</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^(regsvr32|rundll32)\.exe$/i
+| CommandLine=/\\(ProgramData|Temp|Users\\Public|PerfLogs)\\\S*\.dll/i
+| CommandLine=/(\s.n\s|\s.i:|DllRegisterServer)/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine, SHA256HashData], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li><li><code>tgt.process.image.path</code> — Created image path</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.image.path, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2">// HUNT: regsvr32 / rundll32 proxy execution of a DLL in a writable path
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1218.010, T1218.011, T1202
+// CONF: medium | FP: medium
+// FALSE POSITIVES: installers and legacy COM registration run from Temp
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: regsvr32 or rundll32 created with a DLL path under ProgramData, Temp, Users\Public or PerfLogs and a register/install/entry-point argument. Binary names match case-insensitively through in:anycase.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude known installer parents (src.process.name msiexec.exe, vendor setup executables) and signed vendor DLL paths after a 7 day baseline. Never block regsvr32.exe or rundll32.exe.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: The CQL SHA256 column is not projected because tgt.process.image.sha256 is unattested on this schema.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.name in:anycase (&#x27;regsvr32.exe&#x27;, &#x27;rundll32.exe&#x27;)
+tgt.process.cmdline matches &#x27;\\\\(ProgramData|Temp|Users\\\\Public|PerfLogs)\\\\\\S*\\.dll&#x27;
+tgt.process.cmdline matches &#x27;(\\s.n\\s|\\s.i:|DllRegisterServer)&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline, tgt.process.image.path
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 · Recovery inhibition: shadow copy deletion and boot configuration changes</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> The encryptor runs <code>vssadmin delete shadows /all /quiet</code>, <code>wmic shadowcopy delete</code>, <code>bcdedit ... bootstatuspolicy ignoreallfailures</code> and <code>bcdedit ... recoveryenabled no</code>. Binaries are stock Windows tools, so the match is on the argument pattern. <strong>FP:</strong> Backup and imaging software, or an admin pruning shadow copies, can run these. Boot-config changes are rarer.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Shadow copy deletion performed through an API call inside a process that never spawns these binaries is not visible in process-creation telemetry.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: Shadow copy deletion and boot recovery disabled (SafePay impact stage)</span>
+<span class="cm">// MITRE: T1490</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: backup agents and imaging jobs pruning shadow copies; admins running bcdedit during repair</span>
+<span class="cm">// TUNING: exclude the backup service account and build/imaging hosts. Do not exclude by binary name.</span>
+<span class="cm">// NOTE: vssadmin.exe, wmic.exe and bcdedit.exe are legitimate Windows tools. Detect the arguments, never block the binaries.</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^(vssadmin|wmic|bcdedit|powershell|pwsh)\.exe$/i
+| CommandLine=/(delete\s+shadows|shadowcopy\s+delete|recoveryenabled\s+no|bootstatuspolicy\s+ignoreallfailures|win32_shadowcopy.*delete)/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3">// HUNT: Shadow copy deletion and boot recovery disabled (SafePay impact stage)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1490
+// CONF: high | FP: medium
+// FALSE POSITIVES: backup agents and imaging jobs pruning shadow copies; admins running bcdedit during repair
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: vssadmin, wmic, bcdedit or PowerShell created with a shadow copy deletion or boot recovery disabling argument.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude the backup service account and build or imaging hosts. Do not exclude by binary name. Alert only, never block vssadmin.exe, wmic.exe or bcdedit.exe.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: Shadow copy deletion performed through an API call inside a process that never spawns these binaries is not visible in process-creation telemetry.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.name in:anycase (&#x27;vssadmin.exe&#x27;, &#x27;wmic.exe&#x27;, &#x27;bcdedit.exe&#x27;, &#x27;powershell.exe&#x27;, &#x27;pwsh.exe&#x27;)
+tgt.process.cmdline matches &#x27;(delete\\s+shadows|shadowcopy\\s+delete|recoveryenabled\\s+no|bootstatuspolicy\\s+ignoreallfailures|win32_shadowcopy.*delete)&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 · Defender tamper via SystemSettingsAdminFlows and Set-MpPreference</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SafePay disables Microsoft Defender by driving <code>SystemSettingsAdminFlows.exe</code> (a trusted binary) and PowerShell, turning off real-time monitoring, sample submission and the firewall. CloudSEK notes administrators rarely use this path. <strong>FP:</strong> Admins legitimately set Defender exclusions or toggle protection during software testing.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Defender changes made through registry writes or Group Policy rather than a process are not seen here.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: Defender protections disabled through SystemSettingsAdminFlows / Set-MpPreference</span>
+<span class="cm">// MITRE: T1562.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: admin troubleshooting; lab and build hosts</span>
+<span class="cm">// TUNING: exclude named lab hosts and the endpoint-management service account. Keep alerting on server and DC hosts.</span>
+#event_simpleName=ProcessRollup2
+| (FileName=/^SystemSettingsAdminFlows\.exe$/i or CommandLine=/(Set-MpPreference\s.*-Disable\w+\s+(\$true|1)|advfirewall\s+set\s+\w+\s+state\s+off)/i)
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4">// HUNT: Defender protections disabled through SystemSettingsAdminFlows / Set-MpPreference
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1562.001
+// CONF: medium | FP: medium
+// FALSE POSITIVES: admin troubleshooting; lab and build hosts
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: the SystemSettingsAdminFlows binary, or a command line that disables a Defender protection through Set-MpPreference or turns a firewall profile off.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude named lab hosts and the endpoint-management service account. Keep alerting on server and domain controller hosts.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: Defender changes made through registry writes or Group Policy rather than a process are not seen here.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+(tgt.process.name in:anycase (&#x27;SystemSettingsAdminFlows.exe&#x27;) or tgt.process.cmdline matches &#x27;Set-MpPreference\\s.*-Disable\\w+\\s+([$]true|1)|advfirewall\\s+set\\s+\\w+\\s+state\\s+off&#x27;)
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 · Security event log cleared</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Halcyon lists security log clearing and anti-forensics among post-encryption cleanup. This catches <code>wevtutil cl</code> and the PowerShell clear cmdlets. Single-source behavior, so treat as a corroborating signal. <strong>FP:</strong> Image build pipelines and some admin maintenance clear logs.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Log clearing through the Event Log API from an arbitrary process, or Windows event 1102 itself, is not covered by this process-creation hunt.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: Windows event log clearing (anti-forensics)</span>
+<span class="cm">// MITRE: T1070.001, T1562.002</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: image build pipelines, scheduled log-rotation scripts</span>
+<span class="cm">// TUNING: exclude build hosts and the sanctioned log-maintenance account</span>
+<span class="cm">// NOTE: wevtutil.exe is a legitimate Windows tool. Detect the clear verb, never block the binary.</span>
+#event_simpleName=ProcessRollup2
+| (FileName=/^wevtutil\.exe$/i CommandLine=/\s(cl|clear-log)\s+\S+/i) or (FileName=/^(powershell|pwsh)\.exe$/i CommandLine=/(Clear-EventLog|Remove-EventLog|ClearLog\()/i)
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5">// HUNT: Windows event log clearing (anti-forensics)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1070.001, T1562.002
+// CONF: medium | FP: medium
+// FALSE POSITIVES: image build pipelines, scheduled log-rotation scripts
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: wevtutil with a clear verb, or PowerShell with a log-clearing cmdlet or method.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude build hosts and the sanctioned log-maintenance account. Alert only, never block wevtutil.exe.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: Log clearing through the Event Log API from an arbitrary process, or Windows event 1102 itself, is not covered by this process-creation hunt.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+((tgt.process.name in:anycase (&#x27;wevtutil.exe&#x27;) tgt.process.cmdline matches &#x27;\\s(cl|clear-log)\\s+\\S+&#x27;) or (tgt.process.name in:anycase (&#x27;powershell.exe&#x27;, &#x27;pwsh.exe&#x27;) tgt.process.cmdline matches &#x27;Clear-EventLog|Remove-EventLog|ClearLog\\(&#x27;))
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 · CMSTPLUA-style UAC bypass: dllhost.exe spawning shells or proxy binaries</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SafePay relaunches itself elevated through the CMSTPLUA COM interface, which surfaces as <code>DllHost.exe</code> as the parent of a script host or proxy-execution binary. Red Piranha and CloudSEK both describe this parent-child pattern. <strong>FP:</strong> Some enterprise software legitimately uses COM elevation through dllhost.exe.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The query cannot tell a CMSTPLUA elevation from other COM surrogate children; it relies on the baseline exclusions in the tuning note.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: dllhost.exe parent spawning shells or proxy-execution binaries (COM UAC bypass)</span>
+<span class="cm">// MITRE: T1548.002</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 (ParentBaseFileName)</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: management agents that elevate through COM surrogates</span>
+<span class="cm">// TUNING: baseline the child binaries per environment and exclude signed management-agent children</span>
+<span class="cm">// NOTE: the CMSTPLUA CLSID is not published in the cited sources, so this keys on the parent-child relationship only.</span>
+#event_simpleName=ProcessRollup2
+| ParentBaseFileName=/^dllhost\.exe$/i
+| FileName=/^(cmd|powershell|pwsh|wscript|cscript|mshta|regsvr32|rundll32)\.exe$/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine, SHA256HashData], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>src.process.name</code> — Creating process name</li><li><code>tgt.process.name</code> — Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>tgt.process.cmdline</code> — Created command line</li><li><code>tgt.process.image.path</code> — Created image path</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; src.process.name = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline, tgt.process.image.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6">// HUNT: dllhost.exe parent spawning shells or proxy-execution binaries (COM UAC bypass)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1548.002
+// CONF: medium | FP: medium
+// FALSE POSITIVES: management agents that elevate through COM surrogates
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same parent-child predicate. On a Process Creation event the creator is src.process.* and the new process is tgt.process.*, so the parent process name maps to src.process.name and the child process name to tgt.process.name.
+// REQUIRES: SentinelOne endpoint Process Creation events with the creating process name
+// TUNING: Baseline the child binaries per environment and exclude signed management-agent children. The CMSTPLUA CLSID is not published in the cited sources, so this keys on the parent-child relationship only.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: The query cannot tell a CMSTPLUA elevation from other COM surrogate children; it relies on the baseline exclusions in the tuning note.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+src.process.name in:anycase (&#x27;dllhost.exe&#x27;)
+tgt.process.name in:anycase (&#x27;cmd.exe&#x27;, &#x27;powershell.exe&#x27;, &#x27;pwsh.exe&#x27;, &#x27;wscript.exe&#x27;, &#x27;cscript.exe&#x27;, &#x27;mshta.exe&#x27;, &#x27;regsvr32.exe&#x27;, &#x27;rundll32.exe&#x27;)
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline, tgt.process.image.path
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 · ShareFinder network share discovery</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> ShareFinder.ps1 (<code>Invoke-ShareFinder</code>, PowerTools/PowerView lineage) is SafePay's consistent share-mapping step before staging, reported by ThreatLocker, Bitdefender, Xcitium, Red Piranha and CloudSEK.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: ShareFinder loaded in memory from a script block, with no mention on any command line, is not seen here.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: ShareFinder.ps1 / Invoke-ShareFinder share discovery</span>
+<span class="cm">// MITRE: T1135, T1059.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: red-team and pentest exercises using PowerView</span>
+<span class="cm">// TUNING: exclude the authorised assessment hosts and accounts for the test window</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine=/(invoke-sharefinder|sharefinder\.ps1)/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li><li><code>tgt.process.name</code> — Created process name</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7">// HUNT: ShareFinder.ps1 / Invoke-ShareFinder share discovery
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1135, T1059.001
+// CONF: high | FP: low
+// FALSE POSITIVES: red-team and pentest exercises using PowerView
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: ShareFinder or Invoke-ShareFinder named in a process command line.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude the authorised assessment hosts and accounts for the test window.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: ShareFinder loaded in memory from a script block, with no mention on any command line, is not seen here.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.cmdline matches &#x27;invoke-sharefinder|sharefinder\\.ps1&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 · Archive staging with WinRAR split volumes</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Bitdefender, Picus and CloudSEK report WinRAR archiving user data over admin shares with split-volume (<code>-v5g</code>) and long exclusion lists before exfiltration. This matches the <code>a</code> (add) verb with a split-volume switch. <strong>FP:</strong> Backup and archiving jobs can use split volumes.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: unsupported-without-redesign</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Archivers renamed to a different binary name, and archive tools not in the list, are not matched.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: WinRAR / 7-Zip split-volume archive staging (pre-exfiltration)</span>
+<span class="cm">// MITRE: T1560.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned archiving jobs, backup tooling</span>
+<span class="cm">// TUNING: exclude the backup service account and known archive hosts. Raise priority when the command line contains a UNC path to an admin share.</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^(winrar|rar|7z|7za|7zg)\.exe$/i
+| CommandLine=/\sa\s+(\S+\s+)*-v[0-9]+[kmg]\b/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8">// HUNT: WinRAR / 7-Zip split-volume archive staging (pre-exfiltration)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1560.001
+// CONF: medium | FP: medium
+// FALSE POSITIVES: sanctioned archiving jobs, backup tooling
+// EQUIVALENCE: unsupported-without-redesign - The source regex requires whitespace on both sides of the -v switch after the add verb, so it cannot match the common form where -v immediately follows the verb (for example 7z a -v100m out.7z data). A faithful translation would inherit that blind spot and a corrected one would no longer be a translation. The CQL pattern needs redesign first.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude the backup service account and known archive hosts. Raise priority when the command line contains a UNC path to an admin share.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: Archivers renamed to a different binary name, and archive tools not in the list, are not matched.
+// VALIDATION LEVEL: static-reviewed</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q9 · Exfiltration tooling: Rclone and FileZilla</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SafePay stages data then exfiltrates with FileZilla (often installed, used and uninstalled) or Rclone. Server hosts that have no business running either are the signal. <strong>FP:</strong> Sanctioned cloud sync, SFTP workflows and admin workstations running FileZilla.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql9"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A renamed rclone binary run with a verb other than copy, sync, move or copyto is not matched.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql9-tab" aria-controls="cql9-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery9-tab" aria-controls="powerquery9-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql9-pane" role="tabpanel" aria-labelledby="cql9-tab"><pre class="cql" id="cql9"><span class="cm">// HUNT: Rclone / FileZilla execution for data exfiltration</span>
+<span class="cm">// MITRE: T1048, T1567.002</span>
+<span class="cm">// CONF: medium  FP: high  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned cloud sync, SFTP admin workflows</span>
+<span class="cm">// TUNING: scope to server hosts and domain controllers first, then exclude named sanctioned transfer hosts and service accounts</span>
+#event_simpleName=ProcessRollup2
+| (FileName=/^(rclone|filezilla|fzsftp)\.exe$/i or CommandLine=/rclone(\.exe)?"?\s+(copy|sync|move|copyto)\b/i)
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery9-pane" role="tabpanel" aria-labelledby="powerquery9-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery9" data-language="powerquery" data-rosetta-query-id="cql9">// HUNT: Rclone / FileZilla execution for data exfiltration
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1048, T1567.002
+// CONF: medium | FP: high
+// FALSE POSITIVES: sanctioned cloud sync, SFTP admin workflows
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: Rclone, FileZilla or fzsftp binaries, or an rclone transfer verb on the command line.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Scope to server hosts and domain controllers first, then exclude named sanctioned transfer hosts and service accounts.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: A renamed rclone binary run with a verb other than copy, sync, move or copyto is not matched.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+(tgt.process.name in:anycase (&#x27;rclone.exe&#x27;, &#x27;filezilla.exe&#x27;, &#x27;fzsftp.exe&#x27;) or tgt.process.cmdline matches &#x27;rclone(\\.exe)?&quot;?\\s+(copy|sync|move|copyto)\\b&#x27;)
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q10 · Remote-access tooling after a help-desk lure (Quick Assist, ScreenConnect, AnyDesk)</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SafePay operators install or abuse remote-access tools: ScreenConnect as a service for persistence (NCC Group), AnyDesk (Halcyon), and Quick Assist after email-bombing and Teams help-desk impersonation (CloudSEK, Blackpoint). The tools are legitimate, so this is an inventory-and-baseline hunt, not an alert. <strong>FP:</strong> Sanctioned RMM and help-desk sessions are common.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql10"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Remote-access tools renamed or run from a different binary name are not inventoried.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql10-tab" aria-controls="cql10-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery10-tab" aria-controls="powerquery10-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql10-pane" role="tabpanel" aria-labelledby="cql10-tab"><pre class="cql" id="cql10"><span class="cm">// HUNT: Remote-access tool execution inventory (Quick Assist / ScreenConnect / AnyDesk)</span>
+<span class="cm">// MITRE: T1219, T1133</span>
+<span class="cm">// CONF: low  FP: high  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned RMM, help-desk sessions</span>
+<span class="cm">// TUNING: exclude the sanctioned RMM vendor and fleet. Investigate first-seen tools on servers and any use following a burst of inbound email or an external Teams call.</span>
+<span class="cm">// NOTE: these are legitimate products. Hunt, never block on the binary name.</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^(quickassist|anydesk|screenconnect\.clientservice|screenconnect\.windowsclient)\.exe$/i
+| groupBy([ComputerName, UserName, FileName], function=[count(as=Execs), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=20000)
+| sort(FirstSeen, order=desc, limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery10-pane" role="tabpanel" aria-labelledby="powerquery10-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.name = * | limit 5 | columns event.time, endpoint.name, src.process.user, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery10" data-language="powerquery" data-rosetta-query-id="cql10">// HUNT: Remote-access tool execution inventory (Quick Assist / ScreenConnect / AnyDesk)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1219, T1133
+// CONF: low | FP: high
+// FALSE POSITIVES: sanctioned RMM, help-desk sessions
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same inventory: executions of Quick Assist, AnyDesk and ScreenConnect binaries grouped per host, user and binary with first and last seen times.
+// REQUIRES: SentinelOne endpoint Process Creation events
+// TUNING: Exclude the sanctioned RMM vendor and fleet. Investigate first-seen tools on servers and any use following a burst of inbound email or an external Teams call. These are legitimate products: hunt, never block on the binary name.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: Remote-access tools renamed or run from a different binary name are not inventoried.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.name in:anycase (&#x27;quickassist.exe&#x27;, &#x27;anydesk.exe&#x27;, &#x27;screenconnect.clientservice.exe&#x27;, &#x27;screenconnect.windowsclient.exe&#x27;)
+| group runs = count(), first_run = min(event.time), last_run = max(event.time) by endpoint.name, src.process.user, tgt.process.name
+| sort -first_run
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q11 · Security, backup and database service stops before encryption</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> The encryptor stops VSS, SQL, Veeam, backup and Sophos services and kills database, mail and Office processes. Xcitium also reports operators uninstalling or killing EDR agents with stolen domain admin rights (single source). Matches stop and disable verbs against those service names. <strong>FP:</strong> Patch windows, backup jobs and maintenance scripts stop these services routinely.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql11"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Service stops issued through the Service Control Manager API or WMI without spawning these binaries are not visible.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql11-tab" aria-controls="cql11-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery11-tab" aria-controls="powerquery11-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql11-pane" role="tabpanel" aria-labelledby="cql11-tab"><pre class="cql" id="cql11"><span class="cm">// HUNT: Stop or disable of backup, database and security services (pre-encryption)</span>
+<span class="cm">// MITRE: T1489, T1562.001</span>
+<span class="cm">// CONF: medium  FP: high  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 with CommandLine</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: patch windows, backup jobs, maintenance scripts</span>
+<span class="cm">// TUNING: exclude change-window hosts and the patching/backup service accounts. Prioritise matches that touch several of these services within minutes.</span>
+#event_simpleName=ProcessRollup2
+| FileName=/^(net|net1|sc|powershell|pwsh)\.exe$/i
+| CommandLine=/(\sstop\s|stop-service|start=\s*disabled)/i
+| CommandLine=/(vss|sophos|veeam|backup|gxvss|sqlsvc|msexchange|mssql|sense|windefend|csagent)/i
+| table([@timestamp, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery11-pane" role="tabpanel" aria-labelledby="powerquery11-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint Process Creation events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.process.name</code> — Created process name</li><li><code>tgt.process.cmdline</code> — Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Launching user</li><li><code>src.process.name</code> — Creating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery11" data-language="powerquery" data-rosetta-query-id="cql11">// HUNT: Stop or disable of backup, database and security services (pre-encryption)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1489, T1562.001
+// CONF: medium | FP: high
+// FALSE POSITIVES: patch windows, backup jobs, maintenance scripts
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: net, net1, sc or PowerShell with a stop or disable-start verb, and a backup, database or security service name on the command line.
+// REQUIRES: SentinelOne endpoint Process Creation events with command line
+// TUNING: Exclude change-window hosts and the patching and backup service accounts. Prioritise matches that touch several of these services within minutes.
+// LOOKBACK: 7d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 7d.
+// KNOWN GAPS: Service stops issued through the Service Control Manager API or WMI without spawning these binaries are not visible.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.name in:anycase (&#x27;net.exe&#x27;, &#x27;net1.exe&#x27;, &#x27;sc.exe&#x27;, &#x27;powershell.exe&#x27;, &#x27;pwsh.exe&#x27;)
+tgt.process.cmdline matches &#x27;(\\sstop\\s|stop-service|start=\\s*disabled)&#x27;
+tgt.process.cmdline matches &#x27;(vss|sophos|veeam|backup|gxvss|sqlsvc|msexchange|mssql|sense|windefend|csagent)&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q12 · RDP fan-out: one account to many hosts</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SafePay moves by RDP and SMB admin shares with stolen domain credentials, and pushes the encryptor to many servers within hours. One account with interactive RDP logons (LogonType 10) to four or more distinct hosts is the pattern. <strong>FP:</strong> Jump-host users, admins and monitoring accounts.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql12"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: approximate-analytic</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Source IP addresses are not collected: src.endpoint.ip.address is documented but unattested. CACHED_REMOTE_INTERACTIVE logons are not counted.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql12-tab" aria-controls="cql12-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery12-tab" aria-controls="powerquery12-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql12-pane" role="tabpanel" aria-labelledby="cql12-tab"><pre class="cql" id="cql12"><span class="cm">// HUNT: One account RDP logon to many distinct hosts</span>
+<span class="cm">// MITRE: T1021.001, T1078</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: UserLogon (LogonType 10)</span>
+<span class="cm">// LOOKBACK: 24h (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned admins, jump hosts, monitoring accounts</span>
+<span class="cm">// TUNING: exclude named admin accounts and PAM jump hosts, then raise the DistinctHosts threshold to fit your baseline</span>
+#event_simpleName=UserLogon
+| LogonType=10
+| UserName!=/\$$/
+| groupBy([UserName], function=[count(aid, distinct=true, as=DistinctHosts), count(as=Logons), collect(RemoteAddressIP4, limit=10), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=20000)
+| DistinctHosts &gt;= 4
+| sort(DistinctHosts, order=desc, limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery12-pane" role="tabpanel" aria-labelledby="powerquery12-tab" hidden><details class="rosetta-requirements"><summary>6 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne Login events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>event.login.type</code> — Logon type</li><li><code>event.login.loginIsSuccessful</code> — Logon success</li><li><code>event.login.userName</code> — Logon user</li><li><code>agent.uuid</code> — Destination endpoint</li><li><code>event.time</code> — Event time</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>agent.uuid</code> → <code>endpoint.name</code> — Hosts that share a name are counted once.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Login&#x27; event.login.type = * | limit 5 | columns event.time, agent.uuid, event.login.type, event.login.loginIsSuccessful, event.login.userName</pre></section></div></details><pre class="siem-code powerquery" id="powerquery12" data-language="powerquery" data-rosetta-query-id="cql12">// HUNT: One account RDP logon to many distinct hosts
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1021.001, T1078
+// CONF: medium | FP: medium
+// FALSE POSITIVES: sanctioned admins, jump hosts, monitoring accounts
+// EQUIVALENCE: approximate-analytic - Same fan-out analytic (one account, successful RDP-type logons, four or more distinct hosts counted exactly by a two-stage group) on SentinelOne Login events. The numeric LogonType 10 becomes the REMOTE_INTERACTIVE logon type word, and the CQL RemoteAddressIP4 collection is not carried over.
+// REQUIRES: SentinelOne Login events with logon type and success flag
+// TUNING: Exclude named admin accounts and PAM jump hosts, then raise the host_count threshold to fit your baseline.
+// LOOKBACK: 24h
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 24h.
+// KNOWN GAPS: Source IP addresses are not collected: src.endpoint.ip.address is documented but unattested. CACHED_REMOTE_INTERACTIVE logons are not counted.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Login&#x27; event.login.type = &#x27;REMOTE_INTERACTIVE&#x27; event.login.loginIsSuccessful = true
+!(event.login.userName matches &#x27;\\$$&#x27;)
+| group logon_count = count(), first_logon = min(event.time), last_logon = max(event.time) by event.login.userName, agent.uuid
+| group host_count = count(), logon_total = sum(logon_count), first_logon = min(first_logon), last_logon = max(last_logon) by event.login.userName
+| filter host_count &gt;= 4
+| sort -host_count
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q13 · Connections to reported SafePay C2 and exfiltration IPs</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql13',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql13')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Outbound connections to the four IPs reported by Halcyon, with three also in Xcitium and Red Piranha and <code>88.119.167.239</code> documented by NCC Group as the QDoor C2 on port 443. Infrastructure is perishable, so confirm each hit with process context.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql13"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Retention of IP Connect events in the data lake may be shorter than 30d on some tenants.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql13-tab" aria-controls="cql13-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery13-tab" aria-controls="powerquery13-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql13-pane" role="tabpanel" aria-labelledby="cql13-tab"><pre class="cql" id="cql13"><span class="cm">// HUNT: Outbound connections to reported SafePay infrastructure</span>
+<span class="cm">// MITRE: T1071.001, T1041</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// LOOKBACK: 30d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: IP reassignment by hosting providers over time</span>
+<span class="cm">// TUNING: confirm the initiating process and timing before escalating. Expire stale hits after 6 months.</span>
+#event_simpleName=NetworkConnectIP4
+| in(field=RemoteAddressIP4, values=["45.91.201.247", "77.37.49.40", "80.78.28.63", "88.119.167.239"])
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, RemoteAddressIP4, RemotePort], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery13-pane" role="tabpanel" aria-labelledby="powerquery13-tab" hidden><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint IP Connect events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>dst.ip.address</code> — Destination IP</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.user</code> — Process user</li><li><code>src.process.name</code> — Connecting process</li><li><code>dst.port.number</code> — Destination port</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; dst.ip.address = * | limit 5 | columns event.time, endpoint.name, src.process.user, src.process.name, dst.ip.address, dst.port.number</pre></section></div></details><pre class="siem-code powerquery" id="powerquery13" data-language="powerquery" data-rosetta-query-id="cql13">// HUNT: Outbound connections to reported SafePay infrastructure
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1071.001, T1041
+// CONF: high | FP: low
+// FALSE POSITIVES: IP reassignment by hosting providers over time
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: outbound IP connections to the four reported SafePay addresses.
+// REQUIRES: SentinelOne endpoint IP Connect events
+// TUNING: Confirm the initiating process and timing before escalating. Expire stale hits after 6 months.
+// LOOKBACK: 30d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 30d.
+// KNOWN GAPS: Retention of IP Connect events in the data lake may be shorter than 30d on some tenants.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27;
+dst.ip.address in (&#x27;45.91.201.247&#x27;, &#x27;77.37.49.40&#x27;, &#x27;80.78.28.63&#x27;, &#x27;88.119.167.239&#x27;)
+| columns event.time, endpoint.name, src.process.user, src.process.name, dst.ip.address, dst.port.number
+| limit 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q14 · Reported SafePay file hashes (encryptor, QDoor loader, components)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql14',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql14')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> SHA256 matches against the 12 hashes published by ThreatLocker, Bitdefender, NCC Group, Halcyon and CloudSEK. Run in hunt mode over a 90 day window first; hashes churn between builds so a miss is not clearance.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql14"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: telemetry-gap</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Process-creation image hashes are not matched, so a SafePay binary that ran without a file write or module load event in the window is missed. Use the SentinelOne threat and hash-reputation views to cover that case.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql14-tab" aria-controls="cql14-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery14-tab" aria-controls="powerquery14-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div><div class="rosetta-pane" data-lang="cql" id="cql14-pane" role="tabpanel" aria-labelledby="cql14-tab"><pre class="cql" id="cql14"><span class="cm">// HUNT: SafePay published SHA256 hashes</span>
+<span class="cm">// MITRE: T1486, T1204.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ProcessRollup2 / PeFileWritten / NewExecutableWritten</span>
+<span class="cm">// LOOKBACK: 90d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: none expected for exact SHA256 matches</span>
+<span class="cm">// TUNING: none required. A miss is not clearance because hashes change per build.</span>
+#event_simpleName=/^(ProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| in(field=SHA256HashData, values=["a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526", "327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917", "fd509df74a8d6a9e96762337efd46280ebf8d154c6c5dfbac7b3e8f7bb61f191", "625abbf876f256662f33a88c122bf787edf74b882c35adbd61562b5bd1b2ac27", "921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae", "22df7d07369d206f8d5d02cf6d365e39dd9f3b5c454a8833d0017f4cf9c35177", "12139246b8c5232d6d074df37acddc20f0bc233e42ed8eb00dfe2af5d3de3275", "241c3b02a8e7d5a2b9c99574c28200df2a0f8c8bd7ba4d262e6aa8ed1211ba1f", "654c11935448b3229434ec7d9d165a5f135ae4735d35700cffcb3b84f6a0fbc3", "961346470d15d7795c5e35bc90c17d293fba7a8b811f8f5c26a3dc7c971cdc4e", "6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a", "e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346"])
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, SHA256HashData], limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery14-pane" role="tabpanel" aria-labelledby="powerquery14-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>SentinelOne endpoint File Creation, File Modification and Module Load events</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code> — Event type</li><li><code>tgt.file.sha256</code> — Written file hash</li><li><code>module.sha256</code> — Loaded module hash</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>event.time</code> — Event time</li><li><code>endpoint.name</code> — Host</li><li><code>src.process.name</code> — Acting process</li><li><code>tgt.file.path</code> — Written file path</li><li><code>module.path</code> — Loaded module path</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code> — Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; tgt.file.sha256 = * | limit 5 | columns event.time, endpoint.name, event.type, tgt.file.path, tgt.file.sha256, module.sha256</pre></section></div></details><pre class="siem-code powerquery" id="powerquery14" data-language="powerquery" data-rosetta-query-id="cql14">// HUNT: SafePay published SHA256 hashes
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1486, T1204.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected for exact SHA256 matches
+// EQUIVALENCE: telemetry-gap - Partial pivot only: hashes are matched on files written (tgt.file.sha256, attested) and on module loads (module.sha256, attested). The CQL also matched the hash of every started process, which needs tgt.process.image.sha256; that field is unattested here, so executables that ran without being written or loaded in the window are not covered.
+// REQUIRES: SentinelOne endpoint File Creation, File Modification and Module Load events with SHA256
+// TUNING: None required. A miss is not clearance because hashes change per build.
+// LOOKBACK: 90d
+// CONFIGURATION: No custom detection rule or lookup table required; run in the PowerQuery editor with the console time picker set to 90d where retention allows.
+// KNOWN GAPS: Process-creation image hashes are not matched, so a SafePay binary that ran without a file write or module load event in the window is missed. Use the SentinelOne threat and hash-reputation views to cover that case.
+// VALIDATION LEVEL: static-reviewed
+(event.type in (&#x27;File Creation&#x27;, &#x27;File Modification&#x27;) tgt.file.sha256 in (&#x27;a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526&#x27;, &#x27;327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917&#x27;, &#x27;fd509df74a8d6a9e96762337efd46280ebf8d154c6c5dfbac7b3e8f7bb61f191&#x27;, &#x27;625abbf876f256662f33a88c122bf787edf74b882c35adbd61562b5bd1b2ac27&#x27;, &#x27;921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae&#x27;, &#x27;22df7d07369d206f8d5d02cf6d365e39dd9f3b5c454a8833d0017f4cf9c35177&#x27;, &#x27;12139246b8c5232d6d074df37acddc20f0bc233e42ed8eb00dfe2af5d3de3275&#x27;, &#x27;241c3b02a8e7d5a2b9c99574c28200df2a0f8c8bd7ba4d262e6aa8ed1211ba1f&#x27;, &#x27;654c11935448b3229434ec7d9d165a5f135ae4735d35700cffcb3b84f6a0fbc3&#x27;, &#x27;961346470d15d7795c5e35bc90c17d293fba7a8b811f8f5c26a3dc7c971cdc4e&#x27;, &#x27;6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a&#x27;, &#x27;e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346&#x27;)) or (event.type = &#x27;Module Load&#x27; module.sha256 in (&#x27;a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526&#x27;, &#x27;327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917&#x27;, &#x27;fd509df74a8d6a9e96762337efd46280ebf8d154c6c5dfbac7b3e8f7bb61f191&#x27;, &#x27;625abbf876f256662f33a88c122bf787edf74b882c35adbd61562b5bd1b2ac27&#x27;, &#x27;921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae&#x27;, &#x27;22df7d07369d206f8d5d02cf6d365e39dd9f3b5c454a8833d0017f4cf9c35177&#x27;, &#x27;12139246b8c5232d6d074df37acddc20f0bc233e42ed8eb00dfe2af5d3de3275&#x27;, &#x27;241c3b02a8e7d5a2b9c99574c28200df2a0f8c8bd7ba4d262e6aa8ed1211ba1f&#x27;, &#x27;654c11935448b3229434ec7d9d165a5f135ae4735d35700cffcb3b84f6a0fbc3&#x27;, &#x27;961346470d15d7795c5e35bc90c17d293fba7a8b811f8f5c26a3dc7c971cdc4e&#x27;, &#x27;6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a&#x27;, &#x27;e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346&#x27;))
+| columns event.time, endpoint.name, event.type, src.process.name, tgt.file.path, tgt.file.sha256, module.path, module.sha256
+| limit 200</pre></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="section" id="s9">
+  <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+  <div class="section-body">
+<p>All IOA candidates ship as <strong>Detect</strong>. The behaviors match legitimate Windows tools, so none are recommended for Prevent. Promote only after a clean baseline.</p><table>
+<thead><tr><th>IOA</th><th>Pattern</th><th>Exclusions</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td>SafePay encryptor flags</td><td>Process CommandLine matches <code>\s-pass=\S+</code> and one of <code>-path=</code>, <code>-enc=</code>, <code>-network</code>, <code>-netdrive</code>, <code>-uac</code>, <code>-selfdelete</code> (Q1)</td><td>None expected</td><td>Detect only</td></tr>
+<tr><td>Recovery inhibition</td><td>vssadmin / wmic / bcdedit arguments in Q3</td><td>Backup service account, imaging hosts</td><td>Detect only (legitimate tools)</td></tr>
+<tr><td>ShareFinder</td><td>CommandLine contains <code>Invoke-ShareFinder</code> or <code>ShareFinder.ps1</code> (Q7)</td><td>Authorised assessment hosts</td><td>Detect</td></tr>
+<tr><td>Defender tamper</td><td>SystemSettingsAdminFlows.exe or Set-MpPreference -Disable* (Q4)</td><td>Lab hosts</td><td>Detect</td></tr>
+</tbody></table><div class="callout callout-warn">Falcon IOC Management: only the two multi-source SHA256 hashes carry <code>prevent</code>. Every other indicator is <code>detect</code>.</div>
+  </div>
+</div>
+<div class="section" id="s10">
+  <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+  <div class="section-body">
+<h3 style="margin:0 0 4px;">Grouped IOC Quick-Copy</h3><p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">One-click blocks. Every atomic indicator in the CSV traces to a saved source snapshot. <strong style="color:var(--text);">Only the two multi-source hashes are set to prevent.</strong></p><div class="ioc-grab-grid">
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div>
+        <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526,prevent,critical,2027-10-08,SafePay encryptor sample,campaign:SafePay
+sha256,327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917,prevent,high,2027-10-08,SafePay sample,campaign:SafePay
+sha256,fd509df74a8d6a9e96762337efd46280ebf8d154c6c5dfbac7b3e8f7bb61f191,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,625abbf876f256662f33a88c122bf787edf74b882c35adbd61562b5bd1b2ac27,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae,detect,high,2027-04-08,soc.dll QDoor loader (SafePay intrusion),campaign:SafePay
+sha256,22df7d07369d206f8d5d02cf6d365e39dd9f3b5c454a8833d0017f4cf9c35177,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,12139246b8c5232d6d074df37acddc20f0bc233e42ed8eb00dfe2af5d3de3275,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,241c3b02a8e7d5a2b9c99574c28200df2a0f8c8bd7ba4d262e6aa8ed1211ba1f,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,654c11935448b3229434ec7d9d165a5f135ae4735d35700cffcb3b84f6a0fbc3,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,961346470d15d7795c5e35bc90c17d293fba7a8b811f8f5c26a3dc7c971cdc4e,detect,medium,2027-04-08,SafePay sample (ThreatLocker),campaign:SafePay
+sha256,6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a,detect,medium,2027-04-08,RunPE bundled DLL (SafePay intrusion),campaign:SafePay
+sha256,e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346,detect,medium,2027-04-08,Injected PE (SafePay intrusion),campaign:SafePay
+sha1,07353237350c35d6dc2c8f143b649cd07c71f62b,detect,medium,2027-04-08,SafePay 1.exe ransomware binary,campaign:SafePay
+md5,d1f621b82822b544153f6b531e51a611,detect,low,2027-04-08,SafePay sample MD5,campaign:SafePay
+ipv4,88.119.167.239,detect,high,2027-01-08,SafePay reported C2 or exfil server,campaign:SafePay
+ipv4,45.91.201.247,detect,medium,2027-01-08,SafePay reported C2 or exfil server,campaign:SafePay
+ipv4,77.37.49.40,detect,medium,2027-01-08,SafePay reported C2 or exfil server,campaign:SafePay
+ipv4,80.78.28.63,detect,medium,2027-01-08,SafePay reported C2 or exfil server,campaign:SafePay</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">detection logic</span></div>
+        <button class="btn-copy" data-label="Copy behaviors" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy behaviors</button>
+<pre class="code" id="grab-behav">regsvr32.exe / rundll32.exe / any process: CommandLine has -pass= plus -path= | -enc= | -network | -netdrive | -uac | -selfdelete
+regsvr32.exe /n /i: with a DLL in ProgramData, Temp, Public (legitimate binary: hunt the arguments only)
+vssadmin delete shadows | wmic shadowcopy delete | bcdedit recoveryenabled no | bootstatuspolicy ignoreallfailures
+SystemSettingsAdminFlows.exe or Set-MpPreference -Disable* before encryption
+DllHost.exe as parent of cmd / powershell / regsvr32 / rundll32 (COM UAC bypass)
+Invoke-ShareFinder / ShareFinder.ps1 in PowerShell command lines
+WinRAR a -v5g ... against \\host\C$\Users, then FileZilla or Rclone, then removal of the tool
+net/sc stop of vss, sql, veeam, backup, sophos services in a short burst
+One account RDP (LogonType 10) to 4+ distinct hosts in 24h
+wevtutil cl Security / Clear-EventLog outside change windows
+Files named readme_safepay.txt, extension .safepay</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Named Tooling, Files and Mutexes</span><span class="igc">hunt · process / file</span></div>
+        <button class="btn-copy" data-label="Copy names" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy names</button>
+<pre class="code" id="grab-names">readme_safepay.txt          # ransom note
+*.safepay                   # encrypted file extension
+ShareFinder.ps1             # share discovery (PowerTools / PowerView lineage)
+soc.dll                     # QDoor loader, DllRegisterServer export
+locker.dll                  # encryptor DLL run via regsvr32 (CloudSEK / Huntress)
+1.exe                       # encryptor pushed to servers (NCC Group)
+C:\ProgramData\&lt;digit&gt;.bat  # operator batch files
+SystemSettingsAdminFlows.exe  # abused to disable Defender (legitimate binary)
+WinRAR.exe, 7-Zip, FileZilla, rclone.exe  # staging and exfil (hunt, do not block by name)
+ScreenConnect Client service  # persistence (NCC Group)
+Global\DB1D-19B4-5094-D570-9841-E4BC-8ABD-29AA-03BB-84AD-C61B-1355-4FF2-194B-96BD-7E49
+Global\347F-7B6B-6AFB-3C55-2602-369D-65B9-58A0-16F1-0F42-35DA-0B37-52C3-293C-8975-CAB4
+Global\622D-BA6A-4BE9-5D15-5C84-898C-1760-4BAF-2BB1-D7D1-389D-6C01-AAFC-1645-BB6E-DC88
+Global\A8D1-50A2-679B-3D55-D639-9810-8679-7409-02EC-EF50-EA87-5641-0086-74B7-A14E-EE4C</pre>
+      </div>
+      <div class="ioc-grab">
+        <div class="igh"><span class="igt">Defender / RDP Audit</span><span class="igc">read-only checks</span></div>
+        <button class="btn-copy" data-label="Copy audit" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy audit</button>
+<pre class="code" id="grab-audit"># Verify Defender tamper protection and ASR state (read-only)
+Get-MpComputerStatus | Select-Object IsTamperProtected, RealTimeProtectionEnabled
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Actions
+# Remote access exposure
+Get-NetFirewallRule -DisplayName "Remote Desktop*" | Select-Object DisplayName, Enabled, Profile
+# VPN: confirm no local or LDAP group bypasses MFA (gateway console)</pre>
+      </div>
+</div>
+  </div>
+</div>
+<div class="section" id="s11">
+  <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>Gate</th><th>Requirement</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>1 · Telemetry ready</td><td>ProcessRollup2 with command line, UserLogon and NetworkConnectIP4 flowing; VPN, M365 and hypervisor logs forwarded to a log store</td><td>7 day event volume per source</td></tr>
+<tr><td>2 · Benign baseline</td><td>Run Q1 to Q14 in hunt mode for 7 days; catalogue sanctioned RMM, Rclone/FileZilla users, backup accounts, patch windows</td><td>Per-query exclusion list</td></tr>
+<tr><td>3 · Positive tests</td><td>In a lab, run a harmless binary with <code>-pass=x -path=C:\test</code>, <code>vssadmin list shadows</code> equivalents, a test Set-MpPreference change on a throwaway VM</td><td>Q1, Q4 fire as expected</td></tr>
+<tr><td>4 · Promotion</td><td>Promote IOA candidates after 0 unexplained hits over the baseline window; keep all behavior-on-legitimate-tool IOAs at Detect</td><td>Change record</td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s12">
+  <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered &amp; Deployable</h2></div>
+  <div class="section-body">
+<p>Controls are tied to the access paths in the sources, not to a generic ransomware list. MITRE mitigations in italics; platform guidance named per control.</p><div class="tier-blk tier-imm"><div class="tier-lbl">Immediate · this week · low risk</div><ul><li><strong>Phishing-resistant MFA on every VPN, RDP gateway and remote-management login, and close the local-account bypass.</strong> NCC Group's intrusion came from a FortiGate policy that let local accounts skip MFA. Audit gateway auth policy; no local or LDAP-group path may authenticate without MFA. *M1032, M1042. CIS Controls v8 6.3/6.4; vendor firewall hardening guide.*</li><li><strong>Remove direct RDP exposure and require NLA.</strong> Put RDP behind a gateway or jump host. *M1035, M1042. CIS Windows Benchmark (Remote Desktop Services).*</li><li><strong>Enable Defender tamper protection and Falcon uninstall/tamper protection</strong>, so a signed-in admin cannot disable the sensor or Defender. *M1024, M1038. Microsoft Defender documentation.*</li><li><strong>Confirm backups are immutable and offline-tested</strong>, with backup consoles outside the domain admin trust path. *M1053. CIS Controls v8 11.*</li><li><strong>Reset and monitor leaked credentials</strong> (infostealer and breach exposure). CloudSEK links infostealer infections to 20.5% of SafePay victims with a known domain. *M1027, M1017.*</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near term · 1-4 weeks · pilot first</div><ul><li><strong>Enable ASR rules in audit, then block the safe ones:</strong> advanced ransomware protection and LSASS credential theft move to Block after a clean audit. The PsExec/WMI process-creation rule stays in Audit permanently as a telemetry source, because PsExec is a legitimate admin tool and is never blocked here. *M1040. Microsoft ASR documentation.*</li><li><strong>Restrict external Teams access and Quick Assist</strong> to approved users to blunt the help-desk lure. *M1017, M1042. Microsoft Teams external access guidance.*</li><li><strong>Application control on servers</strong> for unapproved archivers, FileZilla, Rclone and unsanctioned RMM. Control by policy and publisher; do not rely on blocking stock Windows binaries. *M1038. CIS Controls v8 2.5.*</li><li><strong>LAPS and tiered admin accounts</strong>: domain admin credentials must not be usable on workstations or by remote tools. *M1026, M1018. Microsoft privileged access model.*</li><li><strong>Enable command-line process auditing and larger Security log retention</strong> so Q1 to Q12 have data and log clearing is visible. *M1047. CIS Windows Benchmark (Audit Policy).*</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic · 1-3 months · architecture</div><ul><li><strong>Harden the hypervisor tier:</strong> dedicated management network, hypervisor lockdown, MFA-backed identity not tied to the production domain. NCC Group and Halcyon report hypervisors encrypted. *M1030, M1032. Hypervisor vendor hardening guide (not a formal benchmark here: best-practice).*</li><li><strong>Segment so a VPN user cannot reach every share and server</strong>, and restrict SMB admin shares between server tiers. *M1030. CIS Controls v8 12.*</li><li><strong>Ingest VPN, M365 and hypervisor logs</strong> into the same hunting platform to close the native-hunt gaps. *M1047.*</li></ul></div>
+  </div>
+</div>
+<div class="section" id="s13">
+  <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+  <div class="section-body">
+<h3>PB1 · Defender attack surface reduction (audit first)</h3><p>Prerequisites: Defender is the active AV, local admin, Intune or GPO not already managing ASR. Reboot required: no. Rollback: set the rule action back to Disabled (0) or remove it with <code>Remove-MpPreference</code>.</p><pre class="code" id="pb1"># Audit mode first. After a clean 14 days, move ONLY the ransomware and LSASS rules to Block.
+# The PsExec/WMI rule stays in Audit (PsExec is a legitimate admin tool).
+Add-MpPreference -AttackSurfaceReductionRules_Ids d1e49aac-8f56-4280-b9ba-993a6d77406c -AttackSurfaceReductionRules_Actions AuditMode   # PsExec and WMI process creation
+Add-MpPreference -AttackSurfaceReductionRules_Ids c1db55ab-c21a-4637-bb3f-a12568109d35 -AttackSurfaceReductionRules_Actions AuditMode   # advanced ransomware protection
+Add-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions AuditMode   # LSASS credential theft
+# Verify
+Get-MpPreference | Select-Object AttackSurfaceReductionRules_Ids, AttackSurfaceReductionRules_Actions
+# Rollback
+# Remove-MpPreference -AttackSurfaceReductionRules_Ids &lt;rule-guid&gt;</pre><h3>PB2 · Restrict RDP to a jump-host range and require NLA</h3><p>Prerequisites: confirm the jump-host subnet (the example uses the documentation range <code>192.0.2.0/24</code>, replace it) and that you have console access. Reboot required: no. Rollback: remove the rule and set <code>UserAuthentication</code> back to its prior value.</p><pre class="code" id="pb2"># Require Network Level Authentication
+Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1
+# Allow RDP only from the jump-host range (replace the example range)
+New-NetFirewallRule -DisplayName 'RDP from jump hosts only' -Direction Inbound -Protocol TCP -LocalPort 3389 -RemoteAddress 192.0.2.0/24 -Action Allow
+Set-NetFirewallRule -DisplayGroup 'Remote Desktop' -Enabled False
+# Verify
+Get-NetFirewallRule -DisplayName 'RDP from jump hosts only' | Get-NetFirewallAddressFilter
+# Rollback
+# Remove-NetFirewallRule -DisplayName 'RDP from jump hosts only'; Set-NetFirewallRule -DisplayGroup 'Remote Desktop' -Enabled True</pre><h3>PB3 · Command-line auditing and Security log size</h3><p>Prerequisites: local admin; storage headroom for a larger Security log. Reboot required: no. Rollback: set <code>ProcessCreationIncludeCmdLine_Enabled</code> to 0 and restore the previous log size.</p><pre class="code" id="pb3">auditpol /set /subcategory:"Process Creation" /success:enable
+New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit' -Name ProcessCreationIncludeCmdLine_Enabled -Value 1 -Type DWord
+wevtutil sl Security /ms:1073741824
+# Verify
+auditpol /get /subcategory:"Process Creation"
+wevtutil gl Security
+# Rollback
+# Set-ItemProperty ... ProcessCreationIncludeCmdLine_Enabled -Value 0; wevtutil sl Security /ms:&lt;previous bytes&gt;</pre><h3>PB4 · Limit external Teams access and Quick Assist</h3><p>Prerequisites: Teams admin role; business agreement on which partner domains need federation. Reboot required: no. Rollback: set federation back to open and re-add the Quick Assist capability.</p><pre class="code" id="pb4"># Teams: block unmanaged external federation, then allow-list partners
+Set-CsTenantFederationConfiguration -AllowFederatedUsers $false
+# Endpoints: remove Quick Assist where it is not sanctioned
+Remove-WindowsCapability -Online -Name 'App.Support.QuickAssist~~~~0.0.1.0'
+# Verify
+Get-CsTenantFederationConfiguration | Select-Object AllowFederatedUsers
+Get-WindowsCapability -Online -Name 'App.Support.QuickAssist*'
+# Rollback
+# Set-CsTenantFederationConfiguration -AllowFederatedUsers $true
+# Add-WindowsCapability -Online -Name 'App.Support.QuickAssist~~~~0.0.1.0'</pre><p>Post-deployment spot-check: re-run Q1 to Q12 over 7 days and confirm the pre-encryption chain would still alert after the ASR rules move to Block.</p>
+  </div>
+</div>
+<div class="section" id="s14">
+  <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Isolate</td><td>Network-contain affected hosts in Falcon but keep them powered on for memory capture; terminate VPN and RDP sessions; disable compromised and recently reset admin accounts</td><td>SOC / IR lead</td><td>Containment timestamps; session kill records</td></tr>
+<tr><td>Eradicate</td><td>Remove ScreenConnect/QDoor persistence and operator batch files; reset all credentials the operator touched and revoke tokens (valid credentials survive a rebuild); close the VPN MFA gap; remove staged archives and exfil tools</td><td>IR / IT ops</td><td>Credential rotation log; service and file removal list</td></tr>
+<tr><td>Recover</td><td>Rebuild affected servers and hypervisors from known-good images; restore from immutable backups; validate before reconnecting; re-enable services in order</td><td>IT ops</td><td>Restore test results; integrity checks</td></tr>
+<tr><td>Preserve</td><td>Collect VPN logs, Defender operational logs and command history before reimaging</td><td>DFIR</td><td>Evidence hash list</td></tr>
+<tr><td>Notify</td><td>Engage legal and regulators per double-extortion data-theft obligations; check downstream customers if you are a provider</td><td>Legal / leadership</td><td>Notification timeline</td></tr>
+<tr><td>Post-incident</td><td>Promote validated detections to IOA; run Q1 to Q14 estate-wide; fix the access path that was used</td><td>Detection eng</td><td>Lessons-learned record</td></tr>
+</tbody></table>
+  </div>
+</div>
+<div class="section" id="s15">
+  <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>Technique / behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead>
+<tbody>
+<tr><td>Encryptor launch flags (T1486, T1218)</td><td>Q1, Q2</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+<tr><td>Recovery inhibition (T1490)</td><td>Q3</td><td>Yes (Detect)</td><td><span class="badge b-low">Good</span></td></tr>
+<tr><td>Defender tamper (T1562.001)</td><td>Q4</td><td>Yes</td><td><span class="badge b-med">Partial</span></td></tr>
+<tr><td>Log clearing (T1070.001)</td><td>Q5</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+<tr><td>COM UAC bypass (T1548.002)</td><td>Q6</td><td>No</td><td><span class="badge b-med">Partial: CLSID not sourced</span></td></tr>
+<tr><td>Share discovery (T1135)</td><td>Q7</td><td>Yes</td><td><span class="badge b-low">Good</span></td></tr>
+<tr><td>Archive staging (T1560.001)</td><td>Q8</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+<tr><td>Exfil tooling (T1048)</td><td>Q9</td><td>No</td><td><span class="badge b-med">Partial: sanctioned-use overlap</span></td></tr>
+<tr><td>Remote tools (T1219)</td><td>Q10</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+<tr><td>Service and EDR kill (T1489)</td><td>Q11</td><td>No</td><td><span class="badge b-med">Partial: EDR-kill is single-sourced</span></td></tr>
+<tr><td>RDP fan-out (T1021.001)</td><td>Q12</td><td>No</td><td><span class="badge b-med">Partial</span></td></tr>
+<tr><td>Known C2 / hashes</td><td>Q13, Q14</td><td>IOC Mgmt</td><td><span class="badge b-low">Good, perishable</span></td></tr>
+<tr><td>Token impersonation / SeDebugPrivilege (T1134.001)</td><td>None</td><td>No</td><td><span class="badge b-high">GAP: no Falcon event</span></td></tr>
+<tr><td>Ransom note and .safepay file writes</td><td>None</td><td>No</td><td><span class="badge b-high">GAP: no CQL shipped, use N8 and Falcon ransomware prevention</span></td></tr>
+<tr><td>Hypervisor encryption</td><td>None</td><td>No</td><td><span class="badge b-high">GAP: native hypervisor logs</span></td></tr>
+<tr><td>VPN MFA bypass, Teams lure</td><td>None</td><td>No</td><td><span class="badge b-high">GAP: outside Falcon, N1/N4</span></td></tr>
+</tbody></table><p>Validation gates (s11) apply: baseline for 7 days before promoting any IOA.</p>
+  </div>
+</div>
+<div class="section" id="s16">
+  <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+  <div class="section-body">
+<div class="ticket"><pre class="code" id="ticket">TITLE:        SafePay Ransomware: Windows Endpoint Hunt (VPN/RDP credential entry to encryption)
+SEVERITY:     HIGH (active double-extortion operation)
+SCOPE:        Windows endpoints and servers, AD/identity, VPN gateways, M365 Teams, hypervisors
+HYPOTHESIS:   An operator with valid VPN/RDP credentials is staging (ShareFinder, archive, exfil,
+              Defender tamper) ahead of an encryptor launched with -pass= plus path/enc flags.
+QUERIES RUN:  Q1 launch flags | Q2 regsvr32 DLL | Q3 recovery | Q4 Defender | Q5 log clear |
+              Q6 COM UAC | Q7 ShareFinder | Q8 archive | Q9 exfil | Q10 RMM | Q11 svc stop |
+              Q12 RDP fan-out | Q13 C2 IPs | Q14 hashes  (+10 native hunts)
+DATA SOURCES: Falcon ProcessRollup2, UserLogon, NetworkConnectIP4, PeFileWritten; VPN, M365,
+              hypervisor logs (native)
+FINDINGS:     &lt;pending analyst execution&gt;
+GAPS:         Token impersonation, ransom-note file writes, hypervisor and VPN/Teams stages have
+              no Falcon query. The 1,300% growth claim in the request is unverified.
+ACTIONS:      MFA on all remote paths incl. local accounts; tamper protection; ASR audit-to-block;
+              promote Q1, Q3, Q7 to Custom IOA (Detect only); prevent only the 2 multi-source hashes.
+OWNER:        HuntPack
+VERSION:      v0.1 (Draft) - 2026-10-08</pre></div>
+  </div>
+</div>
+<div class="section" id="s17">
+  <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+  <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-08</span><span>Initial HuntPack: 14 CQL queries, 10 native hunts, 4 IOA candidates, tiered hardening, 4 deployable playbooks, 9 source snapshots. Two multi-source hashes set to prevent; all other indicators detect or hunt. SentinelOne PowerQuery tabs added to Q1-Q14: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div>
+  </div>
+</div>
+<div class="section" id="s18">
+  <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+  <div class="section-body">
+<table>
+<thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Accessed</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><a href="https://www.nccgroup.com/us/research-blog/weak-passwords-led-to-safepay-ransomware-yet-again/" target="_blank" rel="noopener">NCC Group: Weak Passwords Led to (SafePay) Ransomware</a></td><td>Incident, IOCs, arguments, commands</td><td>2026-10-08</td></tr>
+<tr><td>1</td><td><a href="https://www.bitdefender.com/en-us/blog/businessinsights/safepay-ransomware-attacks-ttps" target="_blank" rel="noopener">Bitdefender: SafePay, a Non-RaaS Group</a></td><td>Profile, TTPs, hashes</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://www.threatlocker.com/blog/safepay-ransomware-explained-iocs-ttps-and-defense-strategies" target="_blank" rel="noopener">ThreatLocker: SafePay ransomware explained</a></td><td>Hashes, mutexes, TTPs</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://threatlabsnews.xcitium.com/blog/safepay-ransomware-family-overview-technical-analysis-ttps-and-xcitiums-protection/" target="_blank" rel="noopener">Xcitium ThreatLabs: SafePay technical analysis</a></td><td>CMSTPLUA, IPs, TTPs</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://www.halcyon.ai/threat-group/safepay" target="_blank" rel="noopener">Halcyon: SafePay threat group</a></td><td>TTP list, IPs, 2026 activity</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://redpiranha.net/news/what-is-safepay-ransomware-everything-you-need-know" target="_blank" rel="noopener">Red Piranha: What is SafePay Ransomware</a></td><td>DllHost pattern, IPs</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://www.cloudsek.com/knowledge-base/safepay-ransomware" target="_blank" rel="noopener">CloudSEK: SafePay Ransomware guide</a></td><td>Huntress case, regsvr32 pattern, victim counts</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://www.picussecurity.com/resource/blog/inside-safepay-analyzing-the-new-centralized-ransomware-group" target="_blank" rel="noopener">Picus Labs: Inside SafePay</a></td><td>Command lines, kill lists</td><td>2026-10-08</td></tr>
+<tr><td>2</td><td><a href="https://blackpointcyber.com/wp-content/uploads/2026/02/SafePay.pdf" target="_blank" rel="noopener">Blackpoint Cyber: SafePay threat profile</a></td><td>ATT&amp;CK list, lineage</td><td>2026-10-08</td></tr>
+</tbody></table><p style="margin-top:12px;font-size:11px;color:var(--text-muted);">HuntPack v0.1 (Draft) · SafePay Ransomware · Generated 2026-10-08 · Defensive use only. No exploit code or encryptor internals. Contains no victim, company or environment-specific identifiers. Validate field names and tune exclusions in your own tenant before promoting any query to alerting.</p>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+<script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+</script>
+</body>
+</html>
