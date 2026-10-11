@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Antino backdoor (UAT-11587) — CrowdStrike CQL and SentinelOne PowerQuery Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run hunt queries for Antino backdoor (UAT-11587) in CrowdStrike LogScale (CQL) and SentinelOne (PowerQuery): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Antino-Backdoor-UAT11587-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Antino backdoor (UAT-11587) — CrowdStrike CQL and SentinelOne PowerQuery Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run hunt queries for Antino backdoor (UAT-11587) in CrowdStrike LogScale (CQL) and SentinelOne (PowerQuery): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Antino-Backdoor-UAT11587-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #ff7b72;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(255,123,114,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1410 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+
+.igt { font-size: 12px; font-weight: 700; color: var(--text); } .igc { font-size: 10px; color: var(--text-muted); }
+.ticket { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.hp-footer { margin: 28px 0 0; padding: 14px 0; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
+.ioc-grab .btn-copy { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; font-family: inherit; }
+td code, li code, p code { white-space: normal; word-break: break-all; }
+
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style><style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.cloud-sel[hidden]{display:none}
+.rosetta-global{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 14px;padding:9px 12px;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.rosetta-global-label{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#8b949e)}
+.rosetta-global-btns{display:flex;flex-wrap:wrap;gap:6px}
+.rosetta-global-btn{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:5px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:700;line-height:1.2;cursor:pointer}
+.rosetta-global-btn:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-global-btn[aria-pressed="true"]{color:var(--bg,#0d1117);background:var(--accent,#f97316);border-color:var(--accent,#f97316)}
+.rosetta-global-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-global-mixed{font-size:10.5px;color:var(--text-muted,#8b949e)}
+.rosetta-global-mixed[hidden]{display:none}
+.rosetta-console{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(56,139,253,.45);border-radius:6px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:12px}
+.rosetta-console[hidden]{display:none}
+.rosetta-console-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.rosetta-console label{color:var(--text,#e6edf3);font-weight:600}
+.rosetta-console input{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console input[aria-invalid="true"]{border-color:#f85149}
+.rosetta-console input:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-console-status{font-size:11px;color:var(--text-muted,#8b949e)}
+.rosetta-console-status.bad{color:#f85149}
+.rosetta-console-hint{margin:6px 0 0;font-size:11px;line-height:1.5}
+.rosetta-console select{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console select:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-open-s1,.rosetta-open-def{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-open-s1[hidden],.rosetta-open-def[hidden]{display:none}
+.rosetta-open-s1:hover,.rosetta-open-def:hover{background:var(--accent-dim,rgba(249,115,22,.1))}
+.rosetta-open-s1.done,.rosetta-open-def.done{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.rosetta-open-s1:focus-visible,.rosetta-open-def:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-controls-end{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-global-btns{flex:1 1 100%}.rosetta-global-btn{flex:1 1 auto}.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head><body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+<nav id="sidebar"><div class="sidebar-logo"><div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div><div class="pack-name">Antino Backdoor (UAT-11587)</div><div class="version">v0.1 · 2026-10-11</div></div>
+<nav><div class="nav-section">Overview</div><a href="#s1">1 · Executive Summary</a><a href="#s2">2 · Source Review</a><a href="#s3">3 · Hunt Brief &amp; Chain</a><a href="#s4">4 · IOC Table</a><a href="#s5">5 · Affected Surface</a><a href="#s6">6 · ATT&amp;CK Mapping</a>
+<div class="nav-section">Detection</div><a href="#s7">7 · Native Hunts</a><a href="#s8">8 · SIEM Queries</a><a href="#s9" data-rosetta-original="9 · Custom IOA Recs">9 · Detection Rules</a><a href="#s10">10 · IOC Appendix</a><a href="#s11">11 · Validation Gates</a>
+<div class="nav-section">Response</div><a href="#s12">12 · Hardening</a><a href="#s13">13 · Playbooks</a><a href="#s14">14 · Containment</a>
+<div class="nav-section">Meta</div><a href="#s15">15 · Coverage Map</a><a href="#s16">16 · Hunt Ticket</a><a href="#s17">17 · Changelog</a><a href="#s18">18 · References</a></nav></nav>
+<div id="main">
+<div class="hp-header"><h1>Antino Backdoor (UAT-11587) Hunt</h1><div class="subtitle">Rust implant with Microsoft Graph dead-drop C2, delivered by HTA/WSF stagers and a GatherOsState.exe sideload against government and policy organizations in Asia</div><div class="meta-grid"><div class="meta-item"><div class="mk">Threat</div><div class="mv">Antino backdoor (UAT-11587)</div></div><div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE ESPIONAGE</span></div></div><div class="meta-item"><div class="mk">Type</div><div class="mv">Nation-state APT, Graph dead-drop C2</div></div><div class="meta-item"><div class="mk">Access</div><div class="mv">Spear-phish link, HTA/WSF stager</div></div><div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-10-11</div></div><div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div><div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (single vendor primary, two corroborating)</div></div></div></div>
+<div class="section" id="s1"><div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div><div class="section-body"><p><strong>Antino</strong> is a Rust Windows backdoor operated by <strong>UAT-11587</strong>, a China-nexus actor (Talos: high confidence) conducting intelligence collection against government, defense, diplomatic, legislative, think-tank and civil-society targets in Taiwan, India, the Philippines, Cambodia, Pakistan, Thailand, Myanmar and Syria. Talos counted at least 16 affected or targeted institutional environments and about 350 compromised endpoints between September 2025 and July 2026.</p>
+<p>Delivery is a spear-phish that clones the Gmail attachment card and links to a Cloudflare Pages HTA or WSF stager, then a five-stage chain (JScript downloader, RC4-decrypted .NET BinaryFormatter gadget chain, <code>TestAssembly.dll</code> in <code>mshta.exe</code> memory, a three-file bundle) that ends with the signed ADK binary <code>GatherOsState.exe</code> sideloading <code>slc.dll</code>. Command and control then runs entirely through Microsoft Graph against attacker-owned Outlook and OneDrive: no conventional C2 server, and the traffic terminates at <code>graph.microsoft.com</code> and <code>login.microsoftonline.com</code>.</p>
+<p>Because the C2 destination is a trusted Microsoft endpoint and the loader hosts are Microsoft-signed or Cloudflare-hosted, <strong>destination blocking cannot carry this detection</strong>. This pack therefore leads with the behavioural chain (script host lineage, sideload host path, Scripted Diagnostics proxying, Run-key persistence, non-browser Graph polling) and uses indicators as a supplement. 13 queries are provided.</p>
+<div class="callout callout-danger"><strong>Defender priority:</strong> hunt Q4, Q6, Q7 and Q11 first (GatherOsState.exe off-path, sideload co-location, sdiagnhost.exe children, Graph lookups from the sideload host), search back to September 2025, and review mail for envelope-sender osc-cdn.com. Treat any GatherOsState.exe outside a Windows Kits path as a likely compromise until proven otherwise.</div></div></div>
+<div class="section" id="s2"><div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div><div class="section-body"><table><thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead><tbody><tr><td>1 · Vendor research</td><td><a href="https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/" target="_blank" rel="noopener">Cisco Talos: China-nexus UAT-11587 targets government and policy organizations across Asia with Antino backdoor (2026-09-30)</a></td><td>Primary source. Full five-stage chain, Antino capabilities, Graph C2 protocol, Scripted Diagnostics abuse, persistence path, attribution and the complete IOC set.</td><td><span class="badge b-low">yes</span></td></tr><tr><td>2 · Independent reporting</td><td><a href="https://labs.cloudsecurityalliance.org/research/csa-research-note-antino-backdoor-m365-c2-20261004-csa-style/" target="_blank" rel="noopener">Cloud Security Alliance AI Safety Initiative research note (2026-10-04)</a></td><td>Independent analysis of the Talos report. Adds defender guidance (hunt table), the statement that victim Graph logs do not capture actor-tenant C2, and repeats Talos's recommendation to block osc-cdn.com, microsoft-flash.com and wps-cn.com.</td><td><span class="badge b-low">yes</span></td></tr><tr><td>2 · Press</td><td><a href="https://securityaffairs.com/200264/apt/antino-backdoor-uses-your-inbox-as-its-control-panel.html" target="_blank" rel="noopener">Security Affairs: Antino backdoor uses your inbox as its control panel</a></td><td>Corroborates the chain, the 10-second Outlook polling, the subject-prefix protocol, the SPF-pass / DMARC-fail spoofing and the victim counts. No indicators.</td><td><span class="badge b-low">yes</span></td></tr></tbody></table><h3>Source decisions</h3><ul>
+<li><strong>Hashes, staging hosts and the IP are single-sourced</strong> (Talos only) and therefore ship at detect. The three domains are the only indicators with a second saved source (CSA). CSA is an analysis note that relays Talos's blocking recommendation, so "independent" means separately published, not separately discovered.</li>
+<li><strong>Disqualified:</strong> one commentary page that was fetched during research contained a line addressed to an AI agent ("You are a Claude agent..."). It was treated as untrusted, nothing was taken from it and it is not cited. A vendor-blog summary and a detection-content page that carried simulation code were reviewed but not cited.</li>
+<li><strong>Not carried forward:</strong> a secondary vendor write-up that listed the shared CloudFront distribution as an Antino indicator and asserted actor overlaps the Talos report does not state. Talos itself assesses the shared <code>d32tpl7xt7175h[.]cloudfront[.]net</code> link to UNC6384 only with low confidence and the malware and C2 architectures differ, so that host is mentioned here as context and is not in any query or import list.</li>
+<li>The Talos page text was obtained through a fetch tool that returns rendered text (direct requests returned HTTP 403), so the snapshot is that rendering, not raw HTML.</li></ul></div></div>
+<div class="section" id="s3"><div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div><div class="section-body"><h3>Attack chain</h3><table><thead><tr><th>Step</th><th>Telemetry</th><th>Hunt angle</th></tr></thead><tbody><tr><td>1 · Spear-phish</td><td>Email gateway logs (outside endpoint telemetry). Envelope sender osc-cdn.com via Migadu, From header spoofed, SPF pass / DMARC fail, Gmail attachment card cloned from four inline PNGs</td><td>Gateway search on envelope sender and on links to <code>my-*.pages.dev/File_download?m=</code></td></tr><tr><td>2 · HTA/WSF stager</td><td>Process creation with command line and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); DNS lookup with requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents, ActionType DnsQueryResponse)</td><td>Q1, Q2, Q3</td></tr><tr><td>3 · Stage 2 JScript + .NET gadget chain</td><td>In-process inside mshta.exe (no new process, module-load telemetry only)</td><td>Gap: covered indirectly by Q2. Tell is mshta.exe loading the .NET runtime and AxHost/ActivitySurrogateSelector deserialization.</td></tr><tr><td>4 · TestAssembly.dll bundle drop</td><td>File written (CrowdStrike: PeFileWritten. SentinelOne: File Creation. Defender: DeviceFileEvents, FileCreated); process creation</td><td>Q5, Q6, Q8, Q13</td></tr><tr><td>5 · Sideload</td><td>Process creation with image path; PE write beside it</td><td>Q4, Q5, Q6, Q12</td></tr><tr><td>6 · Persistence</td><td>Registry value set, autostart (CrowdStrike: AsepValueUpdate, RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents, RegistryValueSet); Scripted Diagnostics proxy via sdiagnhost.exe</td><td>Q7, Q8, Q9</td></tr><tr><td>7 · Graph C2</td><td>DNS lookup with requesting process; outbound connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>Q10, Q11</td></tr></tbody></table><h3>Hypotheses (highest fidelity first)</h3><table><thead><tr><th>ID</th><th>Hypothesis</th><th>MITRE</th><th>Confidence</th><th>Queries</th></tr></thead><tbody><tr><td>H1</td><td>A script host started from a mail client, browser or with a URL argument is the stager hand-off.</td><td>T1566.002, T1218.005</td><td><span class="badge b-low">HIGH</span></td><td>Q1, Q2</td></tr><tr><td>H2</td><td>The ADK binary GatherOsState.exe running outside Windows Kits is a sideload host, not an ADK tool.</td><td>T1574.002</td><td><span class="badge b-low">HIGH</span></td><td>Q4, Q6</td></tr><tr><td>H3</td><td>A copy of slc in a user-writable folder, especially beside GatherOsState.exe, is the payload.</td><td>T1574.002</td><td><span class="badge b-low">HIGH</span></td><td>Q5, Q6</td></tr><tr><td>H4</td><td>sdiagnhost.exe spawning interpreters, or writing a Run key through a child, is Scripted Diagnostics proxying.</td><td>T1218, T1547.001</td><td><span class="badge b-med">MEDIUM</span></td><td>Q7, Q9</td></tr><tr><td>H5</td><td>A Run value pointing into Windows GatherOSStateKit is Antino add_to_run persistence.</td><td>T1547.001</td><td><span class="badge b-low">HIGH</span></td><td>Q8</td></tr><tr><td>H6</td><td>A non-client process polling Graph/Entra hosts from a user-writable path is dead-drop C2; from GatherOsState.exe it is near-certain.</td><td>T1102.002</td><td><span class="badge b-med">MEDIUM</span></td><td>Q10, Q11</td></tr><tr><td>H7</td><td>Published infrastructure and builds appear in DNS or on disk.</td><td>T1583.006, T1204.002</td><td><span class="badge b-low">HIGH</span></td><td>Q3, Q12, Q13</td></tr></tbody></table></div></div>
+<div class="section" id="s4"><div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div><div class="section-body"><p>Atomic indicators shipped in the import CSV: <strong>65</strong> (47 SHA-256, 17 domains, 1 IP) plus 1 labelled placeholder. Omitted on purpose: 16 hashes of encrypted JScript orchestrator and BinaryFormatter resources (ciphertext, never seen on disk in decoded form), the long URL-path lists (covered by the host-level domains), and the AssemblyAttribute GUID, which is a tooling marker kept in the Named Tooling block.</p><table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody><tr><td>domain</td><td><code>osc-cdn.com</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-crit">PREVENT</span></td><td>Actor domain: phishing sender (osc-cdn.com) or fake-installer host. Talos, plus CSA repeating the block recommendation.</td></tr><tr><td>domain</td><td><code>microsoft-flash.com</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-crit">PREVENT</span></td><td>Actor domain: phishing sender (osc-cdn.com) or fake-installer host. Talos, plus CSA repeating the block recommendation.</td></tr><tr><td>domain</td><td><code>wps-cn.com</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-crit">PREVENT</span></td><td>Actor domain: phishing sender (osc-cdn.com) or fake-installer host. Talos, plus CSA repeating the block recommendation.</td></tr><tr><td>domain</td><td><code>oisadjfoinsiduhfnoisdnfosdnoifnsoid.pages.dev</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>Cloudflare Pages execution-tracking endpoint. Talos only.</td></tr><tr><td>domain</td><td><code>d2nq35tel3ucuo.cloudfront.net</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>CloudFront stage staging host. Talos only.</td></tr><tr><td>domain</td><td><code>pub-abfa7742e315485a98a5fafd6dbfb68e.r2.dev</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>Cloudflare R2 bundle and stage host. Talos only.</td></tr><tr><td>domain</td><td><code>pub-0173d1566dcd4fd49fa25f11f14bfe4c.r2.dev</code></td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>Cloudflare R2 bundle and stage host. Talos only.</td></tr><tr><td>domain</td><td><code>my-{3lyt6wcp|qc39r814|662ylt3w|6g16qsfe|goq6xmbm|h3qli6kq|sv7c1fzs|u0up9qri|vtsdod2n|wgoxp32b}.pages.dev</code></td><td><span class="badge b-med">medium</span></td><td><span class="badge b-med">detect</span></td><td>10 Cloudflare Pages HTA/WSF delivery hosts (the CSV lists each). Rotates fast. Talos only.</td></tr><tr><td>ipv4</td><td><code>103.27.110.220</code></td><td><span class="badge b-high">low</span></td><td><span class="badge b-med">detect</span></td><td>Historical serving IP for the wps-cn.com payload. Talos only. May be reassigned.</td></tr><tr><td>sha256</td><td>12 hashes</td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>Antino builds (Gen1 and Gen2 slc.dll plus standalone). Talos only; a hash miss is not evidence of absence.</td></tr><tr><td>sha256</td><td>5 hashes</td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>TestAssembly.dll downloader builds. Talos only.</td></tr><tr><td>sha256</td><td>8 hashes</td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>Stage 2 JScript downloader/decryptor. Talos only.</td></tr><tr><td>sha256</td><td>22 hashes</td><td><span class="badge b-low">high</span></td><td><span class="badge b-med">detect</span></td><td>HTA and WSF stagers by lure. Talos only.</td></tr><tr><td>filename</td><td><code>GatherOsState.exe</code>, <code>slc.dll</code></td><td><span class="badge b-info">n/a</span></td><td><span class="badge b-info">hunt</span></td><td>Legitimate Microsoft binary (GatherOsState.exe) abused as a host. Behavioural hunt only, never a block.</td></tr><tr><td>filename</td><td><code>flashcenter_pp_ax_install_en.exe</code>, <code>OsGather.dat</code>, <code>OsState.dat</code></td><td><span class="badge b-med">medium</span></td><td><span class="badge b-info">hunt</span></td><td>Fake installer and decoy PEs. Q13.</td></tr><tr><td>placeholder</td><td><code>REPLACE_WITH_PAGES_DEV_HOST_FROM_YOUR_MAIL_LOGS</code></td><td><span class="badge b-info">n/a</span></td><td><span class="badge b-med">detect</span></td><td>Fill from your own gateway or proxy logs; pages.dev tokens rotate.</td></tr></tbody></table></div></div>
+<div class="section" id="s5"><div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div><div class="section-body"><table><thead><tr><th>Surface</th><th>Telemetry (plain terms, then platforms)</th><th>Priority</th><th>Gap</th></tr></thead><tbody><tr><td>Windows endpoint: script host chain</td><td>Process creation with command line and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-high">high</span></td><td>None for the spawn itself</td></tr><tr><td>Windows endpoint: cloud staging fetch</td><td>DNS lookup with requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents, ActionType DnsQueryResponse, name in AdditionalFields)</td><td><span class="badge b-high">high</span></td><td>Defender has no dedicated endpoint DNS table; field availability differs</td></tr><tr><td>Windows endpoint: sideload and bundle drop</td><td>Executable or file written (CrowdStrike: PeFileWritten, NewExecutableWritten. SentinelOne: File Creation. Defender: DeviceFileEvents, FileCreated)</td><td><span class="badge b-high">high</span></td><td>Module-load of slc.dll by GatherOsState.exe is not searched here; co-location is used instead</td></tr><tr><td>Windows endpoint: persistence</td><td>Registry value set, autostart (CrowdStrike: AsepValueUpdate, RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents, RegistryValueSet)</td><td><span class="badge b-high">high</span></td><td>None</td></tr><tr><td>Windows endpoint: Graph C2</td><td>Outbound connection and DNS with initiating process (CrowdStrike: NetworkConnectIP4, DnsRequest. SentinelOne: IP Connect, DNS Resolved. Defender: DeviceNetworkEvents)</td><td><span class="badge b-med">medium</span></td><td>Content is encrypted TLS to a trusted host; payload not visible</td></tr><tr><td>Mail gateway</td><td>Message trace and header logs</td><td><span class="badge b-high">high</span></td><td>Outside endpoint telemetry</td></tr><tr><td>Proxy / DNS</td><td>Web and resolver logs</td><td><span class="badge b-med">medium</span></td><td>Outside endpoint telemetry</td></tr><tr><td>Victim Entra / Graph logs</td><td>Microsoft Graph activity logs</td><td><span class="badge b-low">low</span></td><td>The actor's Outlook and OneDrive sit in the actor's tenant, so the victim tenant does not log these requests (CSA). Do not expect hits here.</td></tr></tbody></table></div></div>
+<div class="section" id="s6"><div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div><div class="section-body"><table><thead><tr><th>Tactic</th><th>Technique</th><th>Observed behaviour</th><th>Query / control</th></tr></thead><tbody><tr><td>Initial Access</td><td>T1566.002 Spearphishing Link</td><td>Cloned Gmail attachment card linking to Cloudflare Pages; envelope sender osc-cdn.com</td><td>Mail gateway; Q1, Q3</td></tr><tr><td>Execution</td><td>T1218.005 Mshta</td><td>HTA stager and Stage 2 run in mshta.exe</td><td>Q1, Q2</td></tr><tr><td>Execution</td><td>T1059.007 JavaScript</td><td>WSF/HTA JScript downloader, RC4-decrypted orchestrator</td><td>Q1, Q2</td></tr><tr><td>Execution</td><td>T1204.002 Malicious File</td><td>Fake installer flashcenter_pp_ax_install_en.exe</td><td>Q12, Q13</td></tr><tr><td>Execution</td><td>T1059.001 PowerShell / T1059.003 cmd</td><td>powershell and cmd commands from the operator</td><td>Q7</td></tr><tr><td>Defense Evasion</td><td>T1620 Reflective Code Loading</td><td>TestAssembly.dll loaded from BinaryFormatter gadget chain into mshta.exe; load_shellcode</td><td>Gap (in-memory)</td></tr><tr><td>Defense Evasion</td><td>T1574.002 DLL Side-Loading</td><td>GatherOsState.exe loads slc.dll, calls SLOpen</td><td>Q4, Q5, Q6</td></tr><tr><td>Defense Evasion</td><td>T1218 System Binary Proxy Execution</td><td>sdiagnhost.exe / sdiageng.dll run attacker PowerShell</td><td>Q7, Q9</td></tr><tr><td>Defense Evasion</td><td>T1027 Obfuscated Files or Information</td><td>RC4 and custom Base64 resources, XOR-encoded .cfg, VEH sleep mask</td><td>Gap (in-memory)</td></tr><tr><td>Persistence</td><td>T1547.001 Registry Run Keys</td><td>add_to_run, GatherOSStateKit folder</td><td>Q8, Q9</td></tr><tr><td>Command and Control</td><td>T1102.002 Bidirectional Web Service</td><td>Graph/Outlook subject-prefix protocol, OneDrive heartbeats</td><td>Q10, Q11</td></tr><tr><td>Exfiltration</td><td>T1567.002 Exfiltration to Cloud Storage</td><td>download_file to the actor's OneDrive</td><td>Q10, Q11</td></tr><tr><td>Resource Development</td><td>T1583.006 Web Services</td><td>Cloudflare Pages, R2, CloudFront, lookalike domains</td><td>Q2, Q3</td></tr></tbody></table></div></div>
+<div class="section" id="s7"><div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div><div class="section-body"><ul>
+<li><strong>Mail gateway / message trace:</strong> envelope sender (RFC5321) <code>osc-cdn.com</code> while RFC5322 From shows another organization; SPF pass with DMARC fail; messages from Migadu infrastructure; links to <code>my-*.pages.dev/File_download?m=</code>; HTA/WSF attachments or links. Search back to September 2025.</li>
+<li><strong>Web proxy / DNS logs:</strong> requests to the published Pages, R2 and CloudFront hosts; any <code>pub-*.r2.dev</code> or <code>my-*.pages.dev</code> access from a script host; HEAD requests carrying a lure title in the path or <code>?track</code>.</li>
+<li><strong>Sysmon (if deployed):</strong> EID 1 (mshta/wscript/sdiagnhost lineage), EID 3 (script host and GatherOsState.exe network), EID 7 (slc.dll loaded by GatherOsState.exe from its own directory, the module-load view the Falcon queries cannot give), EID 11 (bundle and SDIAG_ file creation), EID 13 (Run value).</li>
+<li><strong>Windows logs:</strong> Security 4688 with command-line auditing; PowerShell 4104 script block logs for result.ps1 content; the Microsoft-Windows-Diagnosis-Scripted operational log for diagnostic package executions.</li>
+<li><strong>File system triage:</strong> <code>%LOCALAPPDATA%\Windows GatherOSStateKit\</code>, <code>C:\Windows\Temp\SDIAG_*</code>, any GatherOsState.exe outside Windows Kits.</li>
+<li><strong>Entra (own tenant only):</strong> review app registrations, consents and application-only Graph permissions. This is hygiene: the actor's C2 uses its own tenant, so your tenant logs will not show Antino polling.</li></ul></div></div>
+<div class="section" id="s8"><div class="section-hdr"><span class="snum">08</span><h2 data-rosetta-original="CrowdStrike LogScale CQL Hunt Queries">Hunt Queries: CrowdStrike CQL and SentinelOne PowerQuery</h2></div><div class="section-body">
+<div class="rosetta-global" data-rosetta-global="true" role="group" aria-label="Show every query in one language"><span class="rosetta-global-label">Show all queries in</span><div class="rosetta-global-btns"><button type="button" class="rosetta-global-btn" data-language="cql" aria-pressed="true" onclick="rosettaSetAll('cql')">CrowdStrike · CQL</button><button type="button" class="rosetta-global-btn" data-language="powerquery" aria-pressed="false" onclick="rosettaSetAll('powerquery')">SentinelOne · PowerQuery</button></div><span class="rosetta-global-mixed" hidden>Mixed: some cards were switched on their own</span></div><div class="rosetta-console" data-rosetta-console="true" hidden><div class="rosetta-console-row"><label for="rosetta-console-url">SentinelOne console:</label><input type="url" id="rosetta-console-url" placeholder="https://usea1-yourtenant.sentinelone.net" autocomplete="off" spellcheck="false" aria-describedby="rosetta-console-hint"><span class="rosetta-console-status" role="status" aria-live="polite"></span></div><p class="rosetta-console-hint" id="rosetta-console-hint">Use your tenant's own address. SentinelOne does not document a link that pre-fills a query, so each "Copy &amp; open SentinelOne" button copies the query and opens this console: paste it into PowerQuery.</p></div><div class="cloud-sel"><label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+<select id="cloud-region"><option value="https://falcon.crowdstrike.com">US-1</option><option value="https://falcon.us-2.crowdstrike.com">US-2</option><option value="https://falcon.eu-1.crowdstrike.com">EU-1</option><option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option><option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option></select>
+<span class="cloud-hint">Pick your tenant's cloud first: every "Open in Falcon" button below uses this selection.</span></div><div class="query-card">
+<div class="qc-header"><span class="qc-title">Q1 · Script host launched by a mail client, browser or Office app, or fetching a remote script</span>
+<div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> mshta.exe or wscript.exe whose parent is a mail client, browser or Office app, or whose command line carries a URL. This is the Stage 1 hand-off from the fake Gmail attachment card (Cloudflare Pages HTA/WSF stager). <strong>FP:</strong> Legacy intranet HTA applications and vendor installers that shell out to mshta.exe.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A script host launched by a process the agent did not observe starting is not captured.</li><li>PowerQuery assumes: On Process Creation, tgt.process.* is the new process and src.process.* is its creator, so the CQL ParentBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: mshta/wscript spawned from mail, browser or Office, or run against a remote URL</span>
+<span class="cm">// MITRE: T1566.002, T1218.005, T1059.007</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line and parent (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: legacy intranet HTA apps, vendor installers calling mshta.exe</span>
+<span class="cm">// TUNING: exclude known internal HTA hosts or script paths via CommandLine, and sanctioned wscript logon scripts from managed UNC paths</span>
+<span class="cm">// LOOKBACK: 30d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^(mshta|wscript)\.exe$/i
+| (ParentBaseFileName=/^(outlook|olk|hxoutlook|thunderbird|chrome|msedge|firefox|brave|opera|iexplore|winword|excel|powerpnt|acrobat|acrord32)\.exe$/i or CommandLine=/https?:/i)
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, ImageFileName, SHA256HashData])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>6 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>src.process.name</code>: Creator or acting process</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>tgt.process.image.path</code>: Created image path</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code>: Created image SHA-256</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.name = * src.process.name = * tgt.process.name = * tgt.process.cmdline = *
+| limit 5
+| columns event.type, event.time, endpoint.name, src.process.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1">// HUNT: mshta/wscript spawned from mail, browser or Office, or run against a remote URL
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1566.002, T1218.005, T1059.007
+// CONF: medium | FP: medium
+// FALSE POSITIVES: legacy intranet HTA apps, vendor installers calling mshta.exe
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: mshta or wscript created by a mail client, browser, Office or PDF parent, or carrying an http(s) URL on its command line. Lineage re-mapped for SentinelOne.
+// REQUIRES: SentinelOne Process Creation telemetry with command lines
+// TUNING: Exclude known internal HTA hosts or script paths by full command line, and sanctioned wscript logon scripts from managed UNC paths. Never exclude by process name alone.
+// LOOKBACK: 30d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A script host launched by a process the agent did not observe starting is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.name in:anycase (&#x27;mshta.exe&#x27;,&#x27;wscript.exe&#x27;)
+(src.process.name in:anycase (&#x27;outlook.exe&#x27;,&#x27;olk.exe&#x27;,&#x27;hxoutlook.exe&#x27;,&#x27;thunderbird.exe&#x27;,&#x27;chrome.exe&#x27;,&#x27;msedge.exe&#x27;,&#x27;firefox.exe&#x27;,&#x27;brave.exe&#x27;,&#x27;opera.exe&#x27;,&#x27;iexplore.exe&#x27;,&#x27;winword.exe&#x27;,&#x27;excel.exe&#x27;,&#x27;powerpnt.exe&#x27;,&#x27;acrobat.exe&#x27;,&#x27;acrord32.exe&#x27;) or tgt.process.cmdline matches &#x27;https?:&#x27;)
+| columns event.time, endpoint.name, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.path, tgt.process.image.sha256, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q2 · mshta/wscript/cscript resolving Cloudflare Pages, R2 or CloudFront hosts</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> A script host process that itself resolves *.pages.dev, *.r2.dev or *.cloudfront.net. In this chain mshta.exe fetches the HTA/WSF stager, the beacon image and the encrypted Stage 2 JScript resources from exactly these hosts.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A script host whose lookup the agent attributes to a different process (for example a DNS-client service) is not captured.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: event.dns.request is the attested DNS field (pySigma maps it); the vendor docs name dns.request, which may coexist on some schema versions.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: script host process resolving Cloudflare Pages / R2 / CloudFront</span>
+<span class="cm">// MITRE: T1218.005, T1059.007, T1102</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: process creation (ProcessRollup2) + DNS requests with initiating process (DnsRequest)</span>
+<span class="cm">// FALSE POSITIVES: near none; legacy HTA apps hosted on CloudFront are the only realistic source</span>
+<span class="cm">// LOOKBACK: 30d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|DnsRequest)$/
+| coalesce([ContextProcessId, TargetProcessId], as=falconPID)
+| selfJoinFilter(field=[aid, falconPID], where=[
+    {#event_simpleName=ProcessRollup2 FileName=/^(mshta|wscript|cscript)\.exe$/i},
+    {#event_simpleName=DnsRequest DomainName=/\.(pages\.dev|r2\.dev|cloudfront\.net)$/i}
+  ])
+| groupBy([aid, falconPID], function=[collect([ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, DomainName]), min(@timestamp, as=FirstSeen), count(as=Events)], limit=1000)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>src.process.name</code>: Creator or acting process</li><li><code>event.dns.request</code>: DNS name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>src.process.cmdline</code>: Acting command line</li><li><code>src.process.parent.name</code>: Parent of the acting process</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; endpoint.name = * src.process.name = * event.dns.request = *
+| limit 5
+| columns event.type, event.time, endpoint.name, src.process.name, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2">// HUNT: script host process resolving Cloudflare Pages / R2 / CloudFront
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1218.005, T1059.007, T1102
+// CONF: high | FP: low
+// FALSE POSITIVES: near none; legacy HTA apps hosted on CloudFront are the only realistic source
+// EQUIVALENCE: equivalent-with-schema-assumptions - The CQL joins process-creation and DNS events on the process id; SentinelOne&#x27;s DNS Resolved event already carries the acting process, so one event type answers the same question: a script host resolved a Cloudflare Pages, R2 or CloudFront name.
+// REQUIRES: SentinelOne DNS Resolved telemetry with the acting process
+// TUNING: Legacy HTA apps hosted on CloudFront are the only realistic source; exclude by full host name after review.
+// LOOKBACK: 30d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A script host whose lookup the agent attributes to a different process (for example a DNS-client service) is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27;
+src.process.name in:anycase (&#x27;mshta.exe&#x27;,&#x27;wscript.exe&#x27;,&#x27;cscript.exe&#x27;)
+event.dns.request matches &#x27;\\.(pages\\.dev|r2\\.dev|cloudfront\\.net)$&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, src.process.cmdline, src.process.parent.name, event.dns.request, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q3 · DNS lookups for published Antino delivery and staging domains</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Any host resolving the three Talos-listed actor domains (osc-cdn.com, microsoft-flash.com, wps-cn.com) or the Cloudflare Pages, R2 and CloudFront staging hosts Talos published. The my-token Pages hosts rotate quickly, so a miss here does not clear a host; Q2 catches the pattern by behaviour.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Name resolution performed by a resolver the agent does not instrument is not captured.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: event.dns.request is the attested DNS field (pySigma maps it); the vendor docs name dns.request, which may coexist on some schema versions.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: DNS lookups for published Antino infrastructure</span>
+<span class="cm">// MITRE: T1566.002, T1583.006, T1105</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: DNS requests (DnsRequest)</span>
+<span class="cm">// FALSE POSITIVES: security researchers and sandbox hosts resolving the domains</span>
+<span class="cm">// LOOKBACK: 90d (set in the time picker)</span>
+<span class="cm">// NOTE: d32tpl7xt7175h.cloudfront.net is deliberately absent. Talos reports it shared with a different cluster (UNC6384).</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)(osc-cdn\.com|microsoft-flash\.com|wps-cn\.com|d2nq35tel3ucuo\.cloudfront\.net|oisadjfoinsiduhfnoisdnfosdnoifnsoid\.pages\.dev|pub-(abfa7742e315485a98a5fafd6dbfb68e|0173d1566dcd4fd49fa25f11f14bfe4c)\.r2\.dev|my-(3lyt6wcp|qc39r814|662ylt3w|6g16qsfe|goq6xmbm|h3qli6kq|sv7c1fzs|u0up9qri|vtsdod2n|wgoxp32b)\.pages\.dev)$/i
+| groupBy([aid, ComputerName, DomainName], function=[count(as=Lookups), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=1000)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>event.dns.request</code>: DNS name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator or acting process</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; endpoint.name = * event.dns.request = *
+| limit 5
+| columns event.type, event.time, endpoint.name, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3">// HUNT: DNS lookups for published Antino infrastructure
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1566.002, T1583.006, T1105
+// CONF: high | FP: low
+// FALSE POSITIVES: security researchers and sandbox hosts resolving the domains
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same anchored domain regex over every published Antino delivery and staging name, grouped by host and name. The CQL deliberately omits the CloudFront host shared with a different cluster and so does this query.
+// REQUIRES: SentinelOne DNS Resolved telemetry
+// TUNING: Security researchers and sandbox hosts resolving these names are the only expected source.
+// LOOKBACK: 90d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: Name resolution performed by a resolver the agent does not instrument is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27;
+event.dns.request matches &#x27;(^|\\.)(osc-cdn\\.com|microsoft-flash\\.com|wps-cn\\.com|d2nq35tel3ucuo\\.cloudfront\\.net|oisadjfoinsiduhfnoisdnfosdnoifnsoid\\.pages\\.dev|pub-(abfa7742e315485a98a5fafd6dbfb68e|0173d1566dcd4fd49fa25f11f14bfe4c)\\.r2\\.dev|my-(3lyt6wcp|qc39r814|662ylt3w|6g16qsfe|goq6xmbm|h3qli6kq|sv7c1fzs|u0up9qri|vtsdod2n|wgoxp32b)\\.pages\\.dev)$&#x27;
+| group lookups = count(), host = any(endpoint.name), process = any(src.process.name) by agent.uuid, event.dns.request
+| sort -lookups
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q4 · GatherOsState.exe executing outside the Windows ADK or Setup paths</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The Microsoft-signed ADK binary GatherOsState.exe running from any path other than a Windows Kits install. Antino uses it purely as a sideload host, and the Talos chain writes it to a user-writable staging folder (later %LOCALAPPDATA%\Windows GatherOSStateKit\). <strong>FP:</strong> Windows feature-upgrade staging runs GatherOsState.exe from the $WINDOWS.~BT sources folder; exclude that path after confirming it on your fleet.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A sideload host renamed to another file name is not captured; the hash and DLL hunts cover that.</li><li>PowerQuery assumes: On Process Creation, tgt.process.* is the new process and src.process.* is its creator, so the CQL ParentBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: tgt.process.image.path holds the full Windows path of the created process; backslashes are double-escaped as PowerQuery requires.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: GatherOsState.exe running from a non-ADK path (signed-binary sideload host)</span>
+<span class="cm">// MITRE: T1574.002, T1036.005</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with image path (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: Windows feature upgrades stage GatherOsState.exe under the $WINDOWS.~BT folder; ADK installs under Windows Kits</span>
+<span class="cm">// TUNING: add | ImageFileName!=/\\\$WINDOWS\.~BT\\/i after confirming the path on your own upgrade telemetry; do NOT allowlist by FileName or signature alone, the sideload host is the genuine signed binary</span>
+<span class="cm">// LOOKBACK: 90d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^GatherOsState\.exe$/i
+| ImageFileName!=/\\Windows Kits\\/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.image.path</code>: Created image path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>src.process.name</code>: Creator or acting process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code>: Created image SHA-256</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.name = * tgt.process.name = * tgt.process.image.path = *
+| limit 5
+| columns event.type, event.time, endpoint.name, tgt.process.name, tgt.process.image.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4">// HUNT: GatherOsState.exe running from a non-ADK path (signed-binary sideload host)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1574.002, T1036.005
+// CONF: high | FP: medium
+// FALSE POSITIVES: Windows feature upgrades stage GatherOsState.exe under the $WINDOWS.~BT folder; ADK installs under Windows Kits
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: GatherOsState.exe running from any image path that is not under Windows Kits. Lineage re-mapped for SentinelOne.
+// REQUIRES: SentinelOne Process Creation telemetry with image paths
+// TUNING: Add an exclusion for the $WINDOWS.~BT upgrade staging path only after confirming it on your own upgrade telemetry. Do not allowlist by name or signature alone: the sideload host is the genuine signed binary.
+// LOOKBACK: 90d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A sideload host renamed to another file name is not captured; the hash and DLL hunts cover that.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+tgt.process.name in:anycase (&#x27;GatherOsState.exe&#x27;)
+tgt.process.image.path = *
+!(tgt.process.image.path matches &#x27;\\\\Windows Kits\\\\&#x27;)
+| columns event.time, endpoint.name, src.process.user, tgt.process.image.path, tgt.process.cmdline, src.process.name, tgt.process.image.sha256, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q5 · slc.dll (or a randomized-extension copy) written to a user-writable path</span>
+<div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> A PE named slc written to a profile, ProgramData or Windows Temp path. The genuine slc.dll belongs to the Software Licensing Client and lives under System32 or WinSxS, so a copy in a user-writable folder is the sideload payload. The bundle first lands with a random extension such as .pzs or .iwq, so the pattern also accepts slc.dll followed by three letters.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: approximate-analytic</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A file that is not a PE but carries the same name also matches. A drop made by a process the agent did not observe is not captured.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: tgt.file.path holds the full path of the created file.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: slc.dll PE dropped in a user-writable directory</span>
+<span class="cm">// MITRE: T1574.002, T1105</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: PE file write events (PeFileWritten, NewExecutableWritten)</span>
+<span class="cm">// FALSE POSITIVES: software-licensing test tooling; servicing writes go to System32/WinSxS and are excluded by the path filter</span>
+<span class="cm">// LOOKBACK: 90d (set in the time picker)</span>
+#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/
+| FileName=/^slc(\.dll(\.[a-z]{3})?)?$/i
+| TargetFileName=/\\(Users|ProgramData)\\|\\Windows\\Temp\\/i
+| table([@timestamp, ComputerName, UserName, FileName, TargetFileName, ContextBaseFileName, SHA256HashData])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>tgt.file.path</code>: Written file path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>src.process.name</code>: Creator or acting process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.file.sha256</code>: Written file SHA-256</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; endpoint.name = * tgt.file.path = *
+| limit 5
+| columns event.type, event.time, endpoint.name, tgt.file.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5">// HUNT: slc.dll PE dropped in a user-writable directory
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1574.002, T1105
+// CONF: medium | FP: low
+// FALSE POSITIVES: software-licensing test tooling; servicing writes go to System32/WinSxS and are excluded by the path filter
+// EQUIVALENCE: approximate-analytic - Same file-name and path predicates over File Creation events. The CQL restricts to PE writes ; SentinelOne&#x27;s File Creation event has no PE-only discriminator, so any file with these names is matched.
+// REQUIRES: SentinelOne File Creation telemetry
+// TUNING: Software-licensing test tooling is the only expected source; servicing writes under System32 and WinSxS are outside the path filter.
+// LOOKBACK: 90d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A file that is not a PE but carries the same name also matches. A drop made by a process the agent did not observe is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;File Creation&#x27;
+tgt.file.path matches &#x27;\\\\slc(\\.dll(\\.[a-z]{3})?)?$&#x27;
+tgt.file.path matches &#x27;\\\\(Users|ProgramData)\\\\|\\\\Windows\\\\Temp\\\\&#x27;
+| columns event.time, endpoint.name, src.process.user, tgt.file.path, src.process.name, tgt.file.sha256, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q6 · GatherOsState.exe and slc.dll co-located in the same directory</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The sideload condition itself: a GatherOsState.exe process and a slc PE write that share a directory on the same host. This stands in for module-load telemetry on GatherOsState.exe loading slc.dll from its own folder, which the sensor does not reliably expose to search (see the Coverage Map).</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: unsupported-without-redesign</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: SentinelOne cannot show the same-directory pairing here; Q4 and Q5 hunt the two halves independently.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: GatherOsState.exe process and slc PE written into the same directory</span>
+<span class="cm">// MITRE: T1574.002</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 + PeFileWritten/NewExecutableWritten on the same host</span>
+<span class="cm">// FALSE POSITIVES: ADK or Windows Setup directories that legitimately hold both files (rare)</span>
+<span class="cm">// LOOKBACK: 30d (set in the time picker; both events must fall inside the window)</span>
+<span class="cm">// NOTE: a staged-then-restarted sideload outside this window is missed; widen the window for retro-hunts</span>
+#event_simpleName=/^(ProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| (#event_simpleName=ProcessRollup2 FileName=/^GatherOsState\.exe$/i) or (#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/ FileName=/^slc(\.dll(\.[a-z]{3})?)?$/i)
+| coalesce([ImageFileName, TargetFileName], as=TargetFileName)
+| TargetFileName=/^(?&lt;Dir&gt;.+)\\[^\\]+$/
+| Dir := lower(Dir)
+| groupBy([aid, ComputerName, Dir], function=[count(FileName, distinct=true, as=Distinct), collect([FileName, UserName, SHA256HashData])], limit=1000)
+| test(Distinct &gt;= 2)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>1 required field · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation and File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27;
+| limit 5
+| columns event.type</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6">// HUNT: GatherOsState.exe process and slc PE written into the same directory
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1574.002
+// CONF: high | FP: low
+// FALSE POSITIVES: ADK or Windows Setup directories that legitimately hold both files (rare)
+// EQUIVALENCE: unsupported-without-redesign - The CQL correlates a process image directory with a PE-write directory on the same host by extracting the directory with a regex and grouping on it. PowerQuery has no verified directory-extraction function that the offline engine models, and a join on a derived path would be unproven.
+// REQUIRES: A same-directory correlation between a process path and a written file path
+// TUNING: Use the CQL tab for the co-location test; the PowerQuery tabs for Q4 and Q5 cover each half separately.
+// LOOKBACK: 7d on the CQL tab
+// CONFIGURATION: Use the CQL tab for this card.
+// KNOWN GAPS: SentinelOne cannot show the same-directory pairing here; Q4 and Q5 hunt the two halves independently.
+// VALIDATION LEVEL: static-reviewed</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q7 · sdiagnhost.exe spawning PowerShell or another interpreter</span>
+<div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The Windows Scripted Diagnostics proxy: sdiagnhost.exe (observed as sdiagnhost.exe -Embedding) running attacker-written result.ps1 from a C:\Windows\Temp\SDIAG_ working directory. Antino uses this path for both execute_program and add_to_run so the PowerShell is not parented to the implant. <strong>FP:</strong> Genuine built-in troubleshooters also run PowerShell under sdiagnhost.exe. Modern Windows builds have retired most of them, so baseline first.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A child launched by a process the agent did not observe starting is not captured.</li><li>PowerQuery assumes: On Process Creation, tgt.process.* is the new process and src.process.* is its creator, so the CQL ParentBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: sdiagnhost.exe (Scripted Diagnostics host) spawning script interpreters</span>
+<span class="cm">// MITRE: T1218, T1202, T1059.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with parent and command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: legitimate Windows troubleshooters (msdt-driven) on older builds</span>
+<span class="cm">// TUNING: baseline 30 days, then exclude CommandLine values pointing at Microsoft diagnostic packages other than PCW; keep any SDIAG_ working directory outside C:\Windows\Temp</span>
+<span class="cm">// LOOKBACK: 30d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^sdiagnhost\.exe$/i
+| FileName=/^(powershell|pwsh|cmd|rundll32|reg|wscript|cscript|mshta)\.exe$/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, ImageFileName])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>src.process.name</code>: Creator or acting process</li><li><code>tgt.process.name</code>: Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>tgt.process.image.path</code>: Created image path</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.name = * src.process.name = * tgt.process.name = *
+| limit 5
+| columns event.type, event.time, endpoint.name, src.process.name, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7">// HUNT: sdiagnhost.exe (Scripted Diagnostics host) spawning script interpreters
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1218, T1202, T1059.001
+// CONF: medium | FP: medium
+// FALSE POSITIVES: legitimate Windows troubleshooters (msdt-driven) on older builds
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: sdiagnhost.exe as creator with a script interpreter as the child. Lineage re-mapped for SentinelOne.
+// REQUIRES: SentinelOne Process Creation telemetry
+// TUNING: Baseline 30 days, then exclude command lines that point at Microsoft diagnostic packages other than PCW by full command line.
+// LOOKBACK: 30d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A child launched by a process the agent did not observe starting is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27;
+src.process.name in:anycase (&#x27;sdiagnhost.exe&#x27;)
+tgt.process.name in:anycase (&#x27;powershell.exe&#x27;,&#x27;pwsh.exe&#x27;,&#x27;cmd.exe&#x27;,&#x27;rundll32.exe&#x27;,&#x27;reg.exe&#x27;,&#x27;wscript.exe&#x27;,&#x27;cscript.exe&#x27;,&#x27;mshta.exe&#x27;)
+| columns event.time, endpoint.name, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.path, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q8 · HKCU Run value pointing into Windows GatherOSStateKit</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The Antino add_to_run persistence: a Run or RunOnce value whose data points at the %LOCALAPPDATA%\Windows GatherOSStateKit\ staging folder. Also fires on Run values pointing at a GatherOsState.exe copy anywhere.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A value written through an API the agent does not see as a registry modification is not captured.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: registry.value holds the written value data; verify it is populated on your tenant before relying on an empty result.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: Run key value referencing the GatherOSStateKit staging folder</span>
+<span class="cm">// MITRE: T1547.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: auto-start registry value updates (AsepValueUpdate, RegGenericValueUpdate)</span>
+<span class="cm">// FALSE POSITIVES: none expected; the folder name is specific to this malware</span>
+<span class="cm">// LOOKBACK: 90d (set in the time picker)</span>
+#event_simpleName=/^(AsepValueUpdate|RegGenericValueUpdate)$/
+| RegObjectName=/\\CurrentVersion\\Run(Once)?/i
+| RegStringValue=/GatherOSStateKit|GatherOsState\.exe/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, ContextProcessId])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Registry Value Modified</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>registry.keyPath</code>: Registry key</li><li><code>registry.value</code>: Registry value data</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>registry.valueName</code>: Registry value name</li><li><code>src.process.name</code>: Creator or acting process</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Registry Value Modified&#x27; endpoint.name = * registry.keyPath = * registry.value = *
+| limit 5
+| columns event.type, event.time, endpoint.name, registry.keyPath, registry.value</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8">// HUNT: Run key value referencing the GatherOSStateKit staging folder
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1547.001
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected; the folder name is specific to this malware
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a Run or RunOnce value whose data references the GatherOSStateKit folder or GatherOsState.exe.
+// REQUIRES: SentinelOne Registry Value Modified telemetry
+// TUNING: None expected; the folder name is specific to this malware.
+// LOOKBACK: 90d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A value written through an API the agent does not see as a registry modification is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Registry Value Modified&#x27;
+registry.keyPath matches &#x27;\\\\CurrentVersion\\\\Run(Once)?&#x27;
+registry.value matches &#x27;GatherOSStateKit|GatherOsState\\.exe&#x27;
+| columns event.time, endpoint.name, src.process.user, registry.keyPath, registry.valueName, registry.value, src.process.name, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q9 · Run key written by a process that sdiagnhost.exe launched</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The persistence write itself, attributed to its real parent chain: a Run or RunOnce registry write whose writing process is a child of sdiagnhost.exe. This is how add_to_run lands the HKCU value without the implant touching the registry directly.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql9"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A write by a grandchild of sdiagnhost.exe is not captured; only direct children are.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: src.process.parent.name is the attested parent of the acting process on non-creation events.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql9-tab" aria-controls="cql9-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery9-tab" aria-controls="powerquery9-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql9-pane" role="tabpanel" aria-labelledby="cql9-tab"><pre class="cql" id="cql9"><span class="cm">// HUNT: Run key value set by a child of sdiagnhost.exe</span>
+<span class="cm">// MITRE: T1547.001, T1218</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 + AsepValueUpdate with the writing process id</span>
+<span class="cm">// FALSE POSITIVES: near none; no built-in troubleshooter writes autostart values</span>
+<span class="cm">// LOOKBACK: 30d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|AsepValueUpdate)$/
+| coalesce([ContextProcessId, TargetProcessId], as=falconPID)
+| selfJoinFilter(field=[aid, falconPID], where=[
+    {#event_simpleName=ProcessRollup2 ParentBaseFileName=/^sdiagnhost\.exe$/i},
+    {#event_simpleName=AsepValueUpdate RegObjectName=/\\CurrentVersion\\Run(Once)?/i}
+  ])
+| groupBy([aid, falconPID], function=[collect([ComputerName, UserName, FileName, CommandLine, RegObjectName, RegValueName, RegStringValue]), min(@timestamp, as=FirstSeen)], limit=1000)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery9-pane" role="tabpanel" aria-labelledby="powerquery9-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Registry Value Modified</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>src.process.parent.name</code>: Parent of the acting process</li><li><code>registry.keyPath</code>: Registry key</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>src.process.name</code>: Creator or acting process</li><li><code>registry.valueName</code>: Registry value name</li><li><code>registry.value</code>: Registry value data</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Registry Value Modified&#x27; endpoint.name = * src.process.parent.name = * registry.keyPath = *
+| limit 5
+| columns event.type, event.time, endpoint.name, src.process.parent.name, registry.keyPath</pre></section></div></details><pre class="siem-code powerquery" id="powerquery9" data-language="powerquery" data-rosetta-query-id="cql9">// HUNT: Run key value set by a child of sdiagnhost.exe
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1547.001, T1218
+// CONF: high | FP: low
+// FALSE POSITIVES: near none; no built-in troubleshooter writes autostart values
+// EQUIVALENCE: equivalent-with-schema-assumptions - The CQL joins on the writing process id to find a Run write by a child of sdiagnhost.exe; on a registry event the writer is src.process.* and its parent is src.process.parent.*, so one event answers it without a join.
+// REQUIRES: SentinelOne Registry Value Modified telemetry with the parent of the acting process
+// TUNING: Near none expected; no built-in troubleshooter writes autostart values.
+// LOOKBACK: 30d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A write by a grandchild of sdiagnhost.exe is not captured; only direct children are.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Registry Value Modified&#x27;
+src.process.parent.name in:anycase (&#x27;sdiagnhost.exe&#x27;)
+registry.keyPath matches &#x27;\\\\CurrentVersion\\\\Run(Once)?&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, src.process.parent.name, src.process.cmdline, registry.keyPath, registry.valueName, registry.value, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q10 · Non-browser process in a user-writable path resolving Microsoft Graph or login hosts</span>
+<div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The Graph dead-drop: an executable running from a profile, ProgramData or Windows Temp path that resolves graph.microsoft.com or login.microsoftonline.com and is not a browser, Office or collaboration client. Antino polls Outlook every 10 seconds and OneDrive every minute, so lookups are repeated. <strong>FP:</strong> Per-user installs of sync clients and developer tools in AppData also talk to Graph.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql10"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A client that proxies its lookups through another process is attributed to that process.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: The CQL exclusion lists image names; the list here spells each as name.exe, which is how src.process.name is populated.</li><li>PowerQuery assumes: event.dns.request is the attested DNS field.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql10-tab" aria-controls="cql10-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery10-tab" aria-controls="powerquery10-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql10-pane" role="tabpanel" aria-labelledby="cql10-tab"><pre class="cql" id="cql10"><span class="cm">// HUNT: user-writable-path process talking to Microsoft Graph / Entra login without being a known client</span>
+<span class="cm">// MITRE: T1102.002, T1567.002, T1071.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 + DnsRequest with initiating process</span>
+<span class="cm">// FALSE POSITIVES: per-user installs of sync, chat and developer clients</span>
+<span class="cm">// TUNING: stack by FileName for 14 days, then add benign per-user clients to the FileName exclusion (OneDrive, Teams, Slack, VS Code, Zoom); also exclude your own sanctioned automation by hash</span>
+<span class="cm">// LOOKBACK: 14d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|DnsRequest)$/
+| coalesce([ContextProcessId, TargetProcessId], as=falconPID)
+| selfJoinFilter(field=[aid, falconPID], where=[
+    {#event_simpleName=ProcessRollup2 ImageFileName=/\\(Users|ProgramData)\\|\\Windows\\Temp\\/i FileName!=/^(chrome|msedge|firefox|brave|onedrive|teams|ms-teams|outlook|olk|slack|code|zoom)\.exe$/i},
+    {#event_simpleName=DnsRequest DomainName=/^(graph\.microsoft\.com|login\.microsoftonline\.com)$/i}
+  ])
+| groupBy([aid, falconPID], function=[collect([ComputerName, UserName, FileName, ImageFileName, ParentBaseFileName, DomainName]), count(as=Events), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=1000)
+| sort(Events, order=desc, limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery10-pane" role="tabpanel" aria-labelledby="powerquery10-tab" hidden><details class="rosetta-requirements"><summary>6 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>src.process.name</code>: Creator or acting process</li><li><code>src.process.image.path</code>: Acting image path</li><li><code>event.dns.request</code>: DNS name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>src.process.parent.name</code>: Parent of the acting process</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; endpoint.name = * src.process.name = * src.process.image.path = * event.dns.request = *
+| limit 5
+| columns event.type, event.time, endpoint.name, src.process.name, src.process.image.path, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery10" data-language="powerquery" data-rosetta-query-id="cql10">// HUNT: user-writable-path process talking to Microsoft Graph / Entra login without being a known client
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1102.002, T1567.002, T1071.001
+// CONF: medium | FP: medium
+// FALSE POSITIVES: per-user installs of sync, chat and developer clients
+// EQUIVALENCE: equivalent-with-schema-assumptions - The CQL joins process and DNS events on the process id; the DNS Resolved event carries the acting process and its image path, so one event type answers it: a non-allowlisted process under a user-writable path resolved Microsoft Graph or Entra login hosts.
+// REQUIRES: SentinelOne DNS Resolved telemetry with the acting process image path
+// TUNING: Stack by process name for 14 days, then add benign per-user clients to the name exclusion (OneDrive, Teams, Slack, VS Code, Zoom) and exclude sanctioned automation by hash.
+// LOOKBACK: 14d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A client that proxies its lookups through another process is attributed to that process.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27;
+src.process.image.path matches &#x27;\\\\(Users|ProgramData)\\\\|\\\\Windows\\\\Temp\\\\&#x27;
+!(src.process.name in:anycase (&#x27;chrome.exe&#x27;,&#x27;msedge.exe&#x27;,&#x27;firefox.exe&#x27;,&#x27;brave.exe&#x27;,&#x27;onedrive.exe&#x27;,&#x27;teams.exe&#x27;,&#x27;ms-teams.exe&#x27;,&#x27;outlook.exe&#x27;,&#x27;olk.exe&#x27;,&#x27;slack.exe&#x27;,&#x27;code.exe&#x27;,&#x27;zoom.exe&#x27;))
+event.dns.request in:anycase (&#x27;graph.microsoft.com&#x27;,&#x27;login.microsoftonline.com&#x27;)
+| group hits = count(), host = any(endpoint.name), user = any(src.process.user), image = any(src.process.image.path), parent = any(src.process.parent.name), domain = any(event.dns.request) by agent.uuid, src.process.name
+| sort -hits
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q11 · GatherOsState.exe resolving Microsoft Graph or Entra login hosts</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> The Antino implant executing inside its sideload host. GatherOsState.exe has no reason to contact Graph or the Entra token endpoint, so any lookup from it is the dead-drop poll.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql11"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A lookup attributed to a different process is not captured.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: event.dns.request is the attested DNS field.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql11-tab" aria-controls="cql11-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery11-tab" aria-controls="powerquery11-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql11-pane" role="tabpanel" aria-labelledby="cql11-tab"><pre class="cql" id="cql11"><span class="cm">// HUNT: GatherOsState.exe contacting Microsoft Graph / Entra login (Antino C2 poll)</span>
+<span class="cm">// MITRE: T1102.002, T1574.002</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: ProcessRollup2 + DnsRequest with initiating process</span>
+<span class="cm">// FALSE POSITIVES: none expected from the genuine ADK binary</span>
+<span class="cm">// LOOKBACK: 30d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|DnsRequest)$/
+| coalesce([ContextProcessId, TargetProcessId], as=falconPID)
+| selfJoinFilter(field=[aid, falconPID], where=[
+    {#event_simpleName=ProcessRollup2 FileName=/^GatherOsState\.exe$/i},
+    {#event_simpleName=DnsRequest DomainName=/^(graph\.microsoft\.com|login\.microsoftonline\.com)$/i}
+  ])
+| groupBy([aid, falconPID], function=[collect([ComputerName, UserName, ImageFileName, CommandLine, DomainName]), count(as=Events), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=1000)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery11-pane" role="tabpanel" aria-labelledby="powerquery11-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>src.process.name</code>: Creator or acting process</li><li><code>event.dns.request</code>: DNS name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>src.process.image.path</code>: Acting image path</li><li><code>src.process.cmdline</code>: Acting command line</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; endpoint.name = * src.process.name = * event.dns.request = *
+| limit 5
+| columns event.type, event.time, endpoint.name, src.process.name, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery11" data-language="powerquery" data-rosetta-query-id="cql11">// HUNT: GatherOsState.exe contacting Microsoft Graph / Entra login (Antino C2 poll)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1102.002, T1574.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected from the genuine ADK binary
+// EQUIVALENCE: equivalent-with-schema-assumptions - The CQL joins process and DNS events on the process id; the DNS Resolved event carries the acting process, so one event type answers it: GatherOsState.exe resolved Microsoft Graph or Entra login hosts.
+// REQUIRES: SentinelOne DNS Resolved telemetry with the acting process
+// TUNING: None expected from the genuine ADK binary; investigate every hit.
+// LOOKBACK: 30d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A lookup attributed to a different process is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27;
+src.process.name in:anycase (&#x27;GatherOsState.exe&#x27;)
+event.dns.request in:anycase (&#x27;graph.microsoft.com&#x27;,&#x27;login.microsoftonline.com&#x27;)
+| group hits = count(), host = any(endpoint.name), user = any(src.process.user), image = any(src.process.image.path), cmdline = any(src.process.cmdline), domain = any(event.dns.request) by agent.uuid, src.process.name
+| sort -hits
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q12 · Published Antino backdoor and TestAssembly.dll hashes</span>
+<div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> SHA-256 sweep for the 12 Antino backdoor builds (slc.dll and standalone fake-installer builds) and the 5 TestAssembly.dll downloader builds, all from the Talos hash set. Hash-only coverage is brittle (the actor rebuilds), so treat a miss as non-evidence.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql12"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Hashes are only seen when the agent populates SHA-256 for the event; a file that is never created or executed during the window is not captured.</li><li>PowerQuery assumes: tgt.process.image.sha256 is attested by the independent pySigma backend; tgt.file.sha256 is attested on File Creation. Population on a given tenant is worth a readiness test.</li><li>PowerQuery assumes: File Creation stands in for the CQL PE-write events and is not restricted to PEs.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql12-tab" aria-controls="cql12-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery12-tab" aria-controls="powerquery12-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql12-pane" role="tabpanel" aria-labelledby="cql12-tab"><pre class="cql" id="cql12"><span class="cm">// HUNT: published Antino backdoor and TestAssembly.dll SHA-256 sweep</span>
+<span class="cm">// MITRE: T1574.002, T1204.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: SHA256HashData on process and PE-write events</span>
+<span class="cm">// FALSE POSITIVES: none</span>
+<span class="cm">// LOOKBACK: 90d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| in(SHA256HashData, values=[
+    &quot;09ef7c736bccfafefc44d9910d499173b88063b73b221fc0dc9e9105107e5cff&quot;,
+    &quot;0c39264337a1186b2e765e24073399cbdcba118306614eb411e315887af578bd&quot;,
+    &quot;1fadc90b61ce536abda78eb387a7f3d745f00c16775d3f762845ccc0fde567da&quot;,
+    &quot;40e7e77aff603f4c2ef17b3bc8ea836e714d0734a1e5b946e52f95536ec5c91d&quot;,
+    &quot;5c5c060b272cd4a5c3767edc0e9478bd35b7e1756e183d0446a5491bd65519cb&quot;,
+    &quot;971cb2448b5d67dcc1f5eaa10d12e77f213035ad31230dc2ac7a510610a2059d&quot;,
+    &quot;9b7df409c9a89f7536d3ba7b6d43fb6dbac618c8bb52615ba34cc971ad71bbf3&quot;,
+    &quot;b90a4e770869c28fd2140acb3ebdc50c113bb6f096b4bbdb9ac87c349c70e85e&quot;,
+    &quot;ca14ad0344dc7216f6da29a5cbe4237d886cc5257e8c3a48fb4885a311c9b800&quot;,
+    &quot;e2eb7703047b37b28dc34e6990205d758a2454b39bc655b460606745fadcb530&quot;,
+    &quot;e7e3b0bcd6798634adf8b49d305f3a7b7682e4b76db549682a183c5a186df4bb&quot;,
+    &quot;fdbd047031c13a17c9f491c9355f44d587584ebe2b8927be8482e6c236c8e1c1&quot;,
+    &quot;d753a615aedf8e58ffc75b2b7ebd320c0cbe6bcb5cbb885db749a2a85c55d3bf&quot;,
+    &quot;133a46ba41136ca21c93fb08c28446826d8c0d9b7923a16f2d152d595a710098&quot;,
+    &quot;9fc50cf28f86201fda8306926817b1ede41fdd993202515905dd072f6803542f&quot;,
+    &quot;d4cb2f5df16ec9b9c5b796ae55848534e15d4f8b8806f0431108fc7a99a2548a&quot;,
+    &quot;131ac3e0df777910e0a32e43d5744bccb0490750d4c2adc359da41d76d383c46&quot;
+  ])
+| table([@timestamp, ComputerName, UserName, FileName, TargetFileName, ImageFileName, SHA256HashData])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery12-pane" role="tabpanel" aria-labelledby="powerquery12-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>tgt.process.image.sha256</code>: Created image SHA-256</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.file.sha256</code>: Written file SHA-256</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.name = * tgt.process.image.sha256 = *
+| limit 5
+| columns event.type, event.time, endpoint.name, tgt.process.image.sha256</pre></section></div></details><pre class="siem-code powerquery" id="powerquery12" data-language="powerquery" data-rosetta-query-id="cql12">// HUNT: published Antino backdoor and TestAssembly.dll SHA-256 sweep
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1574.002, T1204.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same 17-hash SHA-256 sweep over created process images and, as the PE-write analogue, created files.
+// REQUIRES: SentinelOne Process Creation and File Creation telemetry with SHA-256 populated
+// TUNING: None expected; a match is a published indicator.
+// LOOKBACK: 90d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: Hashes are only seen when the agent populates SHA-256 for the event; a file that is never created or executed during the window is not captured.
+// VALIDATION LEVEL: static-reviewed
+(event.type = &#x27;Process Creation&#x27; tgt.process.image.sha256 in (&#x27;09ef7c736bccfafefc44d9910d499173b88063b73b221fc0dc9e9105107e5cff&#x27;,&#x27;0c39264337a1186b2e765e24073399cbdcba118306614eb411e315887af578bd&#x27;,&#x27;1fadc90b61ce536abda78eb387a7f3d745f00c16775d3f762845ccc0fde567da&#x27;,&#x27;40e7e77aff603f4c2ef17b3bc8ea836e714d0734a1e5b946e52f95536ec5c91d&#x27;,&#x27;5c5c060b272cd4a5c3767edc0e9478bd35b7e1756e183d0446a5491bd65519cb&#x27;,&#x27;971cb2448b5d67dcc1f5eaa10d12e77f213035ad31230dc2ac7a510610a2059d&#x27;,&#x27;9b7df409c9a89f7536d3ba7b6d43fb6dbac618c8bb52615ba34cc971ad71bbf3&#x27;,&#x27;b90a4e770869c28fd2140acb3ebdc50c113bb6f096b4bbdb9ac87c349c70e85e&#x27;,&#x27;ca14ad0344dc7216f6da29a5cbe4237d886cc5257e8c3a48fb4885a311c9b800&#x27;,&#x27;e2eb7703047b37b28dc34e6990205d758a2454b39bc655b460606745fadcb530&#x27;,&#x27;e7e3b0bcd6798634adf8b49d305f3a7b7682e4b76db549682a183c5a186df4bb&#x27;,&#x27;fdbd047031c13a17c9f491c9355f44d587584ebe2b8927be8482e6c236c8e1c1&#x27;,&#x27;d753a615aedf8e58ffc75b2b7ebd320c0cbe6bcb5cbb885db749a2a85c55d3bf&#x27;,&#x27;133a46ba41136ca21c93fb08c28446826d8c0d9b7923a16f2d152d595a710098&#x27;,&#x27;9fc50cf28f86201fda8306926817b1ede41fdd993202515905dd072f6803542f&#x27;,&#x27;d4cb2f5df16ec9b9c5b796ae55848534e15d4f8b8806f0431108fc7a99a2548a&#x27;,&#x27;131ac3e0df777910e0a32e43d5744bccb0490750d4c2adc359da41d76d383c46&#x27;)) or (event.type = &#x27;File Creation&#x27; tgt.file.sha256 in (&#x27;09ef7c736bccfafefc44d9910d499173b88063b73b221fc0dc9e9105107e5cff&#x27;,&#x27;0c39264337a1186b2e765e24073399cbdcba118306614eb411e315887af578bd&#x27;,&#x27;1fadc90b61ce536abda78eb387a7f3d745f00c16775d3f762845ccc0fde567da&#x27;,&#x27;40e7e77aff603f4c2ef17b3bc8ea836e714d0734a1e5b946e52f95536ec5c91d&#x27;,&#x27;5c5c060b272cd4a5c3767edc0e9478bd35b7e1756e183d0446a5491bd65519cb&#x27;,&#x27;971cb2448b5d67dcc1f5eaa10d12e77f213035ad31230dc2ac7a510610a2059d&#x27;,&#x27;9b7df409c9a89f7536d3ba7b6d43fb6dbac618c8bb52615ba34cc971ad71bbf3&#x27;,&#x27;b90a4e770869c28fd2140acb3ebdc50c113bb6f096b4bbdb9ac87c349c70e85e&#x27;,&#x27;ca14ad0344dc7216f6da29a5cbe4237d886cc5257e8c3a48fb4885a311c9b800&#x27;,&#x27;e2eb7703047b37b28dc34e6990205d758a2454b39bc655b460606745fadcb530&#x27;,&#x27;e7e3b0bcd6798634adf8b49d305f3a7b7682e4b76db549682a183c5a186df4bb&#x27;,&#x27;fdbd047031c13a17c9f491c9355f44d587584ebe2b8927be8482e6c236c8e1c1&#x27;,&#x27;d753a615aedf8e58ffc75b2b7ebd320c0cbe6bcb5cbb885db749a2a85c55d3bf&#x27;,&#x27;133a46ba41136ca21c93fb08c28446826d8c0d9b7923a16f2d152d595a710098&#x27;,&#x27;9fc50cf28f86201fda8306926817b1ede41fdd993202515905dd072f6803542f&#x27;,&#x27;d4cb2f5df16ec9b9c5b796ae55848534e15d4f8b8806f0431108fc7a99a2548a&#x27;,&#x27;131ac3e0df777910e0a32e43d5744bccb0490750d4c2adc359da41d76d383c46&#x27;))
+| columns event.type, event.time, endpoint.name, src.process.user, tgt.process.name, tgt.process.image.sha256, tgt.file.path, tgt.file.sha256, src.process.name, agent.uuid
+| limit 200</pre></div></div></div></div>
+<div class="query-card">
+<div class="qc-header"><span class="qc-title">Q13 · Fake-installer and decoy-PE filenames from the Talos chain</span>
+<div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+<div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql13',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql13')">Open in Falcon</button></div></div>
+<div class="qc-body"><p><strong>Looks for:</strong> Process or PE-write events for flashcenter_pp_ax_install_en.exe (the standalone fake installer served from the two lookalike domains) and the OsGather.dat / OsState.dat decoy PEs shipped in the sideload bundle.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql13"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A renamed copy of any of these files is not captured; the hash hunt covers published samples.</li><li>PowerQuery assumes: On Process Creation, tgt.process.* is the new process and src.process.* is its creator, so the CQL ParentBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: On non-creation events (DNS, file, registry) the acting process is src.process.*, so the CQL FileName or ContextBaseFileName maps to src.process.name.</li><li>PowerQuery assumes: contains and matches are case-insensitive by default and in:anycase covers name lists, matching the CQL /i regex.</li><li>PowerQuery assumes: The CQL tests FileName on process and PE-write events; the .dat names cannot be a process, so they are tested as created files.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql13-tab" aria-controls="cql13-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery13-tab" aria-controls="powerquery13-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql13-pane" role="tabpanel" aria-labelledby="cql13-tab"><pre class="cql" id="cql13"><span class="cm">// HUNT: filenames from the Antino standalone-installer and sideload bundle</span>
+<span class="cm">// MITRE: T1204.002, T1036</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: process creation and PE write events</span>
+<span class="cm">// FALSE POSITIVES: low; generic names such as OsState.dat could in theory collide with unrelated software</span>
+<span class="cm">// LOOKBACK: 90d (set in the time picker)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| FileName=/^(flashcenter_pp_ax_install_en\.exe|OsGather\.dat|OsState\.dat)$/i
+| table([@timestamp, ComputerName, UserName, FileName, TargetFileName, ImageFileName, SHA256HashData, ParentBaseFileName])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery13-pane" role="tabpanel" aria-labelledby="powerquery13-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host name</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.file.path</code>: Written file path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.user</code>: User</li><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>src.process.name</code>: Creator or acting process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.file.sha256</code>: Written file SHA-256</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.name = * tgt.process.name = * tgt.file.path = *
+| limit 5
+| columns event.type, event.time, endpoint.name, tgt.process.name, tgt.file.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery13" data-language="powerquery" data-rosetta-query-id="cql13">// HUNT: filenames from the Antino standalone-installer and sideload bundle
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1204.002, T1036
+// CONF: medium | FP: low
+// FALSE POSITIVES: low; generic names such as OsState.dat could in theory collide with unrelated software
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same filename test: the fake-installer executable as a process name, and the installer or the two .dat staging names as a created file path.
+// REQUIRES: SentinelOne Process Creation and File Creation telemetry
+// TUNING: Generic names such as OsState.dat could collide with unrelated software; exclude by full path after review.
+// LOOKBACK: 90d; set the console time range to cover the exposure period
+// CONFIGURATION: No lookup tables or custom detection objects required; paste the query into Event Search or a scheduled PowerQuery rule.
+// KNOWN GAPS: A renamed copy of any of these files is not captured; the hash hunt covers published samples.
+// VALIDATION LEVEL: static-reviewed
+(event.type = &#x27;Process Creation&#x27; tgt.process.name in:anycase (&#x27;flashcenter_pp_ax_install_en.exe&#x27;)) or (event.type = &#x27;File Creation&#x27; tgt.file.path matches &#x27;\\\\(flashcenter_pp_ax_install_en\\.exe|OsGather\\.dat|OsState\\.dat)$&#x27;)
+| columns event.type, event.time, endpoint.name, src.process.user, tgt.process.name, tgt.process.cmdline, tgt.file.path, tgt.file.sha256, src.process.name, agent.uuid
+| limit 200</pre></div></div></div></div>
+</div></div>
+<div class="section" id="s9"><div class="section-hdr"><span class="snum">09</span><h2 data-rosetta-original="CrowdStrike Custom IOA Recommendations">Detection Rules by Platform</h2></div><div class="section-body">
+<h3 data-rosetta-gen="ioa-heading" style="margin:4px 0 8px;font-size:13px">CrowdStrike: Custom IOA</h3><table><thead><tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Promotes</th><th>Mode</th></tr></thead><tbody><tr><td>Antino: GatherOsState.exe off-path</td><td>Image filename GatherOsState.exe; image path not under Windows Kits</td><td>ADK install paths; confirmed feature-upgrade staging</td><td>Promote Q4</td><td>Detect only (legitimate signed binary)</td></tr><tr><td>Antino: GatherOsState.exe + slc co-location</td><td>Process image GatherOsState.exe and slc PE written in the same directory</td><td>ADK paths</td><td>Promote Q6</td><td>Detect only</td></tr><tr><td>Antino: sdiagnhost.exe interpreter child</td><td>Parent sdiagnhost.exe, child powershell/cmd/rundll32/reg</td><td>Baselined legitimate troubleshooters</td><td>Promote Q7</td><td>Detect only (legitimate signed binary)</td></tr><tr><td>Antino: Run key by sdiagnhost child</td><td>Run/RunOnce write by a descendant of sdiagnhost.exe</td><td>None expected</td><td>Promote Q9</td><td>Detect only</td></tr><tr><td>Antino: mshta/wscript from mail or browser</td><td>Parent mail client or browser, child mshta.exe/wscript.exe</td><td>Known internal HTA apps</td><td>Promote Q1</td><td>Detect only (legitimate signed binaries)</td></tr><tr><td>Antino: GatherOsState.exe Graph lookup</td><td>GatherOsState.exe resolving graph.microsoft.com or login.microsoftonline.com</td><td>None</td><td>Promote Q11</td><td>Detect only</td></tr></tbody></table><p class="callout callout-warn">No IOA in this pack uses a prevent action. mshta.exe, wscript.exe, sdiagnhost.exe, powershell.exe and GatherOsState.exe are stock Microsoft components. Prevention for them belongs in application control (section 12), where the scope is explicit. The only blocking posture in the whole pack is the three attacker domains in the IOC import, section 10.</p>
+<div data-rosetta-gen="rules"><h3 style="margin:18px 0 8px;font-size:13px">SentinelOne: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>Antino: GatherOsState.exe off-path</td><td>Q4, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>Antino: sdiagnhost.exe interpreter child</td><td>Q7, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>Antino: Run key by sdiagnhost child</td><td>Q9, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>Antino: mshta/wscript from mail or browser</td><td>Q1, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>Antino: GatherOsState.exe Graph lookup</td><td>Q11, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr></tbody></table><p>No SentinelOne query exists for: Antino: GatherOsState.exe + slc co-location.</p><p>Create the rule with <code>POST /web/api/v2.1/cloud-detection/rules</code>, <code>queryType: "scheduled"</code> and <code>queryLang: "2.0"</code>, with the query in <code>data.scheduledParams.query</code>. Use 2.0 operator spellings: a rule written with the 1.0 token <code>ContainsCIS</code> was accepted and never fired on a tenant. The API does not warn, so lint the body before deploying.</p></div></div></div>
+<div class="section" id="s10"><div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div><div class="section-body"><p>Grouped quick-copy blocks. Only attacker-controlled artifacts may carry <code>prevent</code>, and only with two saved sources behind them: the three Talos-listed domains. Every hash, staging host and IP is single-sourced to the Talos report and ships <code>detect</code>.</p><div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div><button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button><pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,osc-cdn.com,prevent,high,2027-04-11,Antino actor domain (Talos plus CSA),campaign:Antino;actor:UAT-11587
+domain,microsoft-flash.com,prevent,high,2027-04-11,Antino actor domain (Talos plus CSA),campaign:Antino;actor:UAT-11587
+domain,wps-cn.com,prevent,high,2027-04-11,Antino actor domain (Talos plus CSA),campaign:Antino;actor:UAT-11587
+domain,oisadjfoinsiduhfnoisdnfosdnoifnsoid.pages.dev,detect,high,2027-04-11,Cloudflare Pages execution-tracking host,campaign:Antino;actor:UAT-11587
+domain,d2nq35tel3ucuo.cloudfront.net,detect,high,2027-04-11,CloudFront stage staging host,campaign:Antino;actor:UAT-11587
+domain,pub-abfa7742e315485a98a5fafd6dbfb68e.r2.dev,detect,high,2027-04-11,Cloudflare R2 stage and bundle host,campaign:Antino;actor:UAT-11587
+domain,pub-0173d1566dcd4fd49fa25f11f14bfe4c.r2.dev,detect,high,2027-04-11,Cloudflare R2 stage and bundle host,campaign:Antino;actor:UAT-11587
+domain,my-3lyt6wcp.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-qc39r814.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-662ylt3w.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-6g16qsfe.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-goq6xmbm.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-h3qli6kq.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-sv7c1fzs.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-u0up9qri.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-vtsdod2n.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+domain,my-wgoxp32b.pages.dev,detect,medium,2027-04-11,Cloudflare Pages HTA/WSF delivery host,campaign:Antino;actor:UAT-11587
+ipv4,103.27.110.220,detect,low,2027-04-11,Historical serving IP for wps-cn.com payload (may be reassigned),campaign:Antino;actor:UAT-11587
+sha256,09ef7c736bccfafefc44d9910d499173b88063b73b221fc0dc9e9105107e5cff,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,0c39264337a1186b2e765e24073399cbdcba118306614eb411e315887af578bd,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,1fadc90b61ce536abda78eb387a7f3d745f00c16775d3f762845ccc0fde567da,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,40e7e77aff603f4c2ef17b3bc8ea836e714d0734a1e5b946e52f95536ec5c91d,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,5c5c060b272cd4a5c3767edc0e9478bd35b7e1756e183d0446a5491bd65519cb,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,971cb2448b5d67dcc1f5eaa10d12e77f213035ad31230dc2ac7a510610a2059d,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,9b7df409c9a89f7536d3ba7b6d43fb6dbac618c8bb52615ba34cc971ad71bbf3,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,b90a4e770869c28fd2140acb3ebdc50c113bb6f096b4bbdb9ac87c349c70e85e,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,ca14ad0344dc7216f6da29a5cbe4237d886cc5257e8c3a48fb4885a311c9b800,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,e2eb7703047b37b28dc34e6990205d758a2454b39bc655b460606745fadcb530,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,e7e3b0bcd6798634adf8b49d305f3a7b7682e4b76db549682a183c5a186df4bb,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,fdbd047031c13a17c9f491c9355f44d587584ebe2b8927be8482e6c236c8e1c1,detect,critical,2027-04-11,Antino backdoor build,campaign:Antino;actor:UAT-11587
+sha256,d753a615aedf8e58ffc75b2b7ebd320c0cbe6bcb5cbb885db749a2a85c55d3bf,detect,high,2027-04-11,TestAssembly.dll downloader,campaign:Antino;actor:UAT-11587
+sha256,133a46ba41136ca21c93fb08c28446826d8c0d9b7923a16f2d152d595a710098,detect,high,2027-04-11,TestAssembly.dll downloader,campaign:Antino;actor:UAT-11587
+sha256,9fc50cf28f86201fda8306926817b1ede41fdd993202515905dd072f6803542f,detect,high,2027-04-11,TestAssembly.dll downloader,campaign:Antino;actor:UAT-11587
+sha256,d4cb2f5df16ec9b9c5b796ae55848534e15d4f8b8806f0431108fc7a99a2548a,detect,high,2027-04-11,TestAssembly.dll downloader,campaign:Antino;actor:UAT-11587
+sha256,131ac3e0df777910e0a32e43d5744bccb0490750d4c2adc359da41d76d383c46,detect,high,2027-04-11,TestAssembly.dll downloader,campaign:Antino;actor:UAT-11587
+sha256,61a8f5add6c35f99c389012dbb2343061fd0b54611b40490b9a7f0b49d707da0,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,747b1d13bdf06956b5da5f47250fefd5284ebcf7961971732c3d348aa1a2d533,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,a13182699a12a8dd9d07c336dbd8de5e9b086b9b09793b7de2e9761aa03ce1dc,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,2f1513c822af0c6635dd3c69dc38f0b2f6e02012ea36415fff111a5d4d5fae05,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,a0e91085f08956a9a7034ace73cee60cb211f5d96f02bc91a026601bde8f2221,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,47f98dfe01759a464e22d5ec55d012dccb38ce010dd73e3ba8d7ffefca12b4b2,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,b3416726a064dd7f657bbb400adeb365eea7f8bb60783ad2d9da1a1d93768731,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,0a6fb71ab1362d065c7ec2678c1e73d9a0721b0e7099d392ba7559bb2eec4970,detect,high,2027-04-11,Stage 2 JScript downloader,campaign:Antino;actor:UAT-11587
+sha256,e809da86bd81463347fa7f922d3e088755a94a331889d32acb55aa8f57778a34,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,e6ff096a0562c0042b09d250bd60272ffcd8d72bd95c563842acf765a8dc8bcf,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,4d0fdce4c098635fe9b296c3a82c74645f9885eb5e383aa44a0fe7e50da3ca3f,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,f1ef5fe4c0cdcff13cc750c867728b89719f81437bdc49041edd1ae1f3edb4e8,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,01b5c6acb20e41799a0e96d9d1d6e1c44791883706b6285e874fcb15cc93b31a,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,5a35fcd4458e808ab0fa52bb2a92923b60566ee4d7aaadaac7c95cad3d839562,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,17b53ffa8e005f0e82491d3f9c0a4984c44da52e1668a855c11a137f627c5b4b,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,484ab497072ea09f12187b349f5b1c80754e4942408a009cccb20a2a3c8c6506,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,3a94910eb8022592ce030e6861359f7e980fc1b5a6ccd290cbb071d3e95ed02a,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,6a1dbbfcfe6867ac83d35012b2717084388b4a34707efd0b725466dfd0e8fa56,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,75c12795016ae48b1bddd34a9f5adea63a12f58701eae01e1b4ab3d9dfa1513c,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,bd8ddc8f33e0fe43147ee6f1713654996420a27c5d2cd91751ad67124ebc6fe4,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,b75492466462141c56d97b705f0c606faf272577631dc2822aa8d6bda53633b6,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,23d5f1af8581ae200615d9a66d539f2043c3248b649e862557b379d7e8b7a3ac,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,0b4e5e017c0f0ccac79e13ca5d580a75af67a24ca0763f9ebfdaaeb1ba4fc739,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,ae1b45fb56b9f1b9cb3ee30d2bb1279c9b90b70bb62f8de305d198c6a4e0585e,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,cd3509fa82e506cc6f2eeafa0a45d4b8b76a07edadd29779daf00568febcaba7,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,b8e6e83a73e6e07f8873c364dd2a4b830bceb60758163e2efcd7e387cb604655,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,7969ae5f11fc163049c8eadba06f814f5edece13a707e6087c1c49011a45b838,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,aea5e9029f9212d05bde10f7806d1f2819be45d167e6fd877b9fb1b11088ac90,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,7fa98efba59614cec0b7291aedee98764f8dc037b6cc798c93951a31208e9e32,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+sha256,65f4b9292e91abfa5adf42a03526932930c1c0a436bb186a7948fe6770295788,detect,high,2027-04-11,HTA or WSF stager,campaign:Antino;actor:UAT-11587
+domain,REPLACE_WITH_PAGES_DEV_HOST_FROM_YOUR_MAIL_LOGS,detect,medium,2027-04-11,my-token Pages hosts rotate; harvest new ones from your own gateway and proxy logs,campaign:Antino;actor:UAT-11587</pre></div>
+<div class="ioc-grab" data-rosetta-gen="sentinelone-indicators"><div class="igh"><span class="igt">SentinelOne IOC import</span><span class="igc">not included</span></div><p style="font-size:12px;line-height:1.5;margin:0">This pack does not ship a SentinelOne import block: the import format could not be verified against SentinelOne's own documentation. Export a sample from your console and the block can be added with confidence.</p></div><div class="ioc-grab"><div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt / alert</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-sigs',this)" style="margin:0 0 6px;">Copy</button><pre class="code" id="grab-sigs"># Behavioral signatures (hunt or alert on these; none is a block)
+parent=outlook|olk|hxoutlook|chrome|msedge|firefox -&gt; child=mshta.exe|wscript.exe
+mshta.exe|wscript.exe -&gt; DNS *.pages.dev | *.r2.dev | *.cloudfront.net
+URL shape: https://my-&lt;8 chars&gt;.pages.dev/File_download?m=&lt;target-id&gt;   (per-recipient tracking parameter)
+Beacon shape: request carrying the lure title in the URL path and ?track in the query string
+GatherOsState.exe running outside &quot;Windows Kits&quot; (ADK) paths
+slc.dll / slc.dll.&lt;3 letters&gt; written under Users, ProgramData or Windows\Temp
+GatherOsState.exe + slc.dll in the same directory
+sdiagnhost.exe -Embedding -&gt; powershell.exe, working dir C:\Windows\Temp\SDIAG_&lt;GUID&gt;, script result.ps1
+HKCU\...\CurrentVersion\Run value -&gt; %LOCALAPPDATA%\Windows GatherOSStateKit\
+Process in user-writable path resolving graph.microsoft.com / login.microsoftonline.com every ~10s
+Sideload bundle download names: &lt;8 chars&gt;GatherOsState.exe.&lt;3 letters&gt;, &lt;8 chars&gt;slc.dll.&lt;3 letters&gt;, &lt;8 chars&gt;OsGather.dat.&lt;3 letters&gt; or OsState.dat.&lt;3 letters&gt;
+Sample extension sets seen: .luy/.pzs/.syk, .lzj/.iwq/.ael, .thl/.czh/.mxb, .mtm/.fsc/.pgy</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Named Malware, Tooling and Artifacts</span><span class="igc">reference</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-tooling',this)" style="margin:0 0 6px;">Copy</button><pre class="code" id="grab-tooling"># Named malware / tooling / artifacts (all from the Talos report)
+Malware: Antino (Rust, 32 and 64-bit; Gen1 Oct 2025, Gen2 Dec 2025 to Jan 2026)
+Actor: UAT-11587 (China-nexus, high confidence per Talos)
+Sideload host: GatherOsState.exe (Microsoft-signed Windows ADK binary), payload slc.dll, export SLOpen, decoy PE OsGather.dat
+Downloader: TestAssembly.dll, AssemblyAttribute GUID b2b3adb0-1669-4b94-86cb-6dd682ddbea3
+Gadget chain: System.Windows.Forms.AxHost+State with ActivitySurrogateSelector (BinaryFormatter)
+Config: PE section .cfg, 4-byte LE length then JSON XORed with 0xAB 0xCD; keys run, launch_mode
+Build artefacts: AntinoApp manifest (Gen2), D:\a\antino\antino\ PDB paths, rsproxy.cn Cargo registry paths
+Scripted Diagnostics: sdiageng.dll, CLSID {1F3D8AA5-9EBF-4EE4-85C2-EA40379AEDE8}, package C:\Windows\diagnostics\system\PCW, sdiagnhost.exe
+Persistence/staging: %LOCALAPPDATA%\Windows GatherOSStateKit\
+Graph C2 markers: Outlook subjects command_req_[session_id] / command_res_[session_id]; OneDrive /antino/heartbeats/{id}.json, /antino_uploads/, /antino_downloads/
+Commands: cmd, powershell, system_info, execute_program, list_files, upload_file, download_file, load_shellcode (use_sleep_mask), add_to_run, exit
+Fake installer: flashcenter_pp_ax_install_en.exe (microsoft-flash.com, wps-cn.com)
+Not Antino-exclusive: d32tpl7xt7175h[.]cloudfront[.]net also appears in UNC6384 reporting (Talos: low-confidence link). Prose only, not an indicator here.</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Posture Audit Checks</span><span class="igc">read-only PowerShell</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button><pre class="code" id="grab-audit"># Audit / posture checks (read-only)
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Actions
+Get-ItemProperty &#x27;HKLM:\SOFTWARE\Microsoft\Windows Script Host\Settings&#x27; -Name Enabled -ErrorAction SilentlyContinue
+Get-ChildItem &quot;$env:LOCALAPPDATA\Windows GatherOSStateKit&quot; -ErrorAction SilentlyContinue
+Get-ChildItem C:\Windows\Temp -Directory -Filter &#x27;SDIAG_*&#x27; -ErrorAction SilentlyContinue
+Get-ItemProperty &#x27;HKCU:\Software\Microsoft\Windows\CurrentVersion\Run&#x27; | Format-List
+Get-AppLockerPolicy -Effective -Xml | Select-String -Pattern &#x27;mshta&#x27;
+Resolve-DnsName osc-cdn.com -ErrorAction SilentlyContinue   # expect NXDOMAIN or sinkhole after block</pre></div></div></div></div>
+<div class="section" id="s11"><div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div><div class="section-body"><table><thead><tr><th>Gate</th><th>Check</th></tr></thead><tbody><tr><td>Telemetry ready</td><td>Process creation with parent and command line, DNS lookup with requesting process, PE file write, and autostart registry events are arriving for a pilot host group (CrowdStrike: ProcessRollup2, DnsRequest, PeFileWritten, AsepValueUpdate. SentinelOne: Process Creation, DNS Resolved, File Creation, Registry Value Modified. Defender: DeviceProcessEvents, DeviceEvents, DeviceFileEvents, DeviceRegistryEvents).</td></tr><tr><td>Benign baseline</td><td>Run Q1, Q4, Q7 and Q10 for 14 to 30 days with no action. Stack by FileName and parent. Record legitimate GatherOsState.exe locations (feature upgrades), any sdiagnhost.exe children and per-user Graph clients.</td></tr><tr><td>Positive tests</td><td>In a lab VM only: copy the stock GatherOsState.exe to a temp folder and run it (Q4); run mshta.exe from a browser-launched shortcut with a URL (Q1); run powershell.exe from a parent named sdiagnhost.exe in a test harness (Q7). Do not execute real Antino samples outside an isolated sandbox.</td></tr><tr><td>Promotion</td><td>Hunt first, then Custom IOA in detect mode for Q4, Q6, Q9, Q11 after a clean baseline. Q1, Q7 and Q10 stay hunts until their tuning lists are stable. No query is promoted to prevent.</td></tr></tbody></table></div></div>
+<div class="section" id="s12"><div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered</h2></div><div class="section-body"><div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div><ul>
+<li><strong>Block the three actor domains</strong> (<code>osc-cdn.com</code>, <code>microsoft-flash.com</code>, <code>wps-cn.com</code>) at DNS, proxy and mail gateway; they are the only prevent rows in the IOC import. MITRE M1031 Network Intrusion Prevention. Authority: Talos recommendation, repeated by CSA. Verify: <code>Resolve-DnsName osc-cdn.com</code> returns NXDOMAIN or the sinkhole.</li>
+<li><strong>Turn on ASR rules in audit, then block:</strong> "Block executable content from email client and webmail" (BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550) and "Block JavaScript or VBScript from launching downloaded executable content" (D3E037E1-3EB8-44C8-A917-57927947596D). MITRE M1040 Behavior Prevention on Endpoint. Authority: Microsoft Defender ASR rules reference. Verify: <code>Get-MpPreference</code> ASR ids and actions.</li>
+<li><strong>Change the default handler for .hta, .wsf and .wsh to Notepad</strong> so a double-click does not execute them. MITRE M1042 Disable or Remove Feature or Program. Authority: best-practice, no formal benchmark.</li>
+<li><strong>Hunt back to September 2025</strong> with Q1 to Q13 and review mail for the osc-cdn.com envelope sender.</li></ul></div>
+<div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div><ul>
+<li><strong>Deny mshta.exe for standard users</strong> with WDAC or AppLocker (pilot ring, audit mode first). MITRE M1038 Execution Prevention. Authority: CIS Microsoft Windows benchmark application-control guidance and Microsoft recommended block rules. Verify: <code>Get-AppLockerPolicy -Effective -Xml</code> or CQL Q1 returning zero after enforcement.</li>
+<li><strong>Disable Windows Script Host for users who do not need it</strong> (<code>HKLM\SOFTWARE\Microsoft\Windows Script Host\Settings\Enabled = 0</code>). MITRE M1042. Authority: best-practice, no formal benchmark.</li>
+<li><strong>Restrict where signed Microsoft binaries may run from:</strong> publisher rules scoped to Program Files and Windows, so GatherOsState.exe from a user-writable folder cannot execute. MITRE M1038. Authority: Microsoft WDAC guidance.</li>
+<li><strong>Enforce DMARC (p=quarantine or reject)</strong> on your own domains and quarantine inbound mail that passes SPF only on a mismatched envelope sender. MITRE M1054 Software Configuration. Authority: NIST SP 800-177 and CISA email-authentication guidance. The Talos delivery succeeded because the impersonated domain was at p=none.</li></ul></div>
+<div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div><ul>
+<li><strong>Egress control for Graph traffic by process and tenant:</strong> allow Graph and Entra login only from sanctioned clients, and evaluate Microsoft Tenant Restrictions v2 at the proxy so authentications to tenants you do not own are refused. &#9888; Verify that TRv2 covers app-only client-credential token requests before relying on it; Microsoft documents it for user and external-identity sign-ins. MITRE M1037 Filter Network Traffic.</li>
+<li><strong>Detection around identity, process and behaviour, not destination</strong> (CSA): document which workloads need Graph, scope application-only Graph permissions with Role Based Access Control for Applications in Exchange Online, and review Entra app registrations on a schedule. MITRE M1018 User Account Management, M1026 Privileged Account Management.</li>
+<li><strong>Remove mshta.exe and Windows Script Host from endpoints that do not need them</strong> once the pilot shows no dependency. MITRE M1042.</li></ul></div>
+<p class="callout callout-warn">Blocking posture: only the three attacker domains ship at prevent. GatherOsState.exe, mshta.exe, wscript.exe, sdiagnhost.exe and powershell.exe are stock Microsoft binaries and are detect-only everywhere in this pack; the application-control rows above restrict where they may run, they do not block the binaries by hash or name for all users.</p></div></div>
+<div class="section" id="s13"><div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div><div class="section-body"><p>Each step carries its prerequisites, reboot requirement and rollback. Run Step 1 and 2 first; Steps 3 and 4 only after the Q1 baseline shows no legitimate HTA or WSF use.</p><h3>1. DNS sinkhole for the actor domains</h3><pre class="code" id="pb1"># Step 1: sinkhole the three actor domains on a Windows DNS server
+# Prerequisites: DnsServer module, DNS admin rights, change ticket. Reboot required: no.
+# Rollback: Remove-DnsServerZone -Name &lt;zone&gt; -Force for each zone created below.
+foreach ($z in &#x27;osc-cdn.com&#x27;,&#x27;microsoft-flash.com&#x27;,&#x27;wps-cn.com&#x27;) {
+  Add-DnsServerPrimaryZone -Name $z -ZoneFile &quot;$z.dns&quot; -DynamicUpdate None
+  Add-DnsServerResourceRecordA -ZoneName $z -Name &#x27;@&#x27; -IPv4Address 0.0.0.0
+  Add-DnsServerResourceRecordA -ZoneName $z -Name &#x27;www&#x27; -IPv4Address 0.0.0.0
+}
+# Verify: Resolve-DnsName osc-cdn.com -Server &lt;your DNS server&gt;   # expect 0.0.0.0</pre><h3>2. Attack Surface Reduction rules</h3><pre class="code" id="pb2"># Step 2: ASR rules, audit first (2 = audit), then flip to block (1) after 2 weeks of review
+# Prerequisites: Microsoft Defender Antivirus active; local admin; capture current state first.
+# Reboot required: no.
+# Rollback: set the same ids to Disabled (0), or restore the saved state shown below.
+Get-MpPreference | Select-Object AttackSurfaceReductionRules_Ids, AttackSurfaceReductionRules_Actions | Export-Clixml &quot;$env:TEMP\asr-before.xml&quot;
+$ids = &#x27;BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550&#x27;,&#x27;D3E037E1-3EB8-44C8-A917-57927947596D&#x27;
+Add-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions AuditMode,AuditMode
+# After review: Add-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions Enabled,Enabled
+# Rollback: Add-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions Disabled,Disabled
+# Verify: Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Actions</pre><h3>3. HTA/WSF handlers and Windows Script Host</h3><pre class="code" id="pb3"># Step 3: stop HTA/WSF/WSH double-click execution and disable Windows Script Host
+# Prerequisites: local admin; confirm no login scripts or software deployment uses .wsf/.wsh/.hta (stack Q1 first).
+# Reboot required: no (sign-out recommended). 
+# Rollback: restore the saved values below; delete the Enabled value to re-enable WSH.
+reg export &quot;HKLM\SOFTWARE\Classes&quot; &quot;$env:TEMP\classes-before.reg&quot; /y
+foreach ($t in &#x27;htafile&#x27;,&#x27;WSFFile&#x27;,&#x27;WSHFile&#x27;) {
+  reg add &quot;HKLM\SOFTWARE\Classes\$t\Shell\Open\Command&quot; /ve /t REG_SZ /d &quot;notepad.exe \&quot;%1\&quot;&quot; /f
+}
+reg add &quot;HKLM\SOFTWARE\Microsoft\Windows Script Host\Settings&quot; /v Enabled /t REG_DWORD /d 0 /f
+# Rollback: reg import &quot;$env:TEMP\classes-before.reg&quot;; reg delete &quot;HKLM\SOFTWARE\Microsoft\Windows Script Host\Settings&quot; /v Enabled /f</pre><h3>4. AppLocker deny rule for mshta.exe</h3><pre class="code" id="pb4"># Step 4: AppLocker deny rule for mshta.exe (standard users), audit mode first
+# Prerequisites: Application Identity service running; AppLocker licensed SKU; pilot ring only.
+# Reboot required: no.
+# Rollback: Set-AppLockerPolicy -XmlPolicy &quot;$env:TEMP\applocker-before.xml&quot; (saved below).
+Get-AppLockerPolicy -Effective -Xml | Out-File &quot;$env:TEMP\applocker-before.xml&quot; -Encoding utf8
+$xml = @&#x27;
+&lt;AppLockerPolicy Version=&quot;1&quot;&gt;&lt;RuleCollection Type=&quot;Exe&quot; EnforcementMode=&quot;AuditOnly&quot;&gt;
+&lt;FilePathRule Id=&quot;7f1a0b5e-4f3c-4c9d-9a1e-0a6f5a1d2c01&quot; Name=&quot;Deny mshta for users&quot; Description=&quot;Antino hardening&quot; UserOrGroupSid=&quot;S-1-1-0&quot; Action=&quot;Deny&quot;&gt;
+&lt;Conditions&gt;&lt;FilePathCondition Path=&quot;%SYSTEM32%\mshta.exe&quot;/&gt;&lt;/Conditions&gt;
+&lt;Exceptions&gt;&lt;FilePathCondition Path=&quot;%WINDIR%\*&quot;/&gt;&lt;/Exceptions&gt;&lt;/FilePathRule&gt;
+&lt;/RuleCollection&gt;&lt;/AppLockerPolicy&gt;
+&#x27;@
+# NOTE: tune the Everyone SID and exceptions to your admin model before enforcing; merge, do not overwrite:
+$xml | Out-File &quot;$env:TEMP\applocker-add.xml&quot; -Encoding utf8
+Set-AppLockerPolicy -XmlPolicy &quot;$env:TEMP\applocker-add.xml&quot; -Merge
+# Verify: Get-WinEvent -LogName &#x27;Microsoft-Windows-AppLocker/EXE and DLL&#x27; -MaxEvents 20</pre><p class="callout callout-info">Post-deployment spot check: re-run Q1 and Q4 for 7 days. After Steps 3 and 4 Q1 should return only the pilot ring's tests.</p></div></div>
+<div class="section" id="s14"><div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div><div class="section-body"><table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody><tr><td>Isolate</td><td>Network-isolate any host with a Q4, Q6, Q8, Q9 or Q11 hit. Do not reboot first: the sleep-masked shellcode (load_shellcode with use_sleep_mask) is memory-resident. Block the three actor domains at DNS, proxy and mail.</td><td>IR lead</td><td>Isolation timestamp, host list</td></tr>
+<tr data-rosetta-gen="isolation"><td>Isolate: by platform</td><td>CrowdStrike: network-contain the host. SentinelOne: network quarantine (Disconnect from Network; confirm the label in your console version). Keep the host powered on for memory capture on all of them.</td><td>IR lead</td><td>Isolation timestamp, host list</td></tr><tr><td>Collect</td><td>Capture memory, then collect <code>%LOCALAPPDATA%\Windows GatherOSStateKit\</code>, <code>C:\Windows\Temp\SDIAG_*</code>, the HKCU Run key, the staged slc.dll and decoy files, PowerShell 4104 logs and mshta/sdiagnhost process trees.</td><td>DFIR</td><td>Hashes, memory image, triage package</td></tr><tr><td>Scope</td><td>Run Q1 to Q13 back to September 2025. Pull mail trace for envelope sender osc-cdn.com and clicks to my-*.pages.dev. Extract the Outlook/OneDrive tenant and app details from the implant configuration (.cfg section) in the lab for the report; they are not visible in your tenant logs.</td><td>Threat hunter</td><td>Affected user and host list</td></tr><tr><td>Eradicate</td><td>Delete the HKCU Run value, the GatherOSStateKit folder and SDIAG_* working directories; remove the sideload bundle; purge delivery mail from all mailboxes.</td><td>IR / IT</td><td>Before and after listing</td></tr><tr><td>Recover</td><td>Reset credentials and revoke sessions for affected users (the implant ran in user context and exfiltrates files via download_file); reimage hosts that ran load_shellcode or show persistence; confirm blocks and ASR in place.</td><td>IT / identity</td><td>Reset log, reimage record</td></tr><tr><td>Report</td><td>Share indicators and the lure titles with sector peers and the national CERT; record gaps found. Targeted sectors are government, policy and civil society.</td><td>CISO</td><td>Report</td></tr></tbody></table></div></div>
+<div class="section" id="s15"><div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div><div class="section-body"><table><thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th data-rosetta-original="Coverage">CrowdStrike coverage</th><th class="rosetta-cov" title="How faithfully the SentinelOne query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">SentinelOne</th></tr></thead><tbody><tr><td>T1566.002</td><td>Phishing link / sender spoof</td><td>Q1, Q3</td><td>-</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1218.005</td><td>mshta/wscript stager and cloud fetch</td><td>Q1, Q2</td><td>Q1</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td></tr><tr><td>T1059.007</td><td>JScript downloader in mshta</td><td>Q1, Q2</td><td>-</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1620</td><td>.NET deserialization and shellcode in memory</td><td>-</td><td>-</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr><tr><td>T1574.002</td><td>GatherOsState.exe sideloads slc.dll</td><td>Q4, Q5, Q6</td><td>Q4, Q6</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q5: Same file-name and path predicates over File Creation events. The CQL restricts to PE writes ; SentinelOne&#x27;s File Creation event has no PE-only discriminator, so any file with these names is matched.; Q6: The CQL correlates a process image directory with a PE-write directory on the same host by...">Partial: Q5 approximate, Q6 unavailable</span></td></tr><tr><td>T1218</td><td>sdiagnhost.exe Scripted Diagnostics proxy</td><td>Q7, Q9</td><td>Q7, Q9</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td></tr><tr><td>T1547.001</td><td>HKCU Run (add_to_run)</td><td>Q8, Q9</td><td>Q9</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td></tr><tr><td>T1102.002</td><td>Graph/Outlook/OneDrive C2</td><td>Q10, Q11</td><td>Q11</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1567.002</td><td>Exfil to actor OneDrive</td><td>Q10, Q11</td><td>-</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1204.002</td><td>Fake installer, hashes</td><td>Q3, Q12, Q13</td><td>-</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr></tbody></table><h3>Honest gaps</h3><ul>
+<li><strong>In-process execution (T1620):</strong> the BinaryFormatter gadget chain, TestAssembly.dll and sleep-masked shellcode run inside existing processes. The strongest tell, mshta.exe loading the .NET runtime, needs module-load telemetry that this pack does not query (the field set for that event is not verified here). Sysmon EID 7 covers it where deployed.</li>
+<li><strong>Module load of slc.dll by GatherOsState.exe:</strong> approximated by Q6 (file and process co-location in one directory). A bundle staged outside the query window, or a pre-existing slc.dll, is missed.</li>
+<li><strong>Graph C2 content:</strong> TLS to a trusted Microsoft host. Q10 and Q11 detect the process, not the traffic. A standalone Antino build with a benign process name running from Program Files evades Q10. The actor's mailbox and OneDrive are in the actor's tenant, so victim-tenant logs will not help.</li>
+<li><strong>Email stage:</strong> outside endpoint telemetry. Only mail gateway logs see the osc-cdn.com envelope sender.</li>
+<li><strong>Infrastructure churn:</strong> my-token Pages hosts and R2 buckets rotate; the IOC lists will age. Q2 and Q1 are the durable coverage.</li>
+<li><strong>Hash coverage:</strong> Talos published 16 further hashes of encrypted orchestrator and gadget resources that are not shipped (ciphertext).</li>
+<li><strong>Validate in your tenant:</strong> Q2, Q6, Q9, Q10 and Q11 use the selfJoinFilter/groupBy pattern with <code>ContextProcessId</code> and <code>TargetProcessId</code>; confirm that DNS and registry events carry the process id field in your sensor version before treating a zero as clean.</li></ul>
+<p>Validation gates (section 11) must be passed before promoting any query to a Custom IOA.</p></div></div>
+<div class="section" id="s16"><div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div><div class="section-body"><div class="ticket"><pre class="code" id="ticket">TITLE:      Hunt Antino backdoor (UAT-11587): Graph-based C2 via GatherOsState.exe sideload
+SEVERITY:   HIGH (active espionage, government and policy targets)
+SCOPE:      Windows endpoints, mail gateway, proxy and DNS. Lookback to 2025-09.
+HYPOTHESIS: Antino persists as a GatherOsState.exe + slc.dll sideload with an HKCU Run value and polls Microsoft Graph from a non-browser process.
+QUERIES:    13 (Q1 to Q13). Run order: Q4, Q6, Q11, Q7, Q9, Q8, Q2, Q1, Q5, Q10, Q3, Q12, Q13.
+DO FIRST:   Q4 and Q6 (sideload), Q11 (Graph lookup from the sideload host), then mail trace for osc-cdn.com.
+FINDINGS:   &lt;fill in per host: path, user, parent chain, hash, first seen&gt;
+GAPS:       In-process .NET deserialization and shellcode are outside endpoint process-creation telemetry; Graph C2 content and the actor tenant are not visible to the victim; mail stage needs gateway logs.
+ACTIONS:    Isolate and image affected hosts; block osc-cdn.com, microsoft-flash.com, wps-cn.com; remove Run value and GatherOSStateKit folder; reset affected credentials; harden per section 12.
+OWNER:      HuntPack
+VERSION:    v0.1 2026-10-11</pre></div></div></div>
+<div class="section" id="s17"><div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div><div class="section-body"><div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-11</span><span>Initial release: 13 CQL queries, 3 sources, IOC import with 3 prevent rows and detect-only hashes, hardening and playbooks. SentinelOne PowerQuery tabs added to Q1-Q13: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div></div></div>
+<div class="section" id="s18"><div class="section-hdr"><span class="snum">18</span><h2>References</h2></div><div class="section-body"><table><thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead><tbody><tr><td>1</td><td><a href="https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/" target="_blank" rel="noopener">Cisco Talos: China-nexus UAT-11587 ... Antino backdoor</a></td><td>Primary: chain, capabilities, C2 protocol, IOCs, attribution</td><td>2026-10-11</td></tr><tr><td>2</td><td><a href="https://labs.cloudsecurityalliance.org/research/csa-research-note-antino-backdoor-m365-c2-20261004-csa-style/" target="_blank" rel="noopener">Cloud Security Alliance: Antino Backdoor, China-Nexus Espionage Through Microsoft 365 C2</a></td><td>Hunt guidance, victim-log visibility, domain block recommendation</td><td>2026-10-11</td></tr><tr><td>2</td><td><a href="https://securityaffairs.com/200264/apt/antino-backdoor-uses-your-inbox-as-its-control-panel.html" target="_blank" rel="noopener">Security Affairs: Antino backdoor uses your inbox as its control panel</a></td><td>Corroboration of chain and protocol</td><td>2026-10-11</td></tr><tr><td>Ref</td><td><a href="https://attack.mitre.org/" target="_blank" rel="noopener">MITRE ATT&amp;CK</a></td><td>Technique and mitigation mapping</td><td>2026-10-11</td></tr><tr><td>Ref</td><td><a href="https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference" target="_blank" rel="noopener">Microsoft Defender: ASR rules reference</a></td><td>Hardening rule ids</td><td>2026-10-11</td></tr></tbody></table><p>Source snapshots are saved next to this file in <code>Antino-Backdoor-UAT11587-Hunt-sources/</code>.</p></div></div>
+
+<footer class="hp-footer"><strong>HuntPack</strong> · Defensive content only · Generated 2026-10-11 · v0.1</footer>
+</div>
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script><script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+  shell.querySelectorAll('.rosetta-open-s1').forEach(function(button){button.hidden=language!=='powerquery';});
+  shell.querySelectorAll('.rosetta-open-def').forEach(function(button){button.hidden=language!=='kql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+  rosettaSyncGlobal();
+}
+function rosettaSyncGlobal(){
+  const langs=new Set(Array.from(document.querySelectorAll('.rosetta-query-shell')).map(function(shell){const tab=shell.querySelector('.rosetta-tab[aria-selected="true"]');return tab?tab.getAttribute('data-language'):'';}));
+  const only=langs.size===1?Array.from(langs)[0]:'';
+  document.querySelectorAll('.rosetta-global-btn').forEach(function(button){button.setAttribute('aria-pressed',button.getAttribute('data-language')===only?'true':'false');});
+  const mixed=document.querySelector('.rosetta-global-mixed');
+  if(mixed)mixed.hidden=!!only;
+  const cloud=document.querySelector('.cloud-sel');
+  if(cloud)cloud.hidden=!langs.has('cql');
+  const consoleRow=document.querySelector('[data-rosetta-console]');
+  if(consoleRow)consoleRow.hidden=!langs.has('powerquery');
+  const portalRow=document.querySelector('[data-rosetta-portal]');
+  if(portalRow)portalRow.hidden=!langs.has('kql');
+}
+function rosettaConsoleCheck(value){
+  const text=(value||'').trim();
+  if(!text)return {ok:false,empty:true};
+  let url;
+  try{url=new URL(text);}catch(error){try{url=new URL('https://'+text);}catch(error2){return {ok:false};}}
+  if(url.protocol!=='https:'||url.hostname.indexOf('.')<0)return {ok:false};
+  return {ok:true,href:url.origin+'/'};
+}
+function rosettaConsoleInput(){
+  const input=document.getElementById('rosetta-console-url');
+  const status=document.querySelector('.rosetta-console-status');
+  if(!input||!status)return null;
+  const result=rosettaConsoleCheck(input.value);
+  input.setAttribute('aria-invalid',(!result.ok&&!result.empty)?'true':'false');
+  status.className='rosetta-console-status'+((!result.ok&&!result.empty)?' bad':'');
+  status.textContent=result.ok?'Saved in this browser only. Opens '+result.href:(result.empty?'':'Enter an https address such as https://usea1-yourtenant.sentinelone.net');
+  if(result.ok){try{localStorage.setItem('huntpack-s1-console',result.href);}catch(error){}}
+  return result;
+}
+function rosettaOpenDefender(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  const select=document.getElementById('rosetta-portal-select');
+  if(!pre||!select)return;
+  window.open(select.value+'/v2/advanced-hunting','_blank','noopener');
+  const value=pre.textContent;
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  const done=function(){button.textContent='Copied, paste it in Advanced hunting';button.classList.add('done');setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaOpenS1(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  if(!pre)return;
+  const result=rosettaConsoleInput()||{ok:false,empty:true};
+  const input=document.getElementById('rosetta-console-url');
+  if(!result.ok){if(input){input.scrollIntoView({block:'center'});input.focus();}return;}
+  window.open(result.href,'_blank','noopener');
+  const value=pre.textContent;
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  const done=function(){button.textContent='Copied, paste it in PowerQuery';button.classList.add('done');setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaSetAll(language,remember){
+  document.querySelectorAll('.rosetta-query-shell').forEach(function(shell){
+    const tab=shell.querySelector('.rosetta-tab[data-language="'+language+'"]');
+    if(tab)rosettaSwitch(tab);
+  });
+  rosettaSyncGlobal();
+  if(remember!==false){try{localStorage.setItem('huntpack-query-language',language);}catch(error){}}
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem('huntpack-query-language');}catch(error){}
+  if(saved&&saved!=='cql'&&document.querySelector('.rosetta-global-btn[data-language="'+saved+'"]'))rosettaSetAll(saved,false);
+  else rosettaSyncGlobal();
+  const portalSelect=document.getElementById('rosetta-portal-select');
+  if(portalSelect){
+    let savedPortal=null;
+    try{savedPortal=localStorage.getItem('huntpack-defender-portal');}catch(error){}
+    if(savedPortal&&Array.from(portalSelect.options).some(function(option){return option.value===savedPortal;}))portalSelect.value=savedPortal;
+    portalSelect.addEventListener('change',function(){try{localStorage.setItem('huntpack-defender-portal',portalSelect.value);}catch(error){}});
+  }
+  const consoleInput=document.getElementById('rosetta-console-url');
+  if(consoleInput){
+    let savedConsole=null;
+    try{savedConsole=localStorage.getItem('huntpack-s1-console');}catch(error){}
+    if(savedConsole){consoleInput.value=savedConsole;rosettaConsoleInput();}
+    consoleInput.addEventListener('input',rosettaConsoleInput);
+  }
+})();
+</script>
+</body></html>
