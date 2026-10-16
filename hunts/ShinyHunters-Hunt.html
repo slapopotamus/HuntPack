@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShinyHunters (UNC6240 / UNC6661 / UNC6671) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for ShinyHunters: vishing and SSO takeover, SaaS data theft, and Oracle PeopleSoft CVE-2026-35273 exploitation, with MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/ShinyHunters-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ShinyHunters (UNC6240 / UNC6661 / UNC6671) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for ShinyHunters: vishing and SSO takeover, SaaS data theft, and Oracle PeopleSoft CVE-2026-35273 exploitation, with MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/ShinyHunters-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #7ee787;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(126,231,135,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #0d2614 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+
+
+.ticket { background: #010409; border: 1px solid var(--accent); border-radius: 6px; padding: 4px; }
+.igt { font-size: 12px; font-weight: 700; color: var(--text); } .igc { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+details { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+details summary { cursor: pointer; font-size: 12.5px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library: home">HUNTPACK</a></div>
+    <div class="pack-name">ShinyHunters (UNC6240)</div>
+    <div class="version">v0.1 · 2026-10-16</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>ShinyHunters (UNC6240 / UNC6661 / UNC6671): Vishing-to-SaaS Data Theft and PeopleSoft Exploitation</h1>
+    <div class="subtitle">Voice phishing, SSO and MFA takeover, SaaS bulk theft and extortion, plus exploitation of Oracle PeopleSoft CVE-2026-35273 with MeshCentral persistence. Sources current to October 2026, including reported arrests that did not end the activity.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">ShinyHunters (UNC6240, Bling Libra, G1057)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE EXTORTION · EXPLOITED ITW</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Cybercrime data-theft extortion (cloud and SaaS)</div></div>
+      <div class="meta-item"><div class="mk">Access Vector</div><div class="mv">Vishing for SSO and MFA; PeopleSoft CVE-2026-35273</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) · 2026-10-16</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (multiple Tier 1 sources agree)</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+
+<p><strong>Attacker objective.</strong> ShinyHunters is a financially motivated extortion collective, active since at least 2019, that steals data and demands payment under threat of leaking it. It does not encrypt. Sekoia assesses the name now covers decentralised clusters sharing one brand and tied to The Com. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#8]</span></p>
+<p>Google tracks the live intrusion work as three clusters. UNC6661 and UNC6671 gain access by voice phishing. UNC6240, the canonical ShinyHunters, runs the extortion and the 2026 Oracle PeopleSoft exploitation. <span class="badge b-info">[#2]</span></p>
+<p><strong>Track A: vishing to SaaS data theft.</strong> Operators call staff as IT support, send them to a victim-branded sign-in page, capture the SSO password and MFA code, then enroll an MFA device they control. <span class="badge b-info">[#2]</span> Okta documents kits that let the caller steer the victim's browser in step with the call, which defeats push and number matching. <span class="badge b-info">[#6]</span> Obsidian saw Okta FastPass enrolled from an emulated Android device named "Passkey". <span class="badge b-info">[#9]</span> The actor then pulls data from SharePoint, OneDrive, Salesforce, Slack and similar platforms, and in one case authorized an add-on that deletes the "Security method enrolled" email. <span class="badge b-info">[#2]</span></p>
+<p><strong>Track B: PeopleSoft exploitation.</strong> UNC6240 exploited CVE-2026-35273 (CVSS 9.8) as a zero-day from 27 May to 9 June 2026, before Oracle's 10 June alert. <span class="badge b-info">[#3]</span> In September it returned with a one-character URL-encoding trick that bypassed WAF rules and deployed web shells on dozens of systems. <span class="badge b-info">[#4]</span> Post-exploitation used MeshCentral agents disguised as Azure services, an SSH credential-spray script, zstd archives and a Tor-hosted leak site. <span class="badge b-info">[#3]</span> <span class="badge b-info">[#4]</span></p>
+<p><strong>Current status.</strong> Law enforcement reported detentions and arrests in September and October 2026. <span class="badge b-info">[#12]</span> <span class="badge b-info">[#13]</span> Nothing in the sources shows the extortion or exploitation stopping, and the brand reportedly changed hands during the arrests, so treat the threat as live.</p>
+<p><strong>Highest-value defensive angle.</strong> The first reliable signal is in the identity provider, not on an endpoint: an MFA factor change shortly after a failure-heavy sign-in. <span class="badge b-info">[#5]</span> <span class="badge b-info">[#9]</span> Patching PeopleSoft is the only reliable fix for Track B, because path-based WAF rules were already bypassed. <span class="badge b-info">[#4]</span></p>
+<p class="callout callout-danger"><strong>Defender priority:</strong> alert on every MFA activation, reset or device enrollment that follows failed sign-ins (Q8, Q9), and on any Java process on a PeopleSoft host that starts a shell (Q5). Patch CVE-2026-35273 and block /PSEMHUB and /PSIGW/HttpListeningConnector on the normalized path.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>#</th><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead><tbody><tr><td>1</td><td><span class="badge b-low">T1</span></td><td><a href="https://attack.mitre.org/groups/G1057/" target="_blank" rel="noopener">MITRE ATT&amp;CK G1057 ShinyHunters (UNC6240, Bling Libra)</a></td><td>Canonical aliases, active since at least 2019, technique catalogue including T1190 on PeopleSoft CVE-2026-35273, MeshCentral masquerade, Tor DLS, extortion mailboxes.</td><td>yes</td></tr><tr><td>2</td><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/expansion-shinyhunters-saas-data-theft" target="_blank" rel="noopener">GTIG/Mandiant: Vishing for Access, Tracking the Expansion of ShinyHunters-Branded SaaS Data Theft (30 Jan 2026)</a></td><td>UNC6661/UNC6671/UNC6240 split, vishing and victim-branded SSO domains, ToogleBox Recall, PowerShell SharePoint theft, 19 source IPs, extortion mechanics.</td><td>yes</td></tr><tr><td>3</td><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-targets-education-sector-oracle-exploit" target="_blank" rel="noopener">GTIG/Mandiant: ShinyHunters Targets Education Sector with Oracle PeopleSoft Exploit (11 Jun 2026)</a></td><td>CVE-2026-35273 zero-day window 27 May to 9 Jun, MeshCentral staging, masqueraded agents, fanout script, hashes, 6 network indicators.</td><td>yes</td></tr><tr><td>4</td><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft" target="_blank" rel="noopener">GTIG/Mandiant: ShinyHunters Renewed Mass Exploitation Campaign Targeting Oracle PeopleSoft (Sep 2026)</a></td><td>%50SEMHUB WAF bypass, fileless and web-shell exploitation, x.jsp/u.jsp, SIDEEYE (Ple64.exe), Neo-reGeorg, MeshAgent domains, hashes, 3 IPs, 1 domain.</td><td>yes</td></tr><tr><td>5</td><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/defense-against-shinyhunters-cybercrime-saas" target="_blank" rel="noopener">Mandiant: proactive hardening, logging and detection guide for ShinyHunters-branded SaaS intrusions</a></td><td>Containment, help-desk verification, IdP and SaaS hardening, logging requirements, detection logic. Primary source for Sections 12 to 14.</td><td>yes</td></tr><tr><td>6</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.okta.com/blog/threat-intelligence/phishing-kits-adapt-to-the-script-of-callers/" target="_blank" rel="noopener">Okta Threat Intelligence: Phishing kits adapt to the script of callers</a></td><td>Real-time session-orchestration vishing kits defeat push and number matching; FastPass and FIDO passkeys resist. Detailed IOCs are customer-gated.</td><td>yes</td></tr><tr><td>7</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.law.berkeley.edu/wp-content/uploads/2026/06/PSA-ShinyHunters-Cyber-Criminal-Group-Attacks-Learning-Management-System_5.15.2026.pdf" target="_blank" rel="noopener">FBI IC3 PSA I-20260515-PSA: ShinyHunters Cyber Criminal Group Attacks Learning Management System (15 May 2026)</a></td><td>Government description of extortion pressure: harassment, threatening calls and texts, swatting, Tor leak site, false claims.</td><td>yes</td></tr><tr><td>8</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.sekoia.com/blog/gotta-breach-em-all-the-journey-of-shinyhunters" target="_blank" rel="noopener">Sekoia: Gotta Breach &#x27;Em All, the journey of ShinyHunters</a></td><td>Group structure (decentralised clusters under a shared alias, link to The Com), 2025 to 2026 timeline, token-theft supply-chain pattern.</td><td>partial</td></tr><tr><td>9</td><td><span class="badge b-med">T2</span></td><td><a href="https://www.obsidiansecurity.com/blog/behind-the-breach-shinyhunters-2026-voice-phishing-campaign" target="_blank" rel="noopener">Obsidian Security: Behind the breach, ShinyHunters&#x27; 2026 voice phishing campaign</a></td><td>Okta event sequences, FastPass enrollment from an emulated Android device named Passkey, Genymobile user agent, SSO burst, Slack and Drive bulk download.</td><td>yes</td></tr><tr><td>10</td><td><span class="badge b-high">T3</span></td><td><a href="https://www.huntress.com/threat-library/threat-actors/shinyhunters" target="_blank" rel="noopener">Huntress: ShinyHunters threat actor profile</a></td><td>Aggregated campaign timeline (token abuse, Aura exploitation, actor user-agent strings). Used only where a T1 source does not contradict it.</td><td>partial</td></tr><tr><td>11</td><td><span class="badge b-high">T3</span></td><td><a href="https://www.picussecurity.com/resource/blog/the-shinyhunters-domino-effect-one-breach-hundreds-of-victims" target="_blank" rel="noopener">Picus Security: The ShinyHunters Domino Effect</a></td><td>Background on the ecosystem-breach pattern. No indicators taken.</td><td>no</td></tr><tr><td>12</td><td><span class="badge b-med">T2</span></td><td><a href="https://krebsonsecurity.com/2026/10/shinyhunters-extorted-boeing-spin-off-prior-to-arrests/" target="_blank" rel="noopener">KrebsOnSecurity: ShinyHunters arrests and extortion (7 Oct 2026)</a></td><td>Current status: reported detentions and arrests, brand takeover, continued PeopleSoft mass exploitation and the WAF-bypass update.</td><td>yes</td></tr><tr><td>13</td><td><span class="badge b-med">T2</span></td><td><a href="https://www.bleepingcomputer.com/news/security/fbi-arrests-another-suspected-shinyhunters-hacker-after-agency-breach/" target="_blank" rel="noopener">BleepingComputer: FBI arrests another suspected ShinyHunters hacker (Oct 2026)</a></td><td>Corroborates the October 2026 arrests and the PeopleSoft attribution.</td><td>partial</td></tr></tbody></table>
+<h3>Web Hunter decisions</h3>
+<ul>
+<li><strong>Atomic IOCs come from Tier 1 only.</strong> Every hash, address and domain shipped in Section 10 appears verbatim in a saved GTIG report (sources 2, 3 or 4). Each source is snapshotted under the pack's sources folder for the provenance gate.</li>
+<li><strong>Dropped.</strong> Two further indicators appeared only in third-party aggregator pages and in no vendor report. They are not in the pack.</li>
+<li><strong>Typo reconciled.</strong> MITRE lists one extortion mailbox as <code>shinycorp@tutonota[.]com</code>. GTIG writes <code>shinycorp@tutanota[.]com</code>. The pack lists the GTIG spelling and keeps the MITRE variant as a hunt string.</li>
+<li><strong>No victim names.</strong> Victims named in sources are not repeated here. The pack is written around tradecraft so it ports to any environment.</li>
+<li><strong>Related packs.</strong> The library already holds a PeopleSoft CVE-2026-35273 pack (v0.3, June 2026) with six endpoint queries for the June zero-day activity, plus packs for UNC6671 vishing and AiTM, a Teams-vishing cluster, a Salesloft-Drift OAuth campaign, and Scattered Spider. This pack covers ShinyHunters as one actor. It repeats the June PeopleSoft infrastructure so it stands alone, and adds the September renewed exploitation (the %50SEMHUB WAF bypass, web shells, SIDEEYE, Neo-reGeorg, new addresses and domains) and the full Okta, Microsoft 365, Google Workspace and Salesforce track. See the <a href="https://slapopotamus.github.io/HuntPack/hunts/PeopleSoft-CVE-2026-35273-Hunt.html" target="_blank" rel="noopener">PeopleSoft pack</a> for its June-specific detail.</li>
+</ul>
+<h3>Contradictions and gaps</h3>
+<ul>
+<li>The June report lists five staging addresses and one mirror address. The September report lists three different addresses. They are different infrastructure generations, not a conflict.</li>
+<li>GTIG's 19 January source IPs are residential-proxy and VPN addresses from January 2026. They are perishable and shared, so the pack uses them for hunting only.</li>
+<li>Okta's indicator list and kit analysis are available only to Okta security contacts. This pack uses only what Okta published openly.</li>
+<li>GTIG says the x.jsp, tunnel.jsp and tunnel.jspx hashes vary per deployment. Hunt those by name and path, not by hash.</li>
+<li>Attribution is layered: UNC6661, UNC6671 and UNC6240 are separate clusters that GTIG links by shared extortion infrastructure. Do not assume one operator.</li>
+</ul>
+<p><strong>Overall confidence: High.</strong> At least two Tier 1 sources agree on every central claim. Perishability is high for the IP lists and low for tradecraft.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+<h3>Hunt hypotheses (ordered by fidelity)</h3><table><thead><tr><th>ID</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry required</th><th>Expected FP</th><th>Confidence</th><th>Queries</th></tr></thead><tbody><tr><td>H1</td><td>Vishing-led account takeover: a failure-heavy sign-in ends in success, then the attacker enrolls their own MFA factor within minutes.</td><td>T1566.004 (inferred), T1078.004, T1098.005, T1556.006</td><td>Okta System Log; Entra sign-in and audit logs</td><td>New hires and genuine device replacement</td><td>High</td><td>Q7, Q8, Q9, Q10</td></tr><tr><td>H2</td><td>Post-authentication bulk theft from SharePoint, OneDrive and Salesforce using scripts and native export features.</td><td>T1213.002, T1530, T1567, T1213.006</td><td>Microsoft 365 Unified Audit Log; Salesforce Event Monitoring</td><td>Sanctioned migration, backup and Data Loader jobs</td><td>High</td><td>Q11, Q13</td></tr><tr><td>H3</td><td>Concealment: an add-on is authorized to delete the MFA-enrollment notification, and outbound phishing is deleted from the sent items.</td><td>T1070.008 (inferred)</td><td>Google Workspace OAuth and Gmail audit; Exchange mailbox audit</td><td>Deliberate add-on installs</td><td>High</td><td>Q12</td></tr><tr><td>H4</td><td>PeopleSoft CVE-2026-35273 exploitation: POST requests to the EMHub servlet (including the percent-encoded variant), then web shells or fileless shell execution from the WebLogic Java process.</td><td>T1190, T1505.003, T1059.003, T1059.004</td><td>Web-server access logs; process creation</td><td>Java servers that shell out for admin scripts</td><td>High</td><td>Q5 plus native hunt N6</td></tr><tr><td>H5</td><td>Persistence through MeshCentral agents disguised as Azure services, calling home to Microsoft-lookalike domains.</td><td>T1219, T1036.005, T1583.001</td><td>DNS lookups; network connections; process creation; file hashes</td><td>Sanctioned MeshCentral deployments</td><td>High</td><td>Q1, Q2, Q3</td></tr><tr><td>H6</td><td>Linux lateral movement and exfiltration staging: sshpass credential spray, a fanout script, zstd archives and SSH to the leak-site mirror.</td><td>T1110.003 (inferred), T1021.004 (inferred), T1560.002, T1048</td><td>Process creation; network connections</td><td>Backup and admin automation</td><td>Medium</td><td>Q4, Q2</td></tr><tr><td>H7</td><td>Coercion and credential harvest from the PeopleSoft tier: outbound SMB to the internet and reads of psappsrv.cfg.</td><td>T1187 (inferred), T1552.001</td><td>Network connections; web-tier file audit</td><td>Cloud file shares reached over TCP/445</td><td>Medium</td><td>Q6 plus native hunt N7</td></tr><tr><td>H8</td><td>Stolen integration tokens (OAuth or API) reused to pivot into Salesforce, Snowflake and BigQuery from the attacker&#x27;s own infrastructure.</td><td>T1528, T1550.001, T1530</td><td>SaaS connected-app and API audit logs, outside endpoint telemetry</td><td>Normal third-party integrations</td><td>Medium</td><td>Partial: Q13, native hunt N5</td></tr></tbody></table><h3>Attack chain</h3><table><thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt angle</th></tr></thead><tbody><tr><td>1</td><td>Lure infrastructure: victim-branded domains such as &lt;org&gt;sso, &lt;org&gt;internal, &lt;org&gt;support, registered mostly at NICENIC or Tucows.</td><td>DNS lookup with the requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); proxy and email gateway logs</td><td>Resolve and click events for new lookalike domains of your own brand name</td></tr><tr><td>2</td><td>Voice phish: caller poses as IT support, victim enters SSO password and MFA code on the lookalike page.</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry</td><td>Failure-heavy sign-in chain, often about ten minutes long</td></tr><tr><td>3</td><td>MFA persistence: attacker enrolls Okta FastPass or another factor from an emulated Android device named Passkey.</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry</td><td>MFA activation after failures; Genymobile user agent</td></tr><tr><td>4</td><td>SSO burst: the stolen session opens many connected applications quickly to find data.</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry</td><td>Unusual count of distinct apps per session</td></tr><tr><td>5</td><td>Bulk theft: scripted SharePoint and OneDrive downloads, Salesforce bulk export, Slack and Drive downloads seconds apart.</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry</td><td>PowerShell user agent; row counts; keyword searches such as poc, confidential, vpn</td></tr><tr><td>6</td><td>Concealment: ToogleBox Recall authorized; MFA-notification email deleted; phishing sent to contacts, then deleted.</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry</td><td>OAuth authorization of the add-on; deletions of security emails</td></tr><tr><td>7</td><td>Extortion: email, texts and calls, 72-hour Bitcoin demand, Tox, Limewire samples, leak site, harassment, DDoS.</td><td>Mail gateway and phone-system records, outside endpoint telemetry</td><td>Inbound mail from the listed extortion mailboxes</td></tr><tr><td>8</td><td>Track B access: POST requests to /PSEMHUB/hub or /%50SEMHUB/hub, then JSP web shells or shell processes from Java.</td><td>Web-server access logs; Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Java parent with shell child; new JSP files under PSEMHUB.war</td></tr><tr><td>9</td><td>Track B tooling: MeshAgent from /tmp, SIDEEYE (Ple64.exe), Neo-reGeorg tunnel pages.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); DNS lookup with the requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>Azure-named agents; connections to C2 on TCP/3333 and 3334</td></tr><tr><td>10</td><td>Track B movement and exit: psappsrv.cfg and config.xml reads, sshpass fanout, README marker file, zstd archive, SSH to the leak-site mirror.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>meshctrl RunCommand, sshpass, zstd, outbound SSH</td></tr></tbody></table><p class="callout callout-info">Items marked (inferred) are analyst mappings the cited sources do not state. Steps 8 to 10 follow GTIG's June and September reports; steps 1 to 7 follow GTIG's January report, Okta, Obsidian and Mandiant's guide.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody><tr><td>Domain</td><td><code>azurenetfiles.net</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>MeshCentral C2 / staging, Microsoft-lookalike name (primary C2: wss://azurenetfiles.net:443/agent.ashx)</td></tr><tr><td>Domain</td><td><code>microsoft-entra.net</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>MeshCentral C2 / staging, Microsoft-lookalike name</td></tr><tr><td>Domain</td><td><code>enroll.azuredevice.cloud</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>MeshCentral C2 / staging, Microsoft-lookalike name</td></tr><tr><td>Domain</td><td><code>winmanage-me.network</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>MeshCentral C2 / staging, Microsoft-lookalike name</td></tr><tr><td>IPv4</td><td><code>142.11.200.186</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Staging host (Python SimpleHTTP :8888, MeshCentral)</td></tr><tr><td>IPv4</td><td><code>142.11.200.187</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Staging host (Python SimpleHTTP :8888, MeshCentral)</td></tr><tr><td>IPv4</td><td><code>142.11.200.188</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Staging host (Python SimpleHTTP :8888, MeshCentral)</td></tr><tr><td>IPv4</td><td><code>142.11.200.189</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Staging host (Python SimpleHTTP :8888, MeshCentral)</td></tr><tr><td>IPv4</td><td><code>142.11.200.190</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Staging host (Python SimpleHTTP :8888, MeshCentral)</td></tr><tr><td>IPv4</td><td><code>176.120.22.24</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Clearnet mirror of the ShinyHunters data leak site; SSH exfil destination</td></tr><tr><td>IPv4</td><td><code>5.199.162.157</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Attack controller, scanner and HTTP callback receiver</td></tr><tr><td>IPv4</td><td><code>104.219.234.138</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Exfiltration staging and remote-management host</td></tr><tr><td>IPv4</td><td><code>162.219.30.165</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>C2 for SIDEEYE backdoor (TCP/3333 control, TCP/3334 data)</td></tr><tr><td>SHA-256</td><td><code>f02a924c9ff92a8780ce812511341182c6b509d45bc59f3f7b522e37225d24fc</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>meshagent64-azure-ops.exe</td></tr><tr><td>SHA-256</td><td><code>d83fdb9e53c5ff03c4cb0451ea1bebd79b53f29eadc1e2fa394c7af13a86ce2f</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>meshagent64-v2.exe</td></tr><tr><td>SHA-256</td><td><code>c7e9332731b06644fc73e0046a2a89eaa59b09f54250e9bd622467187351711f</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>meshagent32-azure-ops.exe</td></tr><tr><td>SHA-256</td><td><code>68257a6f9ff196179ec03624e849927f26599eb180a7c82e14ef5bc4e93bc309</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>meshagent (Linux, unconfigured)</td></tr><tr><td>SHA-256</td><td><code>3ba215692665513abfffd4e815c5c45f2d41e5dcc4283a2a3b740930c5c417c3</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Ple64.exe (SIDEEYE loader)</td></tr><tr><td>SHA-256</td><td><code>2bee941fb40519d0d1ec52bd79a8f63fc65aac6455c8f2d6b668e3360dfdb5d7</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>u.jsp</td></tr><tr><td>SHA-256</td><td><code>48b4a0827da7bbfce9fb52464f8a659dea7a035189c52c506c0bfb4b1c3fe494</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>x.jsp: GTIG says the hash varies per deployment; hunt by name and path</td></tr><tr><td>SHA-256</td><td><code>419c571ee38b7e7266d130c4b6bbc4dd0ef44d6e5f3bc02cc2cf73b762f07c86</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>tunnel.jsp: GTIG says the hash varies per deployment; hunt by name and path</td></tr><tr><td>SHA-256</td><td><code>ba14419beb2ec0bb94cab6298c14d7fb3e1d819366fe378290c0c2a4d97f7e07</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>tunnel.jspx: GTIG says the hash varies per deployment; hunt by name and path</td></tr><tr><td>SHA-256</td><td><code>2ab684d93c1553fad87041b4dea97188a97e78589deee2a7bacff905564f3a35</code></td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>.bash_history: attacker command history from the staging hosts</td></tr><tr><td>File name</td><td><code>x.jsp under PSEMHUB.war</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>JSP web shell or Neo-reGeorg tunnel</td></tr><tr><td>File name</td><td><code>u.jsp under PSEMHUB.war</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>JSP web shell or Neo-reGeorg tunnel</td></tr><tr><td>File name</td><td><code>u2.jsp under PSEMHUB.war</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>JSP web shell or Neo-reGeorg tunnel</td></tr><tr><td>File name</td><td><code>tunnel.jsp under PSEMHUB.war</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>JSP web shell or Neo-reGeorg tunnel</td></tr><tr><td>File name</td><td><code>tunnel.jspx under PSEMHUB.war</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>JSP web shell or Neo-reGeorg tunnel</td></tr><tr><td>File name</td><td><code>Ple64.exe under PSEMHUB.war</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Trojanized installer delivering SIDEEYE</td></tr><tr><td>File name</td><td><code>README-IF-YOU-SEE-THIS-YOUVE-BEEN-HACKED.TXT</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Defacement and extortion marker copied to WebLogic and Process Scheduler directories</td></tr><tr><td>File name</td><td><code>&lt;victim_abbreviation&gt;_fanout.sh</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>SSH credential-spray and marker-deployment script in /tmp</td></tr><tr><td>Linux paths</td><td><code>/tmp/meshagent, /tmp/meshagent.msh, /tmp/meshagent.db</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>MeshAgent dropped under the PeopleSoft service account</td></tr><tr><td>URI</td><td><code>/PSEMHUB/hub, /%50SEMHUB/hub, /PSIGW/HttpListeningConnector</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Exploitation path; assume any percent-encoded or mixed-case variant</td></tr><tr><td>Email</td><td><code>shinycorp@tutanota[.]com</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Extortion contact (GTIG spelling)</td></tr><tr><td>Email</td><td><code>shinygroup@onionmail[.]com</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Extortion contact</td></tr><tr><td>Email</td><td><code>shinycorp@tuta[.]com, shinygroup@tuta[.]com</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Extortion contacts listed by MITRE</td></tr><tr><td>Domain pattern</td><td><code>&lt;org&gt;sso[.]com, &lt;org&gt;internal[.]com, &lt;org&gt;support[.]com, &lt;org&gt;okta[.]com, &lt;org&gt;access[.]com</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Victim-branded lookalikes; NICENIC (UNC6661) and Tucows (UNC6671) registrars</td></tr><tr><td>User agent</td><td><code>Genymobile / Geny Mobile (Okta Android client com.okta.android.auth)</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Emulated Android enrolling FastPass</td></tr><tr><td>Device name</td><td><code>Passkey</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Okta Verify / FastPass device name used in all three Obsidian incidents</td></tr><tr><td>User agent</td><td><code>WindowsPowerShell/5.1 against SharePoint or OneDrive</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Scripted bulk download</td></tr><tr><td>OAuth app</td><td><code>ToogleBox Recall</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Add-on that permanently deletes mail; authorized to hide the MFA-enrollment email</td></tr><tr><td>User agent</td><td><code>RapeForce, RapeFlake</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Actor strings reported for the Aura and earlier Snowflake campaigns (Tier 3 source)</td></tr><tr><td>IPv4 (19)</td><td><code>See the IdP/SaaS source-IP watchlist in Section 10</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Residential proxy and VPN addresses from January 2026; perishable, hunt only</td></tr></tbody></table><p>Action vocabulary: <code>detect</code> alert or block, <code>hunt</code> search and review, <code>enrich</code> add context only. Sources: Tier 1 reports 2, 3, 4 and MITRE 1; Obsidian 9 for Okta behavior.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr></thead><tbody><tr><td>Identity providers: Okta, Entra ID, Google Workspace</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry</td><td>Critical</td><td>Needs SIEM ingest of authentication, MFA-lifecycle and admin events; Okta indicator list is customer-gated</td></tr><tr><td>Microsoft 365: SharePoint, OneDrive, Exchange</td><td>Identity-provider and SaaS audit logs (Okta System Log, Entra sign-in and audit logs, Microsoft 365 Unified Audit Log, Google Workspace audit, Salesforce Event Monitoring), outside endpoint telemetry; Purview Audit must be on</td><td>Critical</td><td>User agent is captured only if the audit record carries it; retention varies by licence</td></tr><tr><td>Salesforce and Experience Cloud</td><td>Salesforce Event Monitoring (login, API, bulk-result and report-export events), outside endpoint telemetry</td><td>High</td><td>Event Monitoring is a licensed add-on; basic login history will miss bulk export</td></tr><tr><td>Other SaaS: Slack, Google Drive, DocuSign, Atlassian</td><td>Each product&#x27;s audit log, outside endpoint telemetry</td><td>Medium</td><td>Often not ingested; retention windows are short</td></tr><tr><td>Help desk and phone system</td><td>Ticketing and call records; no endpoint telemetry</td><td>High</td><td>Process control, not a log source</td></tr><tr><td>Oracle PeopleSoft web tier on WebLogic (Linux and Windows)</td><td>Web-server access logs; Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); File hashes on process events (CrowdStrike: SHA256HashData. SentinelOne: process image SHA-256. Defender: SHA1 or SHA256)</td><td>Critical</td><td>Fileless exploitation leaves no file; web-log retention is often short</td></tr><tr><td>Linux application and database servers</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); DNS lookup with the requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse)</td><td>High</td><td>Sensor must be on the PeopleSoft hosts; many are unmanaged appliances</td></tr><tr><td>Staff endpoints</td><td>DNS lookup with the requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); browser and proxy logs</td><td>Medium</td><td>The call happens on a phone, so endpoints see only the later sign-in page</td></tr></tbody></table><p class="callout callout-warn">Gaps: nothing in endpoint telemetry sees the phone call, the lookalike page rendered on a personal phone, or SaaS-native exports. Detection for Track A depends on identity-provider and SaaS log ingest.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed behavior</th><th>Query or control</th></tr></thead><tbody><tr><td>Resource Development</td><td>T1583.001</td><td>Acquire Infrastructure: Domains</td><td>Victim-branded SSO lookalikes; Microsoft-lookalike C2 names</td><td>Q1; N8</td></tr><tr><td>Initial Access</td><td>T1566.004 (inferred)</td><td>Spearphishing Voice</td><td>Callers pose as IT support</td><td>Q9; process control</td></tr><tr><td>Initial Access</td><td>T1078.004</td><td>Valid Accounts: Cloud Accounts</td><td>Stolen SSO credential plus MFA code</td><td>Q8, Q9, Q10</td></tr><tr><td>Initial Access</td><td>T1190</td><td>Exploit Public-Facing Application</td><td>CVE-2026-35273 against PeopleSoft EMHub</td><td>Q5; N6</td></tr><tr><td>Persistence</td><td>T1098.005 (inferred)</td><td>Account Manipulation: Device Registration</td><td>FastPass enrollment from emulated Android</td><td>Q7, Q8</td></tr><tr><td>Persistence</td><td>T1556.006 (inferred)</td><td>Modify Authentication Process: Multi-Factor Authentication</td><td>Attacker-controlled factor</td><td>Q7, Q8</td></tr><tr><td>Persistence</td><td>T1505.003</td><td>Server Software Component: Web Shell</td><td>x.jsp, u.jsp, tunnel.jsp under PSEMHUB.war</td><td>Q5; N6</td></tr><tr><td>Persistence / C2</td><td>T1219</td><td>Remote Access Software</td><td>MeshCentral and ConnectWise</td><td>Q1, Q2, Q3</td></tr><tr><td>Defense Evasion</td><td>T1036.005</td><td>Masquerading: Match Legitimate Name or Location</td><td>meshagent64-azure-ops.exe, Azure-named domains</td><td>Q1, Q3</td></tr><tr><td>Defense Evasion</td><td>T1070.008 (inferred)</td><td>Indicator Removal: Clear Mailbox Data</td><td>ToogleBox Recall deletes the MFA-notification email</td><td>Q12</td></tr><tr><td>Execution</td><td>T1059.003, T1059.004</td><td>Windows Command Shell, Unix Shell</td><td>Shells spawned by the WebLogic Java process</td><td>Q5</td></tr><tr><td>Execution</td><td>T1059.007</td><td>JavaScript</td><td>meshctrl.js RunCommand</td><td>Q4</td></tr><tr><td>Credential Access</td><td>T1552.001</td><td>Credentials In Files</td><td>psappsrv.cfg database credentials</td><td>N7</td></tr><tr><td>Credential Access</td><td>T1187 (inferred)</td><td>Forced Authentication</td><td>Outbound SMB to capture NetNTLM hashes</td><td>Q6</td></tr><tr><td>Credential Access</td><td>T1528, T1550.001</td><td>Steal Application Access Token; Application Access Token</td><td>OAuth and API tokens from integrations</td><td>Q13; N5</td></tr><tr><td>Discovery</td><td>T1083, T1082, T1016</td><td>File and Directory, System Information, Network Configuration</td><td>psappsrv.cfg, config.xml, hostname and id</td><td>Q4</td></tr><tr><td>Lateral Movement</td><td>T1021.004, T1110.003 (inferred)</td><td>SSH; Password Spraying</td><td>sshpass fanout script</td><td>Q4</td></tr><tr><td>Collection</td><td>T1213.002, T1213.006</td><td>SharePoint; Databases</td><td>Scripted SharePoint pull; Salesforce datasets</td><td>Q11, Q13</td></tr><tr><td>Collection</td><td>T1560.002</td><td>Archive via Library</td><td>zstd archive of exfil directory</td><td>Q4</td></tr><tr><td>Command and Control</td><td>T1090.003, T1573.002</td><td>Multi-hop Proxy; Asymmetric Cryptography</td><td>Tor leak site; SSH from staging host</td><td>Q2</td></tr><tr><td>Exfiltration</td><td>T1567, T1048</td><td>Web Service; Alternative Protocol</td><td>Limewire samples, SSH and rsync from the PeopleSoft tier</td><td>Q2, Q13</td></tr><tr><td>Impact</td><td>T1657, T1491.001</td><td>Financial Theft; Internal Defacement</td><td>72-hour Bitcoin demand; README marker file</td><td>N9</td></tr></tbody></table><p>Technique IDs come from MITRE G1057 (source 1) and GTIG (sources 2 to 4). Entries marked (inferred) are analyst mappings.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+<p>These checks need no Falcon query. Run them in the product named in each row.</p><h3>N1 · Okta System Log: MFA lifecycle and emulator</h3><p><strong>Where:</strong> Admin Console, Reports, System Log, or the System Log API.</p><pre class="code">eventType eq &quot;user.mfa.factor.activate&quot; or eventType eq &quot;user.mfa.factor.reset_all&quot; or eventType eq &quot;device.enrollment.create&quot;</pre><p>Pivot on actor, client.ipAddress and client.userAgent.rawUserAgent. Look for Genymobile and for a device named Passkey.</p><h3>N2 · Entra ID: security-info registration</h3><p><strong>Where:</strong> Entra admin center, Monitoring, Audit logs, filter Category = UserManagement.</p><pre class="code">Activity: User registered security info / User deleted security info</pre><p>Compare the source IP to the user&#x27;s normal sign-in locations and to Conditional Access results.</p><h3>N3 · Microsoft 365: scripted SharePoint and OneDrive downloads</h3><p><strong>Where:</strong> Exchange Online PowerShell.</p><pre class="code">Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-14) -EndDate (Get-Date) -Operations FileDownloaded,FileAccessed -ResultSize 5000 |
+  Where-Object { $_.AuditData -match &#x27;WindowsPowerShell&#x27; } |
+  Select-Object CreationDate, UserIds, Operations</pre><p>Group by user and count. Mandiant&#x27;s threshold was 50 documents of 3 or more types in 5 minutes.</p><h3>N4 · Google Workspace: add-on authorization and mail deletion</h3><p><strong>Where:</strong> Admin console, Reporting, Audit and investigation, OAuth log events and Gmail log events.</p><pre class="code">OAuth log: App name contains ToogleBox Recall. Gmail log: event is delete or permanent delete and subject matches MFA enrollment wording.</pre><p>A deleted &#x27;Security method enrolled&#x27; message is the signal; check outbound mail deleted the same hour.</p><h3>N5 · Salesforce: bulk export and connected-app token use</h3><p><strong>Where:</strong> Developer console or Workbench against EventLogFile.</p><pre class="code">SELECT EventType, LogDate, LogFile FROM EventLogFile WHERE EventType IN (&#x27;BulkApi&#x27;,&#x27;ReportExport&#x27;,&#x27;Login&#x27;,&#x27;RestApi&#x27;) AND LogDate = LAST_N_DAYS:14</pre><p>Look for new connected apps, API calls from unfamiliar addresses, and Data Loader user agents. For Experience Cloud, review guest-user API volume.</p><h3>N6 · PeopleSoft web tier: exploitation attempts and web shells</h3><p><strong>Where:</strong> Shell on each WebLogic node (check every node behind the load balancer).</p><pre class="code">PS_CFG_HOME=/u01/app/psoft/ps_config_homes/csprd   # adjust to your install
+grep -Eih &#x27;psemhub|%50semhub|psigw/httplisteningconnector&#x27; $(find &quot;$PS_CFG_HOME&quot;/webserv -name &#x27;*access*log*&#x27;) | head -200
+find &quot;$PS_CFG_HOME&quot;/webserv/*/applications/peoplesoft/PSEMHUB.war \( -name &#x27;*.jsp&#x27; -o -name &#x27;*.jspx&#x27; -o -name &#x27;*.exe&#x27; \) -ls
+find &quot;$PS_CFG_HOME&quot;/webserv/*/applications/peoplesoft/PSEMHUB.war/envmetadata -type f -ls</pre><p>Any JSP, JSPX or EXE that is not part of the shipped product is hostile. Five to fifteen POSTs to the hub servlet from one address is target verification.</p><h3>N7 · PeopleSoft hosts: credential and config reads</h3><p><strong>Where:</strong> Shell with auditd, or EDR file-read telemetry.</p><pre class="code">ausearch -i -f psappsrv.cfg
+ausearch -i -f config.xml</pre><p>Reads of psappsrv.cfg and WebLogic config.xml by a shell or Java child are reconnaissance. Rotate every credential stored there if a web shell is found.</p><h3>N8 · Proxy, DNS and mail: lookalike domains</h3><p><strong>Where:</strong> DNS, web proxy and mail gateway logs.</p><pre class="code">Match: ^(my-?)?&lt;yourorg&gt;(sso|internal|support|okta|azure|access)\.(com|net|support)$</pre><p>Also match ticket-&lt;yourorg&gt;.support and on&lt;yourorg&gt;zendesk.com. Hits mean staff were sent to a lookalike page.</p><h3>N9 · Mail gateway and phone system: extortion contact</h3><p><strong>Where:</strong> Mail gateway search and phone-system call records.</p><pre class="code">Sender or reply-to contains shinycorp@tutanota.com, shinygroup@onionmail.com, shinycorp@tuta.com or shinygroup@tuta.com</pre><p>Brief executives and the help desk. Expect harassing texts and calls to staff and their families.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+<div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+<p class="callout callout-info">Q1 to Q6 run on Falcon sensor telemetry. Q7 to Q13 run on identity and SaaS logs ingested into Falcon Next-Gen SIEM. Their field names depend on your parser, so each carries a validate-in-tenant note. Run one against a sample row before relying on it.</p><div class="query-card"><div class="qc-header"><span class="qc-title">Q1 · DNS resolution of ShinyHunters MeshCentral C2 and Microsoft-lookalike domains</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Endpoints resolving the four Microsoft/Azure-lookalike domains that front the actor&#x27;s MeshCentral C2 and staging. <strong>FP:</strong> none expected: attacker-registered lookalikes with no legitimate use.</p><pre class="cql" id="cql1"><span class="cm">// HUNT: DNS resolution of ShinyHunters MeshCentral C2 and Microsoft-lookalike domains</span>
+<span class="cm">// MITRE: T1583.001, T1219, T1036.005</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor DNS telemetry (DnsRequest)</span>
+<span class="cm">// FALSE POSITIVES: none expected -- attacker-registered lookalike domains with no legitimate use</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)(azurenetfiles\.net|microsoft-entra\.net|enroll\.azuredevice\.cloud|winmanage-me\.network)$/i
+| table([@timestamp, aid, ComputerName, DomainName, ContextBaseFileName])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q2 · Connections to PeopleSoft-campaign staging, C2 and exfiltration hosts</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Outbound connections from any host to the nine GTIG-attributed staging, C2 and exfiltration addresses (including SIDEEYE on TCP/3333-3334). <strong>FP:</strong> none expected; confirm none of the ranges is a sinkhole or scanner you operate.</p><pre class="cql" id="cql2"><span class="cm">// HUNT: Connections to PeopleSoft-campaign staging, C2 and exfiltration hosts</span>
+<span class="cm">// MITRE: T1105, T1573.002, T1090, T1048, T1219</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor network telemetry (NetworkConnectIP4)</span>
+<span class="cm">// FALSE POSITIVES: none expected -- GTIG-attributed attacker infrastructure</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=NetworkConnectIP4
+| in(RemoteAddressIP4, values=[&quot;142.11.200.186&quot;,&quot;142.11.200.187&quot;,&quot;142.11.200.188&quot;,&quot;142.11.200.189&quot;,&quot;142.11.200.190&quot;,&quot;176.120.22.24&quot;,&quot;5.199.162.157&quot;,&quot;104.219.234.138&quot;,&quot;162.219.30.165&quot;])
+| table([@timestamp, aid, ComputerName, UserName, RemoteAddressIP4, RemotePort, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q3 · Masqueraded MeshCentral agents and the SIDEEYE loader (name or SHA-256)</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Execution of the Azure-named MeshAgent binaries, the trojanized Ple64.exe installer, or any file with a published SHA-256. <strong>FP:</strong> a legitimately deployed MeshCentral agent that happens to be named meshagent64-v2.exe; the hash alternative removes the doubt.</p><pre class="cql" id="cql3"><span class="cm">// HUNT: Masqueraded MeshCentral agents and the SIDEEYE loader (name or SHA-256)</span>
+<span class="cm">// MITRE: T1036.005, T1219, T1105</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: a sanctioned MeshCentral deployment that reuses the name meshagent64-v2.exe</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (ImageFileName=/(meshagent(32|64)-(azure-ops|v2)|Ple64)\.exe$/i or SHA256HashData=/^(f02a924c9ff92a8780ce812511341182c6b509d45bc59f3f7b522e37225d24fc|d83fdb9e53c5ff03c4cb0451ea1bebd79b53f29eadc1e2fa394c7af13a86ce2f|c7e9332731b06644fc73e0046a2a89eaa59b09f54250e9bd622467187351711f|68257a6f9ff196179ec03624e849927f26599eb180a7c82e14ef5bc4e93bc309|3ba215692665513abfffd4e815c5c45f2d41e5dcc4283a2a3b740930c5c417c3)$/i)
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, ParentBaseFileName, SHA256HashData, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q4 · Linux post-exploitation tooling: meshctrl RunCommand, sshpass spray, zstd staging, fanout and marker file</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> The attacker&#x27;s documented Linux tradecraft on compromised PeopleSoft and WebLogic hosts: MeshCentral CLI remote commands, sshpass credential spray, zstd exfil archives, the fanout script and the defacement marker file. <strong>FP:</strong> sshpass and zstd are legitimate admin and backup tools; meshctrl.js RunCommand, the fanout script name and the marker file name are not.</p><pre class="cql" id="cql4"><span class="cm">// HUNT: Linux post-exploitation tooling (meshctrl RunCommand, sshpass spray, zstd staging, fanout, marker file)</span>
+<span class="cm">// MITRE: T1059.007, T1021.004, T1110.003, T1560.002, T1491.001</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon Linux sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: sshpass in admin automation; zstd in backup and log-rotation jobs</span>
+<span class="cm">// TUNING: split the alternation: treat meshctrl.js RunCommand, _fanout.sh and the README marker as high-confidence on their own, and require sshpass or zstd to run as the PeopleSoft/WebLogic service account or from /tmp before alerting</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(meshctrl\.js\s+RunCommand|sshpass\s+-p|zstd\s+-3\s+-T0|_fanout\.sh|npm\s+list\s+global\s+authenticode|README-IF-YOU-SEE-THIS-YOUVE-BEEN-HACKED)/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q5 · WebLogic Java process spawning a shell (CVE-2026-35273 fileless command execution and web shells)</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> A java process launching cmd.exe, sh, bash or dash. GTIG documents this as how both the fileless POST-response command execution and the x.jsp/u.jsp web shells appear on the host. <strong>FP:</strong> WebLogic and other Java servers that legitimately shell out for admin or deployment scripts.</p><pre class="cql" id="cql5"><span class="cm">// HUNT: Java process (WebLogic/PeopleSoft) spawning a shell</span>
+<span class="cm">// MITRE: T1190, T1505.003, T1059.003, T1059.004</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2), Linux and Windows</span>
+<span class="cm">// FALSE POSITIVES: Java application servers that shell out for deployment, backup or health-check scripts</span>
+<span class="cm">// TUNING: scope to PeopleSoft/WebLogic hosts with a Falcon host group or ComputerName filter, baseline 14 days, then exclude the specific scripts those hosts legitimately launch; keep alerts for base64 -d, curl, /dev/tcp, tasklist and start /b</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(java|javaw)(\.exe)?$/i
+| FileName=/^(cmd\.exe|sh|bash|dash)$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q6 · Outbound SMB (TCP/445) from a server to a public address (NetNTLM coercion)</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Servers opening SMB connections to non-private addresses. Mandiant notes the PeopleSoft exploit chain may coerce the host into outbound SMB to capture machine-account NetNTLM hashes. <strong>FP:</strong> Azure Files and other cloud file services that legitimately use TCP/445 to public endpoints.</p><pre class="cql" id="cql6"><span class="cm">// HUNT: Outbound SMB (TCP/445) from a host to a public address</span>
+<span class="cm">// MITRE: T1187, T1190</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: Falcon sensor network telemetry (NetworkConnectIP4)</span>
+<span class="cm">// FALSE POSITIVES: cloud file shares (for example Azure Files) reached over TCP/445 by design</span>
+<span class="cm">// TUNING: exclude the public ranges of your sanctioned cloud file services, then restrict to server host groups</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#event_simpleName=NetworkConnectIP4
+| RemotePort=445
+| !cidr(RemoteAddressIP4, subnet=[&quot;10.0.0.0/8&quot;,&quot;172.16.0.0/12&quot;,&quot;192.168.0.0/16&quot;,&quot;127.0.0.0/8&quot;,&quot;169.254.0.0/16&quot;,&quot;100.64.0.0/10&quot;])
+| table([@timestamp, aid, ComputerName, UserName, RemoteAddressIP4, RemotePort, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q7 · Okta: emulated-Android user agent (Genymobile) on any event</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Any Okta event whose client user agent identifies a Genymobile/Genymotion Android emulator. Both GTIG and Obsidian saw the actor enroll Okta FastPass from an emulator. <strong>FP:</strong> none expected: emulator user agents have no business in a workforce IdP log. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql7"><span class="cm">// HUNT: Okta events from an emulated-Android (Genymobile) client</span>
+<span class="cm">// MITRE: T1098.005, T1078.004, T1556.006</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Okta System Log ingest (okta_system_log) -- field names are parser-dependent; ⚠ validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: none expected; a QA or mobile-development team using an emulator against a test Okta org</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#repo=okta_system_log
+| &quot;client.userAgent.rawUserAgent&quot;=/Genymobile|Geny\s?Mobile/i
+| table([@timestamp, &quot;actor.alternateId&quot;, eventType, &quot;outcome.result&quot;, &quot;client.ipAddress&quot;, &quot;client.userAgent.rawUserAgent&quot;, &quot;client.geographicalContext.country&quot;])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q8 · Okta: successful MFA factor activation, reset or device enrollment</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Every successful MFA factor lifecycle change and Okta Verify device enrollment. In this intrusion pattern MFA manipulation is the account-takeover step, so any hit needs a look at the same user&#x27;s preceding sign-ins. <strong>FP:</strong> legitimate self-service enrollment, device replacement and new-hire onboarding. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql8"><span class="cm">// HUNT: Okta successful MFA factor activation, reset or device enrollment (post-vishing signal)</span>
+<span class="cm">// MITRE: T1098.005, T1556.006</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Okta System Log ingest (okta_system_log) -- field names are parser-dependent; ⚠ validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: new-hire onboarding, self-service device replacement</span>
+<span class="cm">// TUNING: join to Q9 (failure-heavy sign-in) and to help-desk tickets; deprioritise users enrolled in the first 14 days of employment</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#repo=okta_system_log
+| eventType=/^(user\.mfa\.factor\.(activate|reset_all|update)|device\.enrollment\.create)$/
+| &quot;outcome.result&quot;=SUCCESS
+| table([@timestamp, &quot;actor.alternateId&quot;, eventType, &quot;client.ipAddress&quot;, &quot;client.userAgent.rawUserAgent&quot;, &quot;client.geographicalContext.country&quot;, &quot;debugContext.debugData.tunnels&quot;])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q9 · Okta: failure-heavy sign-in chain followed by an MFA enrollment (per user)</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Users with five or more failed password or factor attempts and at least one MFA activation inside the search window. Obsidian saw prolonged, failure-heavy flows of about ten minutes before the actor succeeded and enrolled FastPass. <strong>FP:</strong> users who forget a password and then re-enroll a replacement phone in one session. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql9"><span class="cm">// HUNT: Okta failure-heavy sign-in chain followed by MFA enrollment (run over a 1h-4h window)</span>
+<span class="cm">// MITRE: T1566.004, T1078.004, T1098.005</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: Okta System Log ingest (okta_system_log) -- field names are parser-dependent; ⚠ validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: forgotten-password plus device-replacement in one session</span>
+<span class="cm">// TUNING: raise the failure threshold to 8 for large tenants, and drop hits where the enrollment source IP matches the user&#x27;s usual egress</span>
+<span class="cm">// LOOKBACK: 4h</span>
+#repo=okta_system_log
+| eventType=/^(core\.user_auth\.login_failed|core\.user\.factor\.attempt_fail|app\.ad\.login\.bad_password|user\.mfa\.factor\.activate)$/
+| case {
+    eventType=/factor\.activate$/ | kind := &quot;enroll&quot;;
+    * | kind := &quot;fail&quot;;
+  }
+| groupBy([&quot;actor.alternateId&quot;], function=[count(as=Events), {kind=&quot;fail&quot; | count(as=Failures)}, {kind=&quot;enroll&quot; | count(as=Enrollments)}, min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=1000)
+| Failures &gt;= 5
+| Enrollments &gt;= 1
+| sort(Failures, order=desc, limit=100)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q10 · Okta: activity from the published UNC6661/UNC6671 source IPs</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Any Okta event from the 19 residential-proxy and VPN addresses GTIG published for the January 2026 SaaS intrusions. <strong>FP:</strong> residential and VPN addresses are shared and recycle; a hit is a lead to correlate, not a verdict. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql10"><span class="cm">// HUNT: Okta activity from UNC6661/UNC6671 published source IPs</span>
+<span class="cm">// MITRE: T1078.004, T1090</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Okta System Log ingest (okta_system_log) -- field names are parser-dependent; ⚠ validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: shared residential or VPN addresses reassigned to an unrelated subscriber since January 2026</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#repo=okta_system_log
+| rename(field=&quot;client.ipAddress&quot;, as=SrcIP)
+| in(SrcIP, values=[&quot;24.242.93.122&quot;,&quot;23.234.100.107&quot;,&quot;23.234.100.235&quot;,&quot;73.135.228.98&quot;,&quot;157.131.172.74&quot;,&quot;149.50.97.144&quot;,&quot;67.21.178.234&quot;,&quot;142.127.171.133&quot;,&quot;76.64.54.159&quot;,&quot;76.70.74.63&quot;,&quot;206.170.208.23&quot;,&quot;68.73.213.196&quot;,&quot;37.15.73.132&quot;,&quot;104.32.172.247&quot;,&quot;85.238.66.242&quot;,&quot;199.127.61.200&quot;,&quot;209.222.98.200&quot;,&quot;38.190.138.239&quot;,&quot;198.52.166.197&quot;])
+| table([@timestamp, &quot;actor.alternateId&quot;, eventType, &quot;outcome.result&quot;, SrcIP, &quot;client.userAgent.rawUserAgent&quot;])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q11 · Microsoft 365: scripted bulk SharePoint/OneDrive download (PowerShell user agent)</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Per-user, per-address counts of SharePoint and OneDrive file downloads or accesses whose user agent is PowerShell. GTIG observed the actor pulling SharePoint and OneDrive data this way. <strong>FP:</strong> sanctioned migration, backup and eDiscovery scripts that use PowerShell against SharePoint. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql11"><span class="cm">// HUNT: Microsoft 365 scripted bulk SharePoint/OneDrive download (PowerShell user agent)</span>
+<span class="cm">// MITRE: T1213.002, T1530, T1059.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: Microsoft 365 Unified Audit Log ingest (SharePoint/OneDrive) with UserAgent captured -- field names are parser-dependent; ⚠ validate in tenant</span>
+<span class="cm">// ⚠ validate in tenant: Workload, Operation, UserAgent, UserId, ClientIP (Unified Audit Log fields; names vary by parser)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned migration, backup and eDiscovery tooling</span>
+<span class="cm">// TUNING: exclude service accounts and automation IPs that run these jobs; raise the file-count threshold if your tenant has heavy scripted sync</span>
+<span class="cm">// LOOKBACK: 24h</span>
+Workload=/^(SharePoint|OneDrive)$/
+| Operation=/^(FileDownloaded|FileAccessed|FileSyncDownloadedFull)$/
+| UserAgent=/PowerShell/i
+| groupBy([UserId, ClientIP], function=[count(as=Files), count(SourceFileName, distinct=true, as=DistinctFiles), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=1000)
+| Files &gt;= 25
+| sort(Files, order=desc, limit=100)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q12 · Google Workspace: authorization of the ToogleBox Recall add-on</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Any record mentioning the ToogleBox Recall add-on. GTIG saw the actor authorize it to permanently delete the Okta &#x27;Security method enrolled&#x27; notification so the victim would not see the new MFA device. <strong>FP:</strong> an administrator or user who deliberately installed the add-on; verify with the account owner. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql12"><span class="cm">// HUNT: Google Workspace authorization of the ToogleBox Recall add-on</span>
+<span class="cm">// MITRE: T1070.008, T1098.003</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: Google Workspace token/OAuth audit log ingest -- scope with #repo= to your Workspace repository; ⚠ validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: deliberate installation by the account owner</span>
+<span class="cm">// LOOKBACK: 30d</span>
+@rawstring=/ToogleBox\s*Recall/i
+| table([@timestamp, @rawstring])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q13 · Salesforce: bulk-API, report-export or Data Loader activity and known actor user agents</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql13',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql13')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Salesforce event-log rows from Data Loader or from the user-agent strings reported in the Aura and earlier Snowflake campaigns. Salesforce is the actor&#x27;s long-running data-theft target. <strong>FP:</strong> administrators and integration users who run Data Loader for legitimate loads and exports. <span class="badge b-med">⚠ Field unverified — validate in tenant</span></p><pre class="cql" id="cql13"><span class="cm">// HUNT: Salesforce bulk-API / report-export / Data Loader activity and known actor user agents</span>
+<span class="cm">// MITRE: T1213.006, T1567, T1530</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Salesforce Event Monitoring (EventLogFile or real-time) ingest -- field names are parser-dependent; ⚠ validate in tenant</span>
+<span class="cm">// FALSE POSITIVES: administrators and integration users running Data Loader on purpose</span>
+<span class="cm">// TUNING: allowlist named integration users and admin egress IPs, then alert on ROWS_PROCESSED outliers per user against a 30-day baseline</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#repo=salesforce_eventlogfile
+| EVENT_TYPE=/^(BulkApi|BulkApiResultEvent|ReportExport|RestApi|ApiEvent)$/
+| USER_AGENT=/(data.?loader|RapeForce|RapeFlake)/i
+| table([@timestamp, USER_NAME, SOURCE_IP, EVENT_TYPE, USER_AGENT, ROWS_PROCESSED, CONNECTED_APP_NAME])
+| sort(@timestamp, order=desc)</pre></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>IOA name</th><th>Rule type</th><th>Pattern</th><th>Exclusions</th><th>Promotes</th><th>Deployment path</th></tr></thead><tbody><tr><td>ShinyHunters MeshCentral C2 domain</td><td>Domain Name</td><td>DomainName matches (^|\.)(azurenetfiles\.net|microsoft-entra\.net|enroll\.azuredevice\.cloud|winmanage-me\.network)$</td><td>None</td><td>Promote Q1</td><td>Custom IOA in Detect for 14 days, then Prevent. Add the same domains to IOC Management.</td></tr><tr><td>ShinyHunters staging and C2 connection</td><td>Network Connection</td><td>Remote address in the nine Section 10 addresses, any port</td><td>None</td><td>Promote Q2</td><td>Prefer IOC Management for plain addresses; use a Custom IOA only to add TCP/3333 and 3334 context.</td></tr><tr><td>Masqueraded MeshAgent or SIDEEYE loader</td><td>Process Creation</td><td>Image file name matches meshagent(32|64)-(azure-ops|v2)\.exe or Ple64\.exe</td><td>Hash allowlist for a sanctioned MeshCentral deployment</td><td>Promote Q3</td><td>Detect for 7 days, then Prevent.</td></tr><tr><td>Java server spawning a shell</td><td>Process Creation (Linux and Windows)</td><td>Parent image matches java or javaw; image matches cmd.exe, sh, bash or dash</td><td>Host-group scope to PeopleSoft and WebLogic hosts; allowlist known admin scripts after a 14-day baseline</td><td>Promote Q5</td><td>Detect in the PeopleSoft host group; move to Prevent after tuning.</td></tr><tr><td>Linux MeshCentral and sshpass tooling</td><td>Process Creation (Linux)</td><td>Command line matches meshctrl\.js\s+RunCommand or _fanout\.sh or README-IF-YOU-SEE-THIS-YOUVE-BEEN-HACKED</td><td>None for meshctrl and fanout; scope sshpass and zstd to service accounts</td><td>Promote Q4 (high-confidence terms only)</td><td>Detect only; keep sshpass and zstd in the hunt query.</td></tr></tbody></table><p>Q7 to Q13 are identity and SaaS detections. Deploy them as scheduled searches in Next-Gen SIEM rather than as endpoint IOAs.</p><h3>Alert packages</h3><p>Ready-to-paste alert text and triage steps for the three highest-fidelity detections.</p><details><summary><strong>Q3: Masqueraded MeshCentral agent executed</strong></summary><p><strong>Subject:</strong> 🚨 HUNT ALERT 🚨 — Masqueraded MeshCentral Agent Executed (Possible Remote Access / C2)</p><p>A binary named like an Azure service, or carrying a published ShinyHunters hash, ran on this host. The actor uses MeshCentral agents to keep interactive access and to push scripts after exploiting PeopleSoft. Check whether Falcon blocked it or it ran, then look at the parent process and the install path. Any hit on a server in the PeopleSoft tier is a likely intrusion, not a lookalike.</p><h4>Investigation checklist</h4><ol><li>Blocked or executed? ProcessBlocked means Falcon stopped it; ProcessRollup2 means it ran.</li><li>Read SHA256HashData and compare to the Section 10 list. A match is confirmed.</li><li>Read ParentBaseFileName. A java, sh or bash parent on a PeopleSoft host points to web-shell activity.</li><li>Read the install path in ImageFileName. Under PSEMHUB.war or /tmp is hostile.</li><li>Pivot to DnsRequest and NetworkConnectIP4 on the same host for the C2 domains and TCP/3333 to 3334.</li><li>Check frequency: how many hosts ran the same hash.</li><li>Look for follow-on execution: shells, sshpass, zstd, tar, rsync.</li><li>Isolate the host if execution is confirmed and the path or parent is hostile.</li></ol><h4>Pivot queries</h4><pre class="code">// &gt;&gt; YOU NEED:  ComputerName   (from the alert)
+// &gt;&gt; FILL IN:   ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+// Host-scoped: what this host resolved and connected to
+#event_simpleName=/DnsRequest|NetworkConnectIP4/
+| ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+| table([@timestamp, DomainName, RemoteAddressIP4, RemotePort, ContextBaseFileName])
+| sort(@timestamp, order=asc)</pre><pre class="code">// &gt;&gt; YOU NEED:  SHA256HashData   (from the alert)
+// &gt;&gt; FILL IN:   SHA256HashData=&quot;REPLACE_WITH_HASH&quot;
+// Environment-wide: every host that ran the same binary
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| SHA256HashData=&quot;REPLACE_WITH_HASH&quot;
+| groupBy([ComputerName], function=[count(as=Runs), min(@timestamp, as=FirstSeen)], limit=500)
+| sort(FirstSeen, order=asc, limit=100)</pre></details><details><summary><strong>Q5: Java process spawned a shell on a PeopleSoft host</strong></summary><p><strong>Subject:</strong> 🚨 HUNT ALERT 🚨 — Java Process Spawned a Shell (Possible PeopleSoft CVE-2026-35273 Exploitation)</p><p>A java process launched a shell. GTIG documents this as the host-side sign of both fileless exploitation of PeopleSoft CVE-2026-35273 and the x.jsp and u.jsp web shells. The alert fires whether or not the exploit left a file, so a clean file scan does not clear the host. Read the shell&#x27;s command line first: hostname, whoami, uname, id, base64 -d, curl, /dev/tcp, tasklist and start /b are the documented commands.</p><h4>Investigation checklist</h4><ol><li>Read CommandLine on the shell event. Discovery commands or an encoded payload are hostile.</li><li>Read UserName. A quarter of the actor&#x27;s commands ran as root or SYSTEM.</li><li>Check the web-server access log for POST to /PSEMHUB/hub or /%50SEMHUB/hub at the same time.</li><li>Search PSEMHUB.war and PORTAL.war for unexpected .jsp, .jspx and .exe files on every WebLogic node.</li><li>Pivot to NetworkConnectIP4 from the same host for the Section 10 addresses.</li><li>Look for sshpass, zstd, tar and rsync started by the service account.</li><li>Preserve the web directory and logs before cleanup.</li><li>Isolate the host and rotate every credential in psappsrv.cfg if any step confirms compromise.</li></ol><h4>Pivot queries</h4><pre class="code">// &gt;&gt; YOU NEED:  ComputerName   (from the alert)
+// &gt;&gt; FILL IN:   ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+// Host-scoped: everything the shell ran
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+| ParentBaseFileName=/^(sh|bash|dash|cmd\.exe|java|javaw)(\.exe)?$/i
+| table([@timestamp, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=asc)</pre><pre class="code">// Environment-wide: other hosts where a Java process started a shell in the window
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^(java|javaw)(\.exe)?$/i
+| FileName=/^(cmd\.exe|sh|bash|dash)$/i
+| groupBy([ComputerName], function=[count(as=Spawns), min(@timestamp, as=FirstSeen)], limit=500)
+| sort(Spawns, order=desc, limit=100)</pre></details><details><summary><strong>Q7: Okta event from an emulated Android client</strong></summary><p><strong>Subject:</strong> 🚨 HUNT ALERT 🚨 — Okta Activity From an Emulated Android Device (Possible MFA Persistence After Vishing)</p><p>An Okta event came from a Genymobile emulator user agent. In the incidents Google and Obsidian describe, the actor enrolled FastPass from an emulator after a failure-heavy sign-in. Treat the user as compromised until proven otherwise, and check what factors were added and what the session touched afterward. Contact the user on a known number, never on a number the caller supplied.</p><h4>Investigation checklist</h4><ol><li>Read actor.alternateId and eventType. Is this an enrollment or a normal sign-in?</li><li>List every MFA factor event for the user in the last 24 hours (pivot below).</li><li>Read client.ipAddress and compare to the Section 10 watchlist and to the user&#x27;s normal egress.</li><li>Check the sign-in chain before the enrollment for repeated failures.</li><li>Look at the downstream SaaS activity: SharePoint downloads, Salesforce exports, Slack and Drive downloads.</li><li>Check Google Workspace for a ToogleBox Recall authorization and deleted security emails.</li><li>Revoke sessions and tokens, remove the unknown factors, and reset the password through high-assurance verification.</li><li>Escalate if any bulk download or export is confirmed.</li></ol><h4>Pivot queries</h4><pre class="code">// &gt;&gt; YOU NEED:  actor.alternateId   (from the alert)
+// &gt;&gt; FILL IN:   &quot;actor.alternateId&quot;=&quot;REPLACE_WITH_USER&quot;
+// Host-scoped equivalent: the user&#x27;s full Okta timeline
+#repo=okta_system_log
+| &quot;actor.alternateId&quot;=&quot;REPLACE_WITH_USER&quot;
+| table([@timestamp, eventType, &quot;outcome.result&quot;, &quot;client.ipAddress&quot;, &quot;client.userAgent.rawUserAgent&quot;])
+| sort(@timestamp, order=asc)</pre><pre class="code">// &gt;&gt; YOU NEED:  client.ipAddress   (from the alert)
+// &gt;&gt; FILL IN:   SrcIP=&quot;REPLACE_WITH_IP&quot;
+// Environment-wide: every user seen from the same address
+#repo=okta_system_log
+| rename(field=&quot;client.ipAddress&quot;, as=SrcIP)
+| SrcIP=&quot;REPLACE_WITH_IP&quot;
+| groupBy([&quot;actor.alternateId&quot;], function=[count(as=Events), min(@timestamp, as=FirstSeen)], limit=500)
+| sort(Events, order=desc, limit=100)</pre></details>
+    </div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+<p class="callout callout-warn">The IdP source addresses are residential-proxy and VPN endpoints from January 2026. Mandiant advises hunting and correlating on them, not broad blocking. Use the CSV only for the nine infrastructure addresses, four domains and six hashes.</p><div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div><button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button><pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,azurenetfiles.net,detect,high,2027-04-16,ShinyHunters MeshCentral C2 or staging domain,campaign:ShinyHunters
+domain,microsoft-entra.net,detect,high,2027-04-16,ShinyHunters MeshCentral C2 or staging domain,campaign:ShinyHunters
+domain,enroll.azuredevice.cloud,detect,high,2027-04-16,ShinyHunters MeshCentral C2 or staging domain,campaign:ShinyHunters
+domain,winmanage-me.network,detect,high,2027-04-16,ShinyHunters MeshCentral C2 or staging domain,campaign:ShinyHunters
+domain,REPLACE_WITH_ORG_SSO_LOOKALIKE,detect,high,2027-04-16,Your own brand lookalike found via Q1 or N8,campaign:ShinyHunters
+ipv4,142.11.200.186,detect,high,2027-01-16,Staging host,campaign:ShinyHunters
+ipv4,142.11.200.187,detect,high,2027-01-16,Staging host,campaign:ShinyHunters
+ipv4,142.11.200.188,detect,high,2027-01-16,Staging host,campaign:ShinyHunters
+ipv4,142.11.200.189,detect,high,2027-01-16,Staging host,campaign:ShinyHunters
+ipv4,142.11.200.190,detect,high,2027-01-16,Staging host,campaign:ShinyHunters
+ipv4,176.120.22.24,detect,high,2027-01-16,Clearnet mirror of the ShinyHunters data leak site,campaign:ShinyHunters
+ipv4,5.199.162.157,detect,high,2027-01-16,Attack controller, scanner and HTTP callback receiver,campaign:ShinyHunters
+ipv4,104.219.234.138,detect,high,2027-01-16,Exfiltration staging and remote-management host,campaign:ShinyHunters
+ipv4,162.219.30.165,detect,high,2027-01-16,C2 for SIDEEYE backdoor,campaign:ShinyHunters
+sha256,f02a924c9ff92a8780ce812511341182c6b509d45bc59f3f7b522e37225d24fc,prevent,critical,2027-04-16,meshagent64-azure-ops.exe,campaign:ShinyHunters
+sha256,d83fdb9e53c5ff03c4cb0451ea1bebd79b53f29eadc1e2fa394c7af13a86ce2f,prevent,critical,2027-04-16,meshagent64-v2.exe,campaign:ShinyHunters
+sha256,c7e9332731b06644fc73e0046a2a89eaa59b09f54250e9bd622467187351711f,prevent,critical,2027-04-16,meshagent32-azure-ops.exe,campaign:ShinyHunters
+sha256,68257a6f9ff196179ec03624e849927f26599eb180a7c82e14ef5bc4e93bc309,prevent,critical,2027-04-16,meshagent,campaign:ShinyHunters
+sha256,3ba215692665513abfffd4e815c5c45f2d41e5dcc4283a2a3b740930c5c417c3,prevent,critical,2027-04-16,Ple64.exe,campaign:ShinyHunters
+sha256,2bee941fb40519d0d1ec52bd79a8f63fc65aac6455c8f2d6b668e3360dfdb5d7,detect,high,2027-04-16,u.jsp,campaign:ShinyHunters
+# Not imported: hashes GTIG says vary per deployment (hunt by name and path)
+# x.jsp 48b4a0827da7bbfce9fb52464f8a659dea7a035189c52c506c0bfb4b1c3fe494
+# tunnel.jsp 419c571ee38b7e7266d130c4b6bbc4dd0ef44d6e5f3bc02cc2cf73b762f07c86
+# tunnel.jspx ba14419beb2ec0bb94cab6298c14d7fb3e1d819366fe378290c0c2a4d97f7e07
+# .bash_history (attacker command history) 2ab684d93c1553fad87041b4dea97188a97e78589deee2a7bacff905564f3a35
+# Do not import the IdP source IPs below: they are sources of sign-ins, not destinations of endpoint connections</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">IdP / SaaS source-IP watchlist</span><span class="igc">hunt only</span></div><button class="btn-copy" data-label="Copy IPs" onclick="copyBlock('grab-ips',this)" style="margin:0 0 6px;">Copy IPs</button><pre class="code" id="grab-ips"># GTIG January 2026 SaaS-intrusion source IPs. Residential proxy and VPN. HUNT ONLY, do not block.
+# Pattern note: Mullvad, Oxylabs, NetNut, 9Proxy, Infatica and nsocks networks appear in these intrusions.
+
+24.242.93.122  AS11427  UNC6661
+23.234.100.107  AS11878  UNC6661
+23.234.100.235  AS11878  UNC6661
+73.135.228.98  AS33657  UNC6661
+157.131.172.74  AS46375  UNC6661
+149.50.97.144  AS201814  UNC6661
+67.21.178.234  AS400595  UNC6661
+142.127.171.133  AS577  UNC6671
+76.64.54.159  AS577  UNC6671
+76.70.74.63  AS577  UNC6671
+206.170.208.23  AS7018  UNC6671
+68.73.213.196  AS7018  UNC6671
+37.15.73.132  AS12479  UNC6671
+104.32.172.247  AS20001  UNC6671
+85.238.66.242  AS20845  UNC6671
+199.127.61.200  AS23470  UNC6671
+209.222.98.200  AS23470  UNC6671
+38.190.138.239  AS27924  UNC6671
+198.52.166.197  AS395965  UNC6671
+
+# CQL list for in():
+&quot;24.242.93.122&quot;,&quot;23.234.100.107&quot;,&quot;23.234.100.235&quot;,&quot;73.135.228.98&quot;,&quot;157.131.172.74&quot;,&quot;149.50.97.144&quot;,&quot;67.21.178.234&quot;,&quot;142.127.171.133&quot;,&quot;76.64.54.159&quot;,&quot;76.70.74.63&quot;,&quot;206.170.208.23&quot;,&quot;68.73.213.196&quot;,&quot;37.15.73.132&quot;,&quot;104.32.172.247&quot;,&quot;85.238.66.242&quot;,&quot;199.127.61.200&quot;,&quot;209.222.98.200&quot;,&quot;38.190.138.239&quot;,&quot;198.52.166.197&quot;</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">search strings</span></div><button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy signatures</button><pre class="code" id="grab-behav">OKTA SYSTEM LOG
+  eventType: user.mfa.factor.activate | user.mfa.factor.reset_all | user.mfa.factor.update | device.enrollment.create
+  failure chain: core.user_auth.login_failed | core.user.factor.attempt_fail | app.ad.login.bad_password  (5+ then success)
+  user agent: com.okta.android.auth/... Android/... Genymobile/Phone   regex: Genymobile|Geny\s?Mobile
+  device display name: Passkey   (FastPass / Okta Verify enrollment)
+  sign-in flow: about 10 minutes, repeated failures, then success, then enrollment
+MICROSOFT 365
+  SharePoint/OneDrive FileDownloaded or FileAccessed with UserAgent containing WindowsPowerShell
+  threshold used by Mandiant: 50+ distinct files and 3+ extensions in 5 minutes per session
+  SearchQueryPerformed regex: \bpoc\b|proposal|confidential|internal|salesforce|vpn
+  Exchange SoftDelete|HardDelete|MoveToDeletedItems where subject matches new MFA / factor / method / device / security enrollment wording
+GOOGLE WORKSPACE
+  OAuth authorize event for app name ToogleBox Recall (Gmail add-on and Apps Script scopes)
+SALESFORCE
+  Data Loader activity; BulkApiResultEvent and ReportEventStream volume outliers
+  user agents reported for related campaigns: RapeForce, RapeFlake
+PEOPLESOFT / WEBLOGIC
+  POST /PSEMHUB/hub  |  POST /%50SEMHUB/hub  |  /PSIGW/HttpListeningConnector with loopback addresses in parameters
+  5 to 15 POSTs with a serialized Java object to one server = target verification
+  new .jsp / .jspx / .exe under PSEMHUB.war or PORTAL.war; files under PSEMHUB.war/envmetadata/transactions/
+  XML files recently changed under envmetadata/data/environment/ (XMLDecoder on restart)
+  java or javaw parent starting cmd.exe, sh, bash with base64 -d, curl, /dev/tcp, tasklist, start /b
+  outbound TCP/445 from PeopleSoft hosts to the internet
+LINUX STAGING AND MOVEMENT
+  node meshctrl.js RunCommand --id &lt;agent&gt; --run &#x27;bash /tmp/&lt;abbrev&gt;_fanout.sh&#x27;
+  sshpass -p ... ssh -o StrictHostKeyChecking=no
+  pv ... | zstd -3 -T0 -o exfil.tar.zst
+  npm list global authenticode ; MeshCentral 1.1.59 ; acme-client npm package
+  /tmp/meshagent  /tmp/meshagent.msh  /tmp/meshagent.db
+  marker file README-IF-YOU-SEE-THIS-YOUVE-BEEN-HACKED.TXT in WebLogic and Process Scheduler directories
+EXTORTION
+  72-hour Bitcoin demand; Tox negotiation; Limewire-hosted samples; Tor leak site named SHINYHUNTERS
+  mailboxes: shinycorp@tutanota[.]com, shinygroup@onionmail[.]com, shinycorp@tuta[.]com, shinygroup@tuta[.]com
+  harassing texts and calls to staff and family; DDoS; swatting (FBI PSA)</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">reference</span></div><button class="btn-copy" data-label="Copy list" onclick="copyBlock('grab-tools',this)" style="margin:0 0 6px;">Copy list</button><pre class="code" id="grab-tools">MeshCentral server 1.1.59 and MeshAgent (Windows, Linux) - legitimate RMM abused for C2
+meshctrl.js (MeshCentral CLI) driven by node
+acme-client (npm) for Let&#x27;s Encrypt certificates on the C2 name
+sshpass, ssh, pv, zstd - spray, copy, archive
+x.jsp (hex-encoded command web shell), u.jsp and u2.jsp (chunked upload and exec)
+Neo-reGeorg (tunnel.jsp, tunnel.jspx) - SOCKS over HTTP
+SIDEEYE backdoor delivered by trojanized installer Ple64.exe (EV-signed; GTIG requested revocation)
+ToogleBox Recall - Google Workspace add-on that permanently deletes email
+Genymobile / Genymotion Android emulator - used to enroll FastPass
+Bland AI - voice agent used to script vishing calls (MITRE, source 1)
+ConnectWise and other RMM tools for initial access (MITRE)
+TruffleHog - repository secret scanner (Huntress, source 10)
+S3 Browser, WinSCP, AWS CLI - cloud storage discovery and deletion (MITRE)
+Salesforce Data Loader; modified AuraInspector (Huntress, source 10)
+Limewire (proof samples), Tox (negotiation), Tor (leak site)</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Patch / MFA / SaaS Audit Checklist</span><span class="igc">posture</span></div><button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checklist</button><pre class="code" id="grab-audit">[ ] Oracle Security Alert for CVE-2026-35273 (issued 10 Jun 2026) applied on every PeopleSoft web tier
+[ ] EMHub service disabled, or PSEMHUB application removed
+[ ] /PSEMHUB and /PSIGW/HttpListeningConnector blocked on the NORMALIZED, case-insensitive path (not a literal string match)
+[ ] Credentials readable by the PeopleSoft service account rotated if any exposure is suspected
+[ ] Outbound TCP/445 from server networks to the internet denied
+[ ] Phishing-resistant MFA (FastPass, FIDO2 passkeys) enforced for all admins, then all users
+[ ] SMS, voice, email and push-only factors removed where phishing-resistant options exist
+[ ] MFA enrollment allowed only from managed devices or trusted networks, with re-authentication
+[ ] Help desk requires live video ID check, manager approval and callback to a number on file
+[ ] Okta ThreatInsight on; super admin restricted to corporate network zones
+[ ] Entra: Conditional Access covers Register security information and Global Administrator sign-in
+[ ] Google Workspace third-party API access restricted; alert on ToogleBox Recall
+[ ] Salesforce Event Monitoring on; Data Loader and API access limited to named profiles
+[ ] Microsoft Purview Audit on and PowerShell user agents captured for SharePoint and OneDrive
+[ ] Integration tokens inventoried, scoped, IP-restricted and rotated</pre></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Gate</th><th>Check</th><th>Pass condition</th></tr></thead><tbody><tr><td>Telemetry ready</td><td>Confirm each source feeds the SIEM: Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); DNS lookup with the requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); and the identity and SaaS logs in Section 5.</td><td>A sample event from each source is searchable in the last hour.</td></tr><tr><td>Benign baseline</td><td>Run Q4, Q5, Q6, Q8, Q11 and Q13 over 14 days before alerting.</td><td>Fewer than 10 hits per week per query, each explained by a named job, user or integration.</td></tr><tr><td>Positive tests</td><td>Q1: resolve a listed domain from a lab host. Q3: run a harmless binary renamed to meshagent64-v2.exe on a lab host. Q5: from a lab Java program, start a shell that runs id. Q7 and Q12: replay a synthetic log line into a test repository.</td><td>Every test fires its query within the ingest delay. Never test with live malware or against production accounts.</td></tr><tr><td>Promotion</td><td>Promote Q1, Q2, Q3 first (high confidence, low FP), then Q5 after tuning, then Q7.</td><td>Detect for 14 days with no unexplained hits, then enable prevention where the platform supports it.</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+    <div class="section-body">
+<div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div><ul><li><strong>Patch CVE-2026-35273 and disable EMHub.</strong> Apply Oracle's Security Alert, then disable the Environment Management Hub or remove PSEMHUB. WAF rules alone were bypassed with /%50SEMHUB/. Framework: MITRE M1051, M1042; Oracle Security Alert CVE-2026-35273; Mandiant (sources 3, 4). Verify: Playbook step 1.2.</li><li><strong>Block the EMHub and Integration Gateway paths on the normalized path.</strong> Deny /PSEMHUB and /PSIGW/HttpListeningConnector, case-insensitively, at the reverse proxy. Non-breaking for PIA users per Mandiant. Framework: MITRE M1030, M1050; Mandiant (source 4). Verify: Playbook step 1.1.</li><li><strong>Stop MFA enrollment from untrusted places.</strong> Require a managed device or trusted network, plus re-authentication, to register or change a factor. Framework: MITRE M1032, M1036; Mandiant hardening guide (source 5); Microsoft Conditional Access user action Register security information. Verify: Playbook 4 and 5.</li><li><strong>Verify callers by video and callback.</strong> Help desk requires a live video call with a government ID, manager approval and a callback to a number on file. Reject answers based on employee ID, SSN or manager name. Framework: Mandiant (source 5). ⚠ best-practice, no formal benchmark.</li><li><strong>Turn on identity-layer logging.</strong> Ingest Okta authentication and MFA-lifecycle events, Entra audit logs, Microsoft Purview Audit with user agent, Google Workspace OAuth and Gmail logs, and Salesforce Event Monitoring. Framework: MITRE M1047; Mandiant (source 5).</li><li><strong>Block the known infrastructure.</strong> Import the Section 10 CSV into Falcon IOC Management and DNS filtering. Framework: MITRE M1031, M1037.</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div><ul><li><strong>Enforce phishing-resistant MFA.</strong> Okta FastPass or FIDO2 passkeys for admins first, then all users. Remove SMS, voice, email and push-only factors where an alternative exists. Okta states FastPass and passkeys are not defeated by these kits. Framework: MITRE M1032; NIST SP 800-63B AAL3 guidance; Okta (source 6). Verify: Playbook 4, 5.</li><li><strong>Restrict sign-in sources.</strong> Okta network zones and ThreatInsight, Entra named locations, Workspace context-aware access. Limit super-admin access to the corporate network. Framework: MITRE M1036; Mandiant (source 5).</li><li><strong>Lock down third-party app consent.</strong> Restrict who can authorize OAuth apps and add-ons in Google Workspace and Entra; alert on ToogleBox Recall. Framework: MITRE M1047, M1026; Mandiant (source 5).</li><li><strong>Constrain Salesforce export paths.</strong> Remove API Enabled and bulk-export rights from profiles that do not need them; set Login IP ranges; secure Experience Cloud guest profiles. Framework: Mandiant Salesforce hardening guidance (source 5). ⚠ best-practice, no formal benchmark.</li><li><strong>Harden SSH on application servers.</strong> Key-only authentication, no root login, low retry count, so a credential-spray script has nothing to guess. Framework: MITRE M1032, M1027; CIS Distribution Independent Linux Benchmark, SSH server configuration section. Verify: Playbook 2.</li><li><strong>Deny outbound SMB from server networks.</strong> Framework: MITRE M1037; Mandiant (source 3). Verify: Playbook 3.</li><li><strong>Audit the PeopleSoft hosts.</strong> auditd rules for sshpass, zstd, and writes under PSEMHUB.war; file-integrity monitoring on the web directories. Framework: MITRE M1047, M1022; CIS Linux auditd guidance. Verify: Playbook 2.</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div><ul><li><strong>Replace long-lived credentials with workload identity.</strong> Move static keys and tokens to federated, short-lived identities; scope each credential to one resource; restrict source IPs. Framework: MITRE M1026, M1018; Mandiant (source 5).</li><li><strong>Inventory and govern integrations.</strong> Every connected app and API token has an owner, narrow scopes, an IP allowlist and a rotation date, since the actor reuses stolen integration tokens. Framework: MITRE M1018, M1026; Sekoia (source 8).</li><li><strong>Just-in-time admin.</strong> Remove standing Global Administrator and Okta super-admin; require approval and justification per activation. Framework: MITRE M1026; Mandiant (source 5).</li><li><strong>Put PeopleSoft administrative surfaces behind a path allowlist.</strong> Publish only the PIA paths users need and require VPN for everything else. Framework: MITRE M1030, M1035; Mandiant (sources 3, 4).</li><li><strong>Secret scanning with push protection.</strong> Block commits that contain tokens and scan history, because the actor mines repositories for credentials. Framework: MITRE M1013; Mandiant (source 5).</li></ul></div><p><strong>Verify after deployment.</strong> Over 14 days, confirm that Q5 and Q8 return only explained hits, that /%50SEMHUB/hub returns 403 from the proxy, and that no MFA factor was added from an untrusted network.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+<p>Each step carries its prerequisites, reboot requirement and rollback. Replace every REPLACE_WITH value before use, and test in non-production first.</p><h3>Playbook 1 · PeopleSoft exposure reduction (T1190, T1505.003; M1051, M1042, M1030)</h3><h3>Step 1.1 · Deny the EMHub and Integration Gateway paths at the reverse proxy</h3><p><strong>What it does:</strong> Blocks /PSEMHUB and /PSIGW/HttpListeningConnector on the normalized, case-insensitive path, so the percent-encoded variant /%50SEMHUB/ is blocked too.</p><p><strong>Prerequisites:</strong> A reverse proxy in front of the PIA web tier; confirm EMHub is not needed for your patching workflow (Mandiant calls the block non-breaking for PIA users).</p><p><strong>Reboot required:</strong> No. Reload the proxy; no OS reboot.</p><h4>Configuration</h4><pre class="code"># nginx: add inside the server block that fronts PIA
+location ~* ^/psemhub(/|$)                 { return 403; }
+location ~* ^/psigw/httplisteningconnector { return 403; }
+
+# Apache httpd equivalent
+&lt;LocationMatch &quot;(?i)^/psemhub(/|$)&quot;&gt;
+    Require all denied
+&lt;/LocationMatch&gt;
+&lt;LocationMatch &quot;(?i)^/psigw/httplisteningconnector&quot;&gt;
+    Require all denied
+&lt;/LocationMatch&gt;
+
+# nginx: validate and reload
+nginx -t &amp;&amp; nginx -s reload</pre><h4>Verify</h4><pre class="code">for p in /PSEMHUB/hub /%50SEMHUB/hub /psemhub/hub /PSIGW/HttpListeningConnector; do
+  printf &#x27;%s -&gt; &#x27; &quot;$p&quot;
+  curl -sk -o /dev/null -w &#x27;%{http_code}\n&#x27; &quot;https://REPLACE_WITH_PIA_HOST$p&quot;
+done
+# Expect 403 for all four lines</pre><h4>Rollback</h4><pre class="code"># Remove the location blocks above, then reload
+nginx -t &amp;&amp; nginx -s reload
+# Apache: remove the LocationMatch blocks, then
+apachectl configtest &amp;&amp; apachectl graceful</pre><h3>Step 1.2 · Apply Oracle&#x27;s Security Alert and disable EMHub</h3><p><strong>What it does:</strong> Fixes CVE-2026-35273 at the source. Path blocking alone was already bypassed.</p><p><strong>Prerequisites:</strong> Change window; backup or snapshot of PS_CFG_HOME and the web tier; patch tested in non-production; Oracle Security Alert for CVE-2026-35273.</p><p><strong>Reboot required:</strong> WebLogic domain restart; no OS reboot unless Oracle&#x27;s alert says otherwise.</p><h4>Configuration</h4><pre class="code"># 1) Follow Oracle&#x27;s Security Alert for CVE-2026-35273 (issued 10 Jun 2026).
+# 2) Multi-server: disable the Environment Management Hub service.
+#    Single-server: remove the PSEMHUB application.
+# 3) Restart the WebLogic domain, then repeat the Step 1.1 verification.</pre><h4>Verify</h4><pre class="code"># After restart, the EMHub servlet must not answer
+curl -sk -o /dev/null -w &#x27;%{http_code}\n&#x27; &quot;https://REPLACE_WITH_PIA_HOST/PSEMHUB/hub&quot;
+# Expect 403 or 404. Then confirm the applied patch level in the PeopleTools patch inventory.</pre><h4>Rollback</h4><pre class="code"># Restore the pre-change snapshot of PS_CFG_HOME and the web tier.
+# Oracle security patches are not individually uninstallable, so keep the snapshot until the change is accepted.</pre><h3>Playbook 2 · Linux application servers (T1110.003, T1021.004, T1560.002; M1032, M1027, M1047)</h3><h3>Step 2.1 · Key-only SSH with a low retry count</h3><p><strong>What it does:</strong> Gives the sshpass credential-spray script nothing to guess.</p><p><strong>Prerequisites:</strong> Working key-based access for every admin and for break-glass. Keep a second session open. OpenSSH 8.2 or later reading /etc/ssh/sshd_config.d.</p><p><strong>Reboot required:</strong> No. Reload sshd.</p><h4>Configuration</h4><pre class="code"># /etc/ssh/sshd_config.d/99-huntpack-hardening.conf
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+MaxAuthTries 3
+
+# apply
+sshd -t &amp;&amp; systemctl reload sshd</pre><h4>Verify</h4><pre class="code">sshd -T | grep -Ei &#x27;^(passwordauthentication|kbdinteractiveauthentication|permitrootlogin|maxauthtries) &#x27;
+# Expect: no, no, no, 3</pre><h4>Rollback</h4><pre class="code">rm /etc/ssh/sshd_config.d/99-huntpack-hardening.conf
+sshd -t &amp;&amp; systemctl reload sshd</pre><h3>Step 2.2 · auditd rules for the attacker&#x27;s tools and the web directory</h3><p><strong>What it does:</strong> Records sshpass and zstd execution and any write under PSEMHUB.war, giving Q4 and Q5 a second source.</p><p><strong>Prerequisites:</strong> auditd installed and running; the rules file is not in immutable mode (-e 2).</p><p><strong>Reboot required:</strong> No, unless auditd is set immutable, in which case a reboot loads the rules.</p><h4>Configuration</h4><pre class="code"># /etc/audit/rules.d/99-huntpack-shinyhunters.rules
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/sshpass -k sshpass_exec
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/zstd -k zstd_exec
+-w /u01/app/psoft/ps_config_homes/csprd/webserv -p wa -k psemhub_write   # adjust to your PS_CFG_HOME
+
+sudo augenrules --load</pre><h4>Verify</h4><pre class="code">sudo auditctl -l | grep -E &#x27;sshpass_exec|zstd_exec|psemhub_write&#x27;
+sudo ausearch -k sshpass_exec -ts today</pre><h4>Rollback</h4><pre class="code">sudo rm /etc/audit/rules.d/99-huntpack-shinyhunters.rules
+sudo augenrules --load</pre><h3>Playbook 3 · Deny outbound SMB from servers (T1187; M1037)</h3><h3>Step 3.1 · Drop outbound TCP/445 to public addresses</h3><p><strong>What it does:</strong> Stops NetNTLM coercion and SMB exfiltration from the PeopleSoft tier. Do the same at the perimeter firewall for server networks.</p><p><strong>Prerequisites:</strong> nftables active; no server uses SMB to a public service such as Azure Files.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">sudo nft add table inet huntpack
+sudo nft add chain inet huntpack out &#x27;{ type filter hook output priority 0; policy accept; }&#x27;
+sudo nft add rule inet huntpack out ip daddr != { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 445 counter drop</pre><h4>Verify</h4><pre class="code">sudo nft list table inet huntpack
+# The counter increments on blocked attempts; Q6 should go quiet</pre><h4>Rollback</h4><pre class="code">sudo nft delete table inet huntpack</pre><h3>Playbook 4 · Entra ID Conditional Access (T1098.005, T1556.006; M1032, M1036)</h3><h3>Step 4.1 · Block security-info registration from untrusted locations (report-only first)</h3><p><strong>What it does:</strong> Prevents an attacker from adding an MFA method from their own network after stealing a password and code.</p><p><strong>Prerequisites:</strong> Microsoft Graph PowerShell with Policy.ReadWrite.ConditionalAccess; named locations configured with your trusted networks marked trusted; a break-glass group.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">Connect-MgGraph -Scopes &#x27;Policy.ReadWrite.ConditionalAccess&#x27;,&#x27;Policy.Read.All&#x27;
+$params = @{
+  displayName = &#x27;HuntPack - Block security info registration from untrusted locations&#x27;
+  state       = &#x27;enabledForReportingButNotEnforced&#x27;
+  conditions  = @{
+    users        = @{ includeUsers = @(&#x27;All&#x27;); excludeGroups = @(&#x27;REPLACE_WITH_BREAKGLASS_GROUP_ID&#x27;) }
+    applications = @{ includeUserActions = @(&#x27;urn:user:registersecurityinfo&#x27;) }
+    locations    = @{ includeLocations = @(&#x27;All&#x27;); excludeLocations = @(&#x27;AllTrusted&#x27;) }
+  }
+  grantControls = @{ operator = &#x27;OR&#x27;; builtInControls = @(&#x27;block&#x27;) }
+}
+New-MgIdentityConditionalAccessPolicy -BodyParameter $params</pre><h4>Verify</h4><pre class="code">Get-MgIdentityConditionalAccessPolicy -Filter &quot;displayName eq &#x27;HuntPack - Block security info registration from untrusted locations&#x27;&quot; | Select-Object DisplayName, State
+# Review the report-only results in Entra sign-in logs for two weeks, then set state to &#x27;enabled&#x27;</pre><h4>Rollback</h4><pre class="code">$id = (Get-MgIdentityConditionalAccessPolicy -Filter &quot;displayName eq &#x27;HuntPack - Block security info registration from untrusted locations&#x27;&quot;).Id
+Remove-MgIdentityConditionalAccessPolicy -ConditionalAccessPolicyId $id</pre><h3>Step 4.2 · Require phishing-resistant authentication for Global Administrators (report-only first)</h3><p><strong>What it does:</strong> Applies the built-in phishing-resistant authentication strength to the most valuable role.</p><p><strong>Prerequisites:</strong> Admins registered with FIDO2 keys or passkeys first, or they will be locked out; a break-glass group.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">$params = @{
+  displayName = &#x27;HuntPack - Global Administrators require phishing-resistant MFA&#x27;
+  state       = &#x27;enabledForReportingButNotEnforced&#x27;
+  conditions  = @{
+    users        = @{ includeRoles = @(&#x27;62e90394-69f5-4237-9190-012177145e10&#x27;); excludeGroups = @(&#x27;REPLACE_WITH_BREAKGLASS_GROUP_ID&#x27;) }
+    applications = @{ includeApplications = @(&#x27;All&#x27;) }
+  }
+  grantControls = @{ operator = &#x27;OR&#x27;; authenticationStrength = @{ id = &#x27;00000000-0000-0000-0000-000000000004&#x27; } }
+}
+New-MgIdentityConditionalAccessPolicy -BodyParameter $params</pre><h4>Verify</h4><pre class="code">Get-MgIdentityConditionalAccessPolicy -Filter &quot;displayName eq &#x27;HuntPack - Global Administrators require phishing-resistant MFA&#x27;&quot; | Select-Object DisplayName, State</pre><h4>Rollback</h4><pre class="code">$id = (Get-MgIdentityConditionalAccessPolicy -Filter &quot;displayName eq &#x27;HuntPack - Global Administrators require phishing-resistant MFA&#x27;&quot;).Id
+Remove-MgIdentityConditionalAccessPolicy -ConditionalAccessPolicyId $id</pre><h3>Playbook 5 · Okta (T1098.005, T1078.004; M1032, M1036)</h3><h3>Step 5.1 · Tighten enrollment, network zones and admin access in the Admin Console</h3><p><strong>What it does:</strong> Limits where factors can be enrolled, blocks anonymizer networks, and restricts the admin console.</p><p><strong>Prerequisites:</strong> Okta super administrator; a list of corporate egress ranges; FastPass or FIDO2 enrolled for admins; menu names can vary by release and SKU.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">1. Security &gt; General: set Okta ThreatInsight to log and enforce at the threat level you accept.
+2. Security &gt; Networks: add a zone for corporate egress ranges, and a dynamic zone for anonymizers and proxies if your SKU offers it; mark the anonymizer zone as blocked.
+3. Security &gt; Authenticators &gt; Enrollment: edit the enrollment policy so Okta Verify and FastPass enrollment requires re-authentication and runs only from the corporate zone.
+4. Security &gt; Authentication policies: for the Okta Admin Console app, add a rule that requires a phishing-resistant authenticator and the corporate zone.
+5. Record the previous value of each setting before saving.</pre><h4>Verify</h4><pre class="code">System Log search, last 24 hours:
+eventType eq &quot;user.mfa.factor.activate&quot;
+# Every hit should come from the corporate zone and carry a managed device</pre><h4>Rollback</h4><pre class="code">Reverse each console change using the previous values recorded in step 5.
+Blocking a zone can lock out remote staff; keep a super-admin session open while testing.</pre><h3>Playbook 6 · Salesforce and Google Workspace (T1213, T1567, T1070.008; M1047, M1026)</h3><h3>Step 6.1 · Limit Salesforce export paths and keep event logs</h3><p><strong>What it does:</strong> Reduces who can bulk-export and makes bulk activity visible.</p><p><strong>Prerequisites:</strong> Salesforce admin; Event Monitoring licence; a list of integration users that need API access.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">1. Setup &gt; Event Monitoring Settings: enable the event types you ingest (login, API, bulk-result, report export).
+2. Profiles and permission sets: remove API Enabled and Export Reports from profiles that do not need them.
+3. Profiles: set Login IP Ranges for integration and admin profiles.
+4. Digital Experiences: review each guest user profile and remove object and API access it does not need.</pre><h4>Verify</h4><pre class="code">SELECT Profile.Name, COUNT(Id) FROM User WHERE IsActive = true AND Profile.PermissionsApiEnabled = true GROUP BY Profile.Name
+# Only profiles with a business need should appear</pre><h4>Rollback</h4><pre class="code">Restore the previous profile permissions from the change record. Removing API Enabled can break integrations, so test with one profile first.</pre><h3>Step 6.2 · Restrict third-party app access in Google Workspace</h3><p><strong>What it does:</strong> Stops users authorizing add-ons such as ToogleBox Recall, which can permanently delete mail.</p><p><strong>Prerequisites:</strong> Google Workspace super administrator.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">Admin console &gt; Security &gt; Access and data control &gt; API controls &gt; Manage third-party app access: set unconfigured third-party apps to restricted for Gmail scopes, and allowlist only approved apps.
+Admin console &gt; Reporting &gt; Audit and investigation &gt; OAuth log events: add an alert on app name containing ToogleBox.</pre><h4>Verify</h4><pre class="code">Audit and investigation &gt; OAuth log events, filter App name contains ToogleBox. Expect no authorization events.</pre><h4>Rollback</h4><pre class="code">Set the access setting back to its previous value. Restricting apps can break approved add-ons, so allowlist them first.</pre>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody><tr><td>Isolate (identity, SaaS and PeopleSoft)</td><td>Revoke all sessions, tokens and OAuth grants for affected users in the IdP and every SaaS app. Disable compromised accounts. Pause MFA registration and self-service password reset. Limit VPN and VDI to compliant devices. Tell the help desk to move to manual verification. Network-contain affected PeopleSoft hosts. Block /PSEMHUB on the normalized path. Block the Section 10 domains and addresses.</td><td>IR lead; IdP admin; server team</td><td>IdP and SaaS audit exports; Falcon containment status; proxy configuration</td></tr><tr><td>Preserve</td><td>Snapshot every WebLogic node behind the load balancer. Copy PSEMHUB.war, PORTAL.war, access logs, /tmp and shell history. Export SaaS audit logs before retention expires. Record every MFA factor and OAuth grant found.</td><td>IR lead; forensics</td><td>Disk images; log exports; hash list</td></tr><tr><td>Eradicate</td><td>Remove web shells, Ple64.exe, Neo-reGeorg pages and MeshAgent. Remove attacker MFA factors and the ToogleBox Recall authorization. Rotate every credential readable from the PeopleSoft tier, including psappsrv.cfg database strings, Integration Broker and cloud keys. Revoke and reissue integration tokens. Apply the Oracle Security Alert.</td><td>Server team; IdP admin; app owners</td><td>Rotation ticket IDs; patch inventory</td></tr><tr><td>Recover</td><td>Re-enable MFA enrollment only with phishing-resistant methods and re-authentication. Restore access in stages. Monitor with Q1 to Q13 for 30 days. Prepare for extortion contact: verify demands through a known channel and do not send payment or respond to demands, as the FBI advises. Report to the FBI Internet Crime Complaint Center and brief legal and communications.</td><td>IR lead; legal; communications</td><td>Monitoring dashboard; IC3 report reference</td></tr></tbody></table><p>Containment order follows Mandiant's guidance (source 5): because these intrusions use valid credentials rather than malware, revoking sessions and restricting identity operations comes before host cleanup.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead><tbody><tr><td>T1583.001</td><td>Lookalike C2 and SSO domains</td><td>Q1</td><td>Q1</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1566.004</td><td>Voice phishing call and lure page on a personal phone</td><td></td><td></td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1078.004, T1098.005, T1556.006</td><td>Attacker-enrolled MFA after a failure-heavy sign-in</td><td>Q7, Q8, Q9, Q10</td><td></td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1190</td><td>CVE-2026-35273 exploitation attempts</td><td>Q5</td><td>Q5</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1505.003</td><td>JSP web shell on disk (file creation)</td><td></td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1219, T1036.005</td><td>MeshCentral agents and lookalike names</td><td>Q1, Q2, Q3</td><td>Q1, Q2, Q3</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1059.007, T1110.003, T1560.002</td><td>meshctrl, sshpass spray, zstd staging</td><td>Q4</td><td>Q4</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1187</td><td>Outbound SMB coercion</td><td>Q6</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1213.002, T1530</td><td>Scripted SharePoint and OneDrive theft</td><td>Q11</td><td></td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1213.006, T1567</td><td>Salesforce bulk export and Data Loader</td><td>Q13</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1070.008</td><td>ToogleBox Recall and mailbox cleanup</td><td>Q12</td><td></td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1528, T1550.001</td><td>Stolen integration-token reuse</td><td>Q13</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1657</td><td>Extortion contact</td><td></td><td></td><td><span class="badge b-high">GAP</span></td></tr></tbody></table><p><strong>Gaps.</strong> The phone call and the lure page on a personal phone are outside endpoint telemetry; only help-desk process and user training cover them. File creation of JSP web shells has no Falcon query in this pack, so N6 and the host auditd rule cover it. Extortion contact is covered by mail-gateway search (N9) and legal process. Integration-token reuse is partly outside endpoint telemetry and depends on SaaS audit ingest.</p><p><strong>Validation.</strong> Run Section 11 before promoting: telemetry ready, 14-day baseline, safe positive tests, then staged promotion.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+<div class="ticket"><pre class="code">TITLE: ShinyHunters Vishing-to-SaaS Data Theft and PeopleSoft CVE-2026-35273 Exploitation
+SEVERITY: High. Active data-theft extortion with exploited-in-the-wild zero-day and n-day
+SCOPE: Identity provider and SaaS audit logs; PeopleSoft web tier and Linux servers; endpoint
+       DNS, network and process telemetry
+HYPOTHESIS: Callers pose as IT support to steal an SSO password and MFA code, enroll their own
+       factor, and bulk-download SaaS data. Separately, the group exploits PeopleSoft EMHub,
+       installs MeshCentral agents and exfiltrates data over SSH.
+QUERIES: 13 CQL queries (Q1-Q13): 6 on endpoint telemetry, 7 on identity and SaaS logs.
+DO FIRST: 1) Run Q8 and Q9 over 14 days. 2) Check PeopleSoft hosts with Q5, N6 and Playbook 1.
+       3) Import the Section 10 CSV. 4) Brief the help desk on video and callback verification.
+FINDINGS: [fill in after the hunt]
+GAPS: The phone call and lure page on a personal phone are outside endpoint telemetry. JSP file
+       creation has no query here. Integration-token reuse depends on SaaS audit ingest.
+ACTIONS: Patch CVE-2026-35273; block /PSEMHUB on the normalized path; enforce phishing-resistant
+       MFA; restrict MFA enrollment; revoke sessions on any hit.
+OWNER: REPLACE_WITH_OWNER
+VERSION: v0.1 (Draft) 2026-10-16</pre></div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-16</span><span>Initial draft. 13 CQL queries, 5 IOA candidates, 3 alert packages, tiered hardening with 6 deployable playbooks. Built from 13 sources, 9 of them Tier 1.</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead><tbody><tr><td><span class="badge b-low">T1</span></td><td><a href="https://attack.mitre.org/groups/G1057/" target="_blank" rel="noopener">MITRE ATT&amp;CK G1057 ShinyHunters (UNC6240, Bling Libra)</a></td><td>Canonical aliases, active since at least 2019, technique catalogue including T1190 on PeopleSoft CVE-2026-35273, MeshCentral masquerade, Tor DLS, extortion mailboxes.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/expansion-shinyhunters-saas-data-theft" target="_blank" rel="noopener">GTIG/Mandiant: Vishing for Access, Tracking the Expansion of ShinyHunters-Branded SaaS Data Theft (30 Jan 2026)</a></td><td>UNC6661/UNC6671/UNC6240 split, vishing and victim-branded SSO domains, ToogleBox Recall, PowerShell SharePoint theft, 19 source IPs, extortion mechanics.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-targets-education-sector-oracle-exploit" target="_blank" rel="noopener">GTIG/Mandiant: ShinyHunters Targets Education Sector with Oracle PeopleSoft Exploit (11 Jun 2026)</a></td><td>CVE-2026-35273 zero-day window 27 May to 9 Jun, MeshCentral staging, masqueraded agents, fanout script, hashes, 6 network indicators.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft" target="_blank" rel="noopener">GTIG/Mandiant: ShinyHunters Renewed Mass Exploitation Campaign Targeting Oracle PeopleSoft (Sep 2026)</a></td><td>%50SEMHUB WAF bypass, fileless and web-shell exploitation, x.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://cloud.google.com/blog/topics/threat-intelligence/defense-against-shinyhunters-cybercrime-saas" target="_blank" rel="noopener">Mandiant: proactive hardening, logging and detection guide for ShinyHunters-branded SaaS intrusions</a></td><td>Containment, help-desk verification, IdP and SaaS hardening, logging requirements, detection logic.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.okta.com/blog/threat-intelligence/phishing-kits-adapt-to-the-script-of-callers/" target="_blank" rel="noopener">Okta Threat Intelligence: Phishing kits adapt to the script of callers</a></td><td>Real-time session-orchestration vishing kits defeat push and number matching; FastPass and FIDO passkeys resist.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.law.berkeley.edu/wp-content/uploads/2026/06/PSA-ShinyHunters-Cyber-Criminal-Group-Attacks-Learning-Management-System_5.15.2026.pdf" target="_blank" rel="noopener">FBI IC3 PSA I-20260515-PSA: ShinyHunters Cyber Criminal Group Attacks Learning Management System (15 May 2026)</a></td><td>Government description of extortion pressure: harassment, threatening calls and texts, swatting, Tor leak site, false claims.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.sekoia.com/blog/gotta-breach-em-all-the-journey-of-shinyhunters" target="_blank" rel="noopener">Sekoia: Gotta Breach &#x27;Em All, the journey of ShinyHunters</a></td><td>Group structure (decentralised clusters under a shared alias, link to The Com), 2025 to 2026 timeline, token-theft supply-chain pattern.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://www.obsidiansecurity.com/blog/behind-the-breach-shinyhunters-2026-voice-phishing-campaign" target="_blank" rel="noopener">Obsidian Security: Behind the breach, ShinyHunters&#x27; 2026 voice phishing campaign</a></td><td>Okta event sequences, FastPass enrollment from an emulated Android device named Passkey, Genymobile user agent, SSO burst, Slack and Drive bulk download.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-high">T3</span></td><td><a href="https://www.huntress.com/threat-library/threat-actors/shinyhunters" target="_blank" rel="noopener">Huntress: ShinyHunters threat actor profile</a></td><td>Aggregated campaign timeline (token abuse, Aura exploitation, actor user-agent strings).</td><td>2026-10-16</td></tr><tr><td><span class="badge b-high">T3</span></td><td><a href="https://www.picussecurity.com/resource/blog/the-shinyhunters-domino-effect-one-breach-hundreds-of-victims" target="_blank" rel="noopener">Picus Security: The ShinyHunters Domino Effect</a></td><td>Background on the ecosystem-breach pattern.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://krebsonsecurity.com/2026/10/shinyhunters-extorted-boeing-spin-off-prior-to-arrests/" target="_blank" rel="noopener">KrebsOnSecurity: ShinyHunters arrests and extortion (7 Oct 2026)</a></td><td>Current status: reported detentions and arrests, brand takeover, continued PeopleSoft mass exploitation and the WAF-bypass update.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://www.bleepingcomputer.com/news/security/fbi-arrests-another-suspected-shinyhunters-hacker-after-agency-breach/" target="_blank" rel="noopener">BleepingComputer: FBI arrests another suspected ShinyHunters hacker (Oct 2026)</a></td><td>Corroborates the October 2026 arrests and the PeopleSoft attribution.</td><td>2026-10-16</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.oracle.com/security-alerts/" target="_blank" rel="noopener">Oracle Security Alerts (CVE-2026-35273 advisory, referenced by GTIG)</a></td><td>Patch authority for Track B. Not fetched here; follow it directly.</td><td>2026-10-16</td></tr></tbody></table>
+    </div>
+  </div>
+
+</div>
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+</body>
+</html>
