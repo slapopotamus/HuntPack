@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SafePay Ransomware (AA26-293A) — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for SafePay ransomware, built on CISA advisory AA26-293A: edge-device entry, QDoor backdoor, exfiltration, recovery inhibition and encryption, with MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/SafePay-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SafePay Ransomware (AA26-293A) — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for SafePay ransomware, built on CISA advisory AA26-293A: edge-device entry, QDoor backdoor, exfiltration, recovery inhibition and encryption, with MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/SafePay-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f0a500;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(240,165,0,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1f00 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+
+
+.ticket { background: #010409; border: 1px solid var(--accent); border-radius: 6px; padding: 4px; }
+.igt { font-size: 12px; font-weight: 700; color: var(--text); } .igc { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+details { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+details summary { cursor: pointer; font-size: 12.5px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library: home">HUNTPACK</a></div>
+    <div class="pack-name">SafePay Ransomware (AA26-293A)</div>
+    <div class="version">v0.1 · 2026-10-20</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · CQL Queries</a>
+    <a href="#s9">9 · Custom IOA Recs</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>SafePay Ransomware: Edge Entry to Encryption (CISA AA26-293A)</h1>
+    <div class="subtitle">Closed double-extortion operation active since August 2024 with at least 600 victims. Built on the joint FBI and CISA advisory published 20 October 2026, with confirmed KEV entries, the QDoor backdoor chain, and a caution on shared-hosting addresses.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">SafePay ransomware group</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-crit">ACTIVE RANSOMWARE · KEV CVEs</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Double-extortion ransomware (closed group)</div></div>
+      <div class="meta-item"><div class="mk">Access Vector</div><div class="mv">VPN and edge-device exploitation, stolen credentials, RDP</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) · 2026-10-20</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High (joint government advisory plus three vendor analyses)</div></div>
+      </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+
+<p><strong>Attacker objective.</strong> SafePay is a closed ransomware operation. It steals data, encrypts systems, and demands cryptocurrency, typically one to three percent of the victim's yearly revenue. <span class="badge b-info">[#5]</span> <span class="badge b-info">[#6]</span> A joint advisory from the FBI, CISA, the US Secret Service and German and UK police says it has hit at least 600 victims since August 2024 and was among the most active ransomware groups of 2026. <span class="badge b-info">[#1]</span></p>
+<p><strong>How it gets in.</strong> The advisory lists stolen or guessed passwords, brute force, VPN access from Mullvad addresses, and five exploited edge and backup vulnerabilities: two in Cisco ASA and FTD, two in Veeam Backup &amp; Replication, and one in SonicWall SonicOS. CISA's catalog marks all five as used in ransomware campaigns. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#2]</span> NCC Group found a firewall policy that let local accounts skip VPN MFA. <span class="badge b-info">[#4]</span> Blackpoint reports email flooding followed by Microsoft Teams contact from a fake help desk. <span class="badge b-info">[#6]</span></p>
+<p><strong>What it does next.</strong> Operators work by hand with built-in tools. They enumerate shares with ShareFinder and SharpShares, dump credentials, install ScreenConnect or AnyDesk, and drop a QDoor backdoor that hollows a WerFault.exe process. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#4]</span> They stage data with WinRAR, then move it with Rclone, WinSCP, FileZilla, Backblaze b2 or OneDrive. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#3]</span> Before encrypting they disable Defender and delete shadow copies and, in some cases, factory-reset network backup storage. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#3]</span> Access to encryption can take under 24 hours. <span class="badge b-info">[#5]</span></p>
+<p><strong>Why this pack.</strong> CISA published its advisory on 20 October 2026, after the library's existing SafePay pack. This pack is built on that advisory and adds the five KEV-confirmed CVEs, the QDoor chain, and a warning that four of CISA's nine addresses are shared hosting and must not be blocked.</p>
+<p class="callout callout-danger"><strong>Defender priority:</strong> patch or isolate the five edge and backup CVEs now, make sure every VPN account including local ones requires MFA, and alert on regsvr32 launched with -pass (Q1), regsvr32 spawning WerFault (Q3), and recovery inhibition (Q10). Protect backups so encryption cannot also destroy recovery.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>#</th><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead><tbody><tr><td>1</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a" target="_blank" rel="noopener">CISA, FBI, USSS, LKA Rheinland-Pfalz, NCA, NW ROCU: #StopRansomware SafePay Ransomware, AA26-293A (20 Oct 2026)</a></td><td>Joint government advisory: five exploited CVEs, TTPs mapped to ATT&amp;CK, tools, nine IP addresses, files, hashes, hostnames, mitigations. At least 600 victims.</td><td>yes</td></tr><tr><td>2</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog (entries for the five CVEs)</a></td><td>Confirms vendor, product and known ransomware use for CVE-2020-3259, CVE-2023-20269, CVE-2023-27532, CVE-2024-40711 and CVE-2024-40766.</td><td>yes</td></tr><tr><td>3</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.huntress.com/blog/its-not-safe-to-pay-safepay" target="_blank" rel="noopener">Huntress: It&#x27;s Not Safe to Pay SafePay</a></td><td>Hands-on incident detail: RDP access, ShareFinder, Defender tamper, WinRAR split archives, regsvr32 launch of locker.dll, recovery inhibition. Page blocks direct download, so the snapshot is the fetch tool&#x27;s extraction.</td><td>yes</td></tr><tr><td>4</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.nccgroup.com/us/research-blog/weak-passwords-led-to-safepay-ransomware-yet-again/" target="_blank" rel="noopener">NCC Group: Weak Passwords Led to (SafePay) Ransomware, Yet Again</a></td><td>Firewall policy that let local accounts bypass VPN MFA, weak domain-admin password, ScreenConnect service, QDoor (soc.dll) analysis and C2.</td><td>yes</td></tr><tr><td>5</td><td><span class="badge b-low">T1</span></td><td><a href="https://www.bitdefender.com/en-us/blog/businessinsights/safepay-ransomware-attacks-ttps" target="_blank" rel="noopener">Bitdefender: SafePay, a Non-RaaS Group</a></td><td>Closed (non-RaaS) operation, LockBit Black builder lineage, 24-hour attack timeline, ransom-note behavior.</td><td>yes</td></tr><tr><td>6</td><td><span class="badge b-med">T2</span></td><td><a href="https://blackpointcyber.com/wp-content/uploads/2026/02/SafePay.pdf" target="_blank" rel="noopener">Blackpoint Cyber: SafePay threat profile (Feb 2026)</a></td><td>Email flooding followed by Microsoft Teams help-desk impersonation, ransom demand of 1 to 3 percent of revenue, Tor portal addresses, QDoor and INC Ransom overlaps.</td><td>yes</td></tr><tr><td>7</td><td><span class="badge b-high">T3</span></td><td><a href="https://www.halcyon.ai/threat-group/safepay" target="_blank" rel="noopener">Halcyon: SafePay threat group</a></td><td>Attribution summary only.</td><td>no</td></tr><tr><td>8</td><td><span class="badge b-high">T3</span></td><td><a href="https://www.cloudsek.com/knowledge-base/safepay-ransomware" target="_blank" rel="noopener">CloudSEK: SafePay ransomware knowledge base</a></td><td>Background only.</td><td>no</td></tr><tr><td>9</td><td><span class="badge b-high">T3</span></td><td><a href="https://socradar.io/blog/dark-web-profile-safepay-ransomware/" target="_blank" rel="noopener">SOCRadar: Dark web profile, SafePay ransomware</a></td><td>Ransom-note and extension confirmation; its claim of a TON-hosted portal conflicts with Tor addresses in sources 1 and 6.</td><td>partial</td></tr></tbody></table>
+<h3>Web Hunter decisions</h3>
+<ul>
+<li><strong>Atomic indicators come from CISA only.</strong> Every hash, address and hostname in Section 10 appears verbatim in the saved CISA advisory snapshot. NCC Group's QDoor analysis independently confirms 88.119.167[.]239.</li>
+<li><strong>Four CISA addresses are hunt-only.</strong> 104.26.2[.]223, 140.82.114[.]4, 185.199.108[.]133 and 173.194.194[.]94 are in CISA's table, but, as an analyst note rather than a CISA statement, ranges like these commonly belong to large CDN, code-hosting and search providers. CISA itself warns that addresses may be reassigned and should be verified before blocking. Check WHOIS and ASN first. Blocking them could break unrelated services.</li>
+<li><strong>Dropped.</strong> Third-party victim counts that no primary source repeats. The pack uses CISA's figure of at least 600.</li>
+<li><strong>SHA-1 hashes</strong> stay in comments. Falcon IOC Management takes SHA-256 and MD5 only, so SHA-1 is hunted by Q2.</li>
+<li><strong>No victim names.</strong> Victims named in vendor write-ups are not repeated.</li>
+<li><strong>Existing library pack.</strong> <a href="https://slapopotamus.github.io/HuntPack/hunts/SafePay-Ransomware-Hunt.html" target="_blank" rel="noopener">SafePay-Ransomware-Hunt</a> (v0.3, 9 October 2026) already covers encryptor flags, discovery, staging and service stops, and carries SentinelOne tabs. This pack overlaps on tradecraft by design so it stands alone, and differs in being built on AA26-293A and adding QDoor, the KEV-confirmed edge CVEs and the hosting-address caution.</li>
+</ul>
+<h3>Contradictions and gaps</h3>
+<ul>
+<li><strong>Attribution.</strong> Blackpoint says researchers link SafePay to former Conti members. Halcyon lists possible former LockBit or ALPHV links. Bitdefender sees LockBit Black code lineage but a different operating model. None is confirmed.</li>
+<li><strong>Extortion portal.</strong> CISA and Blackpoint give Tor addresses. SOCRadar says a TON-hosted portal. Treat Tor as confirmed and TON as unverified.</li>
+<li><strong>Hostname spelling.</strong> CISA lists WIN-SBOE3CPNAL. Huntress shows WIN-SBOE3CPNALE. The pack hunts both.</li>
+<li><strong>Observation window.</strong> CISA's indicators were seen between November 2024 and August 2026. Older addresses may be reassigned.</li>
+<li><strong>Huntress snapshot.</strong> It is the fetch tool's extraction rather than the raw page. Only indicators CISA also lists are shipped as atomic indicators.</li>
+</ul>
+<p><strong>Overall confidence: High.</strong> A joint government advisory and three independent vendor incident analyses agree on every central claim.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+<h3>Hunt hypotheses (ordered by fidelity)</h3><table><thead><tr><th>ID</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry required</th><th>Expected FP</th><th>Confidence</th><th>Queries</th></tr></thead><tbody><tr><td>H1</td><td>Initial access through the edge: valid or guessed accounts, brute force, MFA-bypass misconfiguration, VPN from Mullvad addresses, or the five exploited CVEs.</td><td>T1078, T1110, T1133, T1190</td><td>Firewall and VPN logs; identity-provider logs</td><td>VPN users on commercial VPNs; scanners</td><td>High</td><td>Native N1 to N3</td></tr><tr><td>H2</td><td>Hands-on discovery and credential theft: share enumeration, domain enumeration, Mimikatz and DCSync.</td><td>T1135, T1482, T1003.001, T1003.006</td><td>Process creation with command line</td><td>Admin troubleshooting; authorized red team</td><td>High</td><td>Q5, Q6, Q7</td></tr><tr><td>H3</td><td>Persistence through remote-access tools and the QDoor backdoor loaded with regsvr32 and hollowed into WerFault.exe.</td><td>T1219, T1543.003, T1055.012, T1218.010</td><td>Process creation; network connections; file hashes</td><td>Sanctioned remote-support tools</td><td>High</td><td>Q2, Q3, Q4, Q12</td></tr><tr><td>H4</td><td>Lateral movement by RDP, SMB admin shares, PsExec and WinRM, often within hours.</td><td>T1021.001, T1021.002, T1021.006, T1569.002</td><td>Network connections; process creation</td><td>Jump hosts; management tooling</td><td>Medium</td><td>Q13, Q14</td></tr><tr><td>H5</td><td>Staging and exfiltration with WinRAR split archives, Rclone, WinSCP, FileZilla, Backblaze b2 or OneDrive.</td><td>T1560.001, T1048, T1567</td><td>Process creation; network connections</td><td>Sanctioned transfer and backup jobs</td><td>Medium</td><td>Q11, Q4</td></tr><tr><td>H6</td><td>Defense impairment and privilege escalation: Defender disabled, COM UAC bypass, token impersonation.</td><td>T1685, T1548.002, T1134.001</td><td>Process creation with command line</td><td>Admin changes to Defender</td><td>High</td><td>Q8, Q9</td></tr><tr><td>H7</td><td>Recovery inhibition and encryption: shadow copies deleted, boot recovery off, backups reset, locker.dll run through regsvr32.</td><td>T1490, T1486</td><td>Process creation; hashes; backup-system audit logs</td><td>Backup software</td><td>High</td><td>Q1, Q2, Q10; native N6</td></tr><tr><td>H8</td><td>Social-engineering entry: email flooding, then a fake help-desk contact on Teams that leads to a remote-access tool.</td><td>T1566, T1219</td><td>Mail and collaboration audit logs, outside endpoint telemetry</td><td>Real help-desk outreach</td><td>Medium</td><td>Q12; native N5</td></tr></tbody></table><h3>Attack chain</h3><table><thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt angle</th></tr></thead><tbody><tr><td>1</td><td>Initial access: exposed VPN or RDP, stolen credentials, brute force, or an exploited firewall or Veeam server.</td><td>Firewall, VPN and appliance logs (Cisco ASA/FTD, Fortinet, SonicWall), outside endpoint telemetry</td><td>Successful VPN login without MFA; sign-ins from Mullvad ranges; local-account VPN logins</td></tr><tr><td>2</td><td>Foothold and persistence: ScreenConnect service as local system, AnyDesk or TeamViewer, new or taken-over admin accounts.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Windows service-creation events</td><td>Remote-tool installs on servers; new accounts in admin groups</td></tr><tr><td>3</td><td>Backdoor: soc.dll loaded by regsvr32, injects QDoor into WerFault.exe, calls 88.119.167[.]239 over TCP/443.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); File hashes on process and file-write events (CrowdStrike: SHA256HashData and SHA1HashData. SentinelOne: process image SHA-256. Defender: SHA1 or SHA256)</td><td>regsvr32 parent of WerFault; the C2 address</td></tr><tr><td>4</td><td>Discovery and credential theft: ShareFinder, SharpShares, netscan, nltest, NetExec, Mimikatz, dcsync.exe.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Tool names and Mimikatz module strings</td></tr><tr><td>5</td><td>Lateral movement: RDP, PsExec, WinRM, SMB shares.</td><td>Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>One host reaching ten or more hosts on TCP/3389</td></tr><tr><td>6</td><td>Defense impairment: Defender settings changed, UAC bypass through a COM object.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>SystemSettingsAdminFlows; dllhost starting shells</td></tr><tr><td>7</td><td>Collection and exfiltration: WinRAR split archives, then Rclone, WinSCP, FileZilla, b2 or OneDrive.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>Split-volume archives; transfer tools on file servers</td></tr><tr><td>8</td><td>Impact: backups reset, shadow copies deleted, recovery disabled, locker.dll run by regsvr32 with -pass, files renamed .safepay, note readme_safepay.txt.</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); File hashes on process and file-write events (CrowdStrike: SHA256HashData and SHA1HashData. SentinelOne: process image SHA-256. Defender: SHA1 or SHA256); backup-system audit logs</td><td>Recovery commands; encryptor arguments</td></tr></tbody></table><p class="callout callout-info">Compression is the signature: NCC Group saw access, credential theft and encryption within two days, and others report under 24 hours. Steps 4 to 8 can happen in one night, so treat early discovery alerts as urgent.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody><tr><td>IPv4</td><td><code>77.37.49.40</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>SafePay victim intrusion</td></tr><tr><td>IPv4</td><td><code>88.119.167.239</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>soc.dll (QDoor) command and control, TCP/443</td></tr><tr><td>IPv4</td><td><code>5.255.11.134</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Used in exfiltration</td></tr><tr><td>IPv4</td><td><code>37.10.71.188</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Used in exfiltration</td></tr><tr><td>IPv4</td><td><code>167.235.225.149</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Client login panels</td></tr><tr><td>IPv4</td><td><code>104.26.2.223</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>SafePay victim intrusion. Likely shared hosting: verify before any action, do not block</td></tr><tr><td>IPv4</td><td><code>140.82.114.4</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>SafePay victim intrusion. Likely shared hosting: verify before any action, do not block</td></tr><tr><td>IPv4</td><td><code>185.199.108.133</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>SafePay victim intrusion. Likely shared hosting: verify before any action, do not block</td></tr><tr><td>IPv4</td><td><code>173.194.194.94</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>Hosting victim data. Likely shared hosting: verify before any action, do not block</td></tr><tr><td>SHA-256</td><td><code>921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>soc.dll (QDoor loader)</td></tr><tr><td>SHA-256</td><td><code>6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>RunPE bundled DLL</td></tr><tr><td>SHA-256</td><td><code>e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Injected PE (QDoor)</td></tr><tr><td>SHA-256</td><td><code>327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>locker.dll PE32 (encryptor)</td></tr><tr><td>SHA-256</td><td><code>a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>locker.dll (encryptor)</td></tr><tr><td>SHA-256</td><td><code>bbdd3620a67aedec4b9a68b2c9cc880b6631215e129816aea19902a6f4bc6f41</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>SharpShares.exe (share enumerator)</td></tr><tr><td>SHA-1</td><td><code>07353237350c35d6dc2c8f143b649cd07c71f62b</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>1.exe (ransomware binary) (hunt with Q2; Falcon IOC import does not take SHA-1)</td></tr><tr><td>SHA-1</td><td><code>b498a2683640c983bb069fa2ea9e67cef4a3797d</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Locker.dll PE32 (hunt with Q2; Falcon IOC import does not take SHA-1)</td></tr><tr><td>SHA-1</td><td><code>bbfed53e3bb1f306f4da97d995cf4ae5b73ad081</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>locker.dll (hunt with Q2; Falcon IOC import does not take SHA-1)</td></tr><tr><td>SHA-1</td><td><code>d711a5af5aed48a3b36b98f4fcf52809aebef7a2</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>nxc (NetExec) (hunt with Q2; Falcon IOC import does not take SHA-1)</td></tr><tr><td>Hostname</td><td><code>WIN-SBOE3CPNAL</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Attacker device name seen in logons or VPN logs (CISA, Huntress)</td></tr><tr><td>Hostname</td><td><code>WIN-SBOE3CPNALE</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Attacker device name seen in logons or VPN logs (CISA, Huntress)</td></tr><tr><td>Hostname</td><td><code>WIN-3IUUOFVTQAR</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Attacker device name seen in logons or VPN logs (CISA, Huntress)</td></tr><tr><td>Hostname</td><td><code>WIN-DK18BI83M0S</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Attacker device name seen in logons or VPN logs (CISA, Huntress)</td></tr><tr><td>Hostname</td><td><code>WIN-I1HRRJHCEIV</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Attacker device name seen in logons or VPN logs (CISA, Huntress)</td></tr><tr><td>Hostname</td><td><code>vultr-guest</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Attacker device name seen in logons or VPN logs (NCC Group)</td></tr><tr><td>File</td><td><code>locker.dll</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Encryptor, run with regsvr32</td></tr><tr><td>File</td><td><code>soc.dll</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>QDoor loader, run with regsvr32</td></tr><tr><td>File</td><td><code>1.exe / 1.bat</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Ransomware binary and batch script</td></tr><tr><td>File</td><td><code>dcsync.exe</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>DCSync tool</td></tr><tr><td>File</td><td><code>SharpShares.exe, netscan.exe, nxc.exe</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Discovery tools</td></tr><tr><td>File</td><td><code>sharefinder.ps1</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Share enumeration script</td></tr><tr><td>File</td><td><code>Socks.exe, Socks_werfault.exe</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>SOCKS tunnel, WerFault lookalike</td></tr><tr><td>File</td><td><code>b2.exe</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Backblaze B2 exfiltration</td></tr><tr><td>File</td><td><code>wa_3rd_party_host_*.exe, Libwa*.dll, libsmb2.dll</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Suspicious toolset components (CISA)</td></tr><tr><td>File</td><td><code>readme_safepay.txt</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Ransom note</td></tr><tr><td>File</td><td><code>.safepay</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Encrypted file extension</td></tr><tr><td>Path</td><td><code>C:\ProgramData\&lt;digit&gt;.bat</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Batch file run by the compromised admin (NCC Group)</td></tr><tr><td>Service</td><td><code>ScreenConnect Client (localsystem, auto start)</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>Persistence service (NCC Group)</td></tr><tr><td>CVE</td><td><code>CVE-2020-3259, CVE-2023-20269 (Cisco ASA/FTD); CVE-2023-27532, CVE-2024-40711 (Veeam B&amp;R); CVE-2024-40766 (SonicWall SonicOS)</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Exploited for initial access; all five are KEV entries with known ransomware use</td></tr><tr><td>Network</td><td><code>Mullvad VPN address ranges</code></td><td><span class="badge b-med">medium</span></td><td>hunt</td><td>CISA: used to reach victim networks with phished accounts</td></tr></tbody></table><p>Action vocabulary: <code>detect</code> alert or block, <code>hunt</code> search and review. Sources: CISA AA26-293A [#1] for every atomic indicator; NCC Group [#4] for the QDoor C2 and service details; Huntress [#3] for hostname spelling.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr></thead><tbody><tr><td>VPN, firewall and remote-access gateways</td><td>Firewall, VPN and appliance logs (Cisco ASA/FTD, Fortinet, SonicWall), outside endpoint telemetry</td><td>Critical</td><td>Needs log forwarding; local-account VPN logins and MFA results must be logged</td></tr><tr><td>Veeam Backup &amp; Replication servers and network backup storage</td><td>Veeam audit and Windows event logs; NAS administrative logs, outside endpoint telemetry</td><td>Critical</td><td>Backup servers are often unmonitored and domain-joined</td></tr><tr><td>Domain controllers and file servers</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); Windows security events (account creation, DCSync replication)</td><td>Critical</td><td>DCSync is best seen in domain-controller security logs, not only in process telemetry</td></tr><tr><td>Windows servers and workstations</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); File hashes on process and file-write events (CrowdStrike: SHA256HashData and SHA1HashData. SentinelOne: process image SHA-256. Defender: SHA1 or SHA256); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>High</td><td>Sensor must be present on every server</td></tr><tr><td>Remote-access tooling</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); service-creation events</td><td>High</td><td>Cannot tell sanctioned from hostile without an allowlist</td></tr><tr><td>Email and Teams</td><td>Mail and Teams audit logs, outside endpoint telemetry</td><td>Medium</td><td>Email flooding and external Teams contact are visible only in those logs</td></tr><tr><td>Cloud storage</td><td>OneDrive and cloud-storage audit logs, outside endpoint telemetry</td><td>Medium</td><td>OneDrive exfiltration is not visible on the endpoint</td></tr></tbody></table><p class="callout callout-warn">Gaps: firewall exploitation, the Fortinet-style MFA bypass, and backup-server compromise are outside endpoint telemetry. Without firewall and Veeam logs the first stage is invisible.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed behavior</th><th>Query or control</th></tr></thead><tbody><tr><td>Initial Access</td><td>T1133, T1078</td><td>External Remote Services; Valid Accounts</td><td>VPN with stolen or guessed credentials; Mullvad addresses</td><td>N1, N2, N3</td></tr><tr><td>Initial Access</td><td>T1190</td><td>Exploit Public-Facing Application</td><td>Cisco ASA/FTD, Veeam B&amp;R, SonicWall CVEs</td><td>N1, N2</td></tr><tr><td>Initial Access</td><td>T1566 (Blackpoint)</td><td>Phishing</td><td>Email flooding then Teams help-desk lure</td><td>N5, Q12</td></tr><tr><td>Credential Access</td><td>T1110</td><td>Brute Force</td><td>Password attacks against VPN and RDP</td><td>N1</td></tr><tr><td>Credential Access</td><td>T1003.001, T1003.006</td><td>LSASS Memory; DCSync</td><td>Mimikatz, dcsync.exe</td><td>Q5, Q6</td></tr><tr><td>Execution</td><td>T1059.001, T1059.003</td><td>PowerShell; Windows Command Shell</td><td>ShareFinder.ps1, batch scripts</td><td>Q7</td></tr><tr><td>Execution / Lateral</td><td>T1569.002, T1021.006</td><td>Service Execution; WinRM</td><td>PsExec, WinRM</td><td>Q14</td></tr><tr><td>Persistence</td><td>T1098, T1136</td><td>Account Manipulation; Create Account</td><td>Admin rights on existing or new accounts</td><td>N4</td></tr><tr><td>Persistence</td><td>T1543.003, T1219</td><td>Windows Service; Remote Access Software</td><td>ScreenConnect service, AnyDesk, TeamViewer</td><td>Q12</td></tr><tr><td>Privilege Escalation</td><td>T1548.002, T1134.001</td><td>Bypass UAC; Token Impersonation</td><td>COM-based UAC bypass</td><td>Q9</td></tr><tr><td>Defense Evasion</td><td>T1027.002, T1218, T1070.004</td><td>Software Packing; Proxy Execution; File Deletion</td><td>UPX-packed soc.dll, regsvr32, deleted tools</td><td>Q3, Q1</td></tr><tr><td>Defense Evasion</td><td>T1055.012 (inferred)</td><td>Process Hollowing</td><td>QDoor injected into WerFault.exe (NCC Group)</td><td>Q3</td></tr><tr><td>Defense Impairment</td><td>T1685</td><td>Disable or Modify Tools</td><td>Defender disabled, security services stopped</td><td>Q8</td></tr><tr><td>Discovery</td><td>T1135, T1482</td><td>Network Share Discovery; Domain Trust Discovery</td><td>ShareFinder, SharpShares, netscan, nltest</td><td>Q5, Q7</td></tr><tr><td>Lateral Movement</td><td>T1021.001, T1021.002</td><td>RDP; SMB/Windows Admin Shares</td><td>RDP fan-out, admin shares</td><td>Q13</td></tr><tr><td>Collection</td><td>T1560.001</td><td>Archive via Utility</td><td>WinRAR, 7-Zip split archives</td><td>Q11</td></tr><tr><td>Exfiltration</td><td>T1048, T1567</td><td>Alternative Protocol; Web Service</td><td>Rclone, WinSCP, FileZilla, b2, OneDrive</td><td>Q4, Q11</td></tr><tr><td>Command and Control</td><td>T1090</td><td>Proxy</td><td>Socks.exe tunnel</td><td>Q5</td></tr><tr><td>Impact</td><td>T1486, T1490</td><td>Data Encrypted for Impact; Inhibit System Recovery</td><td>locker.dll, .safepay, VSS and bcdedit changes, NAS reset</td><td>Q1, Q2, Q10</td></tr></tbody></table><p>Technique IDs come from CISA AA26-293A (source 1, ATT&amp;CK v20). Entries tagged with another source come from that source, not CISA. The sub-techniques T1055.012 and T1218.010 are analyst mappings of behavior described by NCC Group and Huntress.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+<p>These checks need no Falcon query. Run them in the product named in each row.</p><h3>N1 · VPN and firewall: successful logins without MFA, local accounts</h3><p><strong>Where:</strong> On each VPN gateway (the NCC Group case was a FortiGate policy that let local and LDAP groups skip MFA).</p><pre class="code"># Review every VPN user group and confirm MFA applies to it
+# FortiGate (example):  show user group  /  show vpn ssl settings
+# Search VPN authentication logs for logins by LOCAL accounts and for source addresses in Mullvad ranges</pre><p>A successful VPN login from a local account with no MFA record is the NCC Group entry path. Also check for logins by service and admin accounts.</p><h3>N2 · Edge-device exploitation: Cisco ASA/FTD and SonicWall</h3><p><strong>Where:</strong> Device consoles and syslog.</p><pre class="code"># Cisco:     show version | include Software
+# SonicWall: System &gt; Status, then compare to the vendor advisory for CVE-2024-40766
+# Review authentication failures and administrative logins for bursts from one address</pre><p>Compare the running version against the vendor fix for CVE-2020-3259, CVE-2023-20269 and CVE-2024-40766. All three are KEV entries with known ransomware use.</p><h3>N3 · Veeam Backup &amp; Replication: version and exposure</h3><p><strong>Where:</strong> On the Veeam server.</p><pre class="code">(Get-Item &#x27;C:\Program Files\Veeam\Backup and Replication\Backup\Veeam.Backup.Core.dll&#x27;).VersionInfo.FileVersion
+Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 9392,9401,6160,6162 } | Select-Object LocalAddress, LocalPort</pre><p>Confirm the build includes the fixes for CVE-2023-27532 and CVE-2024-40711, and that the server is not reachable from the internet. The ports are common Veeam defaults and the file path is typical; confirm both against Veeam&#x27;s documentation for your version.</p><h3>N4 · Active Directory: new or recently changed accounts and admin group changes</h3><p><strong>Where:</strong> Domain controller.</p><pre class="code">Get-ADUser -Filter &#x27;whenCreated -gt $((Get-Date).AddDays(-14))&#x27; -Properties whenCreated | Select-Object SamAccountName, whenCreated
+Get-ADGroupMember &#x27;Domain Admins&#x27; | Select-Object Name, SamAccountName</pre><p>CISA says SafePay gains admin rights on existing accounts or creates new ones. Investigate any account created or elevated outside a ticket.</p><h3>N5 · Email and Teams: flooding followed by external help-desk contact</h3><p><strong>Where:</strong> Mail gateway and Teams audit logs.</p><pre class="code"># Mail gateway: users who received hundreds of messages within an hour
+# Teams audit: first-contact chat or call from an external tenant claiming to be IT support</pre><p>Blackpoint describes spam flooding followed by a Teams approach that leads the user to install remote-access software.</p><h3>N6 · Backups: unexpected factory resets, deleted restore points, stopped services</h3><p><strong>Where:</strong> Veeam console, NAS audit log, Windows System event log.</p><pre class="code">Get-WinEvent -FilterHashtable @{LogName=&#x27;System&#x27;; Id=7036; StartTime=(Get-Date).AddDays(-14)} |
+  Where-Object { $_.Message -match &#x27;Volume Shadow Copy|Veeam&#x27; -and $_.Message -match &#x27;stopped&#x27; } |
+  Select-Object TimeCreated, Message</pre><p>CISA says SafePay halts the Volume Shadow Copy Service and resets network backup storage to factory settings. A reset NAS or deleted restore points days before an incident is a strong signal.</p><h3>N7 · Logons from attacker device names</h3><p><strong>Where:</strong> Domain controllers and VPN servers.</p><pre class="code">Get-WinEvent -FilterHashtable @{LogName=&#x27;Security&#x27;; Id=4624} -MaxEvents 50000 |
+  Where-Object { $_.Properties[11].Value -match &#x27;^(WIN-SBOE3CPNALE?|WIN-3IUUOFVTQAR|WIN-DK18BI83M0S|WIN-I1HRRJHCEIV|vultr-guest)&#x27; } |
+  Select-Object TimeCreated, @{n=&#x27;Account&#x27;;e={$_.Properties[5].Value}}, @{n=&#x27;Workstation&#x27;;e={$_.Properties[11].Value}}, @{n=&#x27;SrcIP&#x27;;e={$_.Properties[18].Value}}</pre><p>Run on each domain controller. Any hit is an attacker-controlled device authenticating.</p><h3>N8 · File servers: encrypted files and the ransom note</h3><p><strong>Where:</strong> File-server audit logs or an EDR file search.</p><pre class="code">Get-ChildItem -Path \\REPLACE_WITH_SERVER\REPLACE_WITH_SHARE -Recurse -Include readme_safepay.txt,*.safepay -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime</pre><p>The note readme_safepay.txt and the .safepay extension confirm encryption. Do not rely on this for early warning.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div>
+    <div class="section-body">
+<div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+<p class="callout callout-info">All 14 queries run on Falcon sensor telemetry for Windows hosts. Firewall, Veeam and identity activity need the native checks in Section 7.</p><div class="query-card"><div class="qc-header"><span class="qc-title">Q1 · SafePay encryptor launch: regsvr32 with -pass and -enc/-uac/-path arguments</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> regsvr32 started with an /i: argument string carrying -pass= together with -enc=, -uac or -path=. Huntress observed this exact launch of locker.dll from a network share two days after first access. <strong>FP:</strong> none expected: these argument names are specific to the encryptor.</p><pre class="cql" id="cql1"><span class="cm">// HUNT: SafePay encryptor launch via regsvr32 (-pass with -enc/-uac/-path)</span>
+<span class="cm">// MITRE: T1486, T1218.010, T1059.003</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none expected -- the argument set is specific to the SafePay locker</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^regsvr32\.exe$/i
+| CommandLine=/-pass=/i
+| CommandLine=/(-enc=|-uac|-path=)/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q2 · Published SafePay hashes: encryptor, QDoor loader, injected PE (SHA-256 or SHA-1)</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Any process start, loaded image or written executable whose hash matches a SHA-256 or SHA-1 in CISA&#x27;s advisory. <strong>FP:</strong> SharpShares and NetExec are legitimate open-source tools; confirm intent before acting on those two.</p><pre class="cql" id="cql2"><span class="cm">// HUNT: Published SafePay file hashes (encryptor, QDoor loader, injected PE)</span>
+<span class="cm">// MITRE: T1486, T1027.002, T1055</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process and file-write telemetry (ProcessRollup2, ImageHash, PeFileWritten, NewExecutableWritten)</span>
+<span class="cm">// FALSE POSITIVES: SharpShares.exe and nxc are legitimate tools; a red team may use them</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2|ImageHash|PeFileWritten|NewExecutableWritten/
+| (SHA256HashData=/^(921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae|6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a|e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346|327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917|a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526|bbdd3620a67aedec4b9a68b2c9cc880b6631215e129816aea19902a6f4bc6f41)$/i or SHA1HashData=/^(07353237350c35d6dc2c8f143b649cd07c71f62b|b498a2683640c983bb069fa2ea9e67cef4a3797d|bbfed53e3bb1f306f4da97d995cf4ae5b73ad081|d711a5af5aed48a3b36b98f4fcf52809aebef7a2)$/i)
+| table([@timestamp, aid, ComputerName, UserName, FileName, TargetFileName, SHA256HashData, SHA1HashData])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q3 · QDoor loader: regsvr32 spawning WerFault.exe (RunPE process hollowing)</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> WerFault.exe created by regsvr32. NCC Group&#x27;s analysis of soc.dll showed DllRegisterServer launching WerFault.exe suspended and injecting QDoor into it. <strong>FP:</strong> WerFault is normally started by the OS on crashes, not by regsvr32.</p><pre class="cql" id="cql3"><span class="cm">// HUNT: regsvr32 spawning WerFault.exe (QDoor soc.dll RunPE hollowing)</span>
+<span class="cm">// MITRE: T1055.012, T1218.010, T1027.002</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none expected; software that registers a DLL which then crashes is rare and visible in the same host&#x27;s crash logs</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^WerFault\.exe$/i
+| ParentBaseFileName=/^regsvr32\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q4 · Connections to SafePay command, exfiltration and login-panel addresses</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Outbound connections to the five addresses CISA ties to QDoor C2, exfiltration, victim intrusion and client login panels. The four shared-hosting addresses in the advisory are deliberately excluded. <strong>FP:</strong> none expected; reassigned cloud addresses are possible, so check the timestamp against CISA&#x27;s observation window.</p><pre class="cql" id="cql4"><span class="cm">// HUNT: Connections to SafePay C2, exfiltration and login-panel addresses</span>
+<span class="cm">// MITRE: T1071, T1048, T1090</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor network telemetry (NetworkConnectIP4)</span>
+<span class="cm">// FALSE POSITIVES: a cloud address reassigned to an unrelated tenant since the advisory&#x27;s observation window</span>
+<span class="cm">// LOOKBACK: 90d</span>
+#event_simpleName=NetworkConnectIP4
+| in(RemoteAddressIP4, values=[&quot;77.37.49.40&quot;,&quot;88.119.167.239&quot;,&quot;5.255.11.134&quot;,&quot;37.10.71.188&quot;,&quot;167.235.225.149&quot;])
+| table([@timestamp, aid, ComputerName, UserName, RemoteAddressIP4, RemotePort, ImageFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q5 · Named SafePay tooling executed: dcsync, SharpShares, netscan, NetExec, Socks, b2</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Execution of binaries named in CISA&#x27;s malicious-files table: dcsync.exe, SharpShares.exe, netscan.exe, nxc.exe, Socks.exe, Socks_werfault.exe and the Backblaze b2.exe. <strong>FP:</strong> netscan, nxc and b2 are legitimate tools that admins and red teams also run.</p><pre class="cql" id="cql5"><span class="cm">// HUNT: Named SafePay tooling executed (dcsync, SharpShares, netscan, NetExec, Socks, b2)</span>
+<span class="cm">// MITRE: T1003.006, T1135, T1046, T1090, T1567</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned network scanning, red-team work, and Backblaze users running b2.exe</span>
+<span class="cm">// TUNING: exclude the admin accounts and jump hosts that legitimately run netscan or nxc, and the backup servers that run b2.exe; keep dcsync.exe and Socks_werfault.exe unconditional</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ImageFileName=/(\\|\/)(dcsync|SharpShares|netscan|nxc|Socks|Socks_werfault|b2)\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q6 · Credential dumping and DCSync command lines (Mimikatz-style)</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Command lines containing Mimikatz module names or DCSync. CISA lists Mimikatz and dcsync.exe among SafePay&#x27;s credential-theft tools. <strong>FP:</strong> security testing tools run by an authorized red team.</p><pre class="cql" id="cql6"><span class="cm">// HUNT: Credential dumping and DCSync command lines</span>
+<span class="cm">// MITRE: T1003.001, T1003.006, T1550.002</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: authorized red-team or penetration-test activity</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(lsadump::dcsync|sekurlsa::|privilege::debug|mimikatz|dcsync\.exe)/i
+| table([@timestamp, aid, ComputerName, UserName, ImageFileName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q7 · Share and network discovery: ShareFinder, SharpShares, nltest, NetExec</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Command lines that run ShareFinder.ps1, SharpShares, nltest domain enumeration or NetExec. SafePay used ShareFinder.ps1 to choose what to exfiltrate. <strong>FP:</strong> administrators run nltest during domain troubleshooting.</p><pre class="cql" id="cql7"><span class="cm">// HUNT: Share and network discovery (ShareFinder, SharpShares, nltest, NetExec)</span>
+<span class="cm">// MITRE: T1135, T1018, T1482</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: admin troubleshooting with nltest; sanctioned vulnerability scanners</span>
+<span class="cm">// TUNING: treat sharefinder and sharpshares as high-confidence; for nltest, alert only when the parent is a script host or the account is not in your admin tier list</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(sharefinder|invoke-sharefinder|sharpshares|nltest(\.exe)?\s+\/(dclist|domain_trusts|trusted_domains)|nxc(\.exe)?\s+(smb|winrm|ldap|rdp))/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q8 · Defender tamper: SystemSettingsAdminFlows or Set-MpPreference disabling protection</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> SystemSettingsAdminFlows.exe, or PowerShell that turns off Defender protections or adds exclusions. Huntress saw the first; CISA says SafePay disables security software before moving laterally. <strong>FP:</strong> administrators changing Defender settings in the Settings app or by script.</p><pre class="cql" id="cql8"><span class="cm">// HUNT: Defender tamper via SystemSettingsAdminFlows or Set-MpPreference</span>
+<span class="cm">// MITRE: T1685, T1562.001</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned Defender configuration changes</span>
+<span class="cm">// TUNING: exclude your endpoint-management service account and known configuration scripts; keep alerts for any hit within 24 hours of a remote-access or archive-tool event on the same host</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (FileName=/^SystemSettingsAdminFlows\.exe$/i or CommandLine=/(Set-MpPreference\s+.*-Disable(RealtimeMonitoring|BehaviorMonitoring|IOAVProtection|ScriptScanning|IntrusionPreventionSystem)|Add-MpPreference\s+.*-ExclusionPath)/i)
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q9 · COM-based UAC bypass: dllhost.exe launching a shell or proxy binary</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> dllhost.exe starting cmd, PowerShell, rundll32, regsvr32, mshta or a script host. CISA records a COM-object UAC bypass (T1548.002) in SafePay intrusions. <strong>FP:</strong> some installers and management agents launch helpers from dllhost.</p><pre class="cql" id="cql9"><span class="cm">// HUNT: dllhost.exe launching a shell or proxy binary (COM UAC bypass)</span>
+<span class="cm">// MITRE: T1548.002, T1218</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: installers and management agents that start helpers through COM surrogates</span>
+<span class="cm">// TUNING: baseline 14 days and exclude the specific child command lines your software deployment tool produces</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ParentBaseFileName=/^dllhost\.exe$/i
+| FileName=/^(cmd|powershell|pwsh|rundll32|regsvr32|mshta|wscript|cscript)\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q10 · Recovery inhibition: shadow copy deletion, bcdedit recovery off, VSS stop</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> bcdedit disabling recovery, wmic or vssadmin deleting shadow copies, or the VSS service being stopped. Huntress saw bcdedit and wmic during encryption; CISA records VSS being halted. <strong>FP:</strong> backup software that manages its own shadow copies.</p><pre class="cql" id="cql10"><span class="cm">// HUNT: Recovery inhibition (shadow copy deletion, bcdedit recovery off, VSS stop)</span>
+<span class="cm">// MITRE: T1490, T1486</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: backup agents that prune their own shadow copies</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(bcdedit(\.exe)?\s+\/set\s+\{?default\}?\s+recoveryenabled\s+no|bcdedit.*bootstatuspolicy\s+ignoreallfailures|wmic(\.exe)?\s+shadowcopy\s+delete|vssadmin(\.exe)?\s+delete\s+shadows|vssadmin.*resize\s+shadowstorage|net\s+stop\s+vss|sc(\.exe)?\s+(stop|config)\s+vss)/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q11 · Staging and exfiltration tooling: WinRAR split archives, Rclone, WinSCP, FileZilla, b2</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> WinRAR or 7-Zip split-volume archives, and execution of Rclone, WinSCP, FileZilla&#x27;s SFTP helper or Backblaze b2. CISA and Huntress list all of these in SafePay data theft. <strong>FP:</strong> IT teams use WinSCP, FileZilla and Rclone for legitimate transfers, and WinRAR for ordinary archiving.</p><pre class="cql" id="cql11"><span class="cm">// HUNT: Staging and exfiltration tooling (split archives, Rclone, WinSCP, FileZilla, b2)</span>
+<span class="cm">// MITRE: T1560.001, T1048, T1567</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned file-transfer and backup jobs</span>
+<span class="cm">// TUNING: allowlist the accounts and hosts that run these tools by design; prioritise hits on file servers, or within a day of a remote-access tool or discovery alert</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (CommandLine=/((winrar|rar|7z|7za)(\.exe)?&quot;?\s+a\s+.*-v\d+[kmg]|rclone(\.exe)?\s+(copy|sync|move)|b2(\.exe)?\s+(upload|sync)|winscp\.(com|exe)\s+.*\/command)/i or FileName=/^(rclone|fzsftp|filezilla|winscp)\.(exe|com)$/i)
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q12 · Remote-access tools running: ScreenConnect, AnyDesk, TeamViewer</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-high">FP high</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Execution of ScreenConnect, AnyDesk or TeamViewer. SafePay installs these for persistence and to transfer tooling, and NCC Group saw a ScreenConnect service created as local system. <strong>FP:</strong> most organizations run at least one of these tools legitimately.</p><pre class="cql" id="cql12"><span class="cm">// HUNT: Remote-access tools running (ScreenConnect, AnyDesk, TeamViewer)</span>
+<span class="cm">// MITRE: T1219, T1543.003, T1133</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: high</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: sanctioned help-desk and vendor remote support</span>
+<span class="cm">// TUNING: build an allowlist of hosts and ScreenConnect instance names you run, then alert on any other instance, on servers, and on first-seen installs; start with servers and domain controllers</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(ScreenConnect\.ClientService|ScreenConnect\.WindowsClient|AnyDesk|TeamViewer|TeamViewer_Service)\.exe$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q13 · RDP fan-out: one host connecting to many internal hosts over TCP/3389</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-med">COST medium</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql13',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql13')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Hosts that opened RDP connections to ten or more distinct internal addresses in the search window. SafePay uses RDP to spread, and CISA names RDP, SMB shares, PsExec and WinRM. <strong>FP:</strong> jump hosts, RDP gateways and help-desk workstations.</p><pre class="cql" id="cql13"><span class="cm">// HUNT: RDP fan-out from one host (run over a 4h window)</span>
+<span class="cm">// MITRE: T1021.001, T1133</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: medium</span>
+<span class="cm">// REQUIRES: Falcon sensor network telemetry (NetworkConnectIP4)</span>
+<span class="cm">// FALSE POSITIVES: jump hosts, RDP gateways, help-desk workstations</span>
+<span class="cm">// TUNING: exclude your jump hosts and gateways by ComputerName; raise the host threshold for large administrative teams</span>
+<span class="cm">// LOOKBACK: 4h</span>
+#event_simpleName=NetworkConnectIP4
+| RemotePort=3389
+| cidr(RemoteAddressIP4, subnet=[&quot;10.0.0.0/8&quot;,&quot;172.16.0.0/12&quot;,&quot;192.168.0.0/16&quot;])
+| groupBy([aid, ComputerName], function=[count(RemoteAddressIP4, distinct=true, as=Hosts), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=1000)
+| Hosts &gt;= 10
+| sort(Hosts, order=desc, limit=100)</pre></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q14 · Remote execution: PsExec service and WinRM provider host children</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql14',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql14')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> PSEXESVC or psexec binaries, and processes started by wsmprovhost.exe (WinRM). CISA lists both PsExec and WinRM for SafePay command execution on remote systems. <strong>FP:</strong> administrators and management tooling use PsExec and WinRM.</p><pre class="cql" id="cql14"><span class="cm">// HUNT: Remote execution via PsExec or WinRM</span>
+<span class="cm">// MITRE: T1021.002, T1021.006, T1569.002</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry (ProcessRollup2/SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: IT administration and configuration-management tools</span>
+<span class="cm">// TUNING: allowlist your management servers and admin accounts; alert on servers where PsExec has never run before and on hits followed by archive or discovery tools</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| (FileName=/^(PSEXESVC|psexec|psexec64)\.exe$/i or ParentBaseFileName=/^wsmprovhost\.exe$/i)
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>IOA name</th><th>Rule type</th><th>Pattern</th><th>Exclusions</th><th>Promotes</th><th>Deployment path</th></tr></thead><tbody><tr><td>SafePay encryptor launch (regsvr32 -pass)</td><td>Process Creation</td><td>Image regsvr32.exe; command line matches -pass=  together with -enc=, -uac or -path=</td><td>None</td><td>Promote Q1</td><td>Prevent from day one: the argument set is specific to the locker.</td></tr><tr><td>regsvr32 spawning WerFault (QDoor hollowing)</td><td>Process Creation</td><td>Parent image regsvr32.exe; image WerFault.exe</td><td>None</td><td>Promote Q3</td><td>Prevent after 7 days in Detect.</td></tr><tr><td>Recovery inhibition</td><td>Process Creation</td><td>Command line matches bcdedit recoveryenabled no, wmic shadowcopy delete, vssadmin delete shadows or stopping vss</td><td>Backup agents that prune their own copies</td><td>Promote Q10</td><td>Detect for 14 days, then Prevent.</td></tr><tr><td>SafePay named tooling</td><td>Process Creation</td><td>Image name dcsync.exe or Socks_werfault.exe (unconditional); SharpShares, netscan, nxc (detect only)</td><td>Sanctioned scanning accounts</td><td>Promote Q5 (dcsync.exe and Socks_werfault.exe only)</td><td>Prevent for the two high-confidence names; keep the rest in hunts.</td></tr><tr><td>Defender tamper</td><td>Process Creation</td><td>Image SystemSettingsAdminFlows.exe, or PowerShell Set-MpPreference disabling protection</td><td>Endpoint-management account</td><td>Promote Q8</td><td>Detect only; escalate on correlation with archive or remote-tool events.</td></tr></tbody></table><p>Hash matches (Q2) and the five core addresses (Q4) belong in Falcon IOC Management, not in Custom IOAs. Use the CSV in Section 10.</p><h3>Alert packages</h3><p>Ready-to-paste alert text and triage steps for the three detections closest to encryption.</p><details><summary><strong>Q1: SafePay encryptor launched</strong></summary><p><strong>Subject:</strong> 🚨 HUNT ALERT 🚨 — SafePay Encryptor Launched via regsvr32 (Possible Ransomware Deployment)</p><p>regsvr32 started with the -pass argument and encryptor options. Huntress saw this exact pattern used to run locker.dll from a network share, two days after the attacker first got in. Encryption may already be running, so act before investigating. Check whether Falcon blocked it, and identify which host and share path started it.</p><h4>Investigation checklist</h4><ol><li>Blocked or executed? ProcessBlocked means Falcon stopped it; ProcessRollup2 means it ran.</li><li>Read CommandLine for -path=. That share or folder is the encryption target.</li><li>Isolate the host now if the process ran; do not wait for a full investigation.</li><li>Read ParentBaseFileName and UserName to identify the session that launched it.</li><li>Find other hosts running regsvr32 with the same arguments in the last hour.</li><li>Check Q10 on the same hosts for shadow copy deletion and recovery changes.</li><li>Disable the account and block its sessions; check for new admin accounts.</li><li>Protect backups: disconnect backup repositories and storage from the network.</li></ol><h4>Pivot queries</h4><pre class="code">// &gt;&gt; YOU NEED:  ComputerName   (from the alert)
+// &gt;&gt; FILL IN:   ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+// Host-scoped: what ran just before and after the launch
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+| table([@timestamp, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=asc)</pre><pre class="code">// Environment-wide: every host that launched regsvr32 with the encryptor arguments
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^regsvr32\.exe$/i
+| CommandLine=/-pass=/i
+| groupBy([ComputerName], function=[count(as=Launches), min(@timestamp, as=FirstSeen)], limit=500)
+| sort(FirstSeen, order=asc, limit=100)</pre></details><details><summary><strong>Q3: regsvr32 spawned WerFault.exe</strong></summary><p><strong>Subject:</strong> 🚨 HUNT ALERT 🚨 — regsvr32 Spawned WerFault.exe (Possible QDoor Backdoor)</p><p>WerFault.exe was created by regsvr32. NCC Group showed that SafePay&#x27;s soc.dll uses DllRegisterServer to start a suspended WerFault.exe and inject the QDoor backdoor into it. QDoor calls out to its server over TCP/443. A hit means an attacker has a foothold and is probably staging for encryption.</p><h4>Investigation checklist</h4><ol><li>Read CommandLine on the regsvr32 event that preceded it: which DLL was registered, and from which path.</li><li>Check the DLL hash against the Section 10 list (soc.dll).</li><li>Look for network connections from the WerFault.exe process, especially to 88.119.167.239 on TCP/443.</li><li>Check the account that ran it and where that account logged in from.</li><li>Look for remote-access tools or a ScreenConnect service created on the host.</li><li>Search for the same regsvr32 and WerFault pair on other hosts.</li><li>Isolate the host and capture memory if your tooling allows.</li><li>Reset credentials for any account that was active on the host.</li></ol><h4>Pivot queries</h4><pre class="code">// &gt;&gt; YOU NEED:  ComputerName   (from the alert)
+// &gt;&gt; FILL IN:   ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+// Host-scoped: connections made by WerFault.exe
+#event_simpleName=NetworkConnectIP4
+| ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+| ImageFileName=/WerFault\.exe$/i
+| table([@timestamp, RemoteAddressIP4, RemotePort, ImageFileName])
+| sort(@timestamp, order=asc)</pre><pre class="code">// Environment-wide: every host where regsvr32 started WerFault
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^WerFault\.exe$/i
+| ParentBaseFileName=/^regsvr32\.exe$/i
+| groupBy([ComputerName], function=[count(as=Hits), min(@timestamp, as=FirstSeen)], limit=500)
+| sort(FirstSeen, order=asc, limit=100)</pre></details><details><summary><strong>Q10: Recovery inhibition commands</strong></summary><p><strong>Subject:</strong> 🚨 HUNT ALERT 🚨 — Shadow Copy Deletion or Recovery Disabled (Possible Ransomware Preparation)</p><p>A command that deletes shadow copies, stops VSS or disables boot recovery ran on this host. SafePay does this just before encryption, and CISA adds that it can factory-reset network backup storage. Treat the alert as the last warning before files are locked. Confirm whether a backup product caused it, and if not, isolate the host.</p><h4>Investigation checklist</h4><ol><li>Read CommandLine to see which recovery feature was targeted.</li><li>Read UserName and ParentBaseFileName. A backup agent parent is likely benign; cmd, PowerShell or PsExec is not.</li><li>Check the same host for Q1 (encryptor launch) and Q8 (Defender tamper) in the last 24 hours.</li><li>Look for the same command on other hosts in the last hour.</li><li>Check the backup server and network storage for unexpected resets or deleted restore points.</li><li>Isolate the host if the parent is not a backup tool.</li><li>Disconnect backup repositories from the network.</li><li>Disable the account that ran the command.</li></ol><h4>Pivot queries</h4><pre class="code">// &gt;&gt; YOU NEED:  ComputerName   (from the alert)
+// &gt;&gt; FILL IN:   ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+// Host-scoped: what else ran on this host in the window
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| ComputerName=&quot;REPLACE_WITH_HOSTNAME&quot;
+| table([@timestamp, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=asc)</pre><pre class="code">// Environment-wide: every host that ran a shadow copy deletion in the window
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(wmic(\.exe)?\s+shadowcopy\s+delete|vssadmin(\.exe)?\s+delete\s+shadows)/i
+| groupBy([ComputerName], function=[count(as=Hits), min(@timestamp, as=FirstSeen)], limit=500)
+| sort(FirstSeen, order=asc, limit=100)</pre></details>
+    </div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+<p class="callout callout-warn">Import only the five core addresses and six hashes. Four further addresses in CISA's table look like shared hosting, and blocking them could break unrelated services. CISA says to investigate or verify addresses before blocking.</p><div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div><button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button><pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+ipv4,77.37.49.40,detect,high,2027-01-20,SafePay victim intrusion,campaign:SafePay
+ipv4,88.119.167.239,detect,high,2027-01-20,soc.dll (QDoor) command and control,campaign:SafePay
+ipv4,5.255.11.134,detect,high,2027-01-20,Used in exfiltration,campaign:SafePay
+ipv4,37.10.71.188,detect,high,2027-01-20,Used in exfiltration,campaign:SafePay
+ipv4,167.235.225.149,detect,high,2027-01-20,Client login panels,campaign:SafePay
+sha256,921df888aaabcd828a3723f4c9f5fe8b8379c6b7067d16b2ea10152300417eae,prevent,critical,2027-04-20,soc.dll (QDoor loader),campaign:SafePay
+sha256,6c1d36df94ebe367823e73ba33cfb4f40756a5e8ee1e30e8f0ae55d47e220a6a,prevent,critical,2027-04-20,RunPE bundled DLL,campaign:SafePay
+sha256,e79608cf1d6b51324c14bef8883054c1238ed5f080222cc464810e6e14adc346,prevent,critical,2027-04-20,Injected PE (QDoor),campaign:SafePay
+sha256,327b8b61eb446cc4f710771e44484f62b804ae3d262b57a56575053e2df67917,prevent,critical,2027-04-20,locker.dll PE32 (encryptor),campaign:SafePay
+sha256,a0dc80a37eb7e2716c02a94adc8df9baedec192a77bde31669faed228d9ff526,prevent,critical,2027-04-20,locker.dll (encryptor),campaign:SafePay
+sha256,bbdd3620a67aedec4b9a68b2c9cc880b6631215e129816aea19902a6f4bc6f41,detect,medium,2027-04-20,SharpShares.exe (share enumerator),campaign:SafePay
+# SHA-1 values (Falcon IOC import does not take SHA-1; hunt them with Q2)
+# 1.exe (ransomware binary) 07353237350c35d6dc2c8f143b649cd07c71f62b
+# Locker.dll PE32 b498a2683640c983bb069fa2ea9e67cef4a3797d
+# locker.dll bbfed53e3bb1f306f4da97d995cf4ae5b73ad081
+# nxc (NetExec) d711a5af5aed48a3b36b98f4fcf52809aebef7a2
+# NOT imported, shared hosting listed by CISA (verify with WHOIS first): 104.26.2.223 140.82.114.4 185.199.108.133 173.194.194.94</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Shared-hosting addresses and attacker device names</span><span class="igc">hunt only</span></div><button class="btn-copy" data-label="Copy list" onclick="copyBlock('grab-shared',this)" style="margin:0 0 6px;">Copy list</button><pre class="code" id="grab-shared"># Addresses in CISA&#x27;s table that likely belong to large shared providers.
+# HUNT ONLY. Do not block. Verify ownership and context first (CISA: addresses may be reassigned).
+
+104.26.2.223  SafePay victim intrusion
+140.82.114.4  SafePay victim intrusion
+185.199.108.133  SafePay victim intrusion
+173.194.194.94  Hosting victim data
+
+# Attacker device names to search in logon, VPN and DHCP logs:
+WIN-SBOE3CPNAL
+WIN-SBOE3CPNALE
+WIN-3IUUOFVTQAR
+WIN-DK18BI83M0S
+WIN-I1HRRJHCEIV
+vultr-guest</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">search strings</span></div><button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behav',this)" style="margin:0 0 6px;">Copy signatures</button><pre class="code" id="grab-behav">PROCESS AND COMMAND LINES
+  regsvr32.exe /n &quot;/i:-pass=&lt;value&gt; -enc=3 -uac -path=\\&lt;host&gt;\&lt;share&gt;\ -uac=&lt;value&gt;&quot; C:\locker.dll
+  regsvr32 loading soc.dll (QDoor); WerFault.exe created suspended by regsvr32 and injected (RunPE)
+  bcdedit /set {default} recoveryenabled no ; wmic shadowcopy delete ; vssadmin delete shadows ; net stop vss
+  SystemSettingsAdminFlows.exe (Defender settings changed through the GUI) ; Set-MpPreference -Disable* ; Add-MpPreference -ExclusionPath
+  WinRAR.exe a -v5g -ed -r -tn1000d -m0 -mt5 -x*.rar -x*.JPEG ... \\&lt;host&gt;\C$\Users\   (split archives of user profiles)
+  ShareFinder.ps1 ; SharpShares.exe ; netscan.exe ; nltest /dclist ; nxc smb|winrm|ldap|rdp
+  psexec / PSEXESVC ; wsmprovhost.exe children ; dllhost.exe spawning cmd, PowerShell, rundll32
+  C:\ProgramData\&lt;digit&gt;.bat ; 1.bat ; 1.exe ; C:\Windows\Temp\RRZqKUbG.tmp (flagged RemoteRegDump)
+SERVICES AND TOOLS
+  service &quot;ScreenConnect Client&quot; (localsystem, auto start) ; AnyDesk ; TeamViewer ; FileZilla install then uninstall
+ARTIFACTS
+  extension .safepay ; ransom note readme_safepay.txt on desktop and root directory ; victim ID chat portal
+  QDoor C2: 88.119.167[.]239 TCP/443, unencrypted header bytes C4 C3 C2 C1
+EXTORTION
+  Tor portals (Blackpoint): hxxp[:]//j3dp6okmaklajrsk6zljl5sfa2vpui7j2w6cwmhmmqhab6frdfbphhid[.]onion/
+  hxxp[:]//nz4z6ruzcekriti5cjjiiylzvrmysyqwibxztk6voem4trtx7gstpjid[.]onion/
+  hxxp[:]//safepaypfxntwixwjrlcscft433ggemlhgkkdupi2ynhtcmvdgubmoyd[.]onion/
+  contact the group within 10 days or data is leaked; demand 1 to 3 percent of revenue
+EDGE AND ENTRY
+  VPN logins from Mullvad ranges ; local-account VPN logins with no MFA ; attacker device name vultr-guest
+  spam flooding followed by Teams contact from a fake help desk</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">reference</span></div><button class="btn-copy" data-label="Copy list" onclick="copyBlock('grab-tools',this)" style="margin:0 0 6px;">Copy list</button><pre class="code" id="grab-tools">7-Zip, WinRAR - archive and split data
+FileZilla, WinSCP, Rclone (including to Mega), Backblaze b2.exe, OneDrive - exfiltration
+Mimikatz, dcsync.exe - credential theft
+PsExec, WinRM, RDP - lateral movement
+ScreenConnect, AnyDesk, TeamViewer - persistence and tool transfer
+ShareFinder.ps1 (PowerView lineage), SharpShares.exe, netscan.exe, NetExec (nxc.exe), nltest - discovery
+Socks.exe, Socks_werfault.exe - tunneling
+QDoor backdoor (soc.dll, UPX-packed, RunPE hollowing into WerFault.exe) - linked publicly to another ransomware group
+SafePay locker (locker.dll): ChaCha20 with RSA hybrid encryption; built on the leaked LockBit builder; skips Russian-language systems
+Acronis Disk Director components - listed by CISA as a legitimate tool seen in intrusions
+CCleaner binaries - suspicious in enterprise, listed by CISA for masquerade or anti-forensics</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Patch / MFA / Backup Audit Checklist</span><span class="igc">posture</span></div><button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checklist</button><pre class="code" id="grab-audit">[ ] All five CVEs patched or the device isolated: CVE-2020-3259 and CVE-2023-20269 (Cisco ASA/FTD), CVE-2023-27532 and CVE-2024-40711 (Veeam B&amp;R), CVE-2024-40766 (SonicWall)
+[ ] Every VPN user group, including local and LDAP accounts, requires MFA; no policy lets a group skip it
+[ ] Veeam and backup storage are not internet-reachable, not domain-joined where possible, with separate credentials
+[ ] Backups are encrypted, immutable and offline copies exist; a restore has been tested
+[ ] Admin and service passwords are at least 15 characters with failed-login lockout
+[ ] RDP inbound limited to jump hosts and gateways; unused ports closed
+[ ] Remote-access tools inventoried; unsanctioned ScreenConnect, AnyDesk, TeamViewer removed
+[ ] Defender Tamper Protection on; ASR rules in block mode after audit
+[ ] DCSync monitoring on domain controllers; replication rights limited
+[ ] External Teams chats restricted; mail-flooding alerts on; help desk verifies callers
+[ ] No unreviewed new accounts in admin groups in the last 14 days</pre></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Gate</th><th>Check</th><th>Pass condition</th></tr></thead><tbody><tr><td>Telemetry ready</td><td>Confirm every source feeds the SIEM: Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); Outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); File hashes on process and file-write events (CrowdStrike: SHA256HashData and SHA1HashData. SentinelOne: process image SHA-256. Defender: SHA1 or SHA256); plus firewall, VPN and backup-system logs from Section 5.</td><td>A sample event from each source is searchable in the last hour.</td></tr><tr><td>Benign baseline</td><td>Run Q5, Q7, Q8, Q9, Q11, Q12, Q13 and Q14 over 14 days before alerting.</td><td>Fewer than 10 hits per week per query, each explained by a named admin, job or tool.</td></tr><tr><td>Positive tests</td><td>Q1: on a lab host run regsvr32.exe /s /n &quot;/i:-pass=lab -enc=3 -uac -path=C:\lab&quot; C:\lab\missing.dll (the missing DLL makes it fail harmlessly). Q10: on a lab host run cmd /c echo wmic shadowcopy delete (it only prints the text). Q12: start a sanctioned remote-support tool on a lab host. Q13: from a lab host open RDP sessions to ten lab addresses.</td><td>Each test fires its query within the ingest delay. Never use live malware or test on production hosts.</td></tr><tr><td>Promotion</td><td>Promote Q1, Q3, Q2 first (high confidence, low FP), then Q10, then Q8 and Q5 after tuning.</td><td>Detect for 14 days with no unexplained hits, then enable prevention where the platform supports it.</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening — Tiered &amp; Deployable</h2></div>
+    <div class="section-body">
+<div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div><ul><li><strong>Patch or isolate the five exploited devices and servers.</strong> Cisco ASA/FTD (CVE-2020-3259, CVE-2023-20269), Veeam Backup &amp; Replication (CVE-2023-27532, CVE-2024-40711), SonicWall SonicOS (CVE-2024-40766). All five are KEV entries with known ransomware use. Framework: MITRE M1051; CISA AA26-293A key action and BOD 26-04 patch prioritization; vendor advisories. Verify: Playbook 1.</li><li><strong>Require MFA on every VPN account, including local accounts.</strong> NCC Group's case began with a policy that let local and LDAP groups skip MFA. Framework: MITRE M1032; CISA CPG 3.F; NCC Group (source 4). Verify: Playbook 1 and native hunt N1.</li><li><strong>Take backups out of reach.</strong> Keep Veeam servers and network storage off the internet, with separate credentials, and keep encrypted, immutable and offline copies. SafePay resets backup storage to factory settings. Framework: MITRE M1053, M1030; CISA CPG 3.K, 3.O. Verify: Playbook 1.</li><li><strong>Lock down admin passwords.</strong> At least 15 characters, failed-login lockout, no reuse. Weak admin passwords decided NCC Group's case. Framework: MITRE M1027; NIST SP 800-63B; CISA CPG 3.B, 3.C, 3.E. Verify: Playbook 6.</li><li><strong>Block the confirmed infrastructure.</strong> Import the Section 10 CSV (five addresses, six hashes). Do not block the four shared-hosting addresses. Framework: MITRE M1037, M1038; CISA IOC guidance.</li><li><strong>Confirm Defender Tamper Protection is on.</strong> SafePay disables Defender before moving laterally. Framework: MITRE M1038; Microsoft Defender documentation. Verify: Playbook 4.</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div><ul><li><strong>Run three ASR rules in audit, then block.</strong> Block credential stealing from LSASS, block process creations from PsExec and WMI commands, and advanced ransomware protection. Framework: MITRE M1040, M1043; Microsoft ASR rule reference; CIS Windows Benchmark Defender section. Verify: Playbook 2.</li><li><strong>Limit RDP to jump hosts and gateways.</strong> Close inbound RDP elsewhere and disable unused ports. Framework: MITRE M1035, M1030; CISA mitigations. Verify: Playbook 3.</li><li><strong>Inventory and allowlist remote-access tools.</strong> Remove unsanctioned ScreenConnect, AnyDesk and TeamViewer, and alert on new instances. Framework: MITRE M1038, M1042; CISA AA26-293A. Verify: Playbook 5.</li><li><strong>Monitor DCSync and limit replication rights.</strong> Alert on directory-replication requests from non-domain-controller accounts. Framework: MITRE M1026; CIS Active Directory guidance. ⚠ best-practice, no formal benchmark for the specific alert.</li><li><strong>Control external Teams contact and mail flooding.</strong> Restrict external chats to approved tenants and alert on message floods. Framework: MITRE M1017, M1021; Blackpoint (source 6). ⚠ best-practice, no formal benchmark.</li><li><strong>Filter outbound transfers.</strong> Block unapproved cloud-storage and file-transfer destinations from servers. Framework: MITRE M1037; CISA AA26-293A.</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div><ul><li><strong>Just-in-time administrator access.</strong> Disable admin accounts when not in use and grant time-boxed access on request. Framework: MITRE M1026; CISA AA26-293A mitigations.</li><li><strong>Segment the network.</strong> Separate servers, backups and user networks so one RDP session cannot reach everything. Framework: MITRE M1030; CISA CPG 3.I.</li><li><strong>Apply zero trust to remote access.</strong> Authenticate device and user for every VPN and admin session. Framework: MITRE M1032, M1035; CISA AA26-293A key actions.</li><li><strong>Practice restore.</strong> Test full restoration from offline backups at least twice a year. Framework: MITRE M1053; CISA CPG 3.O.</li><li><strong>Retire the exposed edge.</strong> Replace end-of-life appliances and move remote access to a maintained platform. Framework: MITRE M1051; CISA KEV guidance.</li></ul></div><p><strong>Verify after deployment.</strong> Over 14 days, confirm Q1, Q3 and Q10 stay silent, that no VPN login succeeds without MFA, that Veeam is not reachable from the internet, and that ASR audit events show no unexplained blocks before moving to block mode.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+<p>Each step carries its prerequisites, reboot requirement and rollback. Replace every REPLACE_WITH value before use, and test in non-production first.</p><h3>Playbook 1 · Edge and backup exposure review (T1190, T1133; M1051, M1032, M1053)</h3><h3>Step 1.1 · Check edge devices, VPN MFA and Veeam exposure (read-only)</h3><p><strong>What it does:</strong> Finds unpatched edge devices, VPN groups that skip MFA, and an internet-reachable backup server. Changes are made through each vendor&#x27;s console after this review.</p><p><strong>Prerequisites:</strong> Console or CLI access to the firewalls and the Veeam server; the vendor advisories for the five CVEs.</p><p><strong>Reboot required:</strong> No. These commands only read state.</p><h4>Configuration</h4><pre class="code"># Cisco ASA / FTD
+show version | include Software
+# FortiGate (example)
+get system status
+show user group
+show vpn ssl settings
+# SonicWall: System &gt; Status, then compare the firmware to the vendor advisory
+# Veeam server
+(Get-Item &#x27;C:\Program Files\Veeam\Backup and Replication\Backup\Veeam.Backup.Core.dll&#x27;).VersionInfo.FileVersion
+Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 9392,9401,6160,6162 } | Select-Object LocalAddress, LocalPort</pre><h4>Verify</h4><pre class="code"># Expected: firmware at or above the vendor fix for each CVE; every VPN user group has an MFA rule;
+# Veeam ports listen only on the management network and are not published to the internet.</pre><h4>Rollback</h4><pre class="code">none required: read-only checks. Any change you make afterward needs its own backup of the device configuration.</pre><h3>Playbook 2 · Attack Surface Reduction rules (T1003.001, T1569.002, T1486; M1040, M1043)</h3><h3>Step 2.1 · Enable three ASR rules in audit mode</h3><p><strong>What it does:</strong> Logs what each rule would block without stopping anything. Covers LSASS credential theft, PsExec and WMI process creation, and ransomware behavior.</p><p><strong>Prerequisites:</strong> Microsoft Defender Antivirus in active mode; Windows 10 1709 or later or Windows Server 2016 or later. The PsExec and WMI rule is not compatible with managing devices through Configuration Manager.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">$ids = @(&#x27;9E6C4E1F-7D60-472F-BA1A-A39EF669E4B2&#x27;,&#x27;D1E49AAC-8F56-4280-B9BA-993A6D77406C&#x27;,&#x27;C1DB55AB-C21A-4637-BB3F-A12568109D35&#x27;)
+Add-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions AuditMode,AuditMode,AuditMode</pre><h4>Verify</h4><pre class="code">$p = Get-MpPreference
+for ($i=0; $i -lt $p.AttackSurfaceReductionRules_Ids.Count; $i++) { &#x27;{0} -&gt; {1}&#x27; -f $p.AttackSurfaceReductionRules_Ids[$i], $p.AttackSurfaceReductionRules_Actions[$i] }
+# 2 = Audit, 1 = Block
+# Review Event ID 1122 in Microsoft-Windows-Windows Defender/Operational for 14 days</pre><h4>Rollback</h4><pre class="code">Remove-MpPreference -AttackSurfaceReductionRules_Ids $ids</pre><h3>Step 2.2 · Move the three rules to block after a clean audit period</h3><p><strong>What it does:</strong> Turns audit into enforcement once the audit log shows no legitimate tool would be stopped.</p><p><strong>Prerequisites:</strong> 14 days of audit data reviewed; exclusions added for any legitimate tool the audit flagged.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">Add-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions Enabled,Enabled,Enabled</pre><h4>Verify</h4><pre class="code">$p = Get-MpPreference
+for ($i=0; $i -lt $p.AttackSurfaceReductionRules_Ids.Count; $i++) { &#x27;{0} -&gt; {1}&#x27; -f $p.AttackSurfaceReductionRules_Ids[$i], $p.AttackSurfaceReductionRules_Actions[$i] }
+# Expect 1 (Block) for all three; Event ID 1121 records blocks</pre><h4>Rollback</h4><pre class="code">Add-MpPreference -AttackSurfaceReductionRules_Ids $ids -AttackSurfaceReductionRules_Actions AuditMode,AuditMode,AuditMode</pre><h3>Playbook 3 · Restrict RDP (T1021.001; M1035, M1030)</h3><h3>Step 3.1 · Scope the Remote Desktop firewall rules to jump hosts</h3><p><strong>What it does:</strong> Allows inbound RDP only from your jump hosts and gateways, which stops RDP fan-out between ordinary hosts.</p><p><strong>Prerequisites:</strong> Jump-host addresses identified; a pilot server; console access in case you lock yourself out.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">Get-NetFirewallRule -DisplayGroup &#x27;Remote Desktop&#x27; | Set-NetFirewallRule -RemoteAddress &#x27;REPLACE_WITH_JUMP_HOST_CIDR&#x27;</pre><h4>Verify</h4><pre class="code">Get-NetFirewallRule -DisplayGroup &#x27;Remote Desktop&#x27; | Get-NetFirewallAddressFilter | Select-Object InstanceID, RemoteAddress
+# From a non-jump host, an RDP attempt to this server should time out</pre><h4>Rollback</h4><pre class="code">Get-NetFirewallRule -DisplayGroup &#x27;Remote Desktop&#x27; | Set-NetFirewallRule -RemoteAddress Any</pre><h3>Playbook 4 · Defender Tamper Protection (T1685; M1038)</h3><h3>Step 4.1 · Confirm Tamper Protection and audit Defender exclusions</h3><p><strong>What it does:</strong> Confirms attackers cannot switch Defender off from the command line, and lists exclusions that would let tools hide.</p><p><strong>Prerequisites:</strong> Microsoft Defender portal or Intune access to enable the setting; enabling it is a portal or policy action, not a local command.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code"># Enable in the Microsoft Defender portal: Settings &gt; Endpoints &gt; Advanced features &gt; Tamper protection,
+# or through an Intune endpoint-security policy. Then verify on a host:
+Get-MpComputerStatus | Select-Object AMServiceEnabled, RealTimeProtectionEnabled, IsTamperProtected
+(Get-MpPreference).ExclusionPath</pre><h4>Verify</h4><pre class="code"># Expect IsTamperProtected = True and no exclusion paths you did not approve</pre><h4>Rollback</h4><pre class="code"># Turn Tamper Protection off again in the same portal setting only if it blocks a required management action;
+# record the reason and a review date.</pre><h3>Playbook 5 · Remote-access tool inventory (T1219; M1038, M1042)</h3><h3>Step 5.1 · Inventory ScreenConnect, AnyDesk and TeamViewer (read-only)</h3><p><strong>What it does:</strong> Builds the allowlist Q12 needs: which hosts run which remote-access tools, and which ScreenConnect instances exist.</p><p><strong>Prerequisites:</strong> Local administrator or an endpoint-management tool to run it fleet-wide.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">Get-ItemProperty &#x27;HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*&#x27;,&#x27;HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*&#x27; |
+  Where-Object { $_.DisplayName -match &#x27;ScreenConnect|AnyDesk|TeamViewer&#x27; } |
+  Select-Object DisplayName, DisplayVersion, InstallDate
+Get-Service | Where-Object { $_.DisplayName -match &#x27;ScreenConnect|AnyDesk|TeamViewer&#x27; } | Select-Object Name, DisplayName, Status, StartType</pre><h4>Verify</h4><pre class="code"># Compare the output with the sanctioned list. Anything else is an investigation lead.</pre><h4>Rollback</h4><pre class="code">none required: read-only inventory.</pre><h3>Playbook 6 · Administrator password and lockout policy (T1110, T1078; M1027)</h3><h3>Step 6.1 · Apply a fine-grained policy to Domain Admins</h3><p><strong>What it does:</strong> Sets 15-character passwords and failed-login lockout for the accounts SafePay most wants, as CISA recommends.</p><p><strong>Prerequisites:</strong> Domain functional level 2008 or later; a documented break-glass account that is excluded; a plan for service accounts, which must not be locked out by guessing.</p><p><strong>Reboot required:</strong> No.</p><h4>Configuration</h4><pre class="code">New-ADFineGrainedPasswordPolicy -Name &#x27;HuntPack-Admins-15&#x27; -Precedence 10 -MinPasswordLength 15 -ComplexityEnabled $true -LockoutThreshold 5 -LockoutDuration 00:30:00 -LockoutObservationWindow 00:30:00 -MinPasswordAge 1.00:00:00 -MaxPasswordAge 365.00:00:00 -PasswordHistoryCount 24
+Add-ADFineGrainedPasswordPolicySubject -Identity &#x27;HuntPack-Admins-15&#x27; -Subjects &#x27;Domain Admins&#x27;</pre><h4>Verify</h4><pre class="code">Get-ADFineGrainedPasswordPolicy &#x27;HuntPack-Admins-15&#x27; | Select-Object Name, MinPasswordLength, LockoutThreshold
+Get-ADUserResultantPasswordPolicy -Identity REPLACE_WITH_ADMIN_USER | Select-Object MinPasswordLength, LockoutThreshold</pre><h4>Rollback</h4><pre class="code">Remove-ADFineGrainedPasswordPolicySubject -Identity &#x27;HuntPack-Admins-15&#x27; -Subjects &#x27;Domain Admins&#x27; -Confirm:$false
+Remove-ADFineGrainedPasswordPolicy -Identity &#x27;HuntPack-Admins-15&#x27; -Confirm:$false</pre>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody><tr><td>Isolate (hosts, accounts, backups)</td><td>Quarantine or take offline the hosts that show any Q1 to Q3, Q10 or remote-tool hit, as CISA advises. Disable compromised accounts and sessions. Disconnect Veeam repositories and network backup storage from the network. Block the Section 10 addresses and hashes. Do not block the four shared-hosting addresses.</td><td>IR lead; network team; backup administrator</td><td>Falcon containment status; firewall change log; backup-system state</td></tr><tr><td>Preserve</td><td>Capture memory and disk from at least one affected host before cleanup. Export VPN, firewall, domain-controller and Veeam logs. Keep a sample of a ransom note and an encrypted file for law enforcement.</td><td>IR lead; forensics</td><td>Disk and memory images; log exports; hash list</td></tr><tr><td>Eradicate</td><td>Remove ScreenConnect, AnyDesk and TeamViewer instances you did not install, soc.dll, locker.dll and tunneling tools. Remove new or elevated accounts. Patch or replace the exploited edge device or Veeam server. Reset all credentials the attacker could have reached, including service and domain-admin accounts, and rotate the Kerberos service account twice as standard Active Directory recovery practice. Use CISA&#x27;s Eviction Strategies tool to build the plan.</td><td>IR lead; AD team; network team</td><td>Account change log; patch inventory; eviction plan</td></tr><tr><td>Recover</td><td>Rebuild or restore from offline or immutable backups, and verify restored data is clean before reconnecting. Reintroduce hosts in stages with Q1, Q3 and Q10 monitored. Keep MFA enforced on every remote path from the first day.</td><td>IR lead; backup administrator</td><td>Restore test results; monitoring dashboard</td></tr><tr><td>Report and communicate</td><td>Report to the FBI Internet Crime Complaint Center or a local field office, and in the UK to Report Fraud or local police. CISA and the FBI do not encourage paying ransom. Brief legal, executives and affected parties.</td><td>Legal; communications</td><td>Report reference numbers; decision log</td></tr></tbody></table><p>The phases follow the incident-response and mitigation sections of AA26-293A (source 1).</p>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead><tbody><tr><td>T1133, T1078, T1110</td><td>VPN logins with stolen credentials, local-account MFA bypass</td><td></td><td></td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1190</td><td>Exploitation of Cisco, Veeam and SonicWall devices</td><td></td><td></td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1219, T1543.003</td><td>Remote-access tools and the ScreenConnect service</td><td>Q12</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1055.012, T1218.010</td><td>QDoor loader through regsvr32 and WerFault</td><td>Q2, Q3, Q4</td><td>Q3</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1003.001, T1003.006</td><td>Mimikatz and DCSync</td><td>Q5, Q6</td><td>Q5</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1135, T1482</td><td>Share and domain discovery</td><td>Q5, Q7</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1021.001, T1021.002, T1021.006</td><td>RDP, SMB shares, PsExec, WinRM</td><td>Q13, Q14</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1685, T1548.002</td><td>Defender tamper and UAC bypass</td><td>Q8, Q9</td><td>Q8</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1560.001, T1048, T1567</td><td>Staging and exfiltration tools</td><td>Q11, Q4</td><td></td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1490</td><td>Recovery inhibition</td><td>Q10</td><td>Q10</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1486</td><td>Encryptor launch and known hashes</td><td>Q1, Q2</td><td>Q1</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1566</td><td>Email flooding and Teams help-desk lure</td><td></td><td></td><td><span class="badge b-high">GAP</span></td></tr></tbody></table><p><strong>Gaps.</strong> Initial access is outside endpoint telemetry: firewall exploitation, VPN logins without MFA, and the email and Teams lure need the native checks N1 to N3 and N5. OneDrive exfiltration needs cloud audit logs. Backup-system resets need Veeam and storage logs (N6).</p><p><strong>Validation.</strong> Run Section 11 before promoting: telemetry ready, 14-day baseline, safe positive tests, then staged promotion.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+<div class="ticket"><pre class="code">TITLE: SafePay Ransomware (AA26-293A): Edge Entry to Encryption in Under 24 Hours
+SEVERITY: High. Active double-extortion ransomware, at least 600 victims, five KEV-listed
+          entry vulnerabilities, joint FBI/CISA advisory dated 2026-10-20
+SCOPE: Windows servers and workstations (process, hash and network telemetry); firewalls and
+       VPN gateways; Veeam and network backup storage; domain controllers
+HYPOTHESIS: Operators log in through an edge device with stolen or guessed credentials or an
+       exploited vulnerability, move by hand with built-in tools, install a QDoor backdoor
+       and remote-access tools, steal data, disable Defender and recovery, then run locker.dll
+       through regsvr32.
+QUERIES: 14 CQL queries (Q1-Q14) on Falcon sensor telemetry. Q1, Q3, Q5, Q8, Q10 promotable to
+       Custom IOA; hashes and five addresses go to IOC Management.
+DO FIRST: 1) Patch or isolate the five exploited devices. 2) Verify MFA on every VPN group.
+       3) Isolate and protect Veeam and backup storage. 4) Run Q1, Q3, Q10 over 30 days.
+       5) Import the Section 10 CSV (not the shared-hosting addresses).
+FINDINGS: [fill in after the hunt]
+GAPS: Firewall exploitation, VPN logins without MFA, and the email and Teams lure are outside
+       endpoint telemetry. OneDrive exfiltration and backup-storage resets need cloud and
+       storage logs.
+ACTIONS: Patch edge and Veeam; enforce MFA everywhere; immutable offline backups; ASR rules;
+       RDP to jump hosts only; remote-tool allowlist.
+OWNER: REPLACE_WITH_OWNER
+VERSION: v0.1 (Draft) 2026-10-20</pre></div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-20</span><span>Initial draft built on CISA AA26-293A. 14 CQL queries, 5 IOA candidates, 3 alert packages, tiered hardening with 6 deployable playbooks. 9 sources, 5 of them Tier 1.</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead><tbody><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a" target="_blank" rel="noopener">CISA, FBI, USSS, LKA Rheinland-Pfalz, NCA, NW ROCU: #StopRansomware SafePay Ransomware, AA26-293A (20 Oct 2026)</a></td><td>Joint government advisory: five exploited CVEs, TTPs mapped to ATT&amp;CK, tools, nine IP addresses, files, hashes, hostnames, mitigations.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog (entries for the five CVEs)</a></td><td>Confirms vendor, product and known ransomware use for CVE-2020-3259, CVE-2023-20269, CVE-2023-27532, CVE-2024-40711 and CVE-2024-40766.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.huntress.com/blog/its-not-safe-to-pay-safepay" target="_blank" rel="noopener">Huntress: It&#x27;s Not Safe to Pay SafePay</a></td><td>Hands-on incident detail: RDP access, ShareFinder, Defender tamper, WinRAR split archives, regsvr32 launch of locker.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.nccgroup.com/us/research-blog/weak-passwords-led-to-safepay-ransomware-yet-again/" target="_blank" rel="noopener">NCC Group: Weak Passwords Led to (SafePay) Ransomware, Yet Again</a></td><td>Firewall policy that let local accounts bypass VPN MFA, weak domain-admin password, ScreenConnect service, QDoor (soc.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://www.bitdefender.com/en-us/blog/businessinsights/safepay-ransomware-attacks-ttps" target="_blank" rel="noopener">Bitdefender: SafePay, a Non-RaaS Group</a></td><td>Closed (non-RaaS) operation, LockBit Black builder lineage, 24-hour attack timeline, ransom-note behavior.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://blackpointcyber.com/wp-content/uploads/2026/02/SafePay.pdf" target="_blank" rel="noopener">Blackpoint Cyber: SafePay threat profile (Feb 2026)</a></td><td>Email flooding followed by Microsoft Teams help-desk impersonation, ransom demand of 1 to 3 percent of revenue, Tor portal addresses, QDoor and INC Ransom overlaps.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-high">T3</span></td><td><a href="https://www.halcyon.ai/threat-group/safepay" target="_blank" rel="noopener">Halcyon: SafePay threat group</a></td><td>Attribution summary only.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-high">T3</span></td><td><a href="https://www.cloudsek.com/knowledge-base/safepay-ransomware" target="_blank" rel="noopener">CloudSEK: SafePay ransomware knowledge base</a></td><td>Background only.</td><td>2026-10-20</td></tr><tr><td><span class="badge b-high">T3</span></td><td><a href="https://socradar.io/blog/dark-web-profile-safepay-ransomware/" target="_blank" rel="noopener">SOCRadar: Dark web profile, SafePay ransomware</a></td><td>Ransom-note and extension confirmation; its claim of a TON-hosted portal conflicts with Tor addresses in sources 1 and 6.</td><td>2026-10-20</td></tr></tbody></table>
+    </div>
+  </div>
+
+</div>
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+</body>
+</html>
