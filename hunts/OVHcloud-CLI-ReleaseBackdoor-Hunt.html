@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OVHcloud CLI Release Backdoor: CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the October 2026 OVHcloud CLI GitHub release-asset backdoor: swapped v0.11.0 to v0.15.0 binaries, secret-stealing build, exposure scoping, Solana RPC and upload detections, with IOCs, MITRE ATT&amp;CK mapping and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/OVHcloud-CLI-ReleaseBackdoor-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OVHcloud CLI Release Backdoor: CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the October 2026 OVHcloud CLI GitHub release-asset backdoor: swapped v0.11.0 to v0.15.0 binaries, secret-stealing build, exposure scoping, Solana RPC and upload detections, with IOCs, MITRE ATT&amp;CK mapping and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/OVHcloud-CLI-ReleaseBackdoor-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f778ba;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(247,120,186,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1020 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+
+
+.ticket { background: #010409; border: 1px solid var(--accent); border-radius: 6px; padding: 4px; }
+.igt { font-size: 12px; font-weight: 700; color: var(--text); } .igc { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+details { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+details summary { cursor: pointer; font-size: 12.5px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+<style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.cloud-sel[hidden]{display:none}
+.rosetta-global{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 14px;padding:9px 12px;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.rosetta-global-label{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#8b949e)}
+.rosetta-global-btns{display:flex;flex-wrap:wrap;gap:6px}
+.rosetta-global-btn{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:5px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:700;line-height:1.2;cursor:pointer}
+.rosetta-global-btn:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-global-btn[aria-pressed="true"]{color:var(--bg,#0d1117);background:var(--accent,#f97316);border-color:var(--accent,#f97316)}
+.rosetta-global-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-global-mixed{font-size:10.5px;color:var(--text-muted,#8b949e)}
+.rosetta-global-mixed[hidden]{display:none}
+.rosetta-console{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(56,139,253,.45);border-radius:6px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:12px}
+.rosetta-console[hidden]{display:none}
+.rosetta-console-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.rosetta-console label{color:var(--text,#e6edf3);font-weight:600}
+.rosetta-console input{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console input[aria-invalid="true"]{border-color:#f85149}
+.rosetta-console input:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-console-status{font-size:11px;color:var(--text-muted,#8b949e)}
+.rosetta-console-status.bad{color:#f85149}
+.rosetta-console-hint{margin:6px 0 0;font-size:11px;line-height:1.5}
+.rosetta-console select{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console select:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-open-s1,.rosetta-open-def{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-open-s1[hidden],.rosetta-open-def[hidden]{display:none}
+.rosetta-open-s1:hover,.rosetta-open-def:hover{background:var(--accent-dim,rgba(249,115,22,.1))}
+.rosetta-open-s1.done,.rosetta-open-def.done{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.rosetta-open-s1:focus-visible,.rosetta-open-def:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-controls-end{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-global-btns{flex:1 1 100%}.rosetta-global-btn{flex:1 1 auto}.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library: home">HUNTPACK</a></div>
+    <div class="pack-name">OVHcloud CLI Release Backdoor</div>
+    <div class="version">v0.1 · 2026-10-24</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · SIEM Queries</a>
+    <a href="#s9" data-rosetta-original="9 · Custom IOA Recs">9 · Detection Rules</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>OVHcloud CLI Release-Asset Backdoor (v0.11.0 to v0.15.0)</h1>
+    <div class="subtitle">A hijacked contributor GitHub account replaced the binaries on five existing releases of the OVHcloud CLI with a secret-stealing build on 2026-10-19. Built on OVHcloud's advisory, the reporter's issue and three independent write-ups.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">OVHcloud CLI release-asset replacement</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH · SUPPLY CHAIN · SECRET THEFT</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Supply-chain compromise, credential stealer</div></div>
+      <div class="meta-item"><div class="mk">Access Vector</div><div class="mv">Hijacked GitHub account, mutable releases</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 (Draft) · 2026-10-24</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High on timeline and hashes; attribution unconfirmed</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+<p><strong>Attacker objective.</strong> Steal developer and operator secrets. On 2026-10-19 someone using a legitimate OVHcloud contributor's GitHub account swapped the prebuilt archives on five existing releases of the OVHcloud CLI (v0.11.0 to v0.15.0) with a build that reads credentials and files from disk. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#2]</span> <span class="badge b-info">[#4]</span></p><p><strong>How it worked.</strong> The uploads came through the ordinary GitHub Releases API. No tag was pushed, no workflow ran, and the source and build pipeline were untouched. OVHcloud's own root cause is that release immutability was not enabled, so a user with write permission could overwrite assets on published releases. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#3]</span> <span class="badge b-info">[#5]</span> The bad files covered macOS (Intel and ARM), Linux (x86_64 and arm64) and Windows x86_64, and were live for about 94 minutes (14:47 to 16:21 Paris time, 12:47 to 14:21 UTC) before OVHcloud deleted them after a customer's pinned-hash CI check failed. <span class="badge b-info">[#1]</span> <span class="badge b-info">[#2]</span> <span class="badge b-info">[#3]</span></p><p><strong>What the binary does.</strong> It is the real CLI recompiled with extra Go code. Per OVHcloud it collects IDE and AI-assistant databases, cloud, container and Terraform credentials, SSH keys, <code>.netrc</code> and git config into a folder named <code>envchecker-NNNNNNNNN</code> in the temp directory, archives it, and uploads it to a hard-coded address, using Solana RPC calls through one of five public endpoints. <span class="badge b-info">[#1]</span> The advisory reports about 250 downloads. <span class="badge b-info">[#1]</span></p><p><strong>Attribution is open.</strong> One analysis ties the hijacked account to the GlassWorm campaign through an earlier loader in the account's personal repositories and calls the link an inference. Another report says nothing from the October binary has been tied to GlassWorm because no copy was preserved, and the binary's Solana wallet in the advisory differs from the wallet in that earlier loader. <span class="badge b-info">[#3]</span> <span class="badge b-info">[#4]</span> <span class="badge b-info">[#1]</span> This pack does not assert the attribution and ships none of that campaign's indicators.</p><p class="callout callout-danger"><strong>Defender priority:</strong> find every host or CI runner that downloaded or ran an ovhcloud binary on 2026-10-19 between 12:47 and 14:21 UTC (Q7, Q8, Q1). For any hit, treat every secret readable on that machine as stolen and rotate it from a different machine. Then require immutable releases and pinned hashes for every tool you pull from GitHub Releases.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>#</th><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead><tbody><tr><td>1</td><td><span class="badge b-low">T1</span></td><td>OVHcloud GitHub security advisory GHSA-862f-55f5-vmvw (published 2026-10-20)</td><td>Timeline, affected versions v0.11.0 to v0.15.0, five malicious-binary MD5s, exfiltration address, Solana RPC endpoints, targeted file list, root cause.</td><td>yes</td></tr><tr><td>2</td><td><span class="badge b-low">T1</span></td><td>GitHub issue #300 on ovh/ovhcloud-cli (reporter alink-tothepast, 2026-10-19)</td><td>First-hand capture: replaced asset names and times, original and swapped SHA-256 of the v0.15.0 Linux arm64 archive, go version -m build metadata.</td><td>yes</td></tr><tr><td>3</td><td><span class="badge b-med">T2</span></td><td>OpenSourceMalware: OVHcloud CLI supply chain compromise (2026-10-20)</td><td>Server-side timeline, what was replaced, how to check a binary, account-compromise evidence. Did not analyze the payload. GlassWorm link is the authors' inference.</td><td>yes, attribution only as unconfirmed</td></tr><tr><td>4</td><td><span class="badge b-med">T2</span></td><td>The Hacker News: Hackers Hijack Five OVHcloud CLI Releases (2026-10-20)</td><td>Independent check of exposure paths. Says the Homebrew cask pinned original hashes so brew installs would have failed, and warns that a +dirty or vcs flag alone also appears on OVHcloud's clean v0.16.0.</td><td>yes</td></tr><tr><td>5</td><td><span class="badge b-med">T2</span></td><td>Help Net Security: Info-stealing malware slipped into OVHcloud CLI releases (2026-10-21)</td><td>Confirms versions, times, quotes from the OVHcloud CEO, immutability root cause.</td><td>corroboration only</td></tr><tr><td>x</td><td><span class="badge b-high">n/a</span></td><td>BleepingComputer article on the incident</td><td>Fetch returned HTTP 403. Not read, not cited, nothing taken from it.</td><td>no</td></tr></tbody></table><h3>Decisions</h3><ul><li><strong>Hash roles corrected.</strong> The brief that started this pack described 5c2beb56&hellip;aeb80e0 as a partial malicious hash. Source 2 gives it in full and labels it the <em>original</em> (legitimate) v0.15.0 Linux arm64 archive. The swapped (malicious) archive is the 3833daff value. The legitimate hash is kept out of the IOC import.</li><li><strong>Related-cluster indicators excluded.</strong> The advisory root-cause section and the OpenSourceMalware report list a wallet, a loader file hash, a key and IV, an address and an extension from the account's earlier compromise. They belong to a different incident and are not shipped. The wallet in the advisory's own IOC list (the binary's wallet) is shipped as a hunt string.</li><li><strong>Time zones.</strong> OVHcloud's 14:47 to 16:21 is Paris time (UTC+2), equal to 12:47 to 14:21 UTC. OpenSourceMalware says 94 minutes, the advisory says 1h33.</li><li><strong>Version detail.</strong> The reporter's build info is from the Linux arm64 binary and the advisory's from a Linux x86_64 build. Both show the same pseudo-version and commit, so those two strings are the signal. The +dirty flag is not, because the clean v0.16.0 build also reports it [#4].</li></ul>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+<p>Seven hypotheses, ordered by fidelity.</p><ol><li><strong>H1 (high):</strong> a host executed one of the five replaced binaries. Event: process start with MD5/SHA-256 (Q1, Q7). T1195.002. FP: none.</li><li><strong>H2 (high):</strong> a host connected to the advisory's upload address (Q2). T1041. FP: none, but the address may be changed by the operator.</li><li><strong>H3 (high):</strong> an ovhcloud process resolved a Solana RPC hostname (Q3, Q4). T1102. FP: blockchain tooling for Q4.</li><li><strong>H4 (medium):</strong> ovhcloud spawned shells, archivers or credential-store CLIs (Q5). T1119, T1552.001. FP: helper launches.</li><li><strong>H5 (medium):</strong> the CLI was fetched during 12:47 to 14:21 UTC on 2026-10-19 (Q8). T1195.002. FP: normal installs outside the window.</li><li><strong>H6 (low):</strong> a command line names an envchecker temp folder (Q6). T1119. Rarely visible, use N1.</li><li><strong>H7 (low):</strong> ovhcloud reached an unexpected public address (Q9). T1041. FP: OVHcloud API addresses.</li></ol><h3>Attack chain</h3><table><thead><tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt angle</th><th>Queries</th></tr></thead><tbody><tr><td>1</td><td>Attacker holds a contributor's GitHub credentials (account compromised months earlier per OVHcloud and OpenSourceMalware)</td><td>GitHub audit log (outside endpoint telemetry)</td><td>Org audit log review</td><td>N4</td></tr><tr><td>2</td><td>Malicious binary built outside CI and uploaded over five existing releases via the Releases API</td><td>GitHub release records and server-side activity (outside endpoint telemetry)</td><td>Compare asset uploader and times; verify attestation</td><td>N4, N5</td></tr><tr><td>3</td><td>Victim installs or updates the CLI: install.sh, direct download, CI fetch, self-upgrade</td><td>Process creation with command line, image path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Q8, Q7</td><td>Q8, Q7</td></tr><tr><td>4</td><td>Swapped binary runs; stealer code collects IDE databases, cloud and SSH credentials into a temp folder</td><td>Process creation with hashes (CrowdStrike: ProcessRollup2, MD5HashData and SHA256HashData. SentinelOne: Process Creation. Defender: DeviceProcessEvents); file reads are not logged</td><td>Q1, Q5, Q6, N1</td><td>Q1, Q5, Q6</td></tr><tr><td>5</td><td>Stealer resolves a Solana RPC endpoint and uploads the archive over HTTPS</td><td>DNS lookup with requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse) and outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>Q2, Q3, Q4, Q9</td><td>Q2, Q3, Q4, Q9</td></tr></tbody></table><p><strong>Not telemetry-visible:</strong> steps 1 and 2 happen in GitHub, and the stealer's reads of credential files and its creation of the temp folder are in-process Go file operations that the sensor does not log. They are flagged as gaps in Section 15.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+<p class="callout callout-warn">Hashes of OVHcloud's legitimate builds are listed for reference only and must never be blocked. Solana RPC hostnames are public services shared with legitimate users: hunt, never block.</p><table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody><tr><td>MD5</td><td><code>6f2f086239f3d88eb2750e871901927d</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious ovhcloud (Darwin_arm64 binary) per OVHcloud advisory [#1]. Single source.</td></tr><tr><td>MD5</td><td><code>347e65eb7f2d78d1c6872690272a6cc3</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious ovhcloud (Darwin_x86_64 binary) per OVHcloud advisory [#1]. Single source.</td></tr><tr><td>MD5</td><td><code>01f57206d37c28cf711677f612052913</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious ovhcloud (Linux_arm64 binary) per OVHcloud advisory [#1]. Single source.</td></tr><tr><td>MD5</td><td><code>301bff0b51980b9e76c93633e7cfd3bd</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious ovhcloud (Linux_x86_64 binary) per OVHcloud advisory [#1]. Single source.</td></tr><tr><td>MD5</td><td><code>6a3cf153338c416169cda2fe704c8848</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious ovhcloud.exe (Windows x86_64 binary) per OVHcloud advisory [#1]. Single source.</td></tr><tr><td>SHA-256</td><td><code>3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb</code></td><td><span class="badge b-low">high</span></td><td>prevent</td><td>Swapped v0.15.0 ovhcloud-cli_Linux_arm64.tar.gz [#2] [#3] [#4]. Archive, so prevention has no execution effect; it flags the file.</td></tr><tr><td>SHA-256</td><td><code>5c2beb56e6d83a4b426565a1557791ef759316abcc4effb38dd627c90aeb80e0</code></td><td><span class="badge b-low">high</span></td><td>do not block</td><td>LEGITIMATE original v0.15.0 Linux arm64 archive [#2] [#3] [#4]. Known-good reference only.</td></tr><tr><td>SHA-256</td><td><code>e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Sample linked by the advisory on VirusTotal [#1]. The advisory does not say whether it is a binary or an archive. Single source.</td></tr><tr><td>SHA-256</td><td><code>3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Sample linked by the advisory on VirusTotal [#1]. The advisory does not say whether it is a binary or an archive. Single source.</td></tr><tr><td>SHA-256</td><td><code>3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Sample linked by the advisory on VirusTotal [#1]. The advisory does not say whether it is a binary or an archive. Single source.</td></tr><tr><td>SHA-256</td><td><code>25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Sample linked by the advisory on VirusTotal [#1]. The advisory does not say whether it is a binary or an archive. Single source.</td></tr><tr><td>SHA-256</td><td><code>f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a</code></td><td><span class="badge b-med">medium</span></td><td>detect</td><td>Sample linked by the advisory on VirusTotal [#1]. The advisory does not say whether it is a binary or an archive. Single source.</td></tr><tr><td>IPv4</td><td><code>45.32.148.174</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Stealer upload endpoint, TCP/443, path /upload [#1]. Advisory says it can change at any time. Single source.</td></tr><tr><td>Solana wallet</td><td><code>BHaDaVbdCYFNaKZGn7yLXFneWoJHZgLiBYkHxVrjyALF</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Wallet used by the October binary for its RPC calls [#1]. Not importable to Falcon; search proxy and DNS-adjacent logs.</td></tr><tr><td>Domain</td><td><code>solana.drpc.org</code></td><td><span class="badge b-med">low</span></td><td>hunt (do not block)</td><td>Public Solana RPC endpoint the stealer picks from [#1]. Legitimate shared service.</td></tr><tr><td>Domain</td><td><code>solana-rpc.publicnode.com</code></td><td><span class="badge b-med">low</span></td><td>hunt (do not block)</td><td>Public Solana RPC endpoint the stealer picks from [#1]. Legitimate shared service.</td></tr><tr><td>Domain</td><td><code>solana.api.pocket.network</code></td><td><span class="badge b-med">low</span></td><td>hunt (do not block)</td><td>Public Solana RPC endpoint the stealer picks from [#1]. Legitimate shared service.</td></tr><tr><td>Domain</td><td><code>api.mainnet-beta.solana.com</code></td><td><span class="badge b-med">low</span></td><td>hunt (do not block)</td><td>Public Solana RPC endpoint the stealer picks from [#1]. Legitimate shared service.</td></tr><tr><td>Domain</td><td><code>solana.api.onfinality.io</code></td><td><span class="badge b-med">low</span></td><td>hunt (do not block)</td><td>Public Solana RPC endpoint the stealer picks from [#1]. Legitimate shared service.</td></tr><tr><td>Folder</td><td><code>envchecker-[0-9]{9,10}</code> in the temp directory</td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Stealer working folder, never deleted [#1]. Q6, N1.</td></tr><tr><td>Build string</td><td><code>v0.15.1-0.20261013083505-5ead8ef9b43d+dirty</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>Go module pseudo-version in the malicious build [#1] [#2] [#3]. A clean v0.15.0 reports v0.15.0. Do not key on +dirty alone [#4].</td></tr><tr><td>Commit</td><td><code>5ead8ef9b43d354dfb5caadff803b11afc8c5c58</code></td><td><span class="badge b-low">high</span></td><td>hunt</td><td>vcs.revision of the malicious build [#1] [#2]. The real v0.15.0 tag points to 760fd72de93cbea3b507eb36dc0095991e4048e5 [#2].</td></tr><tr><td>Filename</td><td><code>ovhcloud / ovhcloud.exe</code></td><td><span class="badge b-med">low</span></td><td>hunt</td><td>Name of the replaced binaries. Also the legitimate name, so name alone proves nothing.</td></tr><tr><td>GitHub account</td><td><code>HassenBF</code></td><td><span class="badge b-med">medium</span></td><td>enrich</td><td>Account that uploaded the assets [#2] [#3]. Context for audit-log review. A victim identity, not an attacker handle.</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap risk</th></tr></thead><tbody><tr><td>Developer workstations (macOS, Linux, Windows) that installed or upgraded the CLI</td><td>Process creation with command line, hashes and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>High</td><td>Reads of credential files and the temp-folder creation are in-process and not logged, so a host that ran the binary shows only the execution</td></tr><tr><td>CI runners and build containers that fetch the release tarball</td><td>Process creation with command line (as above); outbound connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td>High</td><td>Ephemeral runners may have no sensor; use build logs (N2)</td></tr><tr><td>Network egress to the upload address and Solana RPC endpoints</td><td>DNS lookup with requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents)</td><td>Medium</td><td>Defender has no endpoint DNS table; use proxy and resolver logs (N3)</td></tr><tr><td>GitHub organisation release and membership activity</td><td>GitHub audit log</td><td>Medium</td><td>Outside endpoint telemetry</td></tr><tr><td>Secrets the CLI could read (cloud, SSH, git, IDE, AI-assistant data)</td><td>Identity provider and cloud audit logs after rotation</td><td>High</td><td>Outside endpoint telemetry; watch for use of rotated or old keys</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query or control</th></tr></thead><tbody><tr><td>Initial Access</td><td>T1195.002 Compromise Software Supply Chain</td><td>Release assets replaced on legitimate releases</td><td>Q1, Q7, Q8; Hardening T1</td></tr><tr><td>Initial Access</td><td>T1078 Valid Accounts</td><td>Hijacked contributor GitHub account used to upload</td><td>N4; Hardening T2</td></tr><tr><td>Execution</td><td>T1204.002 User Execution</td><td>Victim runs the trojanised CLI</td><td>Q1, Q7</td></tr><tr><td>Defense Evasion</td><td>T1036 Masquerading</td><td>Binary carries the legitimate name and release version</td><td>Q7, N5</td></tr><tr><td>Collection</td><td>T1119 Automated Collection, T1005 Data from Local System</td><td>Copies IDE, AI-assistant, cloud, SSH and git data into the temp folder</td><td>Q5, Q6, N1</td></tr><tr><td>Credential Access</td><td>T1552.001 Credentials In Files, T1552.004 Private Keys</td><td>Reads ~/.aws, ~/.kube, ~/.ssh, ~/.netrc, Terraform and cloud CLI files</td><td>Hardening T4</td></tr><tr><td>Collection</td><td>T1560 Archive Collected Data</td><td>Archives the working folder before upload</td><td>Q5, Q6</td></tr><tr><td>Command and Control</td><td>T1102 Web Service</td><td>Solana RPC endpoints used, chosen at random</td><td>Q3, Q4</td></tr><tr><td>Exfiltration</td><td>T1041 Exfiltration Over C2 Channel</td><td>Archive uploaded to a hard-coded address over HTTPS</td><td>Q2, Q9</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+<p>These checks need no Falcon query.</p><h3>N1 · Endpoint triage: stealer working folder</h3><p><strong>Where:</strong> Developer workstation or runner</p><pre class="code"># macOS / Linux (read-only)
+ls -ld "${TMPDIR:-/tmp}"/envchecker-* 2&gt;/dev/null
+# Windows PowerShell (read-only)
+Get-ChildItem -Path $env:TEMP -Directory -Filter "envchecker-*" -ErrorAction SilentlyContinue</pre><p>The advisory says the folder is created on every run and never deleted. A match means the swapped binary ran on this machine. Absence is not proof: the tool may have run before the folder was cleaned.</p><h3>N2 · CI and build logs: release downloads in the window</h3><p><strong>Where:</strong> CI system, container build logs, package mirror logs</p><pre class="code"># Search for the window 2026-10-19 12:47 to 14:21 UTC (14:47 to 16:21 Paris)
+# Strings: ovhcloud-cli, releases/download, install.sh, ovhcloud-cli_Linux_x86_64.tar.gz
+# Any job that fetched an archive without a pinned hash in that window is exposed</pre><p>Pinned-hash jobs failed and are safe. Unpinned jobs, Dockerfiles and the CLI's own upgrade command pulled the swapped file.</p><h3>N3 · Proxy, firewall and resolver logs</h3><p><strong>Where:</strong> Egress logging</p><pre class="code"># Destination 45.32.148.174 port 443 (path /upload)
+# DNS or SNI: solana.drpc.org, solana-rpc.publicnode.com, solana.api.pocket.network,
+#             api.mainnet-beta.solana.com, solana.api.onfinality.io
+# Hits from build hosts with no blockchain role are suspicious</pre><p>Covers hosts and runners with no sensor.</p><h3>N4 · GitHub organisation audit log</h3><p><strong>Where:</strong> GitHub org settings, audit log</p><pre class="code"># Review release asset delete and upload events on every repo, by user
+# Flag assets changed on releases older than 24 hours
+# List members with Write on release-publishing repos; check for personal accounts
+# Confirm immutable releases is enabled org-wide</pre><p>This is how the swap could be spotted at the source. Event names vary by plan; check your own audit log schema.</p><h3>N5 · Check a binary without running it</h3><p><strong>Where:</strong> Any host that kept a copy</p><pre class="code">go version -m ./ovhcloud
+# Malicious: mod ... v0.15.1-0.20261013083505-5ead8ef9b43d+dirty and vcs.revision=5ead8ef9b43d354dfb5caadff803b11afc8c5c58
+# Do NOT treat vcs.modified=true alone as malicious: the clean v0.16.0 build also reports it
+md5sum ./ovhcloud        # compare with the five MD5 values in Section 10
+shasum -a 256 ovhcloud-cli_*.tar.gz</pre><p>Never run the binary to check it.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2 data-rosetta-original="CrowdStrike LogScale CQL Hunt Queries">Hunt Queries: CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL</h2></div>
+    <div class="section-body">
+<div class="rosetta-global" data-rosetta-global="true" role="group" aria-label="Show every query in one language"><span class="rosetta-global-label">Show all queries in</span><div class="rosetta-global-btns"><button type="button" class="rosetta-global-btn" data-language="cql" aria-pressed="true" onclick="rosettaSetAll('cql')">CrowdStrike · CQL</button><button type="button" class="rosetta-global-btn" data-language="powerquery" aria-pressed="false" onclick="rosettaSetAll('powerquery')">SentinelOne · PowerQuery</button><button type="button" class="rosetta-global-btn" data-language="kql" aria-pressed="false" onclick="rosettaSetAll('kql')">Defender XDR · KQL</button></div><span class="rosetta-global-mixed" hidden>Mixed: some cards were switched on their own</span></div><div class="rosetta-console" data-rosetta-console="true" hidden><div class="rosetta-console-row"><label for="rosetta-console-url">SentinelOne console:</label><input type="url" id="rosetta-console-url" placeholder="https://usea1-yourtenant.sentinelone.net" autocomplete="off" spellcheck="false" aria-describedby="rosetta-console-hint"><span class="rosetta-console-status" role="status" aria-live="polite"></span></div><p class="rosetta-console-hint" id="rosetta-console-hint">Use your tenant's own address. SentinelOne does not document a link that pre-fills a query, so each "Copy &amp; open SentinelOne" button copies the query and opens this console: paste it into PowerQuery.</p></div><div class="rosetta-console rosetta-portal" data-rosetta-portal="true" hidden><div class="rosetta-console-row"><label for="rosetta-portal-select">Microsoft Defender portal:</label><select id="rosetta-portal-select" aria-describedby="rosetta-portal-hint"><option value="https://security.microsoft.com">Commercial or GCC (security.microsoft.com)</option><option value="https://security.microsoft.us">GCC High (security.microsoft.us)</option><option value="https://security.apps.mil">DoD (security.apps.mil)</option></select></div><p class="rosetta-console-hint" id="rosetta-portal-hint">Pick your portal. Microsoft documents a Share link in advanced hunting but not its URL format, so each "Copy &amp; open Defender" button copies the query and opens Advanced hunting: paste it into the editor.</p></div>
+<div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+<p class="callout callout-info">All nine queries run on Falcon sensor telemetry and work on Windows, macOS and Linux hosts. For Q1, Q7 and Q8 set the time picker to cover 2026-10-19 onward, because the exposure window is a single afternoon and Q7 should also show what is installed now. Q3 relies on process context on DNS events; check it in your tenant.</p><div class="query-card"><div class="qc-header"><span class="qc-title">Q1 · Known-bad OVHcloud CLI hashes: five replaced binaries and the swapped Linux arm64 archive</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> any process start or written executable whose MD5 matches the five malicious binaries listed in the OVHcloud advisory, or whose SHA-256 matches a malicious sample the reporting names (the swapped v0.15.0 Linux arm64 archive and the five advisory sample links). <strong>FP:</strong> none expected, these are hashes of the replaced files. The known-good original archive hash is deliberately not in this query.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions, telemetry-gap</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A file event the sensor did not hash is missed; the hash fields can be empty for large or in-flight files.</li><li>PowerQuery assumes: The process and file hash fields are populated on this tenant&#x27;s events.</li><li>PowerQuery assumes: File Creation events stand in for the sensor&#x27;s PE-written and new-executable-written events and also cover non-PE files.</li><li>KQL – Defender XDR: Files written to disk but never executed are not covered; run the same hash lists against DeviceFileEvents.</li><li>KQL – Defender XDR assumes: MD5 is populated in DeviceProcessEvents; SHA256 is often empty, so MD5 carries the match on most tenants.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql1-tab" aria-controls="kql1-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: OVHcloud CLI replaced release binaries by hash</span>
+<span class="cm">// MITRE: T1195.002, T1204.002</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process and Windows file-write telemetry with MD5HashData/SHA256HashData</span>
+<span class="cm">// FALSE POSITIVES: none expected, hashes belong to the replaced files</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| (MD5HashData=/^(6f2f086239f3d88eb2750e871901927d|347e65eb7f2d78d1c6872690272a6cc3|01f57206d37c28cf711677f612052913|301bff0b51980b9e76c93633e7cfd3bd|6a3cf153338c416169cda2fe704c8848)$/i or SHA256HashData=/^(e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4|3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a|3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927|25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec|f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a|3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb)$/i)
+| table([@timestamp, #event_simpleName, aid, ComputerName, UserName, FileName, ImageFileName, MD5HashData, SHA256HashData, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li><li>File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>tgt.process.image.md5</code>: Created process MD5</li><li><code>tgt.process.image.sha256</code>: Created process SHA256</li><li><code>tgt.file.md5</code>: Written file MD5</li><li><code>tgt.file.sha256</code>: Written file SHA256</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code>: Host</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type in (&#x27;Process Creation&#x27;, &#x27;File Creation&#x27;) and (tgt.process.image.sha256 = * or tgt.file.sha256 = *)
+| limit 5
+| columns event.type, tgt.process.image.md5, tgt.process.image.sha256, tgt.file.md5, tgt.file.sha256</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1">// HUNT: OVHcloud CLI replaced release binaries by hash
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1195.002, T1204.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected, hashes belong to the replaced files
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same hash pivot over the process-start and file-write populations: the MD5 and SHA256 lists are matched on Process Creation and File Creation events. in:anycase reproduces the case-insensitive intent. The CQL&#x27;s four sensor event names collapse to two PowerQuery event types.
+// REQUIRES: SentinelOne process and file telemetry with hash fields populated
+// TUNING: None expected; extend the hash lists if the advisory adds more.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A file event the sensor did not hash is missed; the hash fields can be empty for large or in-flight files.
+// VALIDATION LEVEL: static-reviewed
+event.type in (&#x27;Process Creation&#x27;, &#x27;File Creation&#x27;) and (tgt.process.image.md5 in:anycase (&#x27;6f2f086239f3d88eb2750e871901927d&#x27;, &#x27;347e65eb7f2d78d1c6872690272a6cc3&#x27;, &#x27;01f57206d37c28cf711677f612052913&#x27;, &#x27;301bff0b51980b9e76c93633e7cfd3bd&#x27;, &#x27;6a3cf153338c416169cda2fe704c8848&#x27;) or tgt.process.image.sha256 in:anycase (&#x27;e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4&#x27;, &#x27;3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a&#x27;, &#x27;3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927&#x27;, &#x27;25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec&#x27;, &#x27;f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a&#x27;, &#x27;3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb&#x27;) or tgt.file.md5 in:anycase (&#x27;6f2f086239f3d88eb2750e871901927d&#x27;, &#x27;347e65eb7f2d78d1c6872690272a6cc3&#x27;, &#x27;01f57206d37c28cf711677f612052913&#x27;, &#x27;301bff0b51980b9e76c93633e7cfd3bd&#x27;, &#x27;6a3cf153338c416169cda2fe704c8848&#x27;) or tgt.file.sha256 in:anycase (&#x27;e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4&#x27;, &#x27;3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a&#x27;, &#x27;3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927&#x27;, &#x27;25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec&#x27;, &#x27;f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a&#x27;, &#x27;3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb&#x27;))
+| columns event.time, endpoint.name, src.process.user, event.type, tgt.process.name, tgt.process.image.path, tgt.process.image.md5, tgt.process.image.sha256, tgt.file.path, tgt.file.md5, tgt.file.sha256, src.process.name, tgt.process.cmdline
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql1-pane" role="tabpanel" aria-labelledby="kql1-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>MD5</code>: Created process MD5</li><li><code>SHA256</code>: Created process SHA256</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>FileName</code>: Created process name</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated in DeviceProcessEvents; the lists here are MD5 and SHA256 only.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, MD5, SHA256
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql1" data-language="kql" data-rosetta-query-id="cql1">// HUNT: OVHcloud CLI replaced release binaries by hash
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1195.002, T1204.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected, hashes belong to the replaced files
+// EQUIVALENCE: telemetry-gap - Partial pivot: the same MD5 and SHA256 lists are matched on process-creation rows only. The file-write half of the CQL is not covered because the card allows one table.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: None expected; extend the hash lists if the advisory adds more.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Files written to disk but never executed are not covered; run the same hash lists against DeviceFileEvents.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where MD5 in~ (&quot;6f2f086239f3d88eb2750e871901927d&quot;, &quot;347e65eb7f2d78d1c6872690272a6cc3&quot;, &quot;01f57206d37c28cf711677f612052913&quot;, &quot;301bff0b51980b9e76c93633e7cfd3bd&quot;, &quot;6a3cf153338c416169cda2fe704c8848&quot;) or SHA256 in~ (&quot;e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4&quot;, &quot;3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a&quot;, &quot;3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927&quot;, &quot;25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec&quot;, &quot;f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a&quot;, &quot;3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb&quot;)
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName, FolderPath, MD5, SHA256, InitiatingProcessFileName, ProcessCommandLine
+| sort by Timestamp desc
+| take 200</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q2 · Connection to the exfiltration address</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> an outbound connection to the address the advisory names as the upload endpoint (TCP/443, path /upload). The advisory warns the URL is time-sensitive and the operator can change it, so a miss here does not clear a host. <strong>FP:</strong> none expected.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Connections made before the sensor was installed, or by a host without network telemetry, are not captured.</li><li>PowerQuery assumes: src.process.name names the connecting process on IP Connect events.</li><li>KQL – Defender XDR: Connections the sensor did not record are not captured.</li><li>KQL – Defender XDR assumes: RemoteIP holds the destination address for outbound connections.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql2-tab" aria-controls="kql2-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: Outbound connection to the OVHcloud CLI stealer upload address</span>
+<span class="cm">// MITRE: T1041</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor network telemetry</span>
+<span class="cm">// FALSE POSITIVES: none expected</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=NetworkConnectIP4
+| RemoteAddressIP4="45.32.148.174"
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, RemoteAddressIP4, RemotePort, LocalAddressIP4])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>dst.ip.address</code>: Destination address</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Connecting process</li><li><code>endpoint.name</code>: Host</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; and dst.ip.address = *
+| limit 5
+| columns event.type, dst.ip.address</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2">// HUNT: Outbound connection to the OVHcloud CLI stealer upload address
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1041
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: an outbound IP connection whose destination is the stealer upload address. The connecting process is src.process.name on IP Connect events.
+// REQUIRES: SentinelOne network (IP Connect) telemetry
+// TUNING: None expected.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Connections made before the sensor was installed, or by a host without network telemetry, are not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; and dst.ip.address = &#x27;45.32.148.174&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.name, src.ip.address, dst.ip.address, dst.port.number
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql2-pane" role="tabpanel" aria-labelledby="kql2-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceNetworkEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>RemoteIP</code>: Remote address</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Connecting process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceNetworkEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, RemoteIP
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql2" data-language="kql" data-rosetta-query-id="cql2">// HUNT: Outbound connection to the OVHcloud CLI stealer upload address
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1041
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a network event whose remote address is the stealer upload address. The connecting process is InitiatingProcessFileName.
+// REQUIRES: Defender for Endpoint network telemetry (DeviceNetworkEvents)
+// TUNING: None expected.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Connections the sensor did not record are not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceNetworkEvents
+| where Timestamp &gt;= ago(7d)
+| where RemoteIP == &quot;45.32.148.174&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessFileName, RemoteIP, RemotePort, LocalIP
+| sort by Timestamp desc
+| take 200</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q3 · OVHcloud CLI process resolving a Solana RPC endpoint</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> a DNS lookup of one of the four Solana RPC hostnames from a process named ovhcloud. The advisory says the stealer picks one of its listed endpoints at random on each run. A cloud-management CLI has no reason to look these up. <strong>FP:</strong> none expected. <strong>⚠ validate in tenant:</strong> if ContextBaseFileName is empty on DnsRequest events for your sensor version, rely on Q4. The advisory writes its fifth endpoint with a path (/public); only the hostname part can appear in DNS, and it is included.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A resolution made through a proxy or a DNS-over-HTTPS client is not recorded as a DNS Resolved event.</li><li>PowerQuery assumes: event.dns.request is the populated DNS name field on this tenant; some schema versions use dns.request.</li><li>PowerQuery assumes: src.process.name names the resolving process on DNS Resolved events.</li><li>PowerQuery assumes: The hyphenated hostnames are written with a [-] class; the literal check reads their tails rpc.publicnode.com and beta.solana.com as separate names, so they are listed here.</li><li>KQL – Defender XDR: Tenants that do not record DnsQueryResponse return nothing here, which reads as a clean estate.</li><li>KQL – Defender XDR assumes: DnsQueryResponse is populated on this tenant and AdditionalFields carries DnsQueryString or QueryName.</li><li>KQL – Defender XDR assumes: InitiatingProcessFileName is the resolving process.</li><li>KQL – Defender XDR assumes: The hyphenated hostnames are written with a [-] class; the literal check reads their tails rpc.publicnode.com and beta.solana.com as separate names, so they are listed here.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql3-tab" aria-controls="kql3-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: ovhcloud process resolving Solana RPC hostnames</span>
+<span class="cm">// MITRE: T1102, T1041</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor DNS telemetry with process context (⚠ validate in tenant: ContextBaseFileName on DnsRequest)</span>
+<span class="cm">// FALSE POSITIVES: none expected</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=DnsRequest
+| ContextBaseFileName=/^ovhcloud(\.exe)?$/i
+| DomainName=/^(solana\.drpc\.org|solana\-rpc\.publicnode\.com|solana\.api\.pocket\.network|api\.mainnet\-beta\.solana\.com|solana\.api\.onfinality\.io)$/i
+| table([@timestamp, aid, ComputerName, ContextBaseFileName, DomainName])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>src.process.name</code>: Resolving process</li><li><code>event.dns.request</code>: DNS name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>event.dns.request</code> → <code>dns.request</code>: Different schema versions populate one or the other.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; and event.dns.request = *
+| limit 5
+| columns event.type, src.process.name, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3">// HUNT: ovhcloud process resolving Solana RPC hostnames
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1102, T1041
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a DNS resolution of one of the five Solana RPC hostnames by a process named ovhcloud. The resolving process is src.process.name on DNS events, and matches is case-insensitive, which reproduces the CQL intent.
+// REQUIRES: SentinelOne DNS telemetry with process context
+// TUNING: None expected.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A resolution made through a proxy or a DNS-over-HTTPS client is not recorded as a DNS Resolved event.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27; and src.process.name matches &#x27;^ovhcloud(\\.exe)?$&#x27; and event.dns.request matches &#x27;^(solana\\.drpc\\.org|solana[-]rpc\\.publicnode\\.com|solana\\.api\\.pocket\\.network|api\\.mainnet[-]beta\\.solana\\.com|solana\\.api\\.onfinality\\.io)$&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.name, event.dns.request
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql3-pane" role="tabpanel" aria-labelledby="kql3-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action type</li><li><code>AdditionalFields</code>: DNS query detail</li><li><code>InitiatingProcessFileName</code>: Resolving process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceEvents
+| where Timestamp &gt; ago(1d)
+| where ActionType == &quot;DnsQueryResponse&quot;
+| project Timestamp, ActionType, AdditionalFields, InitiatingProcessFileName
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql3" data-language="kql" data-rosetta-query-id="cql3">// HUNT: ovhcloud process resolving Solana RPC hostnames
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1102, T1041
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate on the DNS query action in DeviceEvents: the queried name is one of the five hostnames and the initiating process is ovhcloud. The name is read from AdditionalFields because there is no endpoint DNS table.
+// REQUIRES: Defender for Endpoint DNS query events (DeviceEvents, ActionType DnsQueryResponse)
+// TUNING: None expected.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Tenants that do not record DnsQueryResponse return nothing here, which reads as a clean estate.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType == &quot;DnsQueryResponse&quot;
+| where InitiatingProcessFileName in~ (&quot;ovhcloud&quot;, &quot;ovhcloud.exe&quot;)
+| extend QueryName = tostring(coalesce(parse_json(AdditionalFields)[&quot;DnsQueryString&quot;], parse_json(AdditionalFields)[&quot;QueryName&quot;]))
+| where QueryName matches regex @&quot;(?i)^(solana\.drpc\.org|solana[-]rpc\.publicnode\.com|solana\.api\.pocket\.network|api\.mainnet[-]beta\.solana\.com|solana\.api\.onfinality\.io)$&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessFileName, QueryName
+| sort by Timestamp desc
+| take 200</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q4 · Solana RPC lookups from any process on non-blockchain hosts</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> the same five Solana RPC hostnames resolved by any process, grouped by host and process. Use it where Q3 is blind and to find the stealer if it was renamed. <strong>FP:</strong> blockchain developers, wallets and node operators resolve these names legitimately. These are public services and are intentionally not in the IOC import.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A resolution made through a proxy or a DNS-over-HTTPS client is not recorded as a DNS Resolved event.</li><li>PowerQuery assumes: event.dns.request is the populated DNS name field on this tenant; some schema versions use dns.request.</li><li>PowerQuery assumes: src.process.name names the resolving process on DNS Resolved events.</li><li>PowerQuery assumes: The hyphenated hostnames are written with a [-] class; the literal check reads their tails rpc.publicnode.com and beta.solana.com as separate names, so they are listed here.</li><li>KQL – Defender XDR: Tenants that do not record DnsQueryResponse return nothing here, which reads as a clean estate.</li><li>KQL – Defender XDR assumes: DnsQueryResponse is populated on this tenant and AdditionalFields carries DnsQueryString or QueryName.</li><li>KQL – Defender XDR assumes: The hyphenated hostnames are written with a [-] class; the literal check reads their tails rpc.publicnode.com and beta.solana.com as separate names, so they are listed here.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql4-tab" aria-controls="kql4-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: Solana RPC hostname lookups by any process</span>
+<span class="cm">// MITRE: T1102</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor DNS telemetry</span>
+<span class="cm">// FALSE POSITIVES: crypto wallets, blockchain developer tooling, Solana node or explorer apps</span>
+<span class="cm">// TUNING: exclude known wallet/dev hosts with a lookup table of ComputerName or aid; alert only on hosts with no blockchain role (build runners, servers, CI agents)</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=DnsRequest
+| DomainName=/^(solana\.drpc\.org|solana\-rpc\.publicnode\.com|solana\.api\.pocket\.network|api\.mainnet\-beta\.solana\.com|solana\.api\.onfinality\.io)$/i
+| groupBy([ComputerName, aid, ContextBaseFileName, DomainName], function=[count(as=lookups), min(@timestamp, as=first_seen), max(@timestamp, as=last_seen)], limit=1000)
+| sort(lookups, order=desc)
+| table([ComputerName, aid, ContextBaseFileName, DomainName, lookups, first_seen, last_seen])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.dns.request</code>: DNS name</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Resolving process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>agent.uuid</code>: Agent identifier</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>event.dns.request</code> → <code>dns.request</code>: Different schema versions populate one or the other.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; and event.dns.request = *
+| limit 5
+| columns event.time, endpoint.name, event.type, event.dns.request</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4">// HUNT: Solana RPC hostname lookups by any process
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1102
+// CONF: medium | FP: medium
+// FALSE POSITIVES: crypto wallets, blockchain developer tooling, Solana node or explorer apps
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate and aggregation: DNS lookups of the five Solana RPC hostnames by any process, counted per host, process and name with first and last seen.
+// REQUIRES: SentinelOne DNS telemetry
+// TUNING: Exclude known wallet and developer hosts with a lookup table of endpoint names; alert only on hosts with no blockchain role (build runners, servers, CI agents).
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A resolution made through a proxy or a DNS-over-HTTPS client is not recorded as a DNS Resolved event.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27; and event.dns.request matches &#x27;^(solana\\.drpc\\.org|solana[-]rpc\\.publicnode\\.com|solana\\.api\\.pocket\\.network|api\\.mainnet[-]beta\\.solana\\.com|solana\\.api\\.onfinality\\.io)$&#x27;
+| group lookups=count(), first_seen=min(event.time), last_seen=max(event.time) by endpoint.name, agent.uuid, src.process.name, event.dns.request
+| sort -lookups
+| columns endpoint.name, agent.uuid, src.process.name, event.dns.request, lookups, first_seen, last_seen
+| limit 1000</pre></div><div class="rosetta-pane" data-lang="kql" id="kql4-pane" role="tabpanel" aria-labelledby="kql4-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed-with-warnings (0 errors, 1 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action type</li><li><code>AdditionalFields</code>: DNS query detail</li><li><code>DeviceName</code>: Host</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Resolving process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceEvents
+| where Timestamp &gt; ago(1d)
+| where ActionType == &quot;DnsQueryResponse&quot;
+| project Timestamp, DeviceName, ActionType, AdditionalFields
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql4" data-language="kql" data-rosetta-query-id="cql4">// HUNT: Solana RPC hostname lookups by any process
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1102
+// CONF: medium | FP: medium
+// FALSE POSITIVES: crypto wallets, blockchain developer tooling, Solana node or explorer apps
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate and aggregation on the DNS query action in DeviceEvents, with the name read from AdditionalFields because there is no endpoint DNS table.
+// REQUIRES: Defender for Endpoint DNS query events (DeviceEvents, ActionType DnsQueryResponse)
+// TUNING: Exclude known wallet and developer hosts by DeviceName; alert only on hosts with no blockchain role.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Tenants that do not record DnsQueryResponse return nothing here, which reads as a clean estate.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed-with-warnings; fixtures=0/0
+DeviceEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType == &quot;DnsQueryResponse&quot;
+| extend QueryName = tostring(coalesce(parse_json(AdditionalFields)[&quot;DnsQueryString&quot;], parse_json(AdditionalFields)[&quot;QueryName&quot;]))
+| where QueryName matches regex @&quot;(?i)^(solana\.drpc\.org|solana[-]rpc\.publicnode\.com|solana\.api\.pocket\.network|api\.mainnet[-]beta\.solana\.com|solana\.api\.onfinality\.io)$&quot;
+| summarize lookups = count(), first_seen = min(Timestamp), last_seen = max(Timestamp) by DeviceName, DeviceId, InitiatingProcessFileName, QueryName
+| sort by lookups desc
+| take 1000</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q5 · ovhcloud spawning shells or credential-tool children</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> a process named ovhcloud launching a shell, archiver or a cloud, container or secret-store CLI. The advisory says the stealer prepares credential files by running various commands, but does not list them, so the child list is an informed guess. <strong>FP:</strong> legitimate subcommands may launch helper programs; baseline first.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A child launched through a process that is not named ovhcloud, such as a renamed copy, is not captured.</li><li>PowerQuery assumes: src.process.user is the user of the creating process, which matches the CQL&#x27;s user on a single-user launch.</li><li>KQL – Defender XDR: A child launched through a process that is not named ovhcloud is not captured.</li><li>KQL – Defender XDR assumes: The regexes are anchored on the file name only, so a renamed copy of the CLI is not matched.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql5-tab" aria-controls="kql5-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: ovhcloud spawning shell or credential-collection children</span>
+<span class="cm">// MITRE: T1119, T1552.001, T1059</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry with parent process</span>
+<span class="cm">// FALSE POSITIVES: CLI subcommands that shell out (ssh helpers, browser launchers), wrapper scripts</span>
+<span class="cm">// TUNING: exclude parent command lines of sanctioned wrapper scripts after a 14-day baseline; keep the shell and archiver children</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^ovhcloud(\.exe)?$/i
+| FileName=/^(sh|bash|zsh|dash|cmd|powershell|pwsh|security|aws|gcloud|az|doctl|kubectl|docker|git|npm|terraform|tar|zip|curl|wget|sqlite3|osascript|7z|7za)(\.exe)?$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>src.process.name</code>: Creator process</li><li><code>tgt.process.name</code>: Created process</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Optional fields</h4><ul><li><code>src.process.user</code>: Creator user</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; and tgt.process.name = *
+| limit 5
+| columns event.type, src.process.name, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5">// HUNT: ovhcloud spawning shell or credential-collection children
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1119, T1552.001, T1059
+// CONF: medium | FP: medium
+// FALSE POSITIVES: CLI subcommands that shell out (ssh helpers, browser launchers), wrapper scripts
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same lineage predicate: a process named ovhcloud is the creator and the created process is a shell, archiver, cloud CLI or credential tool. On Process Creation the creator is src.process.name and the new process is tgt.process.name. matches is case-insensitive, which reproduces the CQL intent.
+// REQUIRES: SentinelOne process-creation telemetry with creator process
+// TUNING: Exclude creator command lines of sanctioned wrapper scripts after a 14-day baseline; keep the shell and archiver children.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A child launched through a process that is not named ovhcloud, such as a renamed copy, is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; and src.process.name matches &#x27;^ovhcloud(\\.exe)?$&#x27; and tgt.process.name matches &#x27;^(sh|bash|zsh|dash|cmd|powershell|pwsh|security|aws|gcloud|az|doctl|kubectl|docker|git|npm|terraform|tar|zip|curl|wget|sqlite3|osascript|7z|7za)(\\.exe)?$&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql5-pane" role="tabpanel" aria-labelledby="kql5-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>InitiatingProcessFileName</code>: Creator process</li><li><code>FileName</code>: Created process</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, InitiatingProcessFileName, FileName
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql5" data-language="kql" data-rosetta-query-id="cql5">// HUNT: ovhcloud spawning shell or credential-collection children
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1119, T1552.001, T1059
+// CONF: medium | FP: medium
+// FALSE POSITIVES: CLI subcommands that shell out (ssh helpers, browser launchers), wrapper scripts
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same lineage predicate: the initiating process is named ovhcloud and the created process is a shell, archiver, cloud CLI or credential tool. The CQL&#x27;s parent field is InitiatingProcessFileName.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: Exclude initiating command lines of sanctioned wrapper scripts after a 14-day baseline; keep the shell and archiver children.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A child launched through a process that is not named ovhcloud is not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where InitiatingProcessFileName matches regex @&quot;(?i)^ovhcloud(\.exe)?$&quot;
+| where FileName matches regex @&quot;(?i)^(sh|bash|zsh|dash|cmd|powershell|pwsh|security|aws|gcloud|az|doctl|kubectl|docker|git|npm|terraform|tar|zip|curl|wget|sqlite3|osascript|7z|7za)(\.exe)?$&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, FileName, ProcessCommandLine
+| sort by Timestamp desc
+| take 200</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q6 · Process command line naming the stealer working folder</span><div class="qc-badges"><span class="badge b-high">CONF low</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> any process command line containing the temporary working folder name the advisory documents (envchecker followed by 9 or 10 digits). The stealer writes this folder from inside the Go process, so endpoint process telemetry is unlikely to see its creation. This query only catches follow-on tooling or an analyst command. The native check in Section 7 (N1) is the primary test. <strong>FP:</strong> none expected.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The folder name is only seen when it appears on a created process&#x27;s command line; file activity inside it is not covered.</li><li>PowerQuery assumes: src.process.user is the user of the creating process.</li><li>KQL – Defender XDR: The folder name is only seen on a created process&#x27;s command line; file activity inside it is not covered.</li><li>KQL – Defender XDR assumes: ProcessCommandLine holds the full command line of the created process.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql6-tab" aria-controls="kql6-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: Command line referencing an envchecker-NNNNNNNNN folder</span>
+<span class="cm">// MITRE: T1119, T1560</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry</span>
+<span class="cm">// FALSE POSITIVES: none expected</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine=/envchecker-[0-9]{9,10}/i
+| table([@timestamp, aid, ComputerName, UserName, FileName, ParentBaseFileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.process.name</code>: Created process</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Optional fields</h4><ul><li><code>src.process.user</code>: Creator user</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; and tgt.process.cmdline = *
+| limit 5
+| columns event.type, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6">// HUNT: Command line referencing an envchecker-NNNNNNNNN folder
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1119, T1560
+// CONF: low | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a process-creation command line containing envchecker- followed by nine or ten digits. matches is case-insensitive, which reproduces the CQL intent.
+// REQUIRES: SentinelOne process-creation telemetry with command lines
+// TUNING: None expected.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The folder name is only seen when it appears on a created process&#x27;s command line; file activity inside it is not covered.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; and tgt.process.cmdline matches &#x27;envchecker-[0-9]{9,10}&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.user, tgt.process.name, src.process.name, tgt.process.cmdline
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql6-pane" role="tabpanel" aria-labelledby="kql6-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>FileName</code>: Created process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql6" data-language="kql" data-rosetta-query-id="cql6">// HUNT: Command line referencing an envchecker-NNNNNNNNN folder
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1119, T1560
+// CONF: low | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a created process whose command line contains envchecker- followed by nine or ten digits. The (?i) prefix reproduces the CQL case-insensitive intent.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: None expected.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The folder name is only seen on a created process&#x27;s command line; file activity inside it is not covered.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where ProcessCommandLine matches regex @&quot;(?i)envchecker-[0-9]{9,10}&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName, InitiatingProcessFileName, ProcessCommandLine
+| sort by Timestamp desc
+| take 200</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q7 · Exposure inventory: every host that ran an ovhcloud binary, with its hashes</span><div class="qc-badges"><span class="badge b-low">CONF high</span><span class="badge b-low">FP low</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> every host that ran a binary named ovhcloud, with image path and hashes. Compare MD5HashData to the five advisory values (Q1 does this automatically) and review any host that ran the CLI on or after 2026-10-19 12:47 UTC (14:47 Paris) and before the files were deleted at 14:21 UTC. A binary built by OVHcloud is not the same file as the swapped one, so group by hash. <strong>FP:</strong> none, this is an inventory.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A copy of the CLI renamed to something else is not inventoried.</li><li>PowerQuery assumes: tgt.process.image.md5 and tgt.process.image.sha256 are populated on this tenant&#x27;s Process Creation events.</li><li>KQL – Defender XDR: A copy of the CLI renamed to something else is not inventoried.</li><li>KQL – Defender XDR assumes: MD5 is populated in DeviceProcessEvents; SHA256 is often empty.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql7-tab" aria-controls="kql7-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: ovhcloud execution inventory with hashes</span>
+<span class="cm">// MITRE: T1195.002, T1204.002</span>
+<span class="cm">// CONF: high</span>
+<span class="cm">// FP: low</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry</span>
+<span class="cm">// FALSE POSITIVES: none, inventory query</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^ovhcloud(\.exe)?$/i
+| groupBy([ComputerName, aid, ImageFileName, MD5HashData, SHA256HashData], function=[count(as=runs), min(@timestamp, as=first_seen), max(@timestamp, as=last_seen)], limit=1000)
+| sort(last_seen, order=desc)
+| table([ComputerName, aid, ImageFileName, MD5HashData, SHA256HashData, runs, first_seen, last_seen])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>tgt.process.name</code>: Created process</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.process.image.path</code>: Created image path</li><li><code>tgt.process.image.sha256</code>: Created image SHA256</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.md5</code>: Created image MD5</li><li><code>agent.uuid</code>: Agent identifier</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; and tgt.process.name = *
+| limit 5
+| columns event.time, endpoint.name, event.type, tgt.process.name, tgt.process.image.sha256</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7">// HUNT: ovhcloud execution inventory with hashes
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1195.002, T1204.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none, inventory query
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same inventory: process starts of a binary named ovhcloud, counted per host and image with its hashes and first and last seen. The new process is tgt.process.* on Process Creation.
+// REQUIRES: SentinelOne process-creation telemetry with image hashes
+// TUNING: Compare each hash with the replaced-binary list on Q1; any other hash is a different build.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A copy of the CLI renamed to something else is not inventoried.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; and tgt.process.name matches &#x27;^ovhcloud(\\.exe)?$&#x27;
+| group runs=count(), first_seen=min(event.time), last_seen=max(event.time) by endpoint.name, agent.uuid, tgt.process.image.path, tgt.process.image.md5, tgt.process.image.sha256
+| sort -last_seen
+| columns endpoint.name, agent.uuid, tgt.process.image.path, tgt.process.image.md5, tgt.process.image.sha256, runs, first_seen, last_seen
+| limit 1000</pre></div><div class="rosetta-pane" data-lang="kql" id="kql7-pane" role="tabpanel" aria-labelledby="kql7-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed-with-warnings (0 errors, 1 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>FileName</code>: Created process</li><li><code>DeviceName</code>: Host</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>FolderPath</code>: Created image path</li><li><code>MD5</code>: Created image MD5</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA256</code>: Hash. SHA256 is often unpopulated in DeviceProcessEvents; MD5 is the safer pivot here.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, DeviceName, FileName, FolderPath, MD5
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql7" data-language="kql" data-rosetta-query-id="cql7">// HUNT: ovhcloud execution inventory with hashes
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1195.002, T1204.002
+// CONF: high | FP: low
+// FALSE POSITIVES: none, inventory query
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same inventory: process starts of a binary named ovhcloud, counted per host and image with its hashes and first and last seen.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: Compare each hash with the replaced-binary list on Q1; any other hash is a different build.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A copy of the CLI renamed to something else is not inventoried.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed-with-warnings; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where FileName matches regex @&quot;(?i)^ovhcloud(\.exe)?$&quot;
+| summarize runs = count(), first_seen = min(Timestamp), last_seen = max(Timestamp) by DeviceName, DeviceId, FolderPath, MD5, SHA256
+| sort by last_seen desc
+| take 1000</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q8 · Release-asset download or install-script run for the OVHcloud CLI</span><div class="qc-badges"><span class="badge b-med">CONF medium</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> curl, wget, a shell, brew or PowerShell command lines that fetch an ovhcloud-cli release archive or run the project install script. Run it over 2026-10-19 12:47 to 14:21 UTC to find hosts that pulled a swapped file. The reporting disagrees on Homebrew: one analysis lists it as exposed, another says the cask pinned the original hashes so the install would have failed. Treat brew hits as an inventory item, not proof of exposure. <strong>FP:</strong> normal installs and CI jobs outside the window.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A download made by a process outside the listed names, such as a browser, is not captured.</li><li>PowerQuery assumes: src.process.user is the user of the creating process.</li><li>PowerQuery assumes: The unescaped dots in releases.download and ovh.tap.ovhcloud-cli match any single character, as in the CQL.</li><li>KQL – Defender XDR: A download made by a process outside the listed names, such as a browser, is not captured.</li><li>KQL – Defender XDR assumes: The unescaped dots in releases.download and ovh.tap.ovhcloud-cli match any single character, as in the CQL.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql8-tab" aria-controls="kql8-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: OVHcloud CLI release archive download or install.sh run</span>
+<span class="cm">// MITRE: T1195.002, T1105</span>
+<span class="cm">// CONF: medium</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor process telemetry</span>
+<span class="cm">// FALSE POSITIVES: legitimate installs and CI jobs outside 2026-10-19 12:47-14:21 UTC</span>
+<span class="cm">// TUNING: restrict the time picker to 2026-10-19 12:47 to 14:21 UTC for exposure scoping; outside that window these are normal installs</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| CommandLine=/ovhcloud-cli/i
+| CommandLine=/(releases.download|install\.sh|ovh.tap.ovhcloud-cli|ovhcloud-cli_(Linux|Darwin|Windows)_(x86_64|arm64)\.(tar\.gz|zip))/i
+| FileName=/^(curl|wget|sh|bash|zsh|dash|brew|powershell|pwsh|python3?|ruby|ovhcloud)(\.exe)?$/i
+| table([@timestamp, aid, ComputerName, UserName, ParentBaseFileName, FileName, CommandLine])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>tgt.process.name</code>: Created process</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Optional fields</h4><ul><li><code>src.process.user</code>: Creator user</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; and tgt.process.cmdline = *
+| limit 5
+| columns event.type, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8">// HUNT: OVHcloud CLI release archive download or install.sh run
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1195.002, T1105
+// CONF: medium | FP: medium
+// FALSE POSITIVES: legitimate installs and CI jobs outside 2026-10-19 12:47-14:21 UTC
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a created process from a downloader, shell, interpreter or the CLI itself whose command line names ovhcloud-cli and a release download, install script, tap or release archive. Both regexes are kept as written; matches is case-insensitive, which reproduces the CQL intent.
+// REQUIRES: SentinelOne process-creation telemetry with command lines
+// TUNING: Restrict the time picker to 2026-10-19 12:47 to 14:21 UTC for exposure scoping; outside that window these are normal installs.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A download made by a process outside the listed names, such as a browser, is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; and tgt.process.name matches &#x27;^(curl|wget|sh|bash|zsh|dash|brew|powershell|pwsh|python3?|ruby|ovhcloud)(\\.exe)?$&#x27; and tgt.process.cmdline matches &#x27;ovhcloud-cli&#x27; and tgt.process.cmdline matches &#x27;(releases.download|install\\.sh|ovh.tap.ovhcloud-cli|ovhcloud-cli_(Linux|Darwin|Windows)_(x86_64|arm64)\\.(tar\\.gz|zip))&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.user, src.process.name, tgt.process.name, tgt.process.cmdline
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql8-pane" role="tabpanel" aria-labelledby="kql8-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>FileName</code>: Created process</li><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Creator process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql8" data-language="kql" data-rosetta-query-id="cql8">// HUNT: OVHcloud CLI release archive download or install.sh run
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1195.002, T1105
+// CONF: medium | FP: medium
+// FALSE POSITIVES: legitimate installs and CI jobs outside 2026-10-19 12:47-14:21 UTC
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a created process from a downloader, shell, interpreter or the CLI itself whose command line names ovhcloud-cli and a release download, install script, tap or release archive. The (?i) prefix reproduces the CQL case-insensitive intent.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: Restrict the time range to 2026-10-19 12:47 to 14:21 UTC for exposure scoping; outside that window these are normal installs.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A download made by a process outside the listed names, such as a browser, is not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where FileName matches regex @&quot;(?i)^(curl|wget|sh|bash|zsh|dash|brew|powershell|pwsh|python3?|ruby|ovhcloud)(\.exe)?$&quot;
+| where ProcessCommandLine contains &quot;ovhcloud-cli&quot;
+| where ProcessCommandLine matches regex @&quot;(?i)(releases.download|install\.sh|ovh.tap.ovhcloud-cli|ovhcloud-cli_(Linux|Darwin|Windows)_(x86_64|arm64)\.(tar\.gz|zip))&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, InitiatingProcessFileName, FileName, ProcessCommandLine
+| sort by Timestamp desc
+| take 200</pre></div></div></div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q9 · Non-internal destinations contacted by the ovhcloud process</span><div class="qc-badges"><span class="badge b-high">CONF low</span><span class="badge b-med">FP medium</span><span class="badge b-low">COST low</span></div><div class="qc-actions"><button type="button" class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button type="button" class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> every public address an ovhcloud process connects to, grouped by host. The real CLI talks to OVHcloud API endpoints, so the baseline is small and anything else stands out, including the upload address in Q2. <strong>FP:</strong> OVHcloud API and update endpoints, which change over time.</p><div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql9"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Connections through a proxy appear as the proxy address only.</li><li>PowerQuery assumes: src.process.name names the connecting process on IP Connect events.</li><li>PowerQuery assumes: dst.ip.address holds an IPv4 address, as the CQL&#x27;s IPv4-only connection event does.</li><li>KQL – Defender XDR: Connections through a proxy appear as the proxy address only.</li><li>KQL – Defender XDR assumes: RemoteIP holds an IPv4 address; IPv6 destinations evaluate to null in the range test and are dropped, as the CQL&#x27;s IPv4-only event does.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql9-tab" aria-controls="cql9-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery9-tab" aria-controls="powerquery9-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql9-tab" aria-controls="kql9-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql9-pane" role="tabpanel" aria-labelledby="cql9-tab"><pre class="cql" id="cql9"><span class="cm">// HUNT: Public destinations contacted by ovhcloud</span>
+<span class="cm">// MITRE: T1041, T1071.001</span>
+<span class="cm">// CONF: low</span>
+<span class="cm">// FP: medium</span>
+<span class="cm">// COST: low</span>
+<span class="cm">// REQUIRES: Falcon sensor network telemetry with process name</span>
+<span class="cm">// FALSE POSITIVES: OVHcloud API endpoints, proxies, CDN addresses used by the real CLI</span>
+<span class="cm">// TUNING: baseline 14 days of ovhcloud egress, then exclude the stable OVHcloud API addresses and your proxy; review what is left</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=NetworkConnectIP4
+| ContextBaseFileName=/^ovhcloud(\.exe)?$/i
+| !cidr(RemoteAddressIP4, subnet=["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","127.0.0.0/8"])
+| groupBy([ComputerName, aid, RemoteAddressIP4, RemotePort], function=[count(as=conns), min(@timestamp, as=first_seen), max(@timestamp, as=last_seen)], limit=1000)
+| sort(conns, order=desc)
+| table([ComputerName, aid, RemoteAddressIP4, RemotePort, conns, first_seen, last_seen])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery9-pane" role="tabpanel" aria-labelledby="powerquery9-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>src.process.name</code>: Connecting process</li><li><code>dst.ip.address</code>: Destination address</li><li><code>event.time</code>: Event time</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>dst.port.number</code>: Destination port</li></ul></section><section><h4>Optional fields</h4><ul><li><code>agent.uuid</code>: Agent identifier</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; and dst.ip.address = *
+| limit 5
+| columns event.time, endpoint.name, event.type, src.process.name, dst.ip.address</pre></section></div></details><pre class="siem-code powerquery" id="powerquery9" data-language="powerquery" data-rosetta-query-id="cql9">// HUNT: Public destinations contacted by ovhcloud
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1041, T1071.001
+// CONF: low | FP: medium
+// FALSE POSITIVES: OVHcloud API endpoints, proxies, CDN addresses used by the real CLI
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate and aggregation: IP connections by a process named ovhcloud to destinations outside 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 and 127.0.0.0/8, counted per host, address and port. The connecting process is src.process.name on IP Connect events.
+// REQUIRES: SentinelOne network (IP Connect) telemetry with process name
+// TUNING: Baseline 14 days of ovhcloud egress, then exclude the stable OVHcloud API addresses and your proxy; review what is left.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Connections through a proxy appear as the proxy address only.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; and src.process.name matches &#x27;^ovhcloud(\\.exe)?$&#x27; and !(net_ipsubnet(dst.ip.address, &#x27;10.0.0.0/8&#x27;) or net_ipsubnet(dst.ip.address, &#x27;172.16.0.0/12&#x27;) or net_ipsubnet(dst.ip.address, &#x27;192.168.0.0/16&#x27;) or net_ipsubnet(dst.ip.address, &#x27;127.0.0.0/8&#x27;))
+| group conns=count(), first_seen=min(event.time), last_seen=max(event.time) by endpoint.name, agent.uuid, dst.ip.address, dst.port.number
+| sort -conns
+| columns endpoint.name, agent.uuid, dst.ip.address, dst.port.number, conns, first_seen, last_seen
+| limit 1000</pre></div><div class="rosetta-pane" data-lang="kql" id="kql9-pane" role="tabpanel" aria-labelledby="kql9-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed-with-warnings (0 errors, 1 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-10-24T11:26:17Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceNetworkEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>InitiatingProcessFileName</code>: Connecting process</li><li><code>RemoteIP</code>: Remote address</li><li><code>DeviceName</code>: Host</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>RemotePort</code>: Remote port</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceNetworkEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, DeviceName, InitiatingProcessFileName, RemoteIP
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql9" data-language="kql" data-rosetta-query-id="cql9">// HUNT: Public destinations contacted by ovhcloud
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1041, T1071.001
+// CONF: low | FP: medium
+// FALSE POSITIVES: OVHcloud API endpoints, proxies, CDN addresses used by the real CLI
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate and aggregation: network events by a process named ovhcloud to remote addresses outside 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 and 127.0.0.0/8, counted per host, address and port.
+// REQUIRES: Defender for Endpoint network telemetry (DeviceNetworkEvents)
+// TUNING: Baseline 14 days of ovhcloud egress, then exclude the stable OVHcloud API addresses and your proxy; review what is left.
+// LOOKBACK: 7d
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Connections through a proxy appear as the proxy address only.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed-with-warnings; fixtures=0/0
+DeviceNetworkEvents
+| where Timestamp &gt;= ago(7d)
+| where InitiatingProcessFileName matches regex @&quot;(?i)^ovhcloud(\.exe)?$&quot;
+| where not(ipv4_is_in_range(RemoteIP, &quot;10.0.0.0/8&quot;) or ipv4_is_in_range(RemoteIP, &quot;172.16.0.0/12&quot;) or ipv4_is_in_range(RemoteIP, &quot;192.168.0.0/16&quot;) or ipv4_is_in_range(RemoteIP, &quot;127.0.0.0/8&quot;))
+| summarize conns = count(), first_seen = min(Timestamp), last_seen = max(Timestamp) by DeviceName, DeviceId, RemoteIP, RemotePort
+| sort by conns desc
+| take 1000</pre></div></div></div></div>
+
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2 data-rosetta-original="CrowdStrike Custom IOA Recommendations">Detection Rules by Platform</h2></div>
+    <div class="section-body">
+
+<h3 data-rosetta-gen="ioa-heading" style="margin:4px 0 8px;font-size:13px">CrowdStrike: Custom IOA</h3><table><thead><tr><th>IOA name</th><th>Rule type</th><th>Pattern</th><th>Exclusions</th><th>Promotes</th><th>Deployment path</th></tr></thead><tbody><tr><td>ovhcloud resolving Solana RPC</td><td>Domain Name / DNS request</td><td>Process image name ovhcloud or ovhcloud.exe; domain matches the Solana RPC hostnames in Q3</td><td>None</td><td>Promote Q3</td><td>Detect for 7 days, then Prevent; the CLI has no legitimate use</td></tr><tr><td>ovhcloud spawning shells or credential tools</td><td>Process Creation</td><td>Parent image ovhcloud or ovhcloud.exe; child image a shell, archiver or cloud/secret CLI from Q5</td><td>Sanctioned wrapper scripts after baseline</td><td>Promote Q5</td><td>Detect for 14 days, then decide</td></tr></tbody></table><p>Hash matches (Q1) and the upload address (Q2) belong in Falcon IOC Management. Use the CSV in Section 10. Solana RPC hostnames are shared public services and stay out of IOC Management.</p><h3>Alert package: Q3</h3><details><summary><strong>Q3: ovhcloud process resolved a Solana RPC endpoint</strong></summary><p><strong>Subject:</strong> [HIGH] Detection: OVHcloud CLI compromised build, Solana RPC lookup from ovhcloud</p><p>A process named ovhcloud looked up a Solana RPC hostname. The OVHcloud advisory lists these as the stealer's exfiltration helpers. Treat the host as holding stolen secrets until proven otherwise.</p><h4>Triage checklist</h4><ol><li>Isolate the host (Falcon network containment).</li><li>Run Q7 for the host: note MD5HashData and SHA256HashData of the ovhcloud image and compare with Section 4.</li><li>Check for an envchecker-NNNNNNNNN folder in the temp directory (N1).</li><li>Run Q2 and Q9 for the host for the upload address.</li><li>List credentials readable by the user (Section 13 playbook P5) and rotate from another machine.</li><li>Find how the binary arrived (Q8, shell history, CI logs).</li><li>Replace with v0.16.0 or later and verify the attestation.</li></ol><h4>Pivot queries</h4><ul><li>Host scope: Q7 filtered to the host aid.</li><li>Environment scope: Q4 and Q8 over 2026-10-19.</li></ul></details>
+    
+<div data-rosetta-gen="rules"><h3 style="margin:18px 0 8px;font-size:13px">SentinelOne: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>ovhcloud resolving Solana RPC</td><td>Q3, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>ovhcloud spawning shells or credential tools</td><td>Q5, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr></tbody></table><p>Create the rule with <code>POST /web/api/v2.1/cloud-detection/rules</code>, <code>queryType: "scheduled"</code> and <code>queryLang: "2.0"</code>, with the query in <code>data.scheduledParams.query</code>. Use 2.0 operator spellings: a rule written with the 1.0 token <code>ContainsCIS</code> was accepted and never fired on a tenant. The API does not warn, so lint the body before deploying.</p><h3 style="margin:18px 0 8px;font-size:13px">Microsoft Defender: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>ovhcloud resolving Solana RPC</td><td>Q3, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself</td></tr><tr><td>ovhcloud spawning shells or credential tools</td><td>Q5, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr></tbody></table><p>Q1, Q2, Q4, Q6, Q7, Q8 and Q9 stay a hunt in this pack, not a rule. A rule can generate only 150 alerts per run. Continuous (NRT) frequency needs a single table and no comment lines, so delete the generated comment header from the query first.</p></div></div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+<p class="callout callout-warn">Import the CSV below only. The five MD5s and the upload address come from one source (the OVHcloud advisory), so they ship as detect. Only the swapped-archive SHA-256, named by three independent write-ups, ships as prevent. The legitimate original archive hash and the Solana hostnames are deliberately excluded.</p><div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import</span></div><button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button><pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+md5,6f2f086239f3d88eb2750e871901927d,detect,high,2027-04-24,malicious ovhcloud Darwin_arm64 replaced binary,campaign:OVHcloud-CLI-Release-Backdoor
+md5,347e65eb7f2d78d1c6872690272a6cc3,detect,high,2027-04-24,malicious ovhcloud Darwin_x86_64 replaced binary,campaign:OVHcloud-CLI-Release-Backdoor
+md5,01f57206d37c28cf711677f612052913,detect,high,2027-04-24,malicious ovhcloud Linux_arm64 replaced binary,campaign:OVHcloud-CLI-Release-Backdoor
+md5,301bff0b51980b9e76c93633e7cfd3bd,detect,high,2027-04-24,malicious ovhcloud Linux_x86_64 replaced binary,campaign:OVHcloud-CLI-Release-Backdoor
+md5,6a3cf153338c416169cda2fe704c8848,detect,high,2027-04-24,malicious ovhcloud.exe Windows x86_64 replaced binary,campaign:OVHcloud-CLI-Release-Backdoor
+sha256,3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb,prevent,critical,2027-04-24,swapped v0.15.0 Linux arm64 archive,campaign:OVHcloud-CLI-Release-Backdoor
+sha256,e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4,detect,medium,2027-04-24,sample linked in OVHcloud advisory (type unstated),campaign:OVHcloud-CLI-Release-Backdoor
+sha256,3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a,detect,medium,2027-04-24,sample linked in OVHcloud advisory (type unstated),campaign:OVHcloud-CLI-Release-Backdoor
+sha256,3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927,detect,medium,2027-04-24,sample linked in OVHcloud advisory (type unstated),campaign:OVHcloud-CLI-Release-Backdoor
+sha256,25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec,detect,medium,2027-04-24,sample linked in OVHcloud advisory (type unstated),campaign:OVHcloud-CLI-Release-Backdoor
+sha256,f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a,detect,medium,2027-04-24,sample linked in OVHcloud advisory (type unstated),campaign:OVHcloud-CLI-Release-Backdoor
+ipv4,45.32.148.174,detect,high,2027-04-24,stealer upload endpoint TCP/443 /upload,campaign:OVHcloud-CLI-Release-Backdoor
+# NOT imported, LEGITIMATE original v0.15.0 Linux arm64 archive (known-good reference only): 5c2beb56e6d83a4b426565a1557791ef759316abcc4effb38dd627c90aeb80e0
+# NOT imported, public Solana RPC hostnames are shared services: hunt with Q3 and Q4
+# NOT imported, the other swapped archives have no published hash: REPLACE_WITH_SHA256_WHEN_PUBLISHED</pre></div>
+<div class="ioc-grab" data-rosetta-gen="defender-indicators"><div class="igh"><span class="igt">Microsoft Defender indicators CSV</span><span class="igc">Settings, Endpoints, Indicators, Import: audit and block</span></div><button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-defender',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-defender">indicatorType,indicatorValue,action,title,description,expirationTime,severity,recommendedActions,rbacGroups,category,mitretechniques,GenerateAlert
+FileSha256,3833daffcaaaab27e4e0e0833240ffcb1df8df648f4ec0bc4a75c176e28933cb,Block,swapped v0.15.0 Linux arm64 archive,swapped v0.15.0 Linux arm64 archive,2027-04-24T00:00:00.0Z,High,Investigate the device and pivot into the pack&#x27;s queries,,,,True
+FileSha256,e9c31dca232cdaa8058cb59eadf425c182a23afb6ddb057eb92eda13b850dff4,Audit,sample linked in OVHcloud advisory,sample linked in OVHcloud advisory (type unstated),2027-04-24T00:00:00.0Z,Medium,Investigate the device and pivot into the pack&#x27;s queries,,,,True
+FileSha256,3c10bd782cd0dc5f720a33570af4651814cb82917e54d27ffce3849a3c5cef2a,Audit,sample linked in OVHcloud advisory,sample linked in OVHcloud advisory (type unstated),2027-04-24T00:00:00.0Z,Medium,Investigate the device and pivot into the pack&#x27;s queries,,,,True
+FileSha256,3cbe1ac592beeca7ce0ad0ba945349a9ef33ef0f1324935c3a115f30b1d0c927,Audit,sample linked in OVHcloud advisory,sample linked in OVHcloud advisory (type unstated),2027-04-24T00:00:00.0Z,Medium,Investigate the device and pivot into the pack&#x27;s queries,,,,True
+FileSha256,25c68c5e9ae23883aebda59f4b6a7df78e1ce8aae5e4b4ba636419497d54bbec,Audit,sample linked in OVHcloud advisory,sample linked in OVHcloud advisory (type unstated),2027-04-24T00:00:00.0Z,Medium,Investigate the device and pivot into the pack&#x27;s queries,,,,True
+FileSha256,f97284530343b3903ffd19bbe70ab6f62e36f04eb7e5f885934bd21d10899e8a,Audit,sample linked in OVHcloud advisory,sample linked in OVHcloud advisory (type unstated),2027-04-24T00:00:00.0Z,Medium,Investigate the device and pivot into the pack&#x27;s queries,,,,True
+IpAddress,45.32.148.174,Audit,stealer upload endpoint TCP/443 /upload,stealer upload endpoint TCP/443 /upload,2027-04-24T00:00:00.0Z,High,Investigate the device and pivot into the pack&#x27;s queries,,,,True</pre><p style="font-size:11px;color:var(--text-muted,#8b949e);margin:6px 0 0">Column names and allowed values are from Microsoft&#x27;s documented parameter table. Left out because this block maps only SHA-1, SHA-256, IPv4, domain and URL indicators: md5 5. Prevent rows import as Block, without remediation; network indicators cannot use BlockAndRemediate. Check each expirationTime before importing: an indicator whose date has passed is already expired. Download the sample CSV from the Import page to confirm the column order before a bulk import. Each file takes at most 500 indicators. Learn describes the import per entity type, so if a mixed file is rejected, split it by indicatorType. An imported indicator does nothing unless the matching Advanced features are on (for example Custom network indicators and Allow or block file).</p></div>
+<div class="ioc-grab" data-rosetta-gen="sentinelone-indicators"><div class="igh"><span class="igt">SentinelOne IOC import</span><span class="igc">not included</span></div><p style="font-size:12px;line-height:1.5;margin:0">This pack does not ship a SentinelOne import block: the import format could not be verified against SentinelOne's own documentation. Export a sample from your console and the block can be added with confidence.</p></div><div class="ioc-grab"><div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">search strings</span></div><button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy signatures</button><pre class="code" id="grab-behavior"># Hunt strings (not IOC Management values)
+Go build info (go version -m): mod github.com/ovh/ovhcloud-cli v0.15.1-0.20261013083505-5ead8ef9b43d+dirty
+vcs.revision=5ead8ef9b43d354dfb5caadff803b11afc8c5c58   (real v0.15.0 tag = 760fd72de93cbea3b507eb36dc0095991e4048e5)
+# Do not alert on +dirty or vcs.modified=true alone: the clean v0.16.0 build reports both
+Temp folder: envchecker-[0-9]{9,10}  (created each run, never deleted)
+Exfil: 45.32.148.174:443 path /upload (time-sensitive)
+Solana wallet used by the binary: BHaDaVbdCYFNaKZGn7yLXFneWoJHZgLiBYkHxVrjyALF
+RPC endpoints: solana.drpc.org, solana-rpc.publicnode.com, solana.api.pocket.network, api.mainnet-beta.solana.com, solana.api.onfinality.io (advisory writes it with a /public path)
+Process lineage: ovhcloud -&gt; shell / archiver / aws / gcloud / az / kubectl / doctl / docker / git / terraform</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Named Product and Scope</span><span class="igc">context</span></div><button class="btn-copy" data-label="Copy scope" onclick="copyBlock('grab-named',this)" style="margin:0 0 6px;">Copy scope</button><pre class="code" id="grab-named">Product: OVHcloud CLI (ovh/ovhcloud-cli), binary names ovhcloud and ovhcloud.exe
+Affected releases: v0.11.0, v0.12.0, v0.13.0, v0.14.0, v0.15.0   Clean: v0.10.0 and earlier, v0.16.0 and later
+Replaced assets: Darwin arm64, Darwin x86_64, Linux arm64, Linux x86_64, Windows x86_64, checksums.txt
+Not replaced: Linux i386, Windows i386, Windows arm64, Js wasm
+Uploader seen by the reporter: HassenBF (a hijacked account, not an attacker handle)
+Exposure window: 2026-10-19 12:47 to 14:21 UTC (14:47 to 16:21 Paris)
+Attribution: unconfirmed (see Section 2)</pre></div><div class="ioc-grab"><div class="igh"><span class="igt">Targeted Paths and Verification</span><span class="igc">rotate and verify</span></div><button class="btn-copy" data-label="Copy checklist" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy checklist</button><pre class="code" id="grab-audit"># Paths the stealer targets per the OVHcloud advisory (rotate these)
+~/.aws/credentials  ~/.aws/config  ~/.aws/cli/cache
+~/.config/gcloud/  ~/.azure/  ~/.docker/config.json  ~/.dockercfg  ~/.kube/config
+~/.ssh  ~/.netrc  ~/.gitconfig  ~/.config/doctl/config.yaml  ~/.terraform.d/credentials.tfrc.json
+~/.claude  ~/.hermes/  ~/.local/share/opencode/  ~/.config/opencode/
+VS Code and Cursor globalStorage state.vscdb; Continue and Sourcegraph Cody databases
+
+# Verify v0.16.0 or later (do not run first)
+# gh release verify-asset v0.16.0 &lt;FILE&gt;
+# gh attestation verify &lt;FILE&gt; --repo ovh/ovhcloud-cli</pre></div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Gate</th><th>Check</th><th>Pass condition</th></tr></thead><tbody><tr><td>Telemetry ready</td><td>Process creation with command line, hashes and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); outbound network connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents); DNS lookup with process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents); plus proxy and CI logs.</td><td>A sample event from each source is searchable in the last hour. Confirm ContextBaseFileName is filled on DnsRequest for Q3.</td></tr><tr><td>Benign baseline</td><td>Run Q4, Q5, Q8 and Q9 over 14 days before alerting.</td><td>Fewer than 10 hits per week per query, each explained by a named tool, wrapper or install job.</td></tr><tr><td>Positive tests</td><td>Q7: run an ovhcloud --help on a lab host with the legitimate CLI and confirm it appears. Q6: run echo envchecker-123456789 on a lab host. Q4: run nslookup solana.drpc.org on a lab host. Q3 cannot be exercised safely without the malicious binary, so validate its field mapping with Q4 output. Never run a malicious sample.</td><td>Each test fires its query within ingest delay. Use no live malware.</td></tr><tr><td>Promotion</td><td>Promote Q1, Q2, Q3 first (high confidence, low FP), then Q5 after baselining. Q7 and Q8 stay as scoping hunts.</td><td>Detect for 14 days with no unexplained hits, then enable prevention where supported.</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered &amp; Deployable</h2></div>
+    <div class="section-body">
+<div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div><ul><li><strong>T1. Turn on immutable releases for every repository that publishes binaries, at the organisation level.</strong> A release created after the setting is on cannot have assets changed or removed. OVHcloud's own fix. Existing releases are not protected retroactively, so re-publish critical old releases. Framework: ATT&amp;CK T1195.002 and M1051; GitHub immutable-releases documentation (GA since Oct 2025 per [#4]). Verify: Playbook P1.</li><li><strong>T2. Remove personal accounts and excess Write access from release-publishing repositories.</strong> The uploader here was a contributor who was not a public org member. Publish only through a service account or workflow identity with short-lived credentials. Framework: M1018, M1026; T1078. Verify: N4.</li><li><strong>T3. Pin and verify the hash of every release asset you download in CI, Dockerfiles and install scripts.</strong> The single pinned-hash job here failed and exposed the swap. Pin against a source other than the same release page (checksums.txt was swapped too). Framework: ATT&amp;CK T1195.002 and M1051; ⚠ best-practice, no formal benchmark. Verify: Playbook P2.</li><li><strong>T4. Rotate every secret readable on any host that ran a swapped build, from a different machine.</strong> Framework: M1027 Password Policies, M1026; T1552.001. Verify: Playbook P5.</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks)</div><ul><li><strong>T5. Block or alert on Solana RPC lookups from build runners and servers with no blockchain role.</strong> Public services, so block by role, never globally. Framework: M1037 Filter Network Traffic; T1102. Verify: Q4 and Playbook P4.</li><li><strong>T6. Require signature or attestation verification before installing release binaries.</strong> OVHcloud v0.16.0 ships a release attestation; check it with the GitHub CLI. Framework: ⚠ best-practice, no formal benchmark; vendor guidance [#3] [#4]. Verify: Playbook P2.</li><li><strong>T7. Stop piping install scripts to a shell on developer machines.</strong> Download, hash-check, then run. Framework: M1017 User Training; ⚠ best-practice.</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div><ul><li><strong>T8. Keep developer credentials short-lived and out of well-known files.</strong> Use SSO-backed cloud sessions, hardware-backed SSH keys and a secret manager, so a file-scraping stealer finds nothing durable. Framework: M1041 Encrypt Sensitive Information, M1022 Restrict File and Directory Permissions; T1552.</li><li><strong>T9. Sign commits and tags, use CODEOWNERS on release workflows, and link release rights to central identity management.</strong> OVHcloud lists these as its own next steps [#1]. Framework: M1032 Multi-factor Authentication; T1078.</li><li><strong>T10. Control IDE extensions on developer machines.</strong> The advisory attributes the original account takeover to a malicious editor extension [#1]. Allowlist extensions. ⚠ best-practice, no formal benchmark.</li></ul></div>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+<h3>P1 · Enable immutable releases (GitHub, organisation owner)</h3>
+<pre class="code">1. GitHub org Settings &gt; Repository defaults (or each repo: Settings &gt; General &gt; Releases) &gt; enable "Release immutability".
+   ⚠ Menu names change; confirm in GitHub's current immutable-releases documentation.
+2. Publish new releases from CI as a draft, attach all assets, then publish. Assets are locked at publish.
+3. Verify an immutable release locally: gh release verify v0.16.0 --repo ovh/ovhcloud-cli
+Prerequisites: organisation owner rights; release process that attaches assets before publishing.
+Reboot required: no
+Rollback: untick the setting. Releases already published while it was on stay immutable by design.</pre>
+<h3>P2 · Hash-pin and verify a release asset in CI (POSIX shell)</h3>
+<pre class="code">#!/bin/sh
+set -eu
+VERSION="v0.16.0"
+ASSET="ovhcloud-cli_Linux_x86_64.tar.gz"
+# EXPECTED_SHA256 comes from your own reviewed config, not from the same release page
+EXPECTED_SHA256="${OVH_CLI_SHA256:?set the pinned hash}"
+curl -fsSL -o "$ASSET" "https://github.com/ovh/ovhcloud-cli/releases/download/${VERSION}/${ASSET}"
+echo "${EXPECTED_SHA256}  ${ASSET}" | sha256sum -c -
+gh attestation verify "$ASSET" --repo ovh/ovhcloud-cli
+tar -xzf "$ASSET"
+Prerequisites: curl, sha256sum (shasum -a 256 on macOS), GitHub CLI authenticated; the hash pinned after you verified it once.
+Reboot required: no
+Rollback: remove the step from the pipeline; nothing on the host changes.</pre>
+<h3>P3 · Read-only exposure triage on a host (do not run the CLI)</h3>
+<pre class="code"># macOS / Linux
+ls -ld "${TMPDIR:-/tmp}"/envchecker-* 2&gt;/dev/null
+for f in $(command -v ovhcloud); do md5sum "$f" 2&gt;/dev/null || md5 "$f"; done
+go version -m "$(command -v ovhcloud)" 2&gt;/dev/null | grep -E 'mod|vcs.revision'
+# Windows PowerShell
+Get-ChildItem $env:TEMP -Directory -Filter "envchecker-*" -ErrorAction SilentlyContinue
+Get-Command ovhcloud.exe -ErrorAction SilentlyContinue | ForEach-Object { Get-FileHash $_.Source -Algorithm MD5 }
+Prerequisites: shell access; Go toolchain optional (go version -m only reads the file).
+Reboot required: no
+Rollback: none required, every command is read-only.</pre>
+<h3>P4 · Resolver block for Solana RPC on build hosts (dnsmasq example)</h3>
+<pre class="code"># /etc/dnsmasq.d/block-solana-rpc.conf  (apply ONLY to build and server networks)
+address=/solana.drpc.org/0.0.0.0
+address=/solana-rpc.publicnode.com/0.0.0.0
+address=/solana.api.pocket.network/0.0.0.0
+address=/api.mainnet-beta.solana.com/0.0.0.0
+address=/solana.api.onfinality.io/0.0.0.0
+Prerequisites: a resolver you control for the build network; confirm no blockchain workload depends on these names.
+Reboot required: no (restart dnsmasq: systemctl restart dnsmasq)
+Rollback: delete the file and restart dnsmasq.</pre>
+<h3>P5 · Secret rotation checklist after exposure</h3>
+<pre class="code">Work from a different, clean machine. For the affected user and host:
+1. OVHcloud API keys / consumer keys; ~/.ovh.conf and any OVH_* environment variables
+2. AWS, GCP, Azure sessions and keys; Terraform Cloud tokens; doctl tokens
+3. SSH keys in ~/.ssh (generate new, remove old public keys from servers and GitHub)
+4. Kubernetes configs; registry logins in ~/.docker/config.json
+5. npm / .netrc / git credentials; GitHub personal access tokens
+6. Tokens held by IDEs and AI coding assistants (editor databases, assistant data directories)
+7. Review cloud and identity audit logs for use of old credentials since 2026-10-19
+Prerequisites: admin rights on each service; a clean workstation.
+Reboot required: no
+Rollback: not applicable; a rotated secret should not be restored. Keep the old value revoked.</pre>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody><tr><td>Isolate</td><td>Network-contain any host with a Q1, Q2 or Q3 hit or an envchecker folder (Falcon network containment). Pause CI jobs that fetched the CLI in the window. Do not run the binary.</td><td>SOC / DevOps</td><td>Containment timestamp, host list from Q7 and Q8</td></tr>
+<tr data-rosetta-gen="isolation"><td>Isolate: by platform</td><td>CrowdStrike: network-contain the host. SentinelOne: network quarantine (Disconnect from Network; confirm the label in your console version). Microsoft Defender: Isolate device (full network isolation).</td><td>SOC / DevOps</td><td>Containment timestamp, host list from Q7 and Q8</td></tr><tr><td>Scope</td><td>Run Q7 and Q8 for 2026-10-19 12:47 to 14:21 UTC. Check N2 build logs and N3 egress logs. Mark each host as swapped, clean, or unknown by hash.</td><td>SOC</td><td>Hash table per host</td></tr><tr><td>Eradicate</td><td>Rotate secrets (P5) from a clean machine. Delete the binary and any envchecker folders after imaging if evidence is needed. Reinstall v0.16.0 or later with a verified attestation (P2).</td><td>IR / Owner of each secret</td><td>Rotation ticket per secret class, attestation check output</td></tr><tr><td>Recover</td><td>Return hosts to service after reinstall. Re-enable CI with pinned hashes. Watch for use of old credentials in cloud and identity audit logs for 30 days.</td><td>DevOps / Cloud security</td><td>Audit-log queries, clean Q1 to Q3 runs</td></tr><tr><td>Harden</td><td>Enable immutable releases, restrict Write, and apply Section 12 controls.</td><td>Engineering leadership</td><td>Org settings screenshot or export</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th data-rosetta-original="Coverage">CrowdStrike coverage</th><th class="rosetta-cov" title="How faithfully the SentinelOne query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">SentinelOne</th><th class="rosetta-cov" title="How faithfully the Defender XDR query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">Defender XDR</th></tr></thead><tbody><tr><td>T1078</td><td>Hijacked GitHub account uploads assets</td><td></td><td></td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr><tr><td>T1195.002</td><td>Swapped release assets installed or downloaded</td><td>Q1, Q7, Q8</td><td></td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q1: Partial pivot: the same MD5 and SHA256 lists are matched on process-creation rows only. The file-write half of the CQL is not covered because the card allows one table.">Partial: Q1 telemetry gap</span></td></tr><tr><td>T1204.002</td><td>Swapped binary executed</td><td>Q1, Q7</td><td></td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q1: Partial pivot: the same MD5 and SHA256 lists are matched on process-creation rows only. The file-write half of the CQL is not covered because the card allows one table.">Partial: Q1 telemetry gap</span></td></tr><tr><td>T1119, T1005, T1552</td><td>Credential and file collection into the temp folder</td><td>Q5, Q6</td><td>Q5</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1560</td><td>Archive of the working folder</td><td>Q5, Q6</td><td></td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high" title="This translation reproduces the CrowdStrike query, so the limit rated GAP in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">GAP: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-high" title="This translation reproduces the CrowdStrike query, so the limit rated GAP in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">GAP: same limit as CrowdStrike</span></td></tr><tr><td>T1102</td><td>Solana RPC endpoint lookups</td><td>Q3, Q4</td><td>Q3</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td></tr><tr><td>T1041</td><td>Upload to hard-coded address</td><td>Q2, Q9</td><td></td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr></tbody></table><p><strong>Gaps.</strong> The account takeover and release swap are outside endpoint telemetry (N4). The stealer's file reads and temp-folder creation are in-process and not logged by the sensor, so only the execution itself, the DNS lookup and the upload connection are visible. The other swapped archives have no published hash, so Q1 covers only the five binaries, one archive and the five advisory sample links.</p><p><strong>Validation.</strong> Run Section 11 before promoting: telemetry ready, 14-day baseline, safe positive tests, then staged promotion.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+<div class="ticket"><pre class="code">TITLE: OVHcloud CLI release-asset backdoor (v0.11.0 to v0.15.0, 2026-10-19)
+SEVERITY: High. Supply-chain compromise stealing developer and operator secrets; exposure
+          window closed (12:47 to 14:21 UTC on 2026-10-19), roughly 250 downloads per OVHcloud
+SCOPE: Developer workstations and CI runners on macOS, Linux (x86_64, arm64) and Windows x86_64
+       that downloaded or ran the CLI in the window; any secret readable on those machines
+HYPOTHESIS: A hijacked contributor GitHub account replaced release assets through the Releases
+       API because immutable releases was off; the swapped binary copies credentials into an
+       envchecker temp folder and uploads them, using Solana RPC endpoints.
+QUERIES: 9 CQL queries (Q1-Q9). Q1, Q2, Q3 high confidence; Q3 and Q5 promotable to Custom IOA;
+       hashes and the upload address go to IOC Management.
+DO FIRST: 1) Run Q7 and Q8 for 2026-10-19. 2) Run Q1, Q2, Q3. 3) Check N1 on any host that ran
+       the CLI. 4) Rotate secrets (P5) from a clean machine. 5) Enable immutable releases.
+FINDINGS: [fill in after the hunt]
+GAPS: GitHub account takeover and release changes are outside endpoint telemetry. File reads
+       and the temp-folder creation are not visible in process, network or DNS telemetry.
+ACTIONS: Rotate secrets; reinstall v0.16.0+ with attestation check; pin hashes in CI; immutable
+       releases; remove personal accounts from release repos; block Solana RPC on build hosts.
+OWNER: REPLACE_WITH_OWNER
+VERSION: v0.1 (Draft) 2026-10-24</pre></div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-10-24</span><span>Initial draft. 9 CQL queries, 2 IOA candidates, 1 alert package, tiered hardening with 5 playbooks. 5 sources read and snapshotted; 1 fetch blocked (HTTP 403) and not used. SentinelOne PowerQuery and Microsoft Defender KQL tabs added to Q1-Q9: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead><tbody><tr><td><span class="badge b-low">T1</span></td><td><a href="https://github.com/ovh/ovhcloud-cli/security/advisories/GHSA-862f-55f5-vmvw" target="_blank" rel="noopener">OVHcloud: ovhcloud-cli security incident, October 19th, 2026 (GHSA-862f-55f5-vmvw)</a></td><td>Timeline, affected versions, MD5s, upload address, Solana endpoints, targeted files, root cause, remediation.</td><td>2026-10-24</td></tr><tr><td><span class="badge b-low">T1</span></td><td><a href="https://github.com/ovh/ovhcloud-cli/issues/300" target="_blank" rel="noopener">GitHub issue #300: Release assets of v0.13.0 to v0.15.0 replaced</a></td><td>First-hand hashes of the original and swapped archive, build metadata, maintainer responses.</td><td>2026-10-24</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://opensourcemalware.com/blog/glassworm-hacks-ovh-clouds-cli-tool" target="_blank" rel="noopener">OpenSourceMalware: OVHcloud CLI supply chain compromise</a></td><td>Server-side timeline, replaced-asset table, how to check a binary, attribution inference.</td><td>2026-10-24</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://thehackernews.com/2026/10/hackers-hijack-five-ovhcloud-cli.html" target="_blank" rel="noopener">The Hacker News: Hackers Hijack Five OVHcloud CLI Releases</a></td><td>Independent exposure analysis, Homebrew correction, caution about +dirty.</td><td>2026-10-24</td></tr><tr><td><span class="badge b-med">T2</span></td><td><a href="https://www.helpnetsecurity.com/2026/10/21/ovhcloud-cli-github-malware/" target="_blank" rel="noopener">Help Net Security: Info-stealing malware slipped into OVHcloud CLI releases</a></td><td>Corroboration of versions, times, immutability root cause.</td><td>2026-10-24</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <p style="color:var(--text-muted);font-size:11px;margin-top:24px">Generated 2026-10-24 by HuntPack. Defensive content only.</p>
+</div>
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+<script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+  shell.querySelectorAll('.rosetta-open-s1').forEach(function(button){button.hidden=language!=='powerquery';});
+  shell.querySelectorAll('.rosetta-open-def').forEach(function(button){button.hidden=language!=='kql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+  rosettaSyncGlobal();
+}
+function rosettaSyncGlobal(){
+  const langs=new Set(Array.from(document.querySelectorAll('.rosetta-query-shell')).map(function(shell){const tab=shell.querySelector('.rosetta-tab[aria-selected="true"]');return tab?tab.getAttribute('data-language'):'';}));
+  const only=langs.size===1?Array.from(langs)[0]:'';
+  document.querySelectorAll('.rosetta-global-btn').forEach(function(button){button.setAttribute('aria-pressed',button.getAttribute('data-language')===only?'true':'false');});
+  const mixed=document.querySelector('.rosetta-global-mixed');
+  if(mixed)mixed.hidden=!!only;
+  const cloud=document.querySelector('.cloud-sel');
+  if(cloud)cloud.hidden=!langs.has('cql');
+  const consoleRow=document.querySelector('[data-rosetta-console]');
+  if(consoleRow)consoleRow.hidden=!langs.has('powerquery');
+  const portalRow=document.querySelector('[data-rosetta-portal]');
+  if(portalRow)portalRow.hidden=!langs.has('kql');
+}
+function rosettaConsoleCheck(value){
+  const text=(value||'').trim();
+  if(!text)return {ok:false,empty:true};
+  let url;
+  try{url=new URL(text);}catch(error){try{url=new URL('https://'+text);}catch(error2){return {ok:false};}}
+  if(url.protocol!=='https:'||url.hostname.indexOf('.')<0)return {ok:false};
+  return {ok:true,href:url.origin+'/'};
+}
+function rosettaConsoleInput(){
+  const input=document.getElementById('rosetta-console-url');
+  const status=document.querySelector('.rosetta-console-status');
+  if(!input||!status)return null;
+  const result=rosettaConsoleCheck(input.value);
+  input.setAttribute('aria-invalid',(!result.ok&&!result.empty)?'true':'false');
+  status.className='rosetta-console-status'+((!result.ok&&!result.empty)?' bad':'');
+  status.textContent=result.ok?'Saved in this browser only. Opens '+result.href:(result.empty?'':'Enter an https address such as https://usea1-yourtenant.sentinelone.net');
+  if(result.ok){try{localStorage.setItem('huntpack-s1-console',result.href);}catch(error){}}
+  return result;
+}
+function rosettaOpenDefender(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  const select=document.getElementById('rosetta-portal-select');
+  if(!pre||!select)return;
+  window.open(select.value+'/v2/advanced-hunting','_blank','noopener');
+  const value=pre.textContent;
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  const done=function(){button.textContent='Copied, paste it in Advanced hunting';button.classList.add('done');setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaOpenS1(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  if(!pre)return;
+  const result=rosettaConsoleInput()||{ok:false,empty:true};
+  const input=document.getElementById('rosetta-console-url');
+  if(!result.ok){if(input){input.scrollIntoView({block:'center'});input.focus();}return;}
+  window.open(result.href,'_blank','noopener');
+  const value=pre.textContent;
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  const done=function(){button.textContent='Copied, paste it in PowerQuery';button.classList.add('done');setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaSetAll(language,remember){
+  document.querySelectorAll('.rosetta-query-shell').forEach(function(shell){
+    const tab=shell.querySelector('.rosetta-tab[data-language="'+language+'"]');
+    if(tab)rosettaSwitch(tab);
+  });
+  rosettaSyncGlobal();
+  if(remember!==false){try{localStorage.setItem('huntpack-query-language',language);}catch(error){}}
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem('huntpack-query-language');}catch(error){}
+  if(saved&&saved!=='cql'&&document.querySelector('.rosetta-global-btn[data-language="'+saved+'"]'))rosettaSetAll(saved,false);
+  else rosettaSyncGlobal();
+  const portalSelect=document.getElementById('rosetta-portal-select');
+  if(portalSelect){
+    let savedPortal=null;
+    try{savedPortal=localStorage.getItem('huntpack-defender-portal');}catch(error){}
+    if(savedPortal&&Array.from(portalSelect.options).some(function(option){return option.value===savedPortal;}))portalSelect.value=savedPortal;
+    portalSelect.addEventListener('change',function(){try{localStorage.setItem('huntpack-defender-portal',portalSelect.value);}catch(error){}});
+  }
+  const consoleInput=document.getElementById('rosetta-console-url');
+  if(consoleInput){
+    let savedConsole=null;
+    try{savedConsole=localStorage.getItem('huntpack-s1-console');}catch(error){}
+    if(savedConsole){consoleInput.value=savedConsole;rosettaConsoleInput();}
+    consoleInput.addEventListener('input',rosettaConsoleInput);
+  }
+})();
+</script>
+</body>
+</html>
