@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignDrop: Windows CLFS Local Privilege Escalation Hunt — CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run hunt queries for SignDrop: Windows CLFS Local Privilege Escalation Hunt in CrowdStrike LogScale (CQL), SentinelOne (PowerQuery) and Microsoft Defender XDR (KQL): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/SignDrop-CLFS-LPE-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SignDrop: Windows CLFS Local Privilege Escalation Hunt — CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run hunt queries for SignDrop: Windows CLFS Local Privilege Escalation Hunt in CrowdStrike LogScale (CQL), SentinelOne (PowerQuery) and Microsoft Defender XDR (KQL): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/SignDrop-CLFS-LPE-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #8b9dff;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(139,157,255,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #151a35 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 4px; background: var(--surface2); }
+.igt { font-size: 11.5px; font-weight: 700; color: var(--text); } .igc { font-size: 10px; color: var(--text-muted); }
+.footer { color: var(--text-muted); font-size: 11px; padding: 8px 0; }
+
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+<style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.cloud-sel[hidden]{display:none}
+.rosetta-global{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 14px;padding:9px 12px;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.rosetta-global-label{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#8b949e)}
+.rosetta-global-btns{display:flex;flex-wrap:wrap;gap:6px}
+.rosetta-global-btn{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:5px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:700;line-height:1.2;cursor:pointer}
+.rosetta-global-btn:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-global-btn[aria-pressed="true"]{color:var(--bg,#0d1117);background:var(--accent,#f97316);border-color:var(--accent,#f97316)}
+.rosetta-global-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-global-mixed{font-size:10.5px;color:var(--text-muted,#8b949e)}
+.rosetta-global-mixed[hidden]{display:none}
+.rosetta-console{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(56,139,253,.45);border-radius:6px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:12px}
+.rosetta-console[hidden]{display:none}
+.rosetta-console-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.rosetta-console label{color:var(--text,#e6edf3);font-weight:600}
+.rosetta-console input{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console input[aria-invalid="true"]{border-color:#f85149}
+.rosetta-console input:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-console-btn{border:1px solid var(--border,#30363d);border-radius:4px;background:var(--surface2,#21262d);color:var(--text,#e6edf3);padding:5px 10px;cursor:pointer;font:inherit;font-size:11px;font-weight:600;white-space:nowrap}
+.rosetta-console-btn:hover{border-color:var(--accent,#f97316);color:var(--accent,#f97316)}
+.rosetta-console-btn[hidden]{display:none}
+.rosetta-console-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+#rosetta-console-pick{flex:0 1 260px}
+#rosetta-console-pick:disabled,.rosetta-console-btn:disabled{opacity:.5;cursor:not-allowed}
+.rosetta-console-status{font-size:11px;color:var(--text-muted,#8b949e)}
+.rosetta-console-status.bad{color:#f85149}
+.rosetta-console-hint{margin:6px 0 0;font-size:11px;line-height:1.5}
+.rosetta-console select{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console select:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-open-s1,.rosetta-open-def{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-open-s1[hidden],.rosetta-open-def[hidden]{display:none}
+.rosetta-open-s1:hover,.rosetta-open-def:hover{background:var(--accent-dim,rgba(249,115,22,.1))}
+.rosetta-open-s1.done,.rosetta-open-def.done{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.rosetta-open-s1:focus-visible,.rosetta-open-def:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-controls-end{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-gap{border:1px solid rgba(210,153,34,.45);border-left:3px solid #d29922;border-radius:4px;background:rgba(210,153,34,.08);padding:10px 12px;font-size:12px;line-height:1.55;color:var(--text-muted,#8b949e)}
+.rosetta-gap strong{color:#d29922}
+.rosetta-gap ul{margin:6px 0 0;padding-left:18px}
+.rosetta-gap li{font-size:11.5px;margin-bottom:3px}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-global-btns{flex:1 1 100%}.rosetta-global-btn{flex:1 1 auto}.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div>
+    <div class="pack-name">SignDrop: Windows CLFS Privilege Escalation</div>
+    <div class="version">v0.1 &middot; 2026-11-15</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 &middot; Executive Summary</a>
+    <a href="#s2">2 &middot; Source Review</a>
+    <a href="#s3">3 &middot; Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 &middot; IOC Table</a>
+    <a href="#s5">5 &middot; Affected Surface</a>
+    <a href="#s6">6 &middot; ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 &middot; Native Hunts</a>
+    <a href="#s8">8 &middot; SIEM Queries</a>
+    <a href="#s9" data-rosetta-original="9 &amp;middot; Custom IOA Recs">9 &middot; Detection Rules</a>
+    <a href="#s10">10 &middot; IOC Appendix</a>
+    <a href="#s11">11 &middot; Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 &middot; Hardening</a>
+    <a href="#s13">13 &middot; Playbooks</a>
+    <a href="#s14">14 &middot; Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 &middot; Coverage Map</a>
+    <a href="#s16">16 &middot; Hunt Ticket</a>
+    <a href="#s17">17 &middot; Changelog</a>
+    <a href="#s18">18 &middot; References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>SignDrop: Windows CLFS Local Privilege Escalation Hunt</h1>
+    <div class="subtitle">Public, unpatched clfs.sys zero-day (CLFS log-file authentication abuse). Proof of concept published 2026-11-10. No in-the-wild exploitation reported.</div>
+    <div class="meta-grid"><div class="meta-item"><div class="mk">Threat</div><div class="mv">SignDrop: Windows CLFS (clfs.sys) local privilege escalation, public PoC, unpatched</div></div><div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH</span></div></div><div class="meta-item"><div class="mk">Type</div><div class="mv">Local privilege escalation zero-day (no CVE)</div></div><div class="meta-item"><div class="mk">Access</div><div class="mv">Standard-user foothold required; no in-the-wild exploitation reported</div></div><div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 &middot; 2026-11-15</div></div><div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div><div class="meta-item"><div class="mk">Confidence</div><div class="mv">Medium-high: Cyderes reproduced it; tested builds limited; no CVE or patch</div></div></div>
+  </div>
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+<p><strong>SignDrop</strong> is a public, unpatched Windows local privilege escalation: a standard user reaches NT AUTHORITY\SYSTEM by abusing the CLFS log-file authentication feature that Microsoft added after October 2025. Proof-of-concept code was published on 2026-11-10 on GitHub by the researcher Abdelhamid Naceri (handles Nightmare Eclipse, MSNightmare). There is no CVE, no patch and no Microsoft advisory as of 2026-11-12. The mechanism is a logic flaw, not memory corruption: when a privileged process opens a prepared CLFS log, clfs.sys creates the companion <code>.cnpf</code> file in that process's security context, and Object Manager symbolic links redirect the creation to an attacker-chosen path. In the published chain the privileged caller is the Microsoft Defender antimalware service, reached through its signature-update RPC interface.</p>
+<p><strong>What is and is not known.</strong> No attacks using the exploit have been reported and it is not in CISA KEV (THN, Cyderes). Cyderes reproduced a SYSTEM shell. An independent test by 78researchlab found it works but is not reliable enough for operational use (THN). The researcher's claim that about 80 percent of Windows installations are vulnerable has no supporting data (Cyderes: low confidence). Microsoft told SecurityWeek it is investigating, that Defender detects and blocks exploitation and alerts on the associated behavior, and that it has not observed exploitation in the wild. This pack does not imply active exploitation.</p>
+<p><strong>Why it still matters.</strong> The code is public, the attacker needs only a standard-user foothold, and the exploit deletes its planted DLL afterward, so evidence must come from file-creation, image-load and process-creation telemetry captured at the time. Prior releases from the same researcher have been weaponized: THN reports three earlier Defender flaws from this researcher were exploited in attacks. SignDrop itself is a different class of issue.</p>
+<p><strong>Defensive angle.</strong> The highest-signal detections per Cyderes are a Defender signature-update RPC call from outside the Defender service tree and any hid.dll creation in the ink directory. The RPC call has no standard endpoint event, so this pack leads with the file, process and image-load angles that do, and flags the RPC and symbolic-link stages as honest telemetry gaps. Do not disable CLFS authentication as a workaround: it re-exposes the older memory corruption bugs the feature was built to stop.</p>
+<div class="callout callout-danger"><strong>Defender priority:</strong> deploy Q1, Q2 and Q3 now (hid.dll in the ink directory, the chain correlation, and any child of consent.exe), turn on file-creation auditing for the ink directory, inventory the CLFS Authentication Mode on every host, and make sure file-creation and image-load telemetry is retained long enough to survive the exploit's self-delete. Watch the Microsoft Security Update Guide for a CVE.</div>
+    </div>
+  </div>
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Key finding</th><th>Carry forward</th></tr></thead><tbody><tr><td>1 (vendor doc)</td><td>Microsoft Learn, CLFS logfile authentication</td><td>Defines the feature, the <code>.cnpf</code> companion file (created with the same security attributes as the file it protects), the Mode values 0 (enforced), 1 (learning) and 2 (disabled by an administrator), the Group Policy and MDM controls and the adoption period.</td><td><span class="badge b-low">yes</span></td></tr><tr><td>2 (vendor research)</td><td>Cyderes Howler Cell, SignDrop (2026-11-12, Rahul Ramesh and Baskar M)</td><td>Reproduced a SYSTEM shell. Five-stage chain, artifact list, MITRE mapping and a stage-by-stage detection table. States the researcher's repository and mirrors are publication points, not adversary infrastructure.</td><td><span class="badge b-low">yes</span></td></tr><tr><td>2 (press)</td><td>The Hacker News (2026-11-12)</td><td>Mechanism summary, tested builds, Mode 0 or 1 in scope, 2 or 3 means mitigation disabled, independent 78researchlab test (works, not reliable), no attacks reported, not in KEV.</td><td><span class="badge b-low">yes</span></td></tr><tr><td>2 (press)</td><td>SecurityWeek (2026-11-13, Ionut Arghire)</td><td>Names the researcher as Abdelhamid Naceri. Describes the container and signing behavior. Carries a Microsoft statement: investigating, Defender detects and blocks, no in-the-wild exploitation observed.</td><td><span class="badge b-low">yes</span></td></tr><tr><td>3 (press)</td><td>SecurityOnline (2026-11-11 per Cyderes reference list)</td><td>Corroborates PoC contents (C++ source and a Visual Studio project), tested builds, Mode 0 and 1 scope and the 80 percent claim. Quotes the writeup's claim that it can be used to turn off AV and EDR; not tested by any cited source.</td><td><span class="badge b-med">partial</span></td></tr></tbody></table><h3>Decisions and conflicts</h3>
+<ul>
+<li><strong>Mode values.</strong> Microsoft documents 0, 1 and 2. THN says a value of 2 or 3 means the mitigation is disabled. This pack treats any value other than 0 or 1 as outside the claimed attack surface, and treats the host as having lost the protection against the older bug class.</li>
+<li><strong>Defender as a control.</strong> THN says Defender must be enabled for the published chain. Microsoft says Defender detects and blocks it. Cyderes builds its detections so none depend on Defender catching the exploit, because Defender is the component the exploit uses. This pack follows Cyderes: Defender alerts are a bonus, not the control.</li>
+<li><strong>Researcher publication points.</strong> The GitHub repository and two mirrors named by Cyderes are research provenance. They are not adversary infrastructure and none of them ships as a block, prevent or C2 row.</li>
+<li><strong>Related releases.</strong> Cyderes notes the symbolic-link monitoring also helps for ShieldBreak and ShieldCrash. That shared detection value is noted in Section 15. No indicator from those releases is imported here.</li>
+<li><strong>Not carried forward.</strong> The writeup claim that SignDrop turns off any AV or EDR is single-sourced to press paraphrase and was not tested by Cyderes or the independent lab, so it is not used to rate severity.</li>
+</ul>
+    </div>
+  </div>
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+<p><strong>Hypothesis.</strong> A standard-user foothold on a host with CLFS authentication in Mode 0 or 1 may run SignDrop (or a recompiled variant) to plant a DLL in the ink directory and obtain a SYSTEM console. Because no attacker infrastructure exists, every hunt is behavioral and host-local.</p>
+<h3>Attack chain (Cyderes, five stages)</h3><table><thead><tr><th>Stage</th><th>Behavior</th><th>Telemetry (plain terms, then platforms)</th><th>Hunt</th></tr></thead><tbody><tr><td>1 Setup</td><td>osk.exe terminated and relaunched hidden; working directory %TEMP%\SigDrop_&lt;GUID&gt;; CLFS log created through the \CLFS device prefix; Object Manager links under \BaseNamedObjects\Restricted\</td><td>Process creation with parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Q5, Q7</td></tr><tr><td>2 Product engaged</td><td>CLFS IOCTL 0x8007A808 from a user process; bait MpEngine.dll held with an oplock; Defender RPC Proc42_ServerMpUpdateEngineSignature called from outside the Defender service tree</td><td>File write (CrowdStrike: PeFileWritten, NewExecutableWritten. Defender: DeviceFileEvents). RPC and IOCTL: no standard endpoint event</td><td>Q6; RPC and IOCTL are gaps</td></tr><tr><td>3 Path redirect</td><td>Symbolic links created and repointed under \BaseNamedObjects\Restricted\, including mpasbase.vdm</td><td>No standard endpoint event (kernel object namespace)</td><td>Gap, see Section 7</td></tr><tr><td>4 Privileged action</td><td>clfs.sys creates the .cnpf file as SYSTEM, redirected to the ink-directory hid.dll</td><td>File write (CrowdStrike: PeFileWritten, NewExecutableWritten. Defender: DeviceFileEvents, ActionType FileCreated)</td><td>Q1, Q2</td></tr><tr><td>5 Outcome</td><td>consent.exe (started by a runas request) loads hid.dll from the ink directory; payload spawns SYSTEM conhost.exe and kills consent.exe; transacted delete of hid.dll; osk.exe terminated</td><td>Image load (CrowdStrike: ImageHash. Defender: DeviceImageLoadEvents). Process creation (ProcessRollup2, DeviceProcessEvents)</td><td>Q2, Q3, Q4</td></tr></tbody></table><h3>Hunt hypotheses, ordered by fidelity</h3><table><thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Query</th><th>Confidence</th></tr></thead><tbody><tr><td>H1</td><td>A hid.dll was written into the ink directory.</td><td>T1068, T1574.001</td><td>Q1</td><td>High</td></tr><tr><td>H2</td><td>A hid.dll write is followed in the same 10 minute bucket by a SYSTEM console or a consent.exe child on the same host.</td><td>T1068, T1574.001</td><td>Q2</td><td>High</td></tr><tr><td>H3</td><td>consent.exe started a child process.</td><td>T1068</td><td>Q3</td><td>High (parent link inferred)</td></tr><tr><td>H4</td><td>consent.exe loaded a DLL from the ink directory.</td><td>T1574.001</td><td>Q4</td><td>Medium (validate field)</td></tr><tr><td>H5</td><td>osk.exe was started by an unexpected parent.</td><td>T1106</td><td>Q5</td><td>Medium</td></tr><tr><td>H6</td><td>MpEngine.dll was written outside Defender paths.</td><td>T1068</td><td>Q6</td><td>Medium</td></tr><tr><td>H7</td><td>The unmodified sample ran (SigDrop_ working directory).</td><td>T1106</td><td>Q7</td><td>Low (tripwire only)</td></tr><tr><td>H8</td><td>The CLFS authentication Mode value was written (posture and tamper).</td><td>T1112</td><td>Q8</td><td>Medium</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+<div class="callout callout-info">There is no in-the-wild campaign, so there is no attacker infrastructure. SignDrop has no vendor-published file hashes, domains or IPs in the cited sources. The rows below are behavioral artifacts of the public proof of concept, taken from the Cyderes appendix. Nothing here is a block or prevent row: osk.exe, consent.exe, conhost.exe, clfs.sys, MpEngine.dll and Defender components are stock Microsoft software, and hid.dll is a legitimate Windows DLL name that is only wrong in one directory.</div><table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody><tr><td>path</td><td>C:\Program Files\Common Files\microsoft shared\ink\hid.dll</td><td>high</td><td>detect</td><td>Planted DLL; does not ship in this directory with Windows (Cyderes). Detect on the path, never the bare name. Deleted by the exploit after use.</td></tr><tr><td>directory</td><td>%TEMP%\SigDrop_&lt;GUID&gt;</td><td>medium</td><td>hunt</td><td>Working directory of the unmodified sample; auto-deletes. Tripwire only.</td></tr><tr><td>filename</td><td>MpEngine.dll (outside Defender paths)</td><td>medium</td><td>hunt</td><td>Bait file held with an oplock in the working directory.</td></tr><tr><td>symlink</td><td>\BaseNamedObjects\Restricted\mpasbase.vdm and GUID-named links</td><td>medium</td><td>hunt</td><td>Object Manager redirects. No standard endpoint event, so hunt only where kernel or ETW telemetry exists.</td></tr><tr><td>ioctl</td><td>0x8007A808</td><td>medium</td><td>hunt</td><td>CLFS container-creation IOCTL issued from a user process. Needs driver or ETW visibility.</td></tr><tr><td>rpc</td><td>Proc42_ServerMpUpdateEngineSignature</td><td>high</td><td>hunt</td><td>Defender signature-update RPC method. Cyderes: highest signal when called from outside the Defender service tree.</td></tr><tr><td>resource</td><td>IDR_DLL1</td><td>low</td><td>enrich</td><td>Embedded payload resource in the sample. Useful for malware triage of a recovered binary only.</td></tr><tr><td>registry</td><td>HKLM\SYSTEM\CurrentControlSet\Services\CLFS\Authentication (Mode 0 or 1)</td><td>high</td><td>enrich</td><td>Exposure condition, not an attacker indicator. The value alone does not establish that exploitation will succeed (Cyderes).</td></tr><tr><td>process chain</td><td>osk.exe relaunched hidden; consent.exe child; SYSTEM conhost.exe</td><td>medium</td><td>detect</td><td>Behavioral. See Q2, Q3, Q5.</td></tr><tr><td>research URL</td><td>hxxps[://]github[.]com/MSNightmare/SignDrop and two self-hosted Git mirrors (host names listed in the Cyderes report)</td><td>high</td><td>enrich</td><td>Researcher publication points, not adversary infrastructure (Cyderes). Provenance only. Do not block.</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Surface</th><th>Telemetry (plain terms, then platforms)</th><th>Priority</th><th>Gap</th></tr></thead><tbody><tr><td>File creation in the ink directory</td><td>PE file write (CrowdStrike: PeFileWritten, NewExecutableWritten. Defender: DeviceFileEvents. SentinelOne: File Creation)</td><td>High</td><td>Retention must outlast the exploit's self-delete. A non-PE bait file is not seen by PE-write events.</td></tr><tr><td>consent.exe children, SYSTEM conhost.exe, osk.exe parent</td><td>Process creation with parent (CrowdStrike: ProcessRollup2, SyntheticProcessRollup2. Defender: DeviceProcessEvents. SentinelOne: Process Creation)</td><td>High</td><td>None for creation. Window visibility (hidden launch) is not in process telemetry.</td></tr><tr><td>consent.exe loading a DLL</td><td>Image load (CrowdStrike: ImageHash. Defender: DeviceImageLoadEvents)</td><td>Medium</td><td>Image-hash events fire once per unique image per process; path field varies by sensor version. Validate in tenant.</td></tr><tr><td>Defender signature-update RPC from a foreign caller</td><td>RPC call tracing (no standard endpoint event on the three platforms named here)</td><td>High</td><td>Outside endpoint telemetry: needs ETW RPC tracing or a sensor that exposes RPC calls. Highest signal per Cyderes.</td></tr><tr><td>Symbolic-link churn under \BaseNamedObjects\Restricted\</td><td>Object Manager activity (no standard endpoint event)</td><td>Medium</td><td>Outside endpoint telemetry: kernel or ETW source required.</td></tr><tr><td>CLFS IOCTL 0x8007A808</td><td>Driver control calls (no standard endpoint event)</td><td>Low</td><td>Outside endpoint telemetry.</td></tr><tr><td>Transacted delete of hid.dll</td><td>File delete telemetry</td><td>Low</td><td>No verified delete event is used in this pack. The earlier write (Q1) is the evidence.</td></tr><tr><td>CLFS Mode value</td><td>Registry value write (CrowdStrike: RegGenericValueUpdate. Defender: DeviceRegistryEvents. SentinelOne: Registry Value Modified)</td><td>Medium</td><td>Current value at rest needs the inventory script (Playbook 1), not an event.</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+<p>MITRE techniques are those listed by Cyderes. Q8 uses T1112, which is the analyst's own mapping for the posture check and is not from a source.</p><table><thead><tr><th>Tactic</th><th>Technique</th><th>Observed behavior</th><th>Query or control</th></tr></thead><tbody><tr><td>Privilege Escalation</td><td>T1068 Exploitation for Privilege Escalation</td><td>Standard user to SYSTEM through CLFS, Object Manager links and a Defender-triggered privileged write</td><td>Q1, Q2, Q3, Q6; Hardening tiers 1 to 3</td></tr><tr><td>Persistence, Privilege Escalation, Defense Evasion</td><td>T1574.001 Hijack Execution Flow: DLL</td><td>Planted hid.dll loaded by consent.exe from the ink directory</td><td>Q1, Q2, Q4; WDAC audit (Playbook 4)</td></tr><tr><td>Defense Evasion</td><td>T1070.004 Indicator Removal: File Deletion</td><td>Transacted delete of hid.dll after the SYSTEM shell starts</td><td>Retention guidance; Q1 captures the earlier write</td></tr><tr><td>Execution, Defense Evasion</td><td>T1106 Native API</td><td>DeviceIoControl to CLFS, RPC to Defender, Object Manager symlink calls</td><td>Q5, Q7; RPC and IOCTL are gaps</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+<p>Non-CQL checks. SignDrop's two highest-value stages (the Defender RPC call and the symbolic-link churn) have no standard endpoint event, so native and ETW sources matter here.</p><table><thead><tr><th>Source</th><th>What to look for</th><th>Notes</th></tr></thead><tbody><tr><td>Windows Security log, event 4663 (Audit File System)</td><td>An object-access create under C:\Program Files\Common Files\microsoft shared\ink, especially a hid.dll</td><td>Needs the SACL from Playbook 2. Cyderes: any creation of hid.dll in this directory is an alert.</td></tr><tr><td>Windows Security log, event 4688 with command line</td><td>Process creation of osk.exe by a non-standard parent; any child of consent.exe</td><td>Requires the Audit Process Creation subcategory and command-line logging.</td></tr><tr><td>Sysmon event 11 (FileCreate) and 23 or 26 (file delete)</td><td>hid.dll created in the ink directory; a delete of the same file shortly after</td><td>Only if Sysmon is deployed with matching rules. Event 23 archives the deleted file, which preserves the planted DLL.</td></tr><tr><td>Sysmon event 7 (ImageLoad)</td><td>Image consent.exe loading a DLL whose path is under microsoft shared\ink</td><td>Requires image-load logging to be enabled in the Sysmon config.</td></tr><tr><td>Microsoft-Windows-Windows Defender/Operational</td><td>Detection events (1116, 1117) and any alert on privilege-escalation behavior</td><td>Microsoft told SecurityWeek that Defender detects and blocks SignDrop. Treat as a bonus signal. No alert name is published in the cited sources, so none is listed here.</td></tr><tr><td>Microsoft-Windows-CodeIntegrity/Operational</td><td>Audit events (3076) or block events (3077) for an unsigned DLL load in a protected process</td><td>Only after the WDAC policy in Playbook 4 is deployed.</td></tr><tr><td>ETW RPC and kernel object tracing</td><td>Defender signature-update RPC from a caller outside the Defender service tree; link creation under \BaseNamedObjects\Restricted\</td><td>Not validated in this pack and not in any default log. Needs a sensor or custom ETW collection. This is the gap in Section 15.</td></tr><tr><td>Registry inventory</td><td>HKLM\SYSTEM\CurrentControlSet\Services\CLFS\Authentication, value Mode (0 or 1 means in scope)</td><td>Playbook 1. Cyderes: inventory the whole estate and record Mode.</td></tr><tr><td>Researcher channels</td><td>Releases from the researcher on GitHub and the self-hosted mirrors</td><td>Cyderes: monitoring these has given lead time over vendor advisories. Process control only; do not block the hosts.</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2 data-rosetta-original="CrowdStrike LogScale CQL Hunt Queries">Hunt Queries: CrowdStrike CQL, SentinelOne PowerQuery and Defender XDR KQL</h2></div>
+    <div class="section-body">
+<div class="rosetta-global" data-rosetta-global="true" role="group" aria-label="Show every query in one language"><span class="rosetta-global-label">Show all queries in</span><div class="rosetta-global-btns"><button type="button" class="rosetta-global-btn" data-language="cql" aria-pressed="true" onclick="rosettaSetAll('cql')">CrowdStrike · CQL</button><button type="button" class="rosetta-global-btn" data-language="powerquery" aria-pressed="false" onclick="rosettaSetAll('powerquery')">SentinelOne · PowerQuery</button><button type="button" class="rosetta-global-btn" data-language="kql" aria-pressed="false" onclick="rosettaSetAll('kql')">Defender XDR · KQL</button></div><span class="rosetta-global-mixed" hidden>Mixed: some cards were switched on their own</span></div><div class="rosetta-console" data-rosetta-console="true" hidden><div class="rosetta-console-row"><label for="rosetta-console-url">SentinelOne console:</label><input type="url" id="rosetta-console-url" placeholder="https://usea1-yourtenant.sentinelone.net/events/search?view=xdr&amp;_scopeId=...&amp;_scopeLevel=account" autocomplete="off" spellcheck="false" aria-describedby="rosetta-console-hint"><button type="button" class="rosetta-console-btn" onclick="rosettaConsoleSave()" title="Keep this console in this browser so you can switch back to it">Save</button><select id="rosetta-console-pick" onchange="rosettaConsolePick()" aria-label="Switch saved SentinelOne console"><option value="" disabled selected>No consoles saved yet</option></select><button type="button" class="rosetta-console-btn" id="rosetta-console-forget" onclick="rosettaConsoleForget()" title="Remove the console in the box from this browser">Forget</button><span class="rosetta-console-status" role="status" aria-live="polite"></span></div><p class="rosetta-console-hint" id="rosetta-console-hint">Paste your own address, taken from your browser with Event Search open in the scope you want: the whole thing, including the <code>_scopeId</code> and <code>_scopeLevel</code> parameters that aim the search. Then "Copy &amp; open SentinelOne" opens Event Search with the query and a time window already set, and copies the query as well. A bare console address still works, but it can only open the console for you to paste into. Your address is kept in this browser alone: it is never part of this page, never sent anywhere, and no address of ours is built in.</p></div><div class="rosetta-console rosetta-portal" data-rosetta-portal="true" hidden><div class="rosetta-console-row"><label for="rosetta-portal-select">Microsoft Defender portal:</label><select id="rosetta-portal-select" aria-describedby="rosetta-portal-hint"><option value="https://security.microsoft.com">Commercial or GCC (security.microsoft.com)</option><option value="https://security.microsoft.us">GCC High (security.microsoft.us)</option><option value="https://security.apps.mil">DoD (security.apps.mil)</option></select></div><p class="rosetta-console-hint" id="rosetta-portal-hint">Pick your portal. Microsoft documents a Share link in advanced hunting but not its URL format, so each "Copy &amp; open Defender" button copies the query and opens Advanced hunting: paste it into the editor.</p></div>
+    <div class="cloud-sel">
+      <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+      <select id="cloud-region">
+        <option value="https://falcon.crowdstrike.com">US-1</option>
+        <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+        <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+        <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+        <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+      </select>
+      <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q1 &middot; hid.dll created in the Common Files ink directory</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> A file named hid.dll written into C:\Program Files\Common Files\microsoft shared\ink. Cyderes states the file does not ship there with Windows, so any write is the successful privileged write (Table 2, row D) regardless of variant. The path is the signal, not the name: the real hid.dll lives in System32.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The CQL restricts to portable-executable writes; this query keys on the path and name, so a non-PE file with this name also matches.</li><li>PowerQuery assumes: tgt.file.path holds the full path of the written file.</li><li>PowerQuery assumes: A modification of an existing file at this path is treated like a creation.</li><li>KQL – Defender XDR: The CQL restricts to portable-executable writes; this query keys on the path and name.</li><li>KQL – Defender XDR assumes: FolderPath holds the directory of the written file.</li><li>KQL – Defender XDR assumes: FileCreated and FileModified are the ActionType values recorded for a write.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql1-tab" aria-controls="kql1-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: hid.dll written to the Common Files ink directory (SignDrop privileged write)</span>
+<span class="cm">// MITRE: T1068, T1574.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: PE file write telemetry (CrowdStrike: PeFileWritten, NewExecutableWritten)</span>
+<span class="cm">// FALSE POSITIVES: none known. Cyderes: hid.dll does not ship in this directory with Windows.</span>
+<span class="cm">// NOTE: match on the PATH. hid.dll is a legitimate Windows DLL name; never alert or block on the bare name.</span>
+#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/
+| TargetFileName=/\\Common Files\\microsoft shared\\ink\\hid\.dll$/i
+| table([@timestamp, ComputerName, UserName, FileName, TargetFileName, ContextBaseFileName, SHA256HashData, aid])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li><li>File Modification</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.file.path</code>: Written file path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Writing process</li><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.file.sha256</code>: Hash</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; tgt.file.path = *
+| limit 5
+| columns event.time, event.type, tgt.file.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1" data-lookback="7d">// HUNT: hid.dll written to the Common Files ink directory (SignDrop privileged write)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1068, T1574.001
+// CONF: high | FP: low
+// FALSE POSITIVES: none known. Cyderes: hid.dll does not ship in this directory with Windows.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a file named hid.dll written under the Common Files ink directory. File Creation and File Modification together stand in for the CQL&#x27;s portable-executable write events; the path and name carry the detection.
+// REQUIRES: SentinelOne file creation and modification telemetry (File Creation, File Modification)
+// TUNING: Match on the path. hid.dll is a legitimate Windows DLL name, so never alert or block on the bare name.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The CQL restricts to portable-executable writes; this query keys on the path and name, so a non-PE file with this name also matches.
+// VALIDATION LEVEL: static-reviewed
+event.type in (&#x27;File Creation&#x27;, &#x27;File Modification&#x27;) tgt.file.path contains &#x27;Common Files\\microsoft shared\\ink\\hid.dll&#x27; tgt.file.path matches &#x27;hid[.]dll$&#x27;
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.file.path, tgt.file.sha256, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql1-pane" role="tabpanel" aria-labelledby="kql1-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceFileEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action</li><li><code>FileName</code>: Written file name</li><li><code>FolderPath</code>: Written file directory</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Writing process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceFileEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ActionType, FileName, FolderPath
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql1" data-language="kql" data-rosetta-query-id="cql1" data-lookback="7d">// HUNT: hid.dll written to the Common Files ink directory (SignDrop privileged write)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1068, T1574.001
+// CONF: high | FP: low
+// FALSE POSITIVES: none known. Cyderes: hid.dll does not ship in this directory with Windows.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: hid.dll written under the Common Files ink directory. FileCreated and FileModified stand in for the CQL&#x27;s portable-executable write events. The writer is InitiatingProcessFileName.
+// REQUIRES: Defender for Endpoint file telemetry (DeviceFileEvents)
+// TUNING: Match on the path. hid.dll is a legitimate Windows DLL name, so never alert or block on the bare name.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The CQL restricts to portable-executable writes; this query keys on the path and name.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceFileEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType in~ (&quot;FileCreated&quot;, &quot;FileModified&quot;)
+| where FileName =~ &quot;hid.dll&quot;
+| where FolderPath contains &quot;\\Common Files\\microsoft shared\\ink\\&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, FolderPath, SHA1, SHA256
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q2 &middot; Per-host chain: ink hid.dll write plus SYSTEM conhost or consent.exe child in the same 10 minute bucket</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Correlates, per host, an ink-directory hid.dll write with a SYSTEM conhost.exe start or any child process of consent.exe inside the same fixed 10 minute bucket (an event pair that straddles a bucket edge is missed, so also run Q1). Requires the hid.dll write, so ordinary SYSTEM conhost.exe starts do not trigger it on their own.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: approximate-analytic, telemetry-gap</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The CQL matches the SYSTEM account by SID; this query matches the account name, which depends on how the console renders it.</li><li>PowerQuery: A chain split across two 10 minute buckets is missed.</li><li>PowerQuery assumes: src.process.user on a Process Creation event holds the creating process&#x27;s account, rendered as NT AUTHORITY\SYSTEM or SYSTEM for the system account.</li><li>PowerQuery assumes: Time buckets are aligned to the SentinelOne event timestamp, so a chain that straddles a bucket edge can be split.</li><li>KQL – Defender XDR: The per-host 10 minute correlation with a SYSTEM conhost.exe or a consent.exe child is not expressed; each hit is the anchor only.</li><li>KQL – Defender XDR assumes: FolderPath holds the directory of the written file.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql2-tab" aria-controls="kql2-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: SignDrop chain correlation (ink hid.dll write then SYSTEM console)</span>
+<span class="cm">// MITRE: T1068, T1574.001</span>
+<span class="cm">// CONF: high  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: PE file write + process creation telemetry (CrowdStrike: PeFileWritten, NewExecutableWritten, ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none expected; the hid.dll write is the anchor and is rare. Cyderes: correlate SYSTEM conhost.exe with a recent hid.dll write.</span>
+#event_simpleName=/^(ProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| case {
+    #event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/ TargetFileName=/\\microsoft shared\\ink\\hid\.dll$/i | sig_kind := "InkHidWrite";
+    #event_simpleName=ProcessRollup2 FileName=/^conhost(\.exe)?$/i UserSid="S-1-5-18" | sig_kind := "SystemConhost";
+    #event_simpleName=ProcessRollup2 ParentBaseFileName=/^consent(\.exe)?$/i | sig_kind := "ConsentChild";
+    * | sig_kind := "none";
+  }
+| sig_kind != "none"
+| Bucket10m := @timestamp - (@timestamp % 600000)
+| groupBy([aid, ComputerName, Bucket10m], function=[count(sig_kind, distinct=true, as=sig_kinds), collect([sig_kind])])
+| sig_kind=/InkHidWrite/
+| sig_kinds &gt;= 2</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>7 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li><li>File Modification</li><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>agent.uuid</code>: Host identity</li><li><code>tgt.file.path</code>: Written file path</li><li><code>tgt.process.name</code>: Created process name</li><li><code>src.process.name</code>: Creating process name</li><li><code>src.process.user</code>: Creating process user</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code>: Host</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.name = *
+| limit 5
+| columns event.time, event.type, agent.uuid, tgt.file.path, tgt.process.name, src.process.name, src.process.user</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2" data-lookback="7d">// HUNT: SignDrop chain correlation (ink hid.dll write then SYSTEM console)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1068, T1574.001
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected; the hid.dll write is the anchor and is rare. Cyderes: correlate SYSTEM conhost.exe with a recent hid.dll write.
+// EQUIVALENCE: approximate-analytic - Same chain: an ink hid.dll write plus a SYSTEM conhost or a consent.exe child on the same host in the same 10 minute bucket. The three signals are counted per host and bucket instead of labelled with a case block, and SYSTEM is matched on the creating process&#x27;s user name rather than a SID.
+// REQUIRES: SentinelOne file write and process creation telemetry on the same endpoint
+// TUNING: The hid.dll write is the anchor and is rare; keep it required. A SYSTEM conhost alone is routine, so never drop the write requirement.
+// LOOKBACK: 7d on the CQL tab; set the console time picker to the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The CQL matches the SYSTEM account by SID; this query matches the account name, which depends on how the console renders it. A chain split across two 10 minute buckets is missed.
+// VALIDATION LEVEL: static-reviewed
+(event.type in (&#x27;File Creation&#x27;, &#x27;File Modification&#x27;) tgt.file.path contains &#x27;microsoft shared\\ink\\hid.dll&#x27;) or (event.type = &#x27;Process Creation&#x27; tgt.process.name in:anycase (&#x27;conhost.exe&#x27;, &#x27;conhost&#x27;) src.process.user in:anycase (&#x27;NT AUTHORITY\\SYSTEM&#x27;, &#x27;SYSTEM&#x27;)) or (event.type = &#x27;Process Creation&#x27; src.process.name in:anycase (&#x27;consent.exe&#x27;, &#x27;consent&#x27;))
+| group ink_writes = count(tgt.file.path contains &#x27;microsoft shared\\ink\\hid.dll&#x27;), system_conhost = count(tgt.process.name in:anycase (&#x27;conhost.exe&#x27;, &#x27;conhost&#x27;) and src.process.user in:anycase (&#x27;NT AUTHORITY\\SYSTEM&#x27;, &#x27;SYSTEM&#x27;)), consent_children = count(src.process.name in:anycase (&#x27;consent.exe&#x27;, &#x27;consent&#x27;) and event.type = &#x27;Process Creation&#x27;), first_seen = min(event.time), last_seen = max(event.time) by agent.uuid, endpoint.name, bucket = timebucket(&#x27;10m&#x27;)
+| filter ink_writes &gt; 0 and (system_conhost &gt; 0 or consent_children &gt; 0)
+| sort -last_seen
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql2-pane" role="tabpanel" aria-labelledby="kql2-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceFileEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action</li><li><code>FileName</code>: Written file name</li><li><code>FolderPath</code>: Written file directory</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Writing process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceFileEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ActionType, FileName, FolderPath
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql2" data-language="kql" data-rosetta-query-id="cql2" data-lookback="7d">// HUNT: SignDrop chain correlation (ink hid.dll write then SYSTEM console)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1068, T1574.001
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected; the hid.dll write is the anchor and is rare. Cyderes: correlate SYSTEM conhost.exe with a recent hid.dll write.
+// EQUIVALENCE: telemetry-gap - The CQL correlates a file write with process creations per host and 10 minute bucket, which needs two Advanced Hunting tables in one query. One table per query leaves only the anchor, the ink hid.dll write in DeviceFileEvents, as a partial pivot.
+// REQUIRES: Defender for Endpoint file telemetry (DeviceFileEvents)
+// TUNING: This is the chain&#x27;s anchor. Pivot each hit&#x27;s DeviceId into the consent.exe child and SYSTEM conhost.exe cards, or use the CQL tab for the correlation.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The per-host 10 minute correlation with a SYSTEM conhost.exe or a consent.exe child is not expressed; each hit is the anchor only.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceFileEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType in~ (&quot;FileCreated&quot;, &quot;FileModified&quot;)
+| where FileName =~ &quot;hid.dll&quot;
+| where FolderPath contains &quot;\\microsoft shared\\ink\\&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, FolderPath, SHA1
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q3 &middot; Any child process of consent.exe</span>
+        <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> consent.exe is the UAC consent UI. In the published chain the payload runs inside consent.exe and spawns a console host (conhost.exe) with SYSTEM rights, then kills consent.exe. A child of consent.exe is rare; the parent link for the conhost.exe is inferred from the payload description, so confirm it on a lab host before promoting.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A child whose creator the sensor did not record is not captured.</li><li>PowerQuery assumes: src.process.name is the creating process on a Process Creation event, as the field model attests.</li><li>PowerQuery assumes: tgt.process.image.sha1 is populated on process creation; it is a display column only.</li><li>KQL – Defender XDR: A child whose creator the sensor did not record is not captured.</li><li>KQL – Defender XDR assumes: InitiatingProcessFileName holds the creating process name without a path.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql3-tab" aria-controls="kql3-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: child process of consent.exe (SignDrop payload spawns SYSTEM console)</span>
+<span class="cm">// MITRE: T1068, T1574.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: process creation with parent (CrowdStrike: ProcessRollup2, SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: not observed in the cited sources; consent.exe normally returns a result to AppInfo and starts no children.</span>
+<span class="cm">// NOTE: validate on a lab host that the payload's console shows consent.exe as ParentBaseFileName before promoting to an IOA.</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^consent(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, UserSid, FileName, ImageFileName, CommandLine, ParentBaseFileName, ParentProcessId, TargetProcessId, SHA256HashData, aid])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>src.process.name</code>: Creating process name</li><li><code>tgt.process.name</code>: Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.process.cmdline</code>: Created command line</li><li><code>src.process.user</code>: Creating process user</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha1</code>: Hash</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.name = *
+| limit 5
+| columns event.time, event.type, src.process.name, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3" data-lookback="7d">// HUNT: child process of consent.exe (SignDrop payload spawns SYSTEM console)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1068, T1574.001
+// CONF: high | FP: low
+// FALSE POSITIVES: not observed in the cited sources; consent.exe normally returns a result to AppInfo and starts no children.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: any process whose creator is consent.exe. On a Process Creation event the creator is src.process, so consent.exe is matched there and the child is tgt.process. in:anycase reproduces the CQL case-insensitive match with an optional .exe.
+// REQUIRES: SentinelOne process creation telemetry with creator lineage
+// TUNING: Validate on a lab host that the payload&#x27;s console shows consent.exe as its creator before promoting this to a blocking rule.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A child whose creator the sensor did not record is not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; src.process.name in:anycase (&#x27;consent.exe&#x27;, &#x27;consent&#x27;)
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.image.path, tgt.process.cmdline, tgt.process.image.sha1, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql3-pane" role="tabpanel" aria-labelledby="kql3-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>InitiatingProcessFileName</code>: Creating process name</li><li><code>FileName</code>: Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated in DeviceProcessEvents; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, InitiatingProcessFileName, FileName
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql3" data-language="kql" data-rosetta-query-id="cql3" data-lookback="7d">// HUNT: child process of consent.exe (SignDrop payload spawns SYSTEM console)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1068, T1574.001
+// CONF: high | FP: low
+// FALSE POSITIVES: not observed in the cited sources; consent.exe normally returns a result to AppInfo and starts no children.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: any process whose creator is consent.exe. The creator is InitiatingProcessFileName and the child is FileName. in~ reproduces the CQL case-insensitive match with an optional .exe.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: Validate on a lab host that the payload&#x27;s console shows consent.exe as its creator before promoting this to a blocking rule.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A child whose creator the sensor did not record is not captured.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where InitiatingProcessFileName in~ (&quot;consent.exe&quot;, &quot;consent&quot;)
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, InitiatingProcessFileName, FileName, FolderPath, ProcessCommandLine, SHA1, SHA256
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q4 &middot; consent.exe loading a DLL from the ink directory</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-med">COST MEDIUM</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Cyderes row E: alert on consent.exe loading any DLL from C:\Program Files\Common Files\microsoft shared\ink. Uses the image-hash (module load) event joined to the consent.exe process on host and process ID. Image-load events fire once per unique image per process, and the path field varies by sensor version, so confirm in a tenant.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: If the policy does not collect module loads, this query returns nothing and an empty result proves nothing.</li><li>PowerQuery assumes: src.process.name is the loading process on a Module Load event.</li><li>PowerQuery assumes: module.path holds the full path of the loaded module and module events are collected on the tenant.</li><li>KQL – Defender XDR: Image loads are sampled by the sensor, so a single load can be absent from this table.</li><li>KQL – Defender XDR assumes: FolderPath holds the directory of the loaded image.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql4-tab" aria-controls="kql4-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: consent.exe loads a DLL from the ink directory (planted hid.dll sideload)</span>
+<span class="cm">// MITRE: T1574.001</span>
+<span class="cm">// CONF: medium  FP: low  COST: medium</span>
+<span class="cm">// REQUIRES: image-load telemetry (CrowdStrike: ImageHash joined to ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none known. Cyderes: alert on consent.exe loading any DLL from the ink directory.</span>
+<span class="cm">// NOTE: ⚠ validate in tenant: confirm ImageHash carries FilePath for loaded DLLs on your sensor version before relying on this query.</span>
+#event_simpleName=/^(ProcessRollup2|ImageHash)$/
+| selfJoinFilter(field=[aid, TargetProcessId], where=[
+    {#event_simpleName=ProcessRollup2 FileName=/^consent(\.exe)?$/i},
+    {#event_simpleName=ImageHash FilePath=/\\microsoft shared\\ink\\/i}
+  ])
+| #event_simpleName=ImageHash
+| rename(field=FileName, as=LoadedDll)
+| rename(field=FilePath, as=LoadedFrom)
+| table([@timestamp, ComputerName, LoadedDll, LoadedFrom, SHA256HashData, TargetProcessId, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Module Load</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>src.process.name</code>: Loading process name</li><li><code>module.path</code>: Loaded module path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Optional fields</h4><ul><li><code>module.sha256</code>: Hash</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Module Load&#x27; module.path = *
+| limit 5
+| columns event.time, event.type, src.process.name, module.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4" data-lookback="7d">// HUNT: consent.exe loads a DLL from the ink directory (planted hid.dll sideload)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1574.001
+// CONF: medium | FP: low
+// FALSE POSITIVES: none known. Cyderes: alert on consent.exe loading any DLL from the ink directory.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: consent.exe loading a module from the microsoft shared ink directory. A Module Load event is a direct image-load record, so no join between process and image events is needed.
+// REQUIRES: SentinelOne Module Load telemetry (Deep Visibility module events)
+// TUNING: Alert on consent.exe loading any DLL from the ink directory. Confirm module events are enabled for the policy before relying on an empty result.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: If the policy does not collect module loads, this query returns nothing and an empty result proves nothing.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Module Load&#x27; src.process.name in:anycase (&#x27;consent.exe&#x27;, &#x27;consent&#x27;) module.path contains &#x27;microsoft shared\\ink\\&#x27;
+| columns event.time, endpoint.name, src.process.name, module.path, module.sha256, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql4-pane" role="tabpanel" aria-labelledby="kql4-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceImageLoadEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>InitiatingProcessFileName</code>: Loading process name</li><li><code>FolderPath</code>: Loaded image directory</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>FileName</code>: Loaded image name</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceImageLoadEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, InitiatingProcessFileName, FolderPath
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql4" data-language="kql" data-rosetta-query-id="cql4" data-lookback="7d">// HUNT: consent.exe loads a DLL from the ink directory (planted hid.dll sideload)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1574.001
+// CONF: medium | FP: low
+// FALSE POSITIVES: none known. Cyderes: alert on consent.exe loading any DLL from the ink directory.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: consent.exe loading a module from the microsoft shared ink directory. DeviceImageLoadEvents records the loaded image as FileName and FolderPath, and the loader as InitiatingProcessFileName.
+// REQUIRES: Defender for Endpoint image-load telemetry (DeviceImageLoadEvents)
+// TUNING: Alert on consent.exe loading any DLL from the ink directory.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Image loads are sampled by the sensor, so a single load can be absent from this table.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceImageLoadEvents
+| where Timestamp &gt;= ago(7d)
+| where InitiatingProcessFileName in~ (&quot;consent.exe&quot;, &quot;consent&quot;)
+| where FolderPath contains &quot;\\microsoft shared\\ink\\&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessFileName, FileName, FolderPath, SHA1, SHA256
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q5 &middot; osk.exe started by an unexpected parent</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Stage 1 of the chain terminates osk.exe and relaunches it hidden so consent.exe will load from the ink directory. Process telemetry cannot see window visibility, so this hunts the parent instead. <strong>FP:</strong> accessibility users, kiosk and sign-in launchers, and IT scripts start osk.exe legitimately; baseline the parents in your estate first and add them to the exclusion list.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Accessibility use, kiosk launchers and helpdesk scripts that start the on-screen keyboard will match until they are added to the exclusion list.</li><li>PowerQuery assumes: src.process.name is the creating process on a Process Creation event.</li><li>PowerQuery assumes: A creator the sensor did not record is not excluded and so is reported.</li><li>KQL – Defender XDR: Accessibility use, kiosk launchers and helpdesk scripts that start the on-screen keyboard will match until they are added to the exclusion list.</li><li>KQL – Defender XDR assumes: InitiatingProcessFileName holds the creating process name without a path.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql5-tab" aria-controls="kql5-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: osk.exe launched by an unexpected parent (SignDrop stage 1)</span>
+<span class="cm">// MITRE: T1106, T1068</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with parent (CrowdStrike: ProcessRollup2, SyntheticProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: accessibility use, kiosk launchers, helpdesk scripts starting the on-screen keyboard.</span>
+<span class="cm">// TUNING: baseline ParentBaseFileName for osk.exe for 14 days and add your own sanctioned launchers to the exclusion regex below.</span>
+<span class="cm">// TUNING: a launch from a shell, script host or a binary in a user-writable path (Temp, Downloads, AppData) is the high-value subset; sort by that first.</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^osk(\.exe)?$/i
+| ParentBaseFileName!=/^(explorer|utilman|atbroker|winlogon|svchost|sihost|logonui)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, ParentProcessId, TargetProcessId, aid])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.process.name</code>: Created process name</li><li><code>src.process.name</code>: Creating process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Optional fields</h4><ul><li><code>src.process.user</code>: Creating process user</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.name = *
+| limit 5
+| columns event.time, event.type, src.process.name, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5" data-lookback="7d">// HUNT: osk.exe launched by an unexpected parent (SignDrop stage 1)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1106, T1068
+// CONF: medium | FP: medium
+// FALSE POSITIVES: accessibility use, kiosk launchers, helpdesk scripts starting the on-screen keyboard.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: osk.exe created by a process outside the sanctioned parent list. On a Process Creation event osk.exe is tgt.process and its creator is src.process. The exclusion is written as a negated in:anycase list, which keeps the CQL case-insensitive intent and an optional .exe.
+// REQUIRES: SentinelOne process creation telemetry with creator lineage
+// TUNING: Baseline the creating process for osk.exe for 14 days and add sanctioned launchers to the exclusion list. A launch from a shell, script host or a binary in a user-writable location is the high-value subset.
+// LOOKBACK: 7d; extend to 14d for the baseline
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Accessibility use, kiosk launchers and helpdesk scripts that start the on-screen keyboard will match until they are added to the exclusion list.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; tgt.process.name in:anycase (&#x27;osk.exe&#x27;, &#x27;osk&#x27;) !(src.process.name in:anycase (&#x27;explorer.exe&#x27;, &#x27;explorer&#x27;, &#x27;utilman.exe&#x27;, &#x27;utilman&#x27;, &#x27;atbroker.exe&#x27;, &#x27;atbroker&#x27;, &#x27;winlogon.exe&#x27;, &#x27;winlogon&#x27;, &#x27;svchost.exe&#x27;, &#x27;svchost&#x27;, &#x27;sihost.exe&#x27;, &#x27;sihost&#x27;, &#x27;logonui.exe&#x27;, &#x27;logonui&#x27;))
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.process.name, tgt.process.image.path, tgt.process.cmdline, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql5-pane" role="tabpanel" aria-labelledby="kql5-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceProcessEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>FileName</code>: Created process name</li><li><code>InitiatingProcessFileName</code>: Creating process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>ProcessCommandLine</code>: Created command line</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated in DeviceProcessEvents; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceProcessEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, FileName, InitiatingProcessFileName
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql5" data-language="kql" data-rosetta-query-id="cql5" data-lookback="7d">// HUNT: osk.exe launched by an unexpected parent (SignDrop stage 1)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1106, T1068
+// CONF: medium | FP: medium
+// FALSE POSITIVES: accessibility use, kiosk launchers, helpdesk scripts starting the on-screen keyboard.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: osk.exe created by a process outside the sanctioned parent list. The created process is FileName and its creator is InitiatingProcessFileName. !in~ reproduces the CQL case-insensitive exclusion with an optional .exe.
+// REQUIRES: Defender for Endpoint process-creation telemetry (DeviceProcessEvents)
+// TUNING: Baseline the creating process for osk.exe for 14 days and add sanctioned launchers to the exclusion list. A launch from a shell, script host or a binary in a user-writable location is the high-value subset.
+// LOOKBACK: 7d; extend to 14d for the baseline
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Accessibility use, kiosk launchers and helpdesk scripts that start the on-screen keyboard will match until they are added to the exclusion list.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceProcessEvents
+| where Timestamp &gt;= ago(7d)
+| where FileName in~ (&quot;osk.exe&quot;, &quot;osk&quot;)
+| where InitiatingProcessFileName !in~ (&quot;explorer.exe&quot;, &quot;explorer&quot;, &quot;utilman.exe&quot;, &quot;utilman&quot;, &quot;atbroker.exe&quot;, &quot;atbroker&quot;, &quot;winlogon.exe&quot;, &quot;winlogon&quot;, &quot;svchost.exe&quot;, &quot;svchost&quot;, &quot;sihost.exe&quot;, &quot;sihost&quot;, &quot;logonui.exe&quot;, &quot;logonui&quot;)
+| project Timestamp, ReportId, DeviceId, DeviceName, AccountName, InitiatingProcessFileName, FileName, FolderPath, ProcessCommandLine, SHA1
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q6 &middot; MpEngine.dll written outside Defender paths</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> The bait file MpEngine.dll is staged in the exploit's working directory with an oplock (Cyderes row B). Flags a PE write named MpEngine.dll anywhere except the Defender platform and definition paths. The sources do not say whether the bait is a valid PE, so a non-PE bait will not raise a PE-written event: treat a miss as inconclusive. <strong>FP:</strong> Defender engine and definition updates, offline scanner media and backup restores write this name; extend the exclusion to your sanctioned paths.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The sources do not state whether the bait is a valid PE file; an absent hit does not prove the bait was not staged.</li><li>PowerQuery: Offline scan media, backup restores and security-product test labs will match until excluded.</li><li>PowerQuery assumes: tgt.file.path holds the full path of the written file.</li><li>PowerQuery assumes: A write with no recorded writing process is not excluded and so is reported.</li><li>KQL – Defender XDR: The sources do not state whether the bait is a valid PE file; an absent hit does not prove the bait was not staged.</li><li>KQL – Defender XDR: Offline scan media, backup restores and security-product test labs will match until excluded.</li><li>KQL – Defender XDR assumes: FolderPath holds the directory of the written file.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql6-tab" aria-controls="kql6-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: MpEngine.dll written outside Defender paths (SignDrop bait file)</span>
+<span class="cm">// MITRE: T1068</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: PE file write telemetry (CrowdStrike: PeFileWritten, NewExecutableWritten)</span>
+<span class="cm">// FALSE POSITIVES: Defender engine and definition updates, offline scan media, backup restores, security-product test labs.</span>
+<span class="cm">// TUNING: extend the path exclusion below with your sanctioned Defender staging locations; exclude writes whose ContextBaseFileName is MsMpEng.exe or MpCmdRun.exe.</span>
+<span class="cm">// NOTE: the sources do not state whether the bait is a valid PE; an absent hit does not prove the bait was not staged.</span>
+#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/
+| FileName=/^MpEngine\.dll$/i
+| TargetFileName!=/\\(ProgramData\\Microsoft\\Windows Defender|Program Files\\Windows Defender|Program Files\\Microsoft Defender)\\/i
+| ContextBaseFileName!=/^(MsMpEng|MpCmdRun|MpSigStub)(\.exe)?$/i
+| table([@timestamp, ComputerName, UserName, FileName, TargetFileName, ContextBaseFileName, SHA256HashData, aid])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li><li>File Modification</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.file.path</code>: Written file path</li><li><code>src.process.name</code>: Writing process</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>endpoint.name</code>: Host</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.file.sha256</code>: Hash</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; tgt.file.path = *
+| limit 5
+| columns event.time, event.type, tgt.file.path, src.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6" data-lookback="7d">// HUNT: MpEngine.dll written outside Defender paths (SignDrop bait file)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1068
+// CONF: medium | FP: medium
+// FALSE POSITIVES: Defender engine and definition updates, offline scan media, backup restores, security-product test labs.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: MpEngine.dll written outside the three Defender install and data paths, by a writer other than the Defender service binaries. File Creation and File Modification stand in for the CQL&#x27;s portable-executable write events.
+// REQUIRES: SentinelOne file creation and modification telemetry (File Creation, File Modification)
+// TUNING: Extend the path exclusion with your sanctioned Defender staging locations and exclude the Defender service binaries as the writer.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The sources do not state whether the bait is a valid PE file; an absent hit does not prove the bait was not staged. Offline scan media, backup restores and security-product test labs will match until excluded.
+// VALIDATION LEVEL: static-reviewed
+event.type in (&#x27;File Creation&#x27;, &#x27;File Modification&#x27;) tgt.file.path contains &#x27;\\MpEngine.dll&#x27; tgt.file.path matches &#x27;MpEngine[.]dll$&#x27; !(tgt.file.path contains &#x27;ProgramData\\Microsoft\\Windows Defender\\&#x27; or tgt.file.path contains &#x27;Program Files\\Windows Defender\\&#x27; or tgt.file.path contains &#x27;Program Files\\Microsoft Defender\\&#x27;) !(src.process.name in:anycase (&#x27;MsMpEng.exe&#x27;, &#x27;MsMpEng&#x27;, &#x27;MpCmdRun.exe&#x27;, &#x27;MpCmdRun&#x27;, &#x27;MpSigStub.exe&#x27;, &#x27;MpSigStub&#x27;))
+| columns event.time, endpoint.name, src.process.user, src.process.name, tgt.file.path, tgt.file.sha256, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql6-pane" role="tabpanel" aria-labelledby="kql6-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceFileEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action</li><li><code>FileName</code>: Written file name</li><li><code>FolderPath</code>: Written file directory</li><li><code>InitiatingProcessFileName</code>: Writing process</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessAccountName</code>: Writing account</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceFileEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ActionType, FileName, FolderPath, InitiatingProcessFileName
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql6" data-language="kql" data-rosetta-query-id="cql6" data-lookback="7d">// HUNT: MpEngine.dll written outside Defender paths (SignDrop bait file)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1068
+// CONF: medium | FP: medium
+// FALSE POSITIVES: Defender engine and definition updates, offline scan media, backup restores, security-product test labs.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: MpEngine.dll written outside the three Defender paths by a writer other than the Defender service binaries. FileCreated and FileModified stand in for the CQL&#x27;s portable-executable write events.
+// REQUIRES: Defender for Endpoint file telemetry (DeviceFileEvents)
+// TUNING: Extend the path exclusion with your sanctioned Defender staging locations and exclude the Defender service binaries as the writer.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The sources do not state whether the bait is a valid PE file; an absent hit does not prove the bait was not staged. Offline scan media, backup restores and security-product test labs will match until excluded.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceFileEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType in~ (&quot;FileCreated&quot;, &quot;FileModified&quot;)
+| where FileName =~ &quot;MpEngine.dll&quot;
+| where not(FolderPath contains &quot;\\ProgramData\\Microsoft\\Windows Defender\\&quot; or FolderPath contains &quot;\\Program Files\\Windows Defender\\&quot; or FolderPath contains &quot;\\Program Files\\Microsoft Defender\\&quot;)
+| where InitiatingProcessFileName !in~ (&quot;MsMpEng.exe&quot;, &quot;MsMpEng&quot;, &quot;MpCmdRun.exe&quot;, &quot;MpCmdRun&quot;, &quot;MpSigStub.exe&quot;, &quot;MpSigStub&quot;)
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, FolderPath, SHA1, SHA256
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q7 &middot; Tripwire: unmodified SignDrop working directory</span>
+        <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> The unmodified sample works in %TEMP%\SigDrop_&lt;GUID&gt;. Cyderes calls the directory name PoC-specific and useful only as a tripwire for the unmodified sample; a recompiled variant will not match. Low confidence for coverage, high value when it does fire.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions, telemetry-gap</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Catches the unmodified sample directory name only; a renamed working directory is invisible.</li><li>PowerQuery assumes: tgt.process.image.path holds the full image path of the created process.</li><li>PowerQuery assumes: tgt.file.path holds the full path of the written file.</li><li>KQL – Defender XDR: The started-image half of the CQL is not covered; a payload run from the directory without a recorded file write is missed.</li><li>KQL – Defender XDR: Catches the unmodified sample directory name only.</li><li>KQL – Defender XDR assumes: FolderPath holds the directory of the written file.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql7-tab" aria-controls="kql7-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: SignDrop unmodified-sample tripwire (working directory name)</span>
+<span class="cm">// MITRE: T1106</span>
+<span class="cm">// CONF: low  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: process creation and file write telemetry (CrowdStrike: ProcessRollup2, PeFileWritten, NewExecutableWritten)</span>
+<span class="cm">// FALSE POSITIVES: none expected; the directory name is specific to the public sample.</span>
+<span class="cm">// NOTE: tripwire for the unmodified sample only (Cyderes Table 2, row A). Absence says nothing about a renamed or recompiled variant.</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| ImageFileName=/\\SigDrop_[0-9a-fA-F{}-]+/i or TargetFileName=/\\SigDrop_[0-9a-fA-F{}-]+/i
+| table([@timestamp, #event_simpleName, ComputerName, UserName, FileName, ImageFileName, TargetFileName, CommandLine, ParentBaseFileName, aid])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li><li>File Creation</li><li>File Modification</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.process.image.path</code>: Created process image path</li><li><code>tgt.file.path</code>: Written file path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creating process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.image.path = *
+| limit 5
+| columns event.time, event.type, tgt.process.image.path, tgt.file.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7" data-lookback="7d">// HUNT: SignDrop unmodified-sample tripwire (working directory name)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1106
+// CONF: low | FP: low
+// FALSE POSITIVES: none expected; the directory name is specific to the public sample.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a path component named SigDrop_ followed by hex digits, braces or hyphens, seen either as a started image or as a written file. The two CQL populations map to Process Creation (tgt.process.image.path) and File Creation or Modification (tgt.file.path).
+// REQUIRES: SentinelOne process creation and file write telemetry
+// TUNING: Tripwire for the unmodified public sample only. Absence says nothing about a renamed or recompiled variant.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Catches the unmodified sample directory name only; a renamed working directory is invisible.
+// VALIDATION LEVEL: static-reviewed
+(event.type = &#x27;Process Creation&#x27; tgt.process.image.path contains &#x27;\\SigDrop_&#x27; tgt.process.image.path matches &#x27;SigDrop_[0-9a-fA-F{}-]+&#x27;) or (event.type in (&#x27;File Creation&#x27;, &#x27;File Modification&#x27;) tgt.file.path contains &#x27;\\SigDrop_&#x27; tgt.file.path matches &#x27;SigDrop_[0-9a-fA-F{}-]+&#x27;)
+| columns event.time, event.type, endpoint.name, src.process.user, src.process.name, tgt.process.image.path, tgt.process.cmdline, tgt.file.path, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql7-pane" role="tabpanel" aria-labelledby="kql7-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceFileEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action</li><li><code>FolderPath</code>: Written file directory</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>InitiatingProcessFileName</code>: Writing process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>SHA1</code>: Hash. SHA256 is often unpopulated; SHA1 is the safer pivot.</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceFileEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ActionType, FolderPath
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql7" data-language="kql" data-rosetta-query-id="cql7" data-lookback="7d">// HUNT: SignDrop unmodified-sample tripwire (working directory name)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1106
+// CONF: low | FP: low
+// FALSE POSITIVES: none expected; the directory name is specific to the public sample.
+// EQUIVALENCE: telemetry-gap - The CQL matches the directory name on either a started image or a written file. One table per query leaves only the file-write half, DeviceFileEvents, as a partial pivot.
+// REQUIRES: Defender for Endpoint file telemetry (DeviceFileEvents)
+// TUNING: Tripwire for the unmodified public sample only. Absence says nothing about a renamed or recompiled variant.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The started-image half of the CQL is not covered; a payload run from the directory without a recorded file write is missed. Catches the unmodified sample directory name only.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceFileEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType in~ (&quot;FileCreated&quot;, &quot;FileModified&quot;)
+| where FolderPath contains &quot;\\SigDrop_&quot;
+| where FolderPath matches regex @&quot;(?i)SigDrop_[0-9a-fA-F{}-]+&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, FileName, FolderPath, SHA1
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+    <div class="query-card">
+      <div class="qc-header">
+        <span class="qc-title">Q8 &middot; CLFS authentication Mode value written</span>
+        <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+        <div class="qc-actions">
+          <button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button>
+          <button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button>
+        </div>
+      </div>
+      <div class="qc-body">
+        <p><strong>Looks for:</strong> Not an exploit detection: a posture and tamper check. Mode 0 or 1 puts a host in scope for SignDrop; a value that disables the mitigation takes the host out of scope but reopens the older CLFS memory corruption bugs (THN, Cyderes, Microsoft). Flags any write to the Mode value so a disable is reviewed, not silently accepted. <strong>FP:</strong> Group Policy and MDM deliver this setting, and the first-boot transition writes it; exclude your policy engine.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: schema-aligned, static-reviewed</span><span class="rosetta-badge">Automated: static-passed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: microsoft-defender-xdr, sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Only writes inside the search window are seen; the value as it stands today is not reported.</li><li>PowerQuery assumes: registry.keyPath holds the key path and registry.valueName the value name for a Registry Value Modified event.</li><li>PowerQuery assumes: The key may appear under a numbered control set or the current control set; contains matches either.</li><li>KQL – Defender XDR: Only writes inside the search window are seen; the value as it stands today is not reported.</li><li>KQL – Defender XDR assumes: RegistryKey holds the key path, under a numbered or the current control set; contains matches either.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button><button type="button" class="rosetta-tab" role="tab" id="kql8-tab" aria-controls="kql8-pane" aria-selected="false" data-language="kql" tabindex="-1" onclick="rosettaSwitch(this)">KQL – Defender XDR</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-open-def" hidden onclick="rosettaOpenDefender(this)" title="Microsoft documents a Share link in the portal but not its URL format: this copies the query and opens Advanced hunting">Copy &amp; open Defender</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: CLFS authentication Mode value written (mitigation posture / tamper)</span>
+<span class="cm">// MITRE: T1112</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: registry write telemetry (CrowdStrike: RegGenericValueUpdate, RegSystemConfigValueUpdate)</span>
+<span class="cm">// FALSE POSITIVES: Group Policy or MDM applying the CLFS authentication setting; OS servicing and the adoption-period transition.</span>
+<span class="cm">// TUNING: exclude writes by your policy engine (ContextBaseFileName svchost.exe on managed hosts) after confirming the baseline; alert on any user-context write.</span>
+<span class="cm">// NOTE: reading the CURRENT value needs the inventory script in Playbook 1; this query only sees writes inside the search window.</span>
+#event_simpleName=/^(RegGenericValueUpdate|RegSystemConfigValueUpdate)$/
+| RegObjectName=/\\Services\\CLFS\\Authentication$/i
+| RegValueName=/^Mode$/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, ContextBaseFileName, aid])
+| sort(@timestamp, order=desc)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Registry Value Modified</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>registry.keyPath</code>: Registry key path</li><li><code>registry.valueName</code>: Registry value name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Writing process</li><li><code>registry.value</code>: Registry value</li></ul></section><section><h4>Optional fields</h4><ul><li><code>src.process.user</code>: Writing user</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Registry Value Modified&#x27; registry.keyPath = *
+| limit 5
+| columns event.time, event.type, registry.keyPath, registry.valueName</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8" data-lookback="7d">// HUNT: CLFS authentication Mode value written (mitigation posture / tamper)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1112
+// CONF: medium | FP: medium
+// FALSE POSITIVES: Group Policy or MDM applying the CLFS authentication setting; OS servicing and the adoption-period transition.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a registry value named Mode written under the CLFS Authentication service key. The CQL&#x27;s two registry write events map to the single Registry Value Modified event type.
+// REQUIRES: SentinelOne registry value modification telemetry
+// TUNING: Exclude writes by your policy engine on managed hosts after confirming the baseline, and alert on any user-context write. Reading the current value needs the inventory script in the pack&#x27;s playbook; this query sees only writes inside the search window.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Only writes inside the search window are seen; the value as it stands today is not reported.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Registry Value Modified&#x27; registry.keyPath contains &#x27;Services\\CLFS\\Authentication&#x27; registry.valueName in:anycase (&#x27;Mode&#x27;)
+| columns event.time, endpoint.name, src.process.user, src.process.name, registry.keyPath, registry.valueName, registry.value, agent.uuid
+| limit 200</pre></div><div class="rosetta-pane" data-lang="kql" id="kql8-pane" role="tabpanel" aria-labelledby="kql8-tab" hidden><details class="rosetta-automated-validation" data-status="static-passed"><summary>Automated validation: static-passed</summary><div class="rosetta-automated-validation-body"><div>Static schema: passed (0 errors, 0 warnings)</div><div>Positive fixtures: 0/0 · Benign fixtures: 0/0</div><div>Evidence: recorded in the build's validation report (not published)</div><div>Checked: 2026-11-15T12:28:10Z · siem-query-rosetta-kql-validator/1.0.0</div></div></details><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DeviceRegistryEvents</li></ul></section><section><h4>Required fields</h4><ul><li><code>Timestamp</code>: Event time</li><li><code>ActionType</code>: Action</li><li><code>RegistryKey</code>: Registry key path</li><li><code>RegistryValueName</code>: Registry value name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>RegistryValueData</code>: Registry value</li></ul></section><section><h4>Optional fields</h4><ul><li><code>InitiatingProcessFileName</code>: Writing process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>DeviceName</code> → <code>DeviceId</code>: Changes the displayed host identifier only.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">DeviceRegistryEvents
+| where Timestamp &gt; ago(1d)
+| project Timestamp, ActionType, RegistryKey, RegistryValueName
+| take 5</pre></section></div></details><pre class="siem-code kql" id="kql8" data-language="kql" data-rosetta-query-id="cql8" data-lookback="7d">// HUNT: CLFS authentication Mode value written (mitigation posture / tamper)
+// SCHEMA PROFILE: microsoft-defender-xdr
+// MITRE: T1112
+// CONF: medium | FP: medium
+// FALSE POSITIVES: Group Policy or MDM applying the CLFS authentication setting; OS servicing and the adoption-period transition.
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a registry value named Mode written under the CLFS Authentication service key. RegistryValueSet is the documented write action in DeviceRegistryEvents.
+// REQUIRES: Defender for Endpoint registry telemetry (DeviceRegistryEvents)
+// TUNING: Exclude writes by your policy engine on managed hosts after confirming the baseline, and alert on any user-context write.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Only writes inside the search window are seen; the value as it stands today is not reported.
+// VALIDATION LEVEL: schema-aligned
+// AUTOMATED VALIDATION: static-passed; static=passed; fixtures=0/0
+DeviceRegistryEvents
+| where Timestamp &gt;= ago(7d)
+| where ActionType == &quot;RegistryValueSet&quot;
+| where RegistryKey contains &quot;\\Services\\CLFS\\Authentication&quot;
+| where RegistryValueName =~ &quot;Mode&quot;
+| project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, RegistryKey, RegistryValueName, RegistryValueData
+| sort by Timestamp desc
+| take 200</pre></div></div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2 data-rosetta-original="CrowdStrike Custom IOA Recommendations">Detection Rules by Platform</h2></div>
+    <div class="section-body">
+<p>Two rules are worth promoting. Both are <strong>Detect only</strong>. Neither is a prevent rule: the parent in IOA 2 is stock Microsoft software, and the file in IOA 1 is matched by directory, not by name alone. Revisit only after a clean baseline and a lab validation of the parent link.</p>
+<h3 data-rosetta-gen="ioa-heading" style="margin:4px 0 8px;font-size:13px">CrowdStrike: Custom IOA</h3><table><thead><tr><th>IOA name</th><th>Rule type</th><th>Pattern</th><th>Exclusions</th><th>Action</th><th>Promotes</th></tr></thead><tbody><tr><td>SignDrop: hid.dll created in Common Files ink directory</td><td>File creation</td><td>File path: <code>.*\\Common Files\\microsoft shared\\ink\\hid\.dll</code>; image file name: <code>.*</code></td><td>None known. Cyderes: the file does not ship there.</td><td>Detect, severity High</td><td>Promote Q1</td></tr><tr><td>SignDrop: child process of consent.exe</td><td>Process creation</td><td>Parent image file name: <code>.*\\consent\.exe</code>; image file name: <code>.*</code></td><td>None known. Validate on a lab host first and record any benign children.</td><td>Detect, severity High</td><td>Promote Q3</td></tr></tbody></table>
+    
+<div data-rosetta-gen="rules"><h3 style="margin:18px 0 8px;font-size:13px">SentinelOne: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>SignDrop: hid.dll created in Common Files ink directory</td><td>Q1, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr><tr><td>SignDrop: child process of consent.exe</td><td>Q3, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr></tbody></table><p>Create the rule with <code>POST /web/api/v2.1/cloud-detection/rules</code>, <code>queryType: "scheduled"</code> and <code>queryLang: "2.0"</code>, with the query in <code>data.scheduledParams.query</code>. Use 2.0 operator spellings: a rule written with the 1.0 token <code>ContainsCIS</code> was accepted and never fired on a tenant. The API does not warn, so lint the body before deploying.</p><h3 style="margin:18px 0 8px;font-size:13px">Microsoft Defender: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>SignDrop: hid.dll created in Common Files ink directory</td><td>Q1, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr><tr><td>SignDrop: child process of consent.exe</td><td>Q3, KQL – Defender XDR tab</td><td>Custom detection rule, alert only, every hour</td><td>The query returns Timestamp, ReportId and DeviceId, which Microsoft recommends for Defender for Endpoint tables so alerts carry the device group scope and the process tree. Remove the Timestamp filter and the final sort and take before saving the rule: the service applies the rule&#x27;s lookback itself. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr></tbody></table><p>Q2, Q4, Q5, Q6, Q7 and Q8 stay a hunt in this pack, not a rule. A rule can generate only 150 alerts per run. Continuous (NRT) frequency needs a single table and no comment lines, so delete the generated comment header from the query first.</p></div></div>
+  </div>
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+<div class="ioc-grab-grid">
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">placeholder only</span></div>
+    <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+# SignDrop is a public proof of concept with no in-the-wild campaign. The cited sources publish no file hashes, domains or IPs.
+# Nothing is invented to fill this file. The single row below is a labelled placeholder: replace it only if Microsoft or a vendor publishes a verified indicator.
+# Do not add the researcher's repository or mirror hosts. Cyderes states they are publication points, not adversary infrastructure.
+sha256,REPLACE_WITH_SHA256,detect,medium,2027-05-15,SignDrop sample or payload hash if a vendor publishes one,tool:SignDrop</pre>
+  </div>
+<div class="ioc-grab" data-rosetta-gen="sentinelone-indicators"><div class="igh"><span class="igt">SentinelOne IOC import</span><span class="igc">not included</span></div><p style="font-size:12px;line-height:1.5;margin:0">This pack does not ship a SentinelOne import block: the import format could not be verified against SentinelOne's own documentation. Export a sample from your console and the block can be added with confidence.</p></div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">path and context</span></div>
+    <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behavior"># Behavioral signatures (Cyderes appendix and Table 2). Detect on path and context, never on a bare Windows binary name.
+PLANTED_DLL_PATH   C:\Program Files\Common Files\microsoft shared\ink\hid.dll   (does not ship there; removed by transacted delete)
+WORKING_DIR        %TEMP%\SigDrop_&lt;GUID&gt;   (auto-deletes; tripwire for the unmodified sample only)
+BAIT_FILE          MpEngine.dll in the working directory (held with an oplock)
+PROCESS_CHAIN      osk.exe terminated and relaunched hidden
+                   consent.exe loads the planted ink-directory DLL during a runas request
+                   SYSTEM conhost.exe appears; consent.exe terminated
+RULE_OF_THUMB      alert: any hid.dll creation in the ink directory
+                   alert: consent.exe loading any DLL from the ink directory
+                   alert: Defender signature-update RPC from outside the Defender service tree
+SAFE_TO_BLOCK      nothing here. osk.exe, consent.exe, conhost.exe, clfs.sys, MpEngine.dll are stock Microsoft software.</pre>
+  </div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">PoC Technical Identifiers</span><span class="igc">hunt values</span></div>
+    <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-tech',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-tech"># PoC technical identifiers (Cyderes appendix). Hunt values for kernel or ETW telemetry; none has a standard endpoint event.
+CLFS_IOCTL         0x8007A808
+DEFENDER_RPC       Proc42_ServerMpUpdateEngineSignature
+SYMLINK            \BaseNamedObjects\Restricted\mpasbase.vdm
+SYMLINK_NAMESPACE  \BaseNamedObjects\Restricted\  (GUID-named links)
+EMBEDDED_RESOURCE  IDR_DLL1
+CLFS_COMPANION     .cnpf (created beside the log by clfs.sys)</pre>
+  </div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Research Provenance</span><span class="igc">not adversary infrastructure</span></div>
+    <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-prov',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-prov"># Research provenance. NOT adversary infrastructure (Cyderes). Do NOT add to any blocklist or prevent policy.
+POC_REPOSITORY     hxxps[://]github[.]com/MSNightmare/SignDrop
+MIRRORS            two self-hosted Git servers, host names listed in the Cyderes report (not repeated here)
+USE                monitor for new releases from this researcher (process control); cite as provenance only.</pre>
+  </div>
+  <div class="ioc-grab">
+    <div class="igh"><span class="igt">Exposure and Config Audit</span><span class="igc">read-only</span></div>
+    <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit"># Exposure and configuration audit (read-only)
+REGISTRY_KEY       HKLM\SYSTEM\CurrentControlSet\Services\CLFS\Authentication
+VALUE              Mode: 0 enforced, 1 learning (in scope); other values mean the mitigation is disabled
+OTHER_VALUE        EnforcementTransitionPeriod (seconds, adoption period)
+GROUP_POLICY       Administrative Templates &gt; System &gt; Filesystem &gt; Enable / disable CLFS logfile authentication
+MDM_POLICY         /Vendor/MSFT/Policy/Config/FileSystem/ClfsAuthenticationChecking
+INVENTORY          Playbook 1 (read-only script)
+DO_NOT             disable the mitigation as a workaround: it reopens the older CLFS memory corruption bugs
+STATUS             no CVE, no patch (as of 2026-11-12); watch the Microsoft Security Update Guide</pre>
+  </div>
+</div>
+    </div>
+  </div>
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Gate</th><th>Criteria</th></tr></thead><tbody><tr><td>Telemetry ready</td><td>Process creation with parent (CrowdStrike: ProcessRollup2. Defender: DeviceProcessEvents), PE file write (PeFileWritten, NewExecutableWritten. DeviceFileEvents), image load (ImageHash. DeviceImageLoadEvents) and registry write (RegGenericValueUpdate. DeviceRegistryEvents) are flowing on a pilot ring. Confirm the ImageHash FilePath field on your sensor version for Q4. Retention for file, image-load and process telemetry covers at least the response window, because the exploit deletes its planted file.</td></tr><tr><td>Benign baseline</td><td>Run Q3, Q5, Q6 and Q8 over 14 days. Record every parent of osk.exe, every Defender staging path that writes MpEngine.dll, and every policy engine that writes the CLFS Mode value. Q1, Q2 and Q7 should return zero.</td></tr><tr><td>Positive tests</td><td>In an isolated lab VM only, as an administrator: copy a harmless renamed file into the ink directory and delete it, to confirm Q1, Q2 context and the Playbook 2 audit event; start osk.exe from a command shell to confirm Q5. Do not run the public proof of concept on a production host. Confirm on a lab host that the payload's console shows consent.exe as its parent before promoting Q3 to an IOA.</td></tr><tr><td>Promotion</td><td>Promote Q1 and Q3 to Custom IOAs as Detect. Keep Q4, Q5, Q6 and Q8 as scheduled hunts until their baselines are tuned. Q7 is a tripwire. Do not promote any rule to prevent.</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered</h2></div>
+    <div class="section-body">
+<div class="callout callout-warn">There is no patch. These controls reduce exposure and raise detection; none removes the flaw. Do not disable CLFS authentication, and do not disable Defender, as a workaround. THN and Cyderes both warn that disabling the mitigation reopens the older CLFS memory corruption bugs.</div><div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div><ul><li><strong>Inventory CLFS authentication Mode on every host</strong> (Playbook 1). Mode 0 or 1 defines the population to prioritize. MITRE M1047 (Audit), M1019 (Threat Intelligence Program). Authority: Microsoft Learn CLFS logfile authentication; Cyderes. Verify: the script output.</li><li><strong>Keep CLFS authentication on and managed</strong> through Group Policy (Enable / disable CLFS logfile authentication) or MDM (ClfsAuthenticationChecking), and review any host reporting a disabled value. T1068 has no framework control that fits a logic bug with no patch, so this is <em>⚠ best-practice, no formal benchmark</em>; authority is the Microsoft Learn page. Verify with Q8 and the inventory.</li><li><strong>Audit file creation in the ink directory</strong> (Playbook 2) and confirm retention of file, image-load and process telemetry. T1070.004, T1574.001: M1047. Authority: Cyderes (retain telemetry because the file is deleted). Verify: a test file in the lab produces event 4663.</li><li><strong>Keep Defender current with Tamper Protection on</strong> (Playbook 3, read-only check). M1049. Microsoft states Defender detects and blocks SignDrop; Cyderes says not to rely on that. Verify: <code>Get-MpComputerStatus</code>.</li></ul></div><div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div><ul><li><strong>Reduce untrusted local code execution</strong> with the Defender ASR prevalence rule in audit mode first (Playbook 3), then AppLocker or WDAC for user-writable paths. T1068: M1038 (Execution Prevention). Authority: Cyderes (restrict untrusted local code execution). Every release in this cluster is a local escalation that needs a foothold first. Verify: ASR audit events (1122).</li><li><strong>WDAC in audit mode to catch unsigned or untrusted DLL loads</strong> into privileged processes (Playbook 4). T1574.001: M1038, M1044, M1045. Authority: Microsoft WDAC documentation. Move to enforcement only after the audit log is clean. Verify: CodeIntegrity event 3076.</li><li><strong>Reduce standing local administrator and interactive logon rights</strong> so a foothold is harder to obtain. M1026, M1018. Authority: CIS Benchmark for Windows (user rights assignment). Reduces who can reach the vulnerable path; does not stop a standard user already on the host.</li></ul></div><div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div><ul><li><strong>Patch on release.</strong> No CVE exists as of 2026-11-12 and the CISA KEV catalog does not list it. Track the Microsoft Security Update Guide and stage a ring deployment. M1051. Cyderes expects a fix to change how CLFS resolves paths during signature file creation in kernel-mode code, so test on a pilot ring before broad rollout.</li><li><strong>Monitor the researcher's publication channels</strong> and treat new releases as hunt-hypothesis input. M1019. Process control only: no indicator from those hosts is blocked.</li><li><strong>Memory-protection mitigations (M1050 Exploit Protection) are the framework default for T1068</strong> but will not stop this chain, which is a logic bug with no memory corruption (Cyderes). <em>⚠ No framework citation that applies: do not count Exploit Protection as coverage for SignDrop.</em></li></ul></div>
+    </div>
+  </div>
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+<p>Each playbook carries Prerequisites, Reboot required and Rollback. None changes the CLFS authentication Mode.</p>
+<h3>Playbook 1. CLFS authentication inventory (read-only)</h3><pre class="code"># Prerequisites: local administrator or remote registry read; PowerShell 5.1+
+# Reboot required: no
+# Rollback: none required, this script only reads
+$k = 'HKLM:\SYSTEM\CurrentControlSet\Services\CLFS\Authentication'
+$p = Get-ItemProperty -Path $k -ErrorAction SilentlyContinue
+[pscustomobject]@{
+  ComputerName                = $env:COMPUTERNAME
+  KeyPresent                  = [bool]$p
+  Mode                        = $p.Mode
+  EnforcementTransitionPeriod = $p.EnforcementTransitionPeriod
+  InScope                     = ($null -ne $p.Mode) -and (@(0,1) -contains [int]$p.Mode)
+}
+# Fleet form: Invoke-Command -ComputerName (Get-Content hosts.txt) -ScriptBlock { &lt;script above&gt; }
+# A missing key means the state is unknown: check the OS build against the Microsoft Learn page before assuming the host is out of scope.
+# Verify: output shows Mode 0 or 1 on current Windows 11 and Server 2025 builds.</pre><h3>Playbook 2. Audit file creation in the ink directory</h3><pre class="code"># Prerequisites: local administrator (SeSecurityPrivilege); Audit File System subcategory not already managed by GPO
+# Reboot required: no
+# Rollback: remove the audit rule and restore the prior audit setting captured below
+$dir = 'C:\Program Files\Common Files\microsoft shared\ink'
+auditpol /get /subcategory:"File System"          # record the CURRENT setting first, for rollback
+auditpol /set /subcategory:"File System" /success:enable
+$acl  = Get-Acl -Path $dir -Audit
+$rule = New-Object System.Security.AccessControl.FileSystemAuditRule('Everyone','CreateFiles,WriteData','ContainerInherit,ObjectInherit','None','Success')
+$acl.AddAuditRule($rule)
+Set-Acl -Path $dir -AclObject $acl
+# Verify (lab host): create and delete a harmless test file, then look for event 4663
+#   New-Item "$dir\ink-audit-test.tmp" -ItemType File; Remove-Item "$dir\ink-audit-test.tmp"
+#   Get-WinEvent -FilterHashtable @{LogName='Security';Id=4663} -MaxEvents 5
+# Rollback:
+#   $acl = Get-Acl -Path $dir -Audit; $acl.RemoveAuditRule($rule) | Out-Null; Set-Acl -Path $dir -AclObject $acl
+#   auditpol /set /subcategory:"File System" /success:disable   # only if it was disabled before</pre><h3>Playbook 3. Defender health check and ASR prevalence rule in audit mode</h3><pre class="code"># Prerequisites: Microsoft Defender Antivirus is the active antivirus (ASR rules do not apply when Defender is passive, for example with a third-party AV)
+# Reboot required: no
+# Rollback: Remove-MpPreference for the rule id below
+# Step A: read-only health check
+Get-MpComputerStatus | Select-Object AMServiceEnabled, IsTamperProtected, AMEngineVersion, AntivirusSignatureVersion, RealTimeProtectionEnabled
+# Step B: ASR prevalence rule in AUDIT mode only (block untrusted executables by prevalence, age and trusted list)
+Add-MpPreference -AttackSurfaceReductionRules_Ids 01443614-cd74-433a-b99e-2ecdc07bfc25 -AttackSurfaceReductionRules_Actions AuditMode
+# Verify
+(Get-MpPreference).AttackSurfaceReductionRules_Ids
+# Review audit events (Microsoft-Windows-Windows Defender/Operational, event 1122) for 2 to 4 weeks before any move to block.
+# Rollback:
+Remove-MpPreference -AttackSurfaceReductionRules_Ids 01443614-cd74-433a-b99e-2ecdc07bfc25</pre><h3>Playbook 4. WDAC audit-mode policy for DLL loads</h3><pre class="code"># Prerequisites: Windows 11 22H2 or later (CiTool); test on a pilot ring; keep the audit-mode example policy shipped with Windows
+# Reboot required: no for CiTool-deployed policies; a restart finalizes removal on some builds
+# Rollback: remove the policy by id (printed in step 2)
+$xml = Join-Path $env:TEMP 'DLL-Audit.xml'
+Copy-Item "$env:windir\schemas\CodeIntegrity\ExamplePolicies\DefaultWindows_Audit.xml" $xml
+Set-CIPolicyIdInfo -FilePath $xml -PolicyName 'DLL-Load-Audit' -ResetPolicyID
+$id  = ([xml](Get-Content $xml)).SiPolicy.PolicyID
+ConvertFrom-CIPolicy -XmlFilePath $xml -BinaryFilePath (Join-Path $env:TEMP "$id.cip")
+citool.exe --update-policy (Join-Path $env:TEMP "$id.cip")
+"Policy id: $id"
+# Verify: Event Viewer &gt; Applications and Services Logs &gt; Microsoft &gt; Windows &gt; CodeIntegrity &gt; Operational, event 3076 (audit).
+# Move to enforcement only after the audit log is clean for all privileged-process loads.
+# Rollback:
+#   citool.exe --remove-policy "$id"
+# Limits: audit mode logs; it blocks nothing. It does not replace Q1 to Q4.</pre>
+    </div>
+  </div>
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody><tr><td>Isolate</td><td>Network-contain the host in the EDR console. Do not reboot: SYSTEM state and the console may still be live. A SYSTEM shell implies a prior foothold, so also identify and contain the initial access path on that host.</td><td>SOC L2</td><td>Containment timestamp; process tree from Q2 and Q3</td></tr>
+<tr data-rosetta-gen="isolation"><td>Isolate: by platform</td><td>CrowdStrike: network-contain the host. SentinelOne: network quarantine (Disconnect from Network; confirm the label in your console version). Microsoft Defender: Isolate device (full network isolation).</td><td>SOC L2</td><td>Containment timestamp; process tree from Q2 and Q3</td></tr><tr><td>Triage</td><td>Run Q1 to Q8 scoped to the host and the prior 7 days. Record the user, parent processes and any osk.exe or consent.exe anomalies. Check Sysmon event 23 archives and Defender operational events if collected.</td><td>SOC L2</td><td>Query exports; Sysmon archive if present</td></tr><tr><td>Preserve</td><td>Capture memory and the full process list before power changes. The planted hid.dll was deleted by the exploit, so rely on telemetry and any Sysmon archive rather than a disk sweep.</td><td>DFIR</td><td>Memory image; telemetry export</td></tr><tr><td>Eradicate</td><td>Treat a confirmed SYSTEM compromise as full host compromise: rebuild from a known-good image. Rotate credentials and secrets that were reachable from that host and the affected user.</td><td>IT Ops, IAM</td><td>Rebuild ticket; credential rotation log</td></tr><tr><td>Recover</td><td>Return the host to service only after confirming CLFS authentication Mode is 0 or 1 (not disabled), Defender is healthy and the Q1 to Q3 detections are active. Apply Microsoft's fix when it ships.</td><td>IT Ops</td><td>Inventory output; patch compliance</td></tr><tr><td>Lessons</td><td>Add any benign osk.exe parents or MpEngine.dll paths found to the Q5 and Q6 exclusions. Record how the initial foothold was obtained.</td><td>Detection engineering</td><td>Updated exclusions; post-incident note</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+<div class="callout callout-info">Initial access and command-and-control coverage are <strong>N/A</strong>: SignDrop is a local privilege escalation with no campaign, no delivery mechanism and no network infrastructure. An attacker must already hold a foothold, so initial access is covered by other packs and controls. Padding those rows would be dishonest.</div><table><thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th data-rosetta-original="Coverage">CrowdStrike coverage</th><th class="rosetta-cov" title="How faithfully the SentinelOne query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">SentinelOne</th><th class="rosetta-cov" title="How faithfully the Defender XDR query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">Defender XDR</th></tr></thead><tbody><tr><td>T1068</td><td>hid.dll created in the ink directory (stage 4)</td><td>Q1, Q2</td><td>IOA 1</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q2: Same chain: an ink hid.dll write plus a SYSTEM conhost or a consent.exe child on the same host in the same 10 minute bucket. The three signals are counted per host and bucket instead of labelled with a case block, and SYSTEM is matched on the creating process&#x27;s user name rather than a SID.">Partial: Q2 approximate</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q2: The CQL correlates a file write with process creations per host and 10 minute bucket, which needs two Advanced Hunting tables in one query. One table per query leaves only the anchor, the ink hid.dll write in DeviceFileEvents, as a partial pivot.">Partial: Q2 telemetry gap</span></td></tr><tr><td>T1068, T1574.001</td><td>SYSTEM console or consent.exe child after hid.dll write (stage 5)</td><td>Q2, Q3</td><td>IOA 2</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q2: Same chain: an ink hid.dll write plus a SYSTEM conhost or a consent.exe child on the same host in the same 10 minute bucket. The three signals are counted per host and bucket instead of labelled with a case block, and SYSTEM is matched on the creating process&#x27;s user name rather than a SID.">Partial: Q2 approximate</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q2: The CQL correlates a file write with process creations per host and 10 minute bucket, which needs two Advanced Hunting tables in one query. One table per query leaves only the anchor, the ink hid.dll write in DeviceFileEvents, as a partial pivot.">Partial: Q2 telemetry gap</span></td></tr><tr><td>T1574.001</td><td>consent.exe loads a DLL from the ink directory</td><td>Q4</td><td>none</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1106</td><td>osk.exe terminated and relaunched hidden (stage 1)</td><td>Q5, Q7</td><td>none</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q7: The CQL matches the directory name on either a started image or a written file. One table per query leaves only the file-write half, DeviceFileEvents, as a partial pivot.">Partial: Q7 telemetry gap</span></td></tr><tr><td>T1068</td><td>MpEngine.dll bait staged outside Defender paths (stage 2)</td><td>Q6</td><td>none</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>T1068</td><td>Defender signature-update RPC from outside the Defender service tree (highest signal, Cyderes)</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr><tr><td>T1068</td><td>Symbolic-link churn under \BaseNamedObjects\Restricted\ (also relevant to ShieldBreak and ShieldCrash)</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr><tr><td>T1106</td><td>CLFS IOCTL 0x8007A808 from a user process</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr><tr><td>T1070.004</td><td>Transacted delete of hid.dll</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr><tr><td>T1112</td><td>CLFS authentication Mode value written</td><td>Q8</td><td>none</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr><tr><td>Initial access</td><td>Not applicable: local privilege escalation</td><td>none</td><td>none</td><td><span class="badge b-info">N/A</span></td><td class="rosetta-cov"><span class="badge" title="No SentinelOne query covers this row. The CrowdStrike rating rests on checks that are not queries (native or Falcon-only), so it does not carry over.">No query</span></td><td class="rosetta-cov"><span class="badge" title="No Defender XDR query covers this row. The CrowdStrike rating rests on checks that are not queries (native or Falcon-only), so it does not carry over.">No query</span></td></tr><tr><td>Command and control</td><td>Not applicable: no network infrastructure in the chain</td><td>none</td><td>none</td><td><span class="badge b-info">N/A</span></td><td class="rosetta-cov"><span class="badge" title="No SentinelOne query covers this row. The CrowdStrike rating rests on checks that are not queries (native or Falcon-only), so it does not carry over.">No query</span></td><td class="rosetta-cov"><span class="badge" title="No Defender XDR query covers this row. The CrowdStrike rating rests on checks that are not queries (native or Falcon-only), so it does not carry over.">No query</span></td></tr></tbody></table><p>The three high-signal gaps (RPC, symbolic links, IOCTL) sit outside endpoint telemetry and need ETW or a sensor that exposes them. Cyderes notes that symbolic-link coverage built for ShieldBreak and ShieldCrash already covers part of this; no indicator from those releases is imported. Validation gates: Telemetry ready, Benign baseline, Positive tests and Promotion are in Section 11.</p>
+    </div>
+  </div>
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+<div class="ticket"><pre class="code">TITLE:      Hunt for SignDrop (Windows CLFS local privilege escalation, public PoC, unpatched)
+SEVERITY:   High (public exploit code, no patch, no CVE; no in-the-wild exploitation reported)
+SCOPE:      Windows 11 and Windows Server 2025 hosts with CLFS authentication Mode 0 or 1; endpoint process, file, image-load and registry telemetry
+HYPOTHESIS: A standard-user foothold runs SignDrop or a variant to plant hid.dll in the ink directory and obtain a SYSTEM console via consent.exe.
+QUERIES:    Q1-Q8 (Section 8); native checks (Section 7)
+DO FIRST:   1) Run Q1, Q2, Q3 over 7 days. 2) Run Playbook 1 inventory. 3) Apply Playbook 2 audit. 4) Promote IOA 1 and IOA 2 as Detect.
+FINDINGS:   [fill in after execution]
+GAPS:       Defender signature-update RPC, Object Manager symbolic-link churn and the CLFS IOCTL are outside endpoint telemetry; hid.dll delete is not covered;
+            no attacker infrastructure exists, so the IOC CSV is a labelled placeholder only.
+ACTIONS:    Detect only. No prevent or blocklist action on osk.exe, consent.exe, conhost.exe, clfs.sys, MpEngine.dll or hid.dll. Do not disable CLFS authentication.
+OWNER:      HuntPack
+VERSION:    v0.1 (2026-11-15)</pre></div>
+    </div>
+  </div>
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-11-15</span><span>Initial draft. Eight CQL hunts, two Detect-only IOA candidates, four read-only or audit-mode playbooks, five source snapshots. No attacker indicators exist; IOC CSV is a placeholder. Coverage gaps for the Defender RPC call, symbolic-link churn, the CLFS IOCTL and the hid.dll delete are flagged. SentinelOne PowerQuery and Microsoft Defender KQL tabs added to Q1-Q8: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div>
+    </div>
+  </div>
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead><tbody><tr><td>1</td><td><a href='https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/clfs-authentication'>Microsoft Learn: CLFS logfile authentication</a></td><td>Feature definition, Mode values, .cnpf file, Group Policy and MDM controls</td><td>2026-11-15</td></tr><tr><td>2</td><td><a href='https://www.cyderes.com/howler-cell/signdrop-zero-day'>Cyderes Howler Cell: SignDrop (2026-11-12)</a></td><td>Chain, artifacts, MITRE mapping, detection table, research-provenance statement</td><td>2026-11-15</td></tr><tr><td>2</td><td><a href='https://thehackernews.com/2026/11/new-signdrop-zero-day-exploit-turns.html'>The Hacker News: SignDrop (2026-11-12)</a></td><td>Mechanism, tested builds, Mode scope, independent test, KEV and in-the-wild status</td><td>2026-11-15</td></tr><tr><td>2</td><td><a href='https://www.securityweek.com/nightmare-eclipse-drops-windows-zero-day-exploit-signdrop/'>SecurityWeek: Nightmare Eclipse drops SignDrop (2026-11-13)</a></td><td>Researcher name, container behavior, Microsoft statement</td><td>2026-11-15</td></tr><tr><td>3</td><td><a href='https://securityonline.info/signdrop-windows-clfs-zero-day-poc/'>SecurityOnline: SignDrop details and PoC published</a></td><td>Corroboration of PoC contents and scope; AV and EDR claim noted as untested</td><td>2026-11-15</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="footer">Generated 2026-11-15 by HuntPack. Defensive content only. No attacker indicators exist for this threat; re-verify against Microsoft and the cited sources, because status (CVE, patch, exploitation) is changing.</div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+
+</script>
+<script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  // A pane with no executable query offers nothing to copy or open, so its action buttons
+  // stay hidden: the old behaviour handed the analyst an empty query to run.
+  const pane=Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const isGap=!!(pane&&pane.getAttribute('data-rosetta-gap')==='1');
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);fallback.hidden=isGap;}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);copy.hidden=isGap;}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+  shell.querySelectorAll('.rosetta-open-s1').forEach(function(button){button.hidden=isGap||language!=='powerquery';});
+  shell.querySelectorAll('.rosetta-open-def').forEach(function(button){button.hidden=isGap||language!=='kql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+  rosettaSyncGlobal();
+}
+function rosettaSyncGlobal(){
+  const langs=new Set(Array.from(document.querySelectorAll('.rosetta-query-shell')).map(function(shell){const tab=shell.querySelector('.rosetta-tab[aria-selected="true"]');return tab?tab.getAttribute('data-language'):'';}));
+  const only=langs.size===1?Array.from(langs)[0]:'';
+  document.querySelectorAll('.rosetta-global-btn').forEach(function(button){button.setAttribute('aria-pressed',button.getAttribute('data-language')===only?'true':'false');});
+  const mixed=document.querySelector('.rosetta-global-mixed');
+  if(mixed)mixed.hidden=!!only;
+  const cloud=document.querySelector('.cloud-sel');
+  if(cloud)cloud.hidden=!langs.has('cql');
+  const consoleRow=document.querySelector('[data-rosetta-console]');
+  if(consoleRow)consoleRow.hidden=!langs.has('powerquery');
+  const portalRow=document.querySelector('[data-rosetta-portal]');
+  if(portalRow)portalRow.hidden=!langs.has('kql');
+}
+// "7d" -> "7 days", the form the console uses in its own startTime parameter. Weeks
+// collapse to days and everything is capped at 7 days, so a card that states a 120-day
+// dwell window cannot silently open a 120-day console search.
+function rosettaLookbackWindow(value){
+  const match=/^(\d+)\s*([mhdw])$/i.exec((value||'').trim());
+  if(!match)return '';
+  let count=+match[1];
+  let unit=match[2].toLowerCase();
+  if(unit==='w'){count*=7;unit='d';}
+  if((unit==='d'&&count>7)||(unit==='h'&&count>168)||(unit==='m'&&count>10080)){count=7;unit='d';}
+  return count+' '+{m:'minutes',h:'hours',d:'days'}[unit];
+}
+function rosettaLookbackFromPre(pre){
+  if(!pre)return '';
+  // The renderer stamps the card's own lookback, already normalised and capped. Parsing the
+  // visible header is only a fallback for packs rendered before that attribute existed.
+  const stamped=pre.getAttribute('data-lookback');
+  if(stamped)return rosettaLookbackWindow(stamped);
+  const match=/\/\/\s*LOOKBACK:\s*(\d+\s*[mhdw])/i.exec(pre.textContent||'');
+  return match?rosettaLookbackWindow(match[1]):'';
+}
+// Keep every scope parameter the analyst pasted (_scopeId, _scopeLevel, teamToken, view,
+// _categoryId): those are what point the search at the right account or site. Only the
+// parameters we set ourselves are stripped.
+function rosettaConsoleCheck(value){
+  const text=(value||'').trim();
+  if(!text)return {ok:false,empty:true};
+  let url;
+  try{url=new URL(text);}catch(error){try{url=new URL('https://'+text);}catch(error2){return {ok:false};}}
+  if(url.protocol!=='https:'||!/(^|\.)sentinelone\.net$/i.test(url.hostname))return {ok:false};
+  ['filter','startTime','endTime','gettingStarted'].forEach(function(key){url.searchParams.delete(key);});
+  url.hash='';
+  let kind='other';
+  if(/^\/events\/search\/?$/.test(url.pathname))kind='eventsearch';
+  else if(/^xdr\./i.test(url.hostname)||/^\/(events|query)\/?$/.test(url.pathname))kind='legacy';
+  return {ok:true,href:url.href,kind:kind};
+}
+// What belongs in the console's query box: the runnable query, without the guidance
+// header. That header is 11 lines on a big hash sweep, so sending it pushes the actual
+// query out of view and inflates the URL by about a quarter, which is what tips long
+// IOC sweeps over the length limit. The clipboard still gets the fully annotated text,
+// and the time window survives because it comes from data-lookback, not the comment.
+// ROSETTA_JS is a plain (non-raw) Python string, so any escape JS needs must be doubled
+// in this file. An undoubled newline escape becomes a real line break in the emitted
+// script and breaks the string literal it sits in. That applies to comments too.
+function rosettaExecutableQuery(text){
+  const kept=String(text||'').split('\n').filter(function(line){return !/^\s*\/\//.test(line);});
+  const stripped=kept.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  return stripped||String(text||'').trim();
+}
+// Returns {href, prefilled}. Falls back to the bare console address whenever the query
+// cannot ride along, so the button still opens something useful.
+function rosettaConsoleLink(result,query,lookback){
+  if(!result||!result.ok)return null;
+  const url=new URL(result.href);
+  const text=rosettaExecutableQuery(query);
+  if(result.kind==='eventsearch'){
+    url.searchParams.set('filter',text);
+    const window_=rosettaLookbackWindow(lookback);
+    if(window_){url.searchParams.set('startTime',window_);url.searchParams.set('endTime','NOW');}
+  }else if(result.kind==='legacy'){
+    url.pathname='/query';
+    if(!url.searchParams.has('view'))url.searchParams.set('view','edr');
+    url.searchParams.set('filter',text);
+  }else{
+    return {href:result.href,prefilled:false};
+  }
+  if(url.href.length>8000)return {href:result.href,prefilled:false};
+  return {href:url.href,prefilled:true};
+}
+// Synchronous copy that reports whether it actually worked. The async clipboard API is not
+// used here: these handlers open a tab in the same click, and the new tab takes the user
+// activation the clipboard write needs.
+function rosettaCopySync(value){
+  let copied=false;
+  try{
+    const area=document.createElement('textarea');
+    area.value=value;
+    area.setAttribute('readonly','');
+    area.style.position='fixed';area.style.top='0';area.style.opacity='0';
+    document.body.appendChild(area);
+    area.select();
+    if(area.setSelectionRange)area.setSelectionRange(0,String(value).length);
+    copied=document.execCommand('copy');
+    area.remove();
+  }catch(error){copied=false;}
+  return copied;
+}
+function rosettaFlash(button,message){
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  button.textContent=message;
+  button.classList.add('done');
+  setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);
+}
+function rosettaConsoleInput(){
+  const input=document.getElementById('rosetta-console-url');
+  const status=document.querySelector('.rosetta-console-status');
+  if(!input||!status)return null;
+  const result=rosettaConsoleCheck(input.value);
+  const bad=(!result.ok&&!result.empty);
+  input.setAttribute('aria-invalid',bad?'true':'false');
+  status.className='rosetta-console-status'+(bad?' bad':'');
+  if(result.ok){
+    status.textContent='Kept in this browser only. '+(result.kind==='other'
+      ?'Opens your console without the query: paste the Event Search address to pre-fill it.'
+      :'Opens Event Search with the query and a time window already set.');
+    try{localStorage.setItem('huntpack-s1-console',result.href);}catch(error){}
+  }else{
+    status.textContent=result.empty?'':'Enter your SentinelOne console address, such as https://usea1-yourtenant.sentinelone.net/events/search?view=xdr&_scopeId=...';
+  }
+  return result;
+}
+// Saved consoles. SentinelOne has no fixed set of console hostnames to offer the way
+// Falcon's five clouds can be listed: the host is <tenant>.sentinelone.net, the tenant
+// string is specific to the customer, and a region alone carries neither the tenant nor
+// the _scopeId/_scopeLevel that aim the search. So the picker lists what this browser has
+// been given rather than anything built in, which is also what makes it useful across
+// several tenants or scopes.
+function rosettaConsoleList(){
+  try{
+    const raw=localStorage.getItem('huntpack-s1-consoles');
+    const list=raw?JSON.parse(raw):[];
+    return Array.isArray(list)?list.filter(function(x){return typeof x==='string'&&x;}):[];
+  }catch(error){return [];}
+}
+function rosettaConsoleStore(list){
+  try{localStorage.setItem('huntpack-s1-consoles',JSON.stringify(list.slice(0,12)));}catch(error){}
+}
+function rosettaConsoleLabel(href){
+  try{
+    const url=new URL(href);
+    const scope=url.searchParams.get('_scopeLevel');
+    const legacy=/^xdr\./i.test(url.hostname);
+    return url.hostname+(scope?' · '+scope:(legacy?' · legacy':''));
+  }catch(error){return href;}
+}
+function rosettaConsoleRefresh(){
+  const pick=document.getElementById('rosetta-console-pick');
+  const forget=document.getElementById('rosetta-console-forget');
+  const input=document.getElementById('rosetta-console-url');
+  if(!pick||!input)return;
+  const list=rosettaConsoleList();
+  const current=rosettaConsoleCheck(input.value);
+  pick.innerHTML='';
+  if(!list.length){
+    // Stay visible when empty. Hiding the picker until a second console was saved made
+    // the feature look absent: the reader opens the page, sees no selector, and never
+    // learns there is one.
+    const empty=document.createElement('option');
+    empty.value='';
+    empty.textContent='No consoles saved yet';
+    empty.disabled=true;
+    empty.selected=true;
+    pick.appendChild(empty);
+  }
+  list.forEach(function(href){
+    const option=document.createElement('option');
+    option.value=href;
+    option.textContent=rosettaConsoleLabel(href);
+    if(current.ok&&current.href===href)option.selected=true;
+    pick.appendChild(option);
+  });
+  pick.disabled=!list.length;
+  if(forget)forget.disabled=!list.length;
+}
+function rosettaConsoleSave(){
+  const input=document.getElementById('rosetta-console-url');
+  if(!input)return;
+  const result=rosettaConsoleCheck(input.value);
+  if(!result.ok){rosettaConsoleInput();input.focus();return;}
+  const list=rosettaConsoleList().filter(function(x){return x!==result.href;});
+  list.unshift(result.href);
+  rosettaConsoleStore(list);
+  rosettaConsoleRefresh();
+  const status=document.querySelector('.rosetta-console-status');
+  if(status)status.textContent='Saved to this browser. '+rosettaConsoleList().length+' console(s) on the list.';
+}
+function rosettaConsolePick(){
+  const pick=document.getElementById('rosetta-console-pick');
+  const input=document.getElementById('rosetta-console-url');
+  if(!pick||!input||!pick.value)return;
+  input.value=pick.value;
+  rosettaConsoleInput();
+  rosettaConsoleRefresh();
+}
+function rosettaConsoleForget(){
+  const input=document.getElementById('rosetta-console-url');
+  if(!input)return;
+  const result=rosettaConsoleCheck(input.value);
+  const list=rosettaConsoleList().filter(function(x){return !result.ok||x!==result.href;});
+  rosettaConsoleStore(list);
+  rosettaConsoleRefresh();
+  const status=document.querySelector('.rosetta-console-status');
+  if(status)status.textContent=list.length?'Removed from this browser. '+list.length+' console(s) left.':'Removed. No consoles saved in this browser.';
+}
+function rosettaOpenDefender(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  const select=document.getElementById('rosetta-portal-select');
+  if(!pre||!select)return;
+  // Copy before opening: the new tab takes this click's user activation.
+  const copied=rosettaCopySync(pre.textContent);
+  window.open(select.value+'/v2/advanced-hunting','_blank','noopener');
+  rosettaFlash(button,copied?'Copied, paste it in Advanced hunting':'Copy blocked, use Copy KQL');
+}
+function rosettaOpenS1(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  if(!pre)return;
+  const result=rosettaConsoleInput()||{ok:false,empty:true};
+  const input=document.getElementById('rosetta-console-url');
+  if(!result.ok){if(input){input.scrollIntoView({block:'center'});input.focus();}return;}
+  const value=pre.textContent;
+  const link=rosettaConsoleLink(result,value,rosettaLookbackFromPre(pre));
+  // Copy before opening: the new tab takes this click's user activation, which is why the
+  // previous open-then-copy order reported success on a write that had already failed.
+  const copied=rosettaCopySync(value);
+  if(link)window.open(link.href,'_blank','noopener');
+  rosettaFlash(button,link&&link.prefilled
+    ?(copied?'Opened with query (also copied)':'Opened with query')
+    :(copied?'Copied, paste it in PowerQuery':'Copy blocked, use Copy PowerQuery'));
+}
+function rosettaSetAll(language,remember){
+  document.querySelectorAll('.rosetta-query-shell').forEach(function(shell){
+    const tab=shell.querySelector('.rosetta-tab[data-language="'+language+'"]');
+    if(tab)rosettaSwitch(tab);
+  });
+  rosettaSyncGlobal();
+  if(remember!==false){try{localStorage.setItem('huntpack-query-language',language);}catch(error){}}
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem('huntpack-query-language');}catch(error){}
+  if(saved&&saved!=='cql'&&document.querySelector('.rosetta-global-btn[data-language="'+saved+'"]'))rosettaSetAll(saved,false);
+  else rosettaSyncGlobal();
+  const portalSelect=document.getElementById('rosetta-portal-select');
+  if(portalSelect){
+    let savedPortal=null;
+    try{savedPortal=localStorage.getItem('huntpack-defender-portal');}catch(error){}
+    if(savedPortal&&Array.from(portalSelect.options).some(function(option){return option.value===savedPortal;}))portalSelect.value=savedPortal;
+    portalSelect.addEventListener('change',function(){try{localStorage.setItem('huntpack-defender-portal',portalSelect.value);}catch(error){}});
+  }
+  const consoleInput=document.getElementById('rosetta-console-url');
+  if(consoleInput){
+    let savedConsole=null;
+    try{savedConsole=localStorage.getItem('huntpack-s1-console');}catch(error){}
+    // Carry forward the single console saved by earlier versions of this page.
+    if(savedConsole&&rosettaConsoleList().indexOf(savedConsole)<0)rosettaConsoleStore([savedConsole].concat(rosettaConsoleList()));
+    if(!savedConsole)savedConsole=rosettaConsoleList()[0]||null;
+    if(savedConsole){consoleInput.value=savedConsole;rosettaConsoleInput();}
+    consoleInput.addEventListener('input',function(){rosettaConsoleInput();rosettaConsoleRefresh();});
+    rosettaConsoleRefresh();
+  }
+})();
+</script>
+</body>
+</html>
