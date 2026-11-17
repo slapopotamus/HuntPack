@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neutrino ransomware — CrowdStrike CQL Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Neutrino ransomware: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Neutrino-Ransomware-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Neutrino ransomware — CrowdStrike CQL Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run CrowdStrike LogScale (CQL) hunt queries for Neutrino ransomware: MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Neutrino-Ransomware-Hunt.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #f0a500;                       /* THEME: swap per threat type */
+  --accent-dim: rgba(240,165,0,0.13);     /* THEME: same hue as --accent, ~0.13 alpha */
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* Fixed LEFT sidebar TOC */
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+/* Show/hide toggle */
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+/* Header */
+.hp-header { background: linear-gradient(140deg, #2a2000 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; } /* THEME: tint the gradient start toward --accent */
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+/* Sections */
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+/* Tables + badges */
+/* display:block + overflow-x makes a wide table scroll INSIDE its own box.
+   Without it a wide table pushes the whole document into horizontal scroll:
+   measured on a live pack, an 891px table in an 810px viewport gave the page a
+   1146px scroll width. With it the page stays at 810 and the table's full 891px
+   is still reachable by scrolling the table itself, so no column is lost. */
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+/* Query cards + cloud selector (CQL section) */
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+/* IOC quick-copy grid, hardening tiers, callouts, changelog */
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+.igt { font-size: 12px; font-weight: 700; color: var(--text); } .igc { font-size: 10px; color: var(--text-muted); }
+.ticket { border: 1px solid var(--accent); border-radius: 6px; padding: 10px 12px; background: var(--surface2); }
+.footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style></head><body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">&#9776;</button>
+<nav id="sidebar"><div class="sidebar-logo"><div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div><div class="pack-name">Neutrino Ransomware (.neutrino)</div><div class="version">v0.1 &middot; 2026-11-17</div></div><nav><div class="nav-section">Overview</div><a href="#s1">1 &middot; Executive Summary</a><a href="#s2">2 &middot; Source Review</a><a href="#s3">3 &middot; Hunt Brief &amp; Chain</a><a href="#s4">4 &middot; IOC Table</a><a href="#s5">5 &middot; Affected Surface</a><a href="#s6">6 &middot; ATT&amp;CK Mapping</a><div class="nav-section">Detection</div><a href="#s7">7 &middot; Native Hunts</a><a href="#s8">8 &middot; CQL Queries</a><a href="#s9">9 &middot; Custom IOA Recs</a><a href="#s10">10 &middot; IOC Appendix</a><a href="#s11">11 &middot; Validation Gates</a><div class="nav-section">Response</div><a href="#s12">12 &middot; Hardening</a><a href="#s13">13 &middot; Playbooks</a><a href="#s14">14 &middot; Containment</a><div class="nav-section">Meta</div><a href="#s15">15 &middot; Coverage Map</a><a href="#s16">16 &middot; Hunt Ticket</a><a href="#s17">17 &middot; Changelog</a><a href="#s18">18 &middot; References</a></nav></nav>
+<div id="main">
+<div class="hp-header"><h1>Neutrino Ransomware (.neutrino) Hunt</h1><div class="subtitle">Windows double-extortion ransomware that appends .neutrino and drops README-RECOVERY.txt. Not the Neutrino exploit kit.</div><div class="meta-grid">
+<div class="meta-item"><div class="mk">Threat</div><div class="mv">Neutrino ransomware</div></div>
+<div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
+<div class="meta-item"><div class="mk">Type</div><div class="mv">Ransomware / double extortion</div></div>
+<div class="meta-item"><div class="mk">Access</div><div class="mv">Not established by sources</div></div>
+<div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 &middot; 2026-11-17</div></div>
+<div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+<div class="meta-item"><div class="mk">Confidence</div><div class="mv">Medium for behavior, low for atomic IOCs</div></div>
+</div></div>
+<div class="section" id="s1"><div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div><div class="section-body">
+
+<p><strong>Neutrino ransomware</strong> (also called the Neutrino virus by PCrisk) is a Windows file-encrypting, double-extortion family that CYFIRMA reported in its Weekly Intelligence Report dated 2026-11-13, after finding it while monitoring underground forums. It replaces file names with random strings and appends <code>.neutrino</code> (example in the sources: <code>1.jpg</code> becomes <code>5xnraLY2.neutrino</code>), drops <code>README-RECOVERY.txt</code> into affected directories, changes the desktop wallpaper to an encryption notice with a victim reference ID, and deletes Volume Shadow Copies with <code>vssadmin.exe</code> and <code>wmic</code>. The note claims data theft and a leak-or-sell deadline, and sends victims to a Telegram bot to negotiate. The theft claim is the attackers' own and is unverified.</p>
+<p><strong>This is a behavior-led pack, by design.</strong> The primary source contains no atomic indicators in its Neutrino section (its IOCs paragraph only says to refer to an IOCs section that holds no values for this family). Across three snapshotted sources the only atomic hash is one SHA-256 for a sandbox sample named <code>win-x64.exe</code>, single-sourced and shipped as detect. There is no confirmed C2 infrastructure. The detection value is in the recovery-inhibition command lines, the note and extension artifacts, the wallpaper change and bulk file behavior.</p>
+<p class="callout callout-warn"><strong>Not the Neutrino exploit kit.</strong> This pack covers the 2026 <code>.neutrino</code> ransomware only. The older Neutrino exploit kit (and the unrelated Neutrino botnet builder) share the name and nothing else that these sources establish: none of their history, tactics or indicators is used here. Gridinsoft explicitly warns against treating the exploit kit, a similarly named bot or a generic antivirus family label as the same threat.</p>
+<p class="callout callout-danger"><strong>Defender priority:</strong> alert on shadow copy deletion (Q1, Q2) and protect backups first. That command is the earliest high-fidelity signal in the sources, it fires before encryption completes, and offline backups are the only reliable recovery path (no public decryptor was listed in the No More Ransom catalog as of 2026-11-04, per Gridinsoft).</p>
+
+</div></div>
+<div class="section" id="s2"><div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div><div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Snapshot</th><th>Key finding</th><th>Carry forward</th></tr></thead><tbody><tr><td><span class="badge b-info">Primary</span></td><td>CYFIRMA Weekly Intelligence Report, 2026-11-13</td><td><code>01-cyfirma-weekly.txt</code></td><td>Neutrino behavior, note contents, both shadow copy command lines, 30-technique ATT&amp;CK table, Sigma rule with FP list. IOCs paragraph holds no values.</td><td>Yes</td></tr><tr><td><span class="badge b-purple">Secondary</span></td><td>PCrisk removal guide 36097</td><td><code>02-pcrisk.txt</code></td><td>Corroborates extension, note, wallpaper; names Telegram bot handle, AV detection names. Partly a product pitch: only factual artifacts taken.</td><td>Partial</td></tr><tr><td><span class="badge b-purple">Secondary</span></td><td>Gridinsoft Neutrino ransomware article</td><td><code>03-gridinsoft.txt</code></td><td>Cites a public VirusTotal sandbox report for <code>win-x64.exe</code>: note and <code>.neutrino</code> writes, shadow copy deletion, boot-recovery changes, <code>Global\Neutrino</code> mutex. Source of the one SHA-256 (from its reference link). Warns against mixing in the exploit kit.</td><td>Partial</td></tr></tbody></table>
+<h3>Decisions and rejected material</h3>
+<ul>
+<li><strong>Disambiguation.</strong> Only the 2026 <code>.neutrino</code> ransomware is covered. Nothing from the exploit kit or botnet builder is used.</li>
+<li><strong>T1489 not in the primary table.</strong> Service stop (T1489) was supplied with the task but does not appear in CYFIRMA's ATT&amp;CK table or text. It is shipped only as a low-confidence precursor hunt (Q8) and labelled as such.</li>
+<li><strong>Not carried forward.</strong> The BleepingComputer forum thread surfaced in search returned HTTP 403 to the fetch and was not snapshotted or cited. The VirusTotal behavior page cited by Gridinsoft is a script-rendered page and could not be read, so the sandbox findings are taken at second hand. A victim client ID that PCrisk prints from a sample note is victim-specific and was not carried.</li>
+<li><strong>Not carried forward.</strong> CYFIRMA's "ETLM Assessment" is explicitly speculative about future capability and is not used as a detection basis.</li>
+<li><strong>Prompt-injection check.</strong> No instruction-like text aimed at an AI agent was found in any of the three fetched pages.</li>
+<li><strong>Telegram.</strong> The bot handle in the note is the victim-facing negotiation contact. It is not a confirmed malware C2 and is not importable as a network IOC.</li>
+</ul>
+
+</div></div>
+<div class="section" id="s3"><div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div><div class="section-body">
+
+<h3>Hypotheses (highest fidelity first)</h3>
+<table><thead><tr><th>#</th><th>Hypothesis</th><th>MITRE</th><th>Telemetry</th><th>Conf</th><th>Queries</th></tr></thead><tbody>
+<tr><td>H1</td><td>A host runs the reported shadow copy deletion commands.</td><td>T1490, T1047</td><td>Process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-low">HIGH</span></td><td>Q1, Q2</td></tr>
+<tr><td>H2</td><td>Boot recovery is disabled alongside shadow deletion.</td><td>T1490</td><td>Process creation with command line (same)</td><td><span class="badge b-med">MEDIUM</span></td><td>Q3</td></tr>
+<tr><td>H3</td><td>Files appear with the <code>.neutrino</code> extension, and the note is handled.</td><td>T1486</td><td>Ransomware-protection file-open (CrowdStrike: RansomwareOpenFile. SentinelOne and Defender: no confirmed equivalent); File creation (CrowdStrike: NewExecutableWritten covers PE files only. SentinelOne: File Creation. Defender: DeviceFileEvents)</td><td><span class="badge b-med">MEDIUM</span></td><td>Q4, Q5, Q6</td></tr>
+<tr><td>H4</td><td>The wallpaper is set to an image in a user-writable path.</td><td>T1491.001 (not in source table)</td><td>Registry value set (CrowdStrike: RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents)</td><td><span class="badge b-med">MEDIUM</span></td><td>Q7</td></tr>
+<tr><td>H5</td><td>Pre-encryption service stops and credential harvesting occur on the host.</td><td>T1489*, T1003, T1552.001, T1569.002, T1543.003</td><td>Process creation with command line (same)</td><td><span class="badge b-high">LOW</span></td><td>Q8, Q9, Q10</td></tr>
+<tr><td>H6</td><td>The sandbox-reported sample hash or filename executes.</td><td>T1486</td><td>Process creation with hashes (same)</td><td><span class="badge b-med">MEDIUM / LOW</span></td><td>Q11, Q12</td></tr>
+</tbody></table>
+<p>* T1489 supplied with the task; not in the CYFIRMA table.</p>
+<h3>Attack chain (as far as sources establish it)</h3>
+<table><thead><tr><th>Step</th><th>Behavior</th><th>Source status</th><th>Hunt angle</th></tr></thead><tbody>
+<tr><td>Initial access</td><td>Note claims "security vulnerabilities". PCrisk speculates unpatched software, exposed remote services, brute force.</td><td>Not established</td><td>Gap: no reported vector. Hardening covers exposed services and credentials generically.</td></tr>
+<tr><td>Execution / discovery</td><td>WMI use, sandbox, VM and debugger checks (CYFIRMA).</td><td>Reported, no specifics</td><td>Q1 (WMI shadowcopy delete). Anti-analysis has no endpoint signal.</td></tr>
+<tr><td>Credential access</td><td>T1003, T1552.001 in the ATT&amp;CK table.</td><td>Mapped, no tooling named</td><td>Q9 generic shapes</td></tr>
+<tr><td>Inhibit recovery</td><td>vssadmin and wmic shadow deletion; boot-recovery changes per sandbox report.</td><td>Reported (command lines verbatim)</td><td>Q1, Q2, Q3</td></tr>
+<tr><td>Encryption</td><td>Random-name rename plus <code>.neutrino</code>; note per directory.</td><td>Reported</td><td>Q4, Q5, Q6</td></tr>
+<tr><td>Impact notice</td><td>Wallpaper changed with reference ID.</td><td>Reported</td><td>Q7</td></tr>
+<tr><td>Extortion</td><td>Claimed exfiltration; Telegram bot negotiation.</td><td>Claim, unverified</td><td>No endpoint signal. Exfiltration volume hunting is a gap outside endpoint telemetry.</td></tr>
+</tbody></table>
+
+</div></div>
+<div class="section" id="s4"><div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div><div class="section-body">
+<table><thead><tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr></thead><tbody><tr><td>sha256</td><td><code>dc039dee58a3f5795ffc0f60edb3e346accdeeacb35f253befe27b7d1022dea7</code></td><td>medium</td><td>detect</td><td>Sample <code>win-x64.exe</code> from the VirusTotal link in Gridinsoft's references. Single source; page not re-verified.</td></tr><tr><td>filename</td><td><code>README-RECOVERY.txt</code></td><td>high</td><td>hunt</td><td>Ransom note dropped in affected directories. Three sources agree.</td></tr><tr><td>extension</td><td><code>.neutrino</code></td><td>high</td><td>hunt</td><td>Appended to encrypted files after a random-string rename. Three sources agree.</td></tr><tr><td>mutex</td><td><code>Global\Neutrino</code></td><td>medium</td><td>enrich</td><td>Created by the sandboxed sample (Gridinsoft). No endpoint telemetry exposes mutexes; use for sandbox and forensic triage.</td></tr><tr><td>filename</td><td><code>win-x64.exe</code></td><td>low</td><td>pivot</td><td>Sandbox sample name. Gridinsoft calls it too generic to identify malware.</td></tr><tr><td>command</td><td><code>vssadmin.exe Delete Shadows /all /quiet</code></td><td>high</td><td>hunt</td><td>Reported verbatim by CYFIRMA. Native tool, detect only.</td></tr><tr><td>command</td><td><code>wmic shadowcopy delete /nointeractive</code></td><td>high</td><td>hunt</td><td>Reported verbatim by CYFIRMA. Native tool, detect only.</td></tr><tr><td>telegram</td><td><code>@relaychatyours_bot</code></td><td>low</td><td>pivot</td><td>Negotiation contact named by PCrisk (one source). Victim-facing, not a confirmed C2.</td></tr><tr><td>av-name</td><td>Trojan:Win32/Sonbokli.A!cl, Trojan:Win/Ransom.P, UDS:Trojan-Ransom.Win32.Encoder, FileRepMalware [Ransom]</td><td>low</td><td>enrich</td><td>Vendor detection labels from PCrisk. Generic, not family-exclusive.</td></tr><tr><td>c2 / domain / ip</td><td>none</td><td>n/a</td><td>n/a</td><td>No C2 infrastructure appears in any snapshotted source.</td></tr></tbody></table><p class="callout callout-info">Posture rule applied: nothing is set to prevent or critical. The only hash is single-sourced, and vssadmin.exe and wmic.exe are native Windows tools that stay detection surface.</p>
+</div></div>
+<div class="section" id="s5"><div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div><div class="section-body">
+<table><thead><tr><th>Surface</th><th>Telemetry (plain terms, then platforms)</th><th>Priority</th><th>Gap</th></tr></thead><tbody><tr><td>Windows endpoints and servers</td><td>Process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>High</td><td>None for the recovery-inhibition commands</td></tr><tr><td>File servers and shares</td><td>File creation and rename for <code>.neutrino</code> and the note (CrowdStrike: no general file-write event; ransomware-protection RansomwareOpenFile only. SentinelOne: File Creation. Defender: DeviceFileEvents)</td><td>High</td><td>Falcon cannot see arbitrary file names written; use native file-audit or FSRM (section 7, playbook P5)</td></tr><tr><td>Registry (wallpaper)</td><td>Registry value set (CrowdStrike: RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents)</td><td>Medium</td><td>Writer context for the wallpaper change needs tenant validation</td></tr><tr><td>Backup infrastructure</td><td>Backup server audit logs and immutability state (vendor specific)</td><td>High</td><td>Outside endpoint telemetry</td></tr><tr><td>Egress / exfiltration</td><td>Proxy, firewall and DNS logs for bulk outbound transfer</td><td>Medium</td><td>Outside endpoint telemetry; no exfil destination is reported</td></tr><tr><td>Telegram negotiation</td><td>None on the endpoint: the victim contacts the bot, the malware does not</td><td>Low</td><td>Not applicable as a detection</td></tr></tbody></table>
+</div></div>
+<div class="section" id="s6"><div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div><div class="section-body">
+<table><thead><tr><th>Tactic</th><th>Technique</th><th>Name</th><th>Observed / reported behavior</th><th>Query</th></tr></thead><tbody><tr><td>Execution</td><td>T1047</td><td>Windows Management Instrumentation</td><td>wmic shadowcopy delete; WMI for system info</td><td>Q1, Q2</td></tr><tr><td>Execution</td><td>T1059</td><td>Command and Scripting Interpreter</td><td>Command-line utilities</td><td>Q1, Q2</td></tr><tr><td>Execution</td><td>T1129</td><td>Shared Modules</td><td>Listed, no behavior detail</td><td>none</td></tr><tr><td>Execution</td><td>T1569.002</td><td>System Services: Service Execution</td><td>Listed</td><td>Q10</td></tr><tr><td>Execution</td><td>T1574</td><td>Hijack Execution Flow</td><td>Listed, no behavior detail</td><td>none</td></tr><tr><td>Persistence / PrivEsc</td><td>T1543.003</td><td>Windows Service</td><td>Listed</td><td>Q10</td></tr><tr><td>PrivEsc / Stealth</td><td>T1055</td><td>Process Injection</td><td>Listed, no behavior detail</td><td>none</td></tr><tr><td>PrivEsc</td><td>T1548</td><td>Abuse Elevation Control Mechanism</td><td>Listed</td><td>none</td></tr><tr><td>Credential access</td><td>T1003</td><td>OS Credential Dumping</td><td>Listed</td><td>Q9</td></tr><tr><td>Credential access</td><td>T1552.001</td><td>Credentials In Files</td><td>Listed</td><td>Q9</td></tr><tr><td>Discovery</td><td>T1016, T1082, T1083</td><td>Network config, system info, file and directory discovery</td><td>Listed</td><td>none</td></tr><tr><td>Collection</td><td>T1005, T1114</td><td>Data from Local System, Email Collection</td><td>Listed</td><td>none</td></tr><tr><td>C2</td><td>T1071</td><td>Application Layer Protocol</td><td>Listed, no infrastructure</td><td>none</td></tr><tr><td>Impact</td><td>T1485</td><td>Data Destruction</td><td>Listed</td><td>Q1, Q2</td></tr><tr><td>Impact</td><td>T1486</td><td>Data Encrypted for Impact</td><td>Random rename, .neutrino, note</td><td>Q4, Q5, Q6, Q11, Q12</td></tr><tr><td>Impact</td><td>T1490</td><td>Inhibit System Recovery</td><td>vssadmin and wmic shadow deletion</td><td>Q1, Q2, Q3</td></tr><tr><td>Stealth</td><td>T1027.002</td><td>Software Packing</td><td>Listed</td><td>none</td></tr><tr><td>Stealth</td><td>T1036, T1070.004, T1202</td><td>Masquerading, File Deletion, Indirect Command Execution</td><td>Listed</td><td>none</td></tr><tr><td>Stealth</td><td>T1564.003</td><td>Hidden Window</td><td>Listed; hidden powershell covered in Q2</td><td>Q2</td></tr><tr><td>Defense impairment</td><td>T1553.002</td><td>Code Signing</td><td>Listed, no signer reported</td><td>none</td></tr><tr><td>Impact (supplied, not in table)</td><td>T1489</td><td>Service Stop</td><td>Not in CYFIRMA table</td><td>Q8</td></tr><tr><td>Impact (derived)</td><td>T1491.001</td><td>Internal Defacement</td><td>Wallpaper change; derived by this pack, not in source table</td><td>Q7</td></tr></tbody></table><p>The technique rows through T1553.002 are CYFIRMA's table. Two rows are flagged because they are not in it.</p>
+</div></div>
+<div class="section" id="s7"><div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div><div class="section-body">
+
+<p>Endpoint telemetry alone cannot see the file writes that matter most for this family. These checks use native logs and file-server controls.</p>
+<ul>
+<li><strong>File creation audit (Sysmon Event ID 11 or Windows object-access auditing on shares):</strong> any file named <code>README-RECOVERY.txt</code> or ending <code>.neutrino</code>. Many directories receiving the same note name within minutes is the high-confidence shape.</li>
+<li><strong>Process creation with command line (Sysmon Event ID 1 or Security Event ID 4688 with command-line auditing):</strong> run the Q1, Q2 and Q3 logic. Without command-line auditing enabled the shadow delete is invisible; see playbook P4.</li>
+<li><strong>Registry set (Sysmon Event ID 13):</strong> <code>HKCU\Control Panel\Desktop\Wallpaper</code> written by a process other than the shell or your wallpaper manager.</li>
+<li><strong>PowerShell script block logging (Event ID 4104):</strong> shadow, delete, Remove-WmiObject and Win32_ShadowCopy strings. Encoded commands from endpoint-management agents are a known false-positive source per the source Sigma rule.</li>
+<li><strong>Service installation (System log Event ID 7045):</strong> new services with binaries in user-writable paths (Q10 logic).</li>
+<li><strong>File server FSRM:</strong> a passive file screen for the two artifact patterns (playbook P5) gives an alert before analysts see user tickets.</li>
+<li><strong>Triage lookups:</strong> check the SHA-256 in section 4 against VirusTotal by hand and record the result in the ticket; this pack could not read that page.</li>
+</ul>
+
+</div></div>
+<div class="section" id="s8"><div class="section-hdr"><span class="snum">08</span><h2>CrowdStrike LogScale CQL Hunt Queries</h2></div><div class="section-body">
+<div class="cloud-sel"><label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label><select id="cloud-region"><option value="https://falcon.crowdstrike.com">US-1</option><option value="https://falcon.us-2.crowdstrike.com">US-2</option><option value="https://falcon.eu-1.crowdstrike.com">EU-1</option><option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option><option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option></select><span class="cloud-hint">Pick your tenant's cloud first. Every "Open in Falcon" button below uses this selection.</span></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q1 &middot; Reported shadow copy deletion command lines (vssadmin / wmic)</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> The two inhibit-recovery command lines CYFIRMA reports for Neutrino: <code>vssadmin.exe Delete Shadows /all /quiet</code> and <code>wmic shadowcopy delete /nointeractive</code>. Both binaries are native Windows tools, so this is a detection surface and never a block rule. <strong>FP:</strong> Administrators reclaiming disk space, imaging and backup agents that manage shadow storage. Exclude a backup agent by its parent process and signer after baselining, and confirm any hit against a change ticket.</p>
+<pre class="cql" id="cql1"><span class="cm">// HUNT: Neutrino-reported shadow copy deletion (vssadmin / wmic)</span>
+<span class="cm">// MITRE: T1490, T1047</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: admin disk cleanup, backup and imaging agents managing shadow storage</span>
+<span class="cm">// TUNING: exclude the backup agent parent (ParentBaseFileName) once baselined, scoped by hash or signer, not by name alone</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(vssadmin|wmic)(\.exe)?$/i
+| CommandLine=/(delete\s+shadows|shadowcopy\s+delete)/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, SHA256HashData], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q2 &middot; Shadow copy and backup destruction, Sigma parity (powershell, wmic, vssadmin, diskshadow, wbadmin)</span><div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> A CQL port of the Sigma rule CYFIRMA ships for Neutrino (Shadow Copies Deletion Using Operating Systems Utilities): shadow plus delete on powershell, pwsh, wmic, vssadmin or diskshadow; wbadmin with delete, catalog and quiet; vssadmin resize shadowstorage with unbounded or MaxSize=. Covers T1490 and, for hidden powershell, T1564.003. <strong>FP:</strong> The Sigma rule itself lists legitimate administrator deletion and LANDesk LDClient / Ivanti PS EncodedCommand activity. Exclude the Ivanti agent by its parent hash or signer. Do not exclude on the string LDClient in the command line, because an attacker can add that string.</p>
+<pre class="cql" id="cql2"><span class="cm">// HUNT: Shadow copy / backup destruction via OS utilities (Sigma parity)</span>
+<span class="cm">// MITRE: T1490, T1564.003</span>
+<span class="cm">// CONF: high  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: legitimate administrator shadow deletion; LANDesk LDClient / Ivanti-PSModule (PS EncodedCommand), per the source Sigma rule</span>
+<span class="cm">// TUNING: exclude the Ivanti/LANDesk agent as a parent by hash or signer after confirming its image in your tenant; never by command-line string</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(powershell|pwsh|wmic|vssadmin|diskshadow|wbadmin)(\.exe)?$/i
+| case {
+    FileName=/^wbadmin/i and CommandLine=/delete/i and CommandLine=/catalog/i and CommandLine=/quiet/i | Match := "wbadmin delete catalog quiet";
+    FileName=/^vssadmin/i and CommandLine=/resize/i and CommandLine=/shadowstorage/i and CommandLine=/(unbounded|maxsize=)/i | Match := "vssadmin resize shadowstorage";
+    FileName=/^(powershell|pwsh|wmic|vssadmin|diskshadow)/i and CommandLine=/shadow/i and CommandLine=/delete/i | Match := "shadow delete via OS utility";
+    * | Match := "none";
+  }
+| Match != "none"
+| table([@timestamp, ComputerName, UserName, FileName, Match, CommandLine, ParentBaseFileName], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q3 &middot; Boot recovery tampering with bcdedit (inferred from sandbox report)</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Gridinsoft's reading of a public sandbox report says the sample's process tree includes changes to Windows boot-recovery behavior but does not name the command. This query hunts the common pattern (bcdedit recoveryenabled no, bootstatuspolicy ignoreallfailures). The exact command is inferred, not reported. <strong>FP:</strong> Imaging, lab and deployment tooling that disables the recovery environment. Exclude the deployment agent parent after baselining.</p>
+<pre class="cql" id="cql3"><span class="cm">// HUNT: bcdedit boot recovery disabled (inferred Neutrino-adjacent behavior, command not named by sources)</span>
+<span class="cm">// MITRE: T1490</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: OS deployment and imaging tools, lab builds</span>
+<span class="cm">// TUNING: exclude the deployment tool parent (ParentBaseFileName) by signer after baselining; workstation fleets rarely run this</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^bcdedit(\.exe)?$/i
+| CommandLine=/(recoveryenabled\s+(no|off)|bootstatuspolicy\s+ignoreallfailures)/i
+| table([@timestamp, ComputerName, UserName, CommandLine, ParentBaseFileName, SHA256HashData], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q4 &middot; Ransom note filename or .neutrino extension on a command line</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> A process whose command line references <code>README-RECOVERY.txt</code> or a <code>.neutrino</code> file: an analyst or user opening the note, a script copying it, or the encryptor staging it. Process creation cannot see the file write itself; this catches the interaction after the fact. </p>
+<pre class="cql" id="cql4"><span class="cm">// HUNT: README-RECOVERY.txt / .neutrino referenced in process command lines</span>
+<span class="cm">// MITRE: T1486</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: responders handling the note or a sample, security tooling that scans for it</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(README-RECOVERY\.txt|\.neutrino\b)/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q5 &middot; Files carrying the .neutrino extension (ransomware-protection telemetry)</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Files with the <code>.neutrino</code> extension seen by the ransomware-protection file-open event. Field note: confirm in your tenant that <code>TargetFileName</code> on this event carries the post-rename name; if it carries the original name, rely on the native file-creation hunt in section 7 instead. </p>
+<pre class="cql" id="cql5"><span class="cm">// HUNT: .neutrino extension on files touched by ransomware-protection telemetry</span>
+<span class="cm">// MITRE: T1486</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: ransomware-protection file-open telemetry (RansomwareOpenFile). Validate in tenant that TargetFileName holds the renamed file</span>
+<span class="cm">// FALSE POSITIVES: none expected for the extension itself; archived samples on analyst shares</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=RansomwareOpenFile
+| TargetFileName=/\.neutrino$/i
+| groupBy([aid, ComputerName], function=[count(as=NeutrinoFiles), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=500)
+| sort(NeutrinoFiles, order=desc)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q6 &middot; Bulk file-open burst on one host (encryption-in-progress shape)</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-med">COST MEDIUM</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> More than 100 ransomware-protection file-open events on a single host in the search window. Behavioral and family-agnostic: Neutrino sources give no encryption-rate figure, so the threshold is a starting point to tune, not a reported value. <strong>FP:</strong> Backup, antivirus full scans, large archive extraction and file-sync clients. Raise the threshold or exclude the known scanner after a 14 day baseline.</p>
+<pre class="cql" id="cql6"><span class="cm">// HUNT: bulk ransomware-protection file-open burst per host</span>
+<span class="cm">// MITRE: T1486</span>
+<span class="cm">// CONF: medium  FP: medium  COST: medium</span>
+<span class="cm">// REQUIRES: ransomware-protection file-open telemetry (RansomwareOpenFile)</span>
+<span class="cm">// FALSE POSITIVES: backup agents, full AV scans, large archive extraction, sync clients</span>
+<span class="cm">// TUNING: baseline 14 days, then raise the 100 threshold or exclude the scanning image by signer</span>
+<span class="cm">// LOOKBACK: 1d</span>
+#event_simpleName=RansomwareOpenFile
+| groupBy([aid, ComputerName], function=[count(as=FilesTouched), min(@timestamp, as=FirstSeen), max(@timestamp, as=LastSeen)], limit=500)
+| FilesTouched &gt; 100
+| sort(FilesTouched, order=desc)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q7 &middot; Desktop wallpaper value written from a user-writable path</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Neutrino changes the desktop wallpaper to an encryption notice with a victim reference ID. This looks for the wallpaper registry value being set to an image in a user-writable location. Field note: confirm in your tenant which process context the sensor reports for the wallpaper write. <strong>FP:</strong> Corporate wallpaper tools, MDM and Group Policy, and user personalization. Exclude your managed wallpaper path and the managing agent after baselining.</p>
+<pre class="cql" id="cql7"><span class="cm">// HUNT: wallpaper registry value set to a user-writable path</span>
+<span class="cm">// MITRE: T1491.001 (impact behavior; not in the source ATT&amp;CK table)</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: registry value set (RegGenericValueUpdate)</span>
+<span class="cm">// FALSE POSITIVES: wallpaper management tools, MDM, Group Policy, personalization</span>
+<span class="cm">// TUNING: exclude your managed wallpaper share/path and the MDM agent (ContextBaseFileName) by signer after baselining</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=RegGenericValueUpdate
+| RegObjectName=/Control Panel\\Desktop$/i
+| RegValueName=/^Wallpaper$/i
+| RegStringValue=/(\\AppData\\|\\Temp\\|\\ProgramData\\|\\Users\\Public\\)/i
+| table([@timestamp, ComputerName, UserName, ContextBaseFileName, RegObjectName, RegValueName, RegStringValue], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q8 &middot; Mass service stop targeting backup, database and security services</span><div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Service-stop command lines aimed at backup, database or security services. T1489 was supplied with the task but is not in CYFIRMA's Neutrino ATT&CK table, and the sources show no service-stop command, so treat this as a generic pre-encryption precursor hunt with low confidence. <strong>FP:</strong> Patch windows, software installers and admin maintenance stop services routinely. Alert only on 3 or more distinct stop commands per host in the window, and exclude change windows and the patching agent.</p>
+<pre class="cql" id="cql8"><span class="cm">// HUNT: burst of service-stop commands for backup / SQL / security services</span>
+<span class="cm">// MITRE: T1489 (reported to the requester, NOT in the CYFIRMA table)</span>
+<span class="cm">// CONF: low  FP: high  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: patching, installers, scheduled maintenance, admin scripts</span>
+<span class="cm">// TUNING: exclude the patch/software-deployment agent parent and change windows; keep the 3+ distinct commands threshold</span>
+<span class="cm">// LOOKBACK: 1d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^(net|net1|sc|taskkill|powershell|pwsh)(\.exe)?$/i
+| CommandLine=/(stop-service|\bnet1?\s+stop|\bsc(\.exe)?\s+(config|stop)|taskkill)/i
+| CommandLine=/(veeam|backup|sql|vss|sophos|defender|crowdstrike|csagent|sense|wdfilter|msexchange)/i
+| groupBy([aid, ComputerName], function=[count(CommandLine, distinct=true, as=StopCmds), collect([CommandLine], limit=10)], limit=500)
+| StopCmds &gt; 2
+| sort(StopCmds, order=desc)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q9 &middot; Credential dumping and credential-file harvesting command lines</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Reported techniques T1003 and T1552.001. CYFIRMA gives no specific tooling, so this hunts well-known command-line shapes: LSASS dumps through comsvcs or procdump, registry hive saves, and keyword searches of files for passwords. <strong>FP:</strong> Authorized red team activity, legitimate procdump use by developers, and IT scripts searching configuration. Exclude the pen-test hosts and the sanctioned diagnostics tooling by signer.</p>
+<pre class="cql" id="cql9"><span class="cm">// HUNT: credential dumping and credential-in-file harvesting command lines</span>
+<span class="cm">// MITRE: T1003, T1552.001</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: red team exercises, developer procdump use, IT config-search scripts</span>
+<span class="cm">// TUNING: exclude sanctioned red-team/pen-test hosts and signed diagnostics tooling; keep the lsass and hive-save branches unexcluded</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| CommandLine=/(comsvcs\.dll.*minidump|procdump.*lsass|reg(\.exe)?\s+save\s+hklm\\(sam|security|system)|findstr.*(password|passwd))/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q10 &middot; Service-based execution: sc create with a binary path</span><div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> T1569.002 and T1543.003 are in CYFIRMA's mapping, with no service name or binary reported. This hunts new services whose binary sits in a user-writable or administrative-share location, a common way ransomware operators run payloads. <strong>FP:</strong> Software installers and management agents register services from temp folders during installation. Exclude by signer and by the installer parent.</p>
+<pre class="cql" id="cql10"><span class="cm">// HUNT: sc create with binPath in user-writable or admin-share location</span>
+<span class="cm">// MITRE: T1569.002, T1543.003</span>
+<span class="cm">// CONF: low  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation with command line (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: installers and management agents registering services during setup</span>
+<span class="cm">// TUNING: exclude the software-deployment agent parent by signer; keep branches for temp and admin-share paths</span>
+<span class="cm">// LOOKBACK: 7d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^sc(\.exe)?$/i
+| CommandLine=/\bcreate\b/i
+| CommandLine=/(binpath=\s*"?[^ ]*(\\appdata\\|\\temp\\|\\programdata\\|\\users\\public\\|\\\\[^\\]+\\(admin|c|ipc)\$))/i
+| table([@timestamp, ComputerName, UserName, CommandLine, ParentBaseFileName], limit=1000)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q11 &middot; Executable named win-x64.exe (sandbox sample name, weak signal)</span><div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql11',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql11')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> Gridinsoft's cited VirusTotal report names the sample <code>win-x64.exe</code>. Gridinsoft itself says that filename is too generic to identify malware. Use as a prompt to look at the file, never as a verdict. <strong>FP:</strong> Generic self-contained .NET and Go publish outputs use this name. Confirm with the hash hunt in the next query and the behaviors above.</p>
+<pre class="cql" id="cql11"><span class="cm">// HUNT: process image named win-x64.exe (generic sample filename, hunt lead only)</span>
+<span class="cm">// MITRE: T1486</span>
+<span class="cm">// CONF: low  FP: medium  COST: low</span>
+<span class="cm">// REQUIRES: process creation (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: any self-contained .NET or Go publish named win-x64</span>
+<span class="cm">// TUNING: join the hit to Q1, Q2 and Q12 on the same aid; drop it if none fire and the file is signed by a known publisher</span>
+<span class="cm">// LOOKBACK: 14d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| FileName=/^win-x64\.exe$/i
+| table([@timestamp, ComputerName, UserName, ImageFileName, CommandLine, ParentBaseFileName, SHA256HashData], limit=500)</pre>
+</div></div>
+<div class="query-card"><div class="qc-header"><span class="qc-title">Q12 &middot; Execution of the SHA-256 from the sandbox report (single source)</span><div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div><div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql12',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql12')">Open in Falcon</button></div></div><div class="qc-body"><p><strong>Looks for:</strong> The one atomic sample hash found, from a Gridinsoft reference to a public VirusTotal behavior report for <code>win-x64.exe</code>. Single-sourced and not re-verified against VirusTotal here, so it ships as detect, never prevent. A SHA-256 hit on any other hunt is stronger than this hash alone. </p>
+<pre class="cql" id="cql12"><span class="cm">// HUNT: process execution matching the sandbox-reported Neutrino sample SHA-256</span>
+<span class="cm">// MITRE: T1486</span>
+<span class="cm">// CONF: medium  FP: low  COST: low</span>
+<span class="cm">// REQUIRES: process creation with hashes (ProcessRollup2)</span>
+<span class="cm">// FALSE POSITIVES: none expected; single-source hash, confirm on VirusTotal before acting</span>
+<span class="cm">// LOOKBACK: 30d</span>
+#event_simpleName=/ProcessRollup2|SyntheticProcessRollup2/
+| SHA256HashData=dc039dee58a3f5795ffc0f60edb3e346accdeeacb35f253befe27b7d1022dea7
+| table([@timestamp, ComputerName, UserName, FileName, ImageFileName, CommandLine, ParentBaseFileName], limit=500)</pre>
+</div></div>
+
+</div></div>
+<div class="section" id="s9"><div class="section-hdr"><span class="snum">09</span><h2>CrowdStrike Custom IOA Recommendations</h2></div><div class="section-body">
+<table><thead><tr><th>IOA name</th><th>Promotes</th><th>Pattern</th><th>Exclusions</th><th>Deployment path</th></tr></thead><tbody><tr><td>Shadow copy deletion via vssadmin or wmic</td><td>Promote Q1</td><td>Image vssadmin.exe with command line matching <code>delete\s+shadows</code>, or wmic.exe matching <code>shadowcopy\s+delete</code></td><td>Backup agent parents, by signer</td><td>Detect first for 14 days. Do not set to prevent until the backup-agent baseline is clean.</td></tr><tr><td>Backup and shadow storage destruction (Sigma parity)</td><td>Promote Q2</td><td>Q2 logic as an IOA process-creation rule</td><td>Ivanti/LANDesk agent parent by hash or signer</td><td>Detect only</td></tr><tr><td>Boot recovery disabled</td><td>Promote Q3</td><td>bcdedit.exe with <code>recoveryenabled\s+(no|off)</code></td><td>Deployment tooling parents</td><td>Detect only</td></tr></tbody></table><p>Q4 to Q12 stay as hunt or scheduled-search content. Q5 and Q6 depend on ransomware-protection telemetry and should be validated before scheduling. Prevent postures on native binaries are deliberately not recommended here.</p>
+</div></div>
+<div class="section" id="s10"><div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div><div class="section-body">
+<div class="ioc-grab-grid"><div class="ioc-grab"><div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import, 1 row</span></div><button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+sha256,dc039dee58a3f5795ffc0f60edb3e346accdeeacb35f253befe27b7d1022dea7,detect,medium,2027-02-17,Neutrino ransomware sandbox sample win-x64.exe (single source: Gridinsoft reference to a VirusTotal behavior report),campaign:Neutrino-ransomware
+# No domain, IP or other hash rows: no source snapshot contains any.
+# REPLACE_WITH_C2_DOMAIN: none published; add only after a primary source names one.</pre></div>
+<div class="ioc-grab"><div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">hunt strings</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-behavior',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-behavior">Behavioral signatures (hunt, never import)
+extension       .neutrino  (random-string basename; examples 5xnraLY2.neutrino, CDCVxoqT.neutrino)
+ransom note     README-RECOVERY.txt in affected directories
+wallpaper       desktop set to an encryption notice with a victim reference ID
+cmdline         vssadmin.exe Delete Shadows /all /quiet
+cmdline         wmic shadowcopy delete /nointeractive
+mutex           Global\Neutrino  (sandbox report, Gridinsoft)
+sample name     win-x64.exe  (generic, hunt lead only)
+telegram        @relaychatyours_bot  (note contact, PCrisk; single source)
+note strings    "military algorithm"; "decrypt ... one file ... less than 1MB"; "Telegram" bot with client ID</pre></div>
+<div class="ioc-grab"><div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">as named by sources</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-tooling',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-tooling">Named in the snapshots (no coined names)
+Neutrino ransomware        CYFIRMA, PCrisk, Gridinsoft
+Neutrino virus             PCrisk "Also Known As"
+Trojan:Win32/Sonbokli.A!cl Microsoft detection (PCrisk)
+Trojan:Win/Ransom.P        McAfee detection (PCrisk)
+UDS:Trojan-Ransom.Win32.Encoder  Kaspersky detection (PCrisk)
+FileRepMalware [Ransom]    Avast detection (PCrisk)
+NOT this family: Neutrino exploit kit, Neutrino botnet builder</pre></div>
+<div class="ioc-grab"><div class="igh"><span class="igt">Patch / ASR / Backup Audit</span><span class="igc">read-only checks</span></div><button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit"># Patch / ASR / backup audit (read-only checks)
+# ASR rules in effect (ids and actions)
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Actions
+# Controlled folder access mode (0 off, 1 block, 2 audit)
+(Get-MpPreference).EnableControlledFolderAccess
+# Command-line process auditing on
+reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit /v ProcessCreationIncludeCmdLine_Enabled
+# Shadow copies present right now (empty list on a server is itself a finding)
+vssadmin list shadows
+# Backup Operators membership
+Get-LocalGroupMember -Group "Backup Operators"</pre></div>
+</div><p>Falcon imports SHA-256 and MD5 only. The single row is SHA-256, so no retro-hunt query for a SHA-1 is needed. Filenames, the mutex and the Telegram handle are not importable indicator types and live in the behavioral block.</p>
+</div></div>
+<div class="section" id="s11"><div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div><div class="section-body">
+
+<ol>
+<li><strong>Telemetry ready:</strong> confirm process creation with command line is flowing for servers and workstations (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents), registry value-set telemetry (CrowdStrike: RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents), and, for Q5 and Q6, whether ransomware-protection file-open telemetry (CrowdStrike: RansomwareOpenFile) exists in your tenant at all.</li>
+<li><strong>Benign baseline:</strong> run Q1, Q2, Q3, Q7, Q8 and Q9 for 14 days; record which backup, imaging, patching and wallpaper tools appear and write exclusions by signer or hash.</li>
+<li><strong>Positive tests (lab hosts only):</strong> in an isolated VM run <code>vssadmin list shadows</code> style benign commands to confirm the parse, then run the real delete only on a snapshot-protected lab VM. Do not execute any sample. Confirm Q1 and Q2 fire and that Q3 fires on a lab <code>bcdedit</code> recovery change.</li>
+<li><strong>Promotion:</strong> Q1 and Q2 to scheduled searches and IOAs in detect mode after a clean baseline. Q4 to Q12 remain hunt content until each has produced a reviewed week of results.</li>
+</ol>
+<p class="callout callout-warn">Automated gates run on this file: structure, Falcon field names, CQL syntax and IOC provenance. They prove the pack is well-formed and that its one hash appears in a saved source. They cannot prove that <code>RansomwareOpenFile</code> carries the field values Q5 assumes, so Q5 and Q7 carry a validate-in-tenant note.</p>
+
+</div></div>
+<div class="section" id="s12"><div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered and Deployable</h2></div><div class="section-body">
+
+<p>All controls target Windows. Authority: MITRE mitigations (the why) plus Microsoft Defender attack surface reduction documentation and the CIS Microsoft Windows benchmarks (the what). Each is verifiable with the read-only checks in the section 10 audit block.</p>
+<div class="tier-blk tier-imm"><div class="tier-lbl">Immediate (this week)</div><ul>
+<li><strong>Immutable or offline backups, tested restore (M1053 Data Backup, T1486/T1490).</strong> Shadow copies are not a backup: Neutrino deletes them. Keep one copy that domain admin credentials cannot delete.</li>
+<li><strong>Command-line process auditing (M1047 Audit).</strong> Required for every command-line detection in this pack. Playbook P4.</li>
+<li><strong>ASR rule "Use advanced protection against ransomware" in audit then block (M1040 Behavior Prevention on Endpoint, T1486).</strong> Microsoft Defender documentation. Playbook P1.</li>
+<li><strong>Reduce Backup Operators and local admin membership (M1026 Privileged Account Management, T1490).</strong> CIS Windows benchmarks, user rights assignment. Playbook P6.</li>
+</ul></div>
+<div class="tier-blk tier-near"><div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div><ul>
+<li><strong>ASR rules for PSExec/WMI process creation and LSASS credential theft (M1040, M1043; T1047, T1569.002, T1003).</strong> Pilot in audit mode: the PSExec/WMI rule breaks some management tools. Playbook P1.</li>
+<li><strong>LSA protection (RunAsPPL) (M1043 Credential Access Protection, T1003).</strong> Needs driver and plug-in compatibility testing; reboot required. Playbook P3.</li>
+<li><strong>Controlled folder access (M1040, T1486)</strong> in audit mode, then block on file-server-adjacent hosts. Playbook P2.</li>
+<li><strong>MFA and patching for internet-facing and remote-access services (M1032, M1051; initial access).</strong> The sources give no vector, so apply to the commonly abused surfaces PCrisk lists: unpatched software, exposed remote services, brute-forceable logins.</li>
+<li><strong>Passive FSRM file screen on shares (M1047).</strong> Playbook P5.</li>
+</ul></div>
+<div class="tier-blk tier-strat"><div class="tier-lbl">Strategic (1 to 3 months)</div><ul>
+<li><strong>Application control (WDAC or AppLocker) limiting who may run vssadmin, wmic, diskshadow and wbadmin (M1038 Execution Prevention).</strong> <span class="badge b-med">best-practice, no formal benchmark for these specific binaries</span></li>
+<li><strong>Tiered administration and credential hygiene (M1026, M1027 Password Policies).</strong> Break the path from a compromised workstation to backup infrastructure.</li>
+<li><strong>Remove WMIC where unused (M1042 Disable or Remove Feature).</strong> Newer Windows builds ship it as a removable feature; confirm inventory use first.</li>
+<li><strong>Egress monitoring for bulk outbound transfer</strong> to catch the claimed exfiltration stage. <span class="badge b-med">best-practice, no formal benchmark</span></li>
+</ul></div>
+
+</div></div>
+<div class="section" id="s13"><div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div><div class="section-body">
+<p>Each step lists prerequisites, whether a reboot is needed, and how to undo it. Test on a pilot ring.</p><h3>P1 &middot; Attack surface reduction rules, audit mode first</h3><p><strong>Prerequisites:</strong> Microsoft Defender Antivirus active and cloud protection on; Windows 10/11 or Server 2019+. Run on a pilot ring.<br><strong>Reboot required:</strong> No</p><pre class="code"># AuditMode first. Change Audit to Enabled only after reviewing the ASR audit events.
+$ids = @(
+ 'c1db55ab-c21a-4637-bb3f-a12568109d35', # Use advanced protection against ransomware
+ 'd1e49aac-8f56-4280-b9ba-993a6d77406c', # Block process creations originating from PSExec and WMI commands
+ '9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2'  # Block credential stealing from the Windows local security authority subsystem
+)
+foreach ($id in $ids) { Add-MpPreference -AttackSurfaceReductionRules_Ids $id -AttackSurfaceReductionRules_Actions AuditMode }
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids</pre><p><strong>Rollback:</strong> set each rule back to Disabled with <code>Add-MpPreference -AttackSurfaceReductionRules_Ids &lt;id&gt; -AttackSurfaceReductionRules_Actions Disabled</code>, or remove it with <code>Remove-MpPreference -AttackSurfaceReductionRules_Ids &lt;id&gt;</code>. Rules take effect without restart.</p>
+<h3>P2 &middot; Controlled folder access, audit mode</h3><p><strong>Prerequisites:</strong> Defender Antivirus active. Inventory line-of-business apps that write to Documents and Desktop.<br><strong>Reboot required:</strong> No</p><pre class="code">Set-MpPreference -EnableControlledFolderAccess AuditMode
+(Get-MpPreference).EnableControlledFolderAccess   # 2 = audit</pre><p><strong>Rollback:</strong> <code>Set-MpPreference -EnableControlledFolderAccess Disabled</code>.</p>
+<h3>P3 &middot; LSA protection (RunAsPPL)</h3><p><strong>Prerequisites:</strong> Test all security providers, smart card and authentication plug-ins on a pilot ring first. Know that on UEFI systems Windows can lock the setting in firmware.<br><strong>Reboot required:</strong> Yes</p><pre class="code">reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v RunAsPPL /t REG_DWORD /d 1 /f
+reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v RunAsPPL</pre><p><strong>Rollback:</strong> set <code>RunAsPPL</code> to 0 and reboot. If a UEFI lock was applied, removing it needs Microsoft's documented procedure for clearing the variable; check Microsoft guidance before enabling on a fleet.</p>
+<h3>P4 &middot; Command-line process creation auditing</h3><p><strong>Prerequisites:</strong> Local or Group Policy edit rights. Event volume rises on busy servers; size the Security log.<br><strong>Reboot required:</strong> No</p><pre class="code">reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f
+auditpol /set /subcategory:"Process Creation" /success:enable
+auditpol /get /subcategory:"Process Creation"</pre><p><strong>Rollback:</strong> <code>reg delete HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit /v ProcessCreationIncludeCmdLine_Enabled /f</code> and <code>auditpol /set /subcategory:"Process Creation" /success:disable</code>.</p>
+<h3>P5 &middot; Passive FSRM file screen for the Neutrino artifacts</h3><p><strong>Prerequisites:</strong> File Server Resource Manager role installed; a notification method (email) configured. Passive mode logs and notifies without blocking writes.<br><strong>Reboot required:</strong> No</p><pre class="code">$grp = New-FsrmFileGroup -Name 'Neutrino-artifacts' -IncludePattern @('*.neutrino','README-RECOVERY.txt')
+New-FsrmFileScreen -Path 'D:\Shares' -IncludeGroup 'Neutrino-artifacts' -Active:$false</pre><p><strong>Rollback:</strong> <code>Remove-FsrmFileScreen -Path 'D:\Shares'</code> then <code>Remove-FsrmFileGroup -Name 'Neutrino-artifacts'</code>.</p>
+<h3>P6 &middot; Review Backup Operators and local admin membership</h3><p><strong>Prerequisites:</strong> Change approval. Confirm no backup service account depends on the membership you remove.<br><strong>Reboot required:</strong> No</p><pre class="code">Get-LocalGroupMember -Group 'Backup Operators'
+# Remove only after review:
+# Remove-LocalGroupMember -Group 'Backup Operators' -Member '&lt;account&gt;'</pre><p><strong>Rollback:</strong> <code>Add-LocalGroupMember -Group 'Backup Operators' -Member '&lt;account&gt;'</code> (record the original membership before changing).</p>
+
+</div></div>
+<div class="section" id="s14"><div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div><div class="section-body">
+<table><thead><tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr></thead><tbody><tr><td>Isolate</td><td>Network-contain affected hosts in Falcon. Disable the accounts seen on the hosts with shadow deletion. Disconnect backup repositories from the domain. Do not reboot hosts that are still encrypting before capturing volatile data.</td><td>IR lead</td><td>Containment timestamps, account disable log</td></tr><tr><td>Scope</td><td>Run Q1, Q2, Q3, Q4 and Q12 across all hosts. Find the earliest shadow-deletion host and work back for the entry point, which the sources do not identify. Search proxy and firewall logs for bulk outbound transfer from that host.</td><td>IR analyst</td><td>Q1/Q2 hit list, earliest timestamp, egress review</td></tr><tr><td>Preserve</td><td>Keep one copy of <code>README-RECOVERY.txt</code> with timestamps and one small encrypted file for identification (as Gridinsoft advises). Do not run any sample outside an isolated analysis environment.</td><td>IR analyst</td><td>Hashes of preserved artifacts</td></tr><tr><td>Eradicate</td><td>Remove persistence and the payload after imaging; reset credentials for every account that logged on to affected hosts, krbtgt and service accounts if domain compromise is suspected.</td><td>IR / IAM</td><td>Credential reset records</td></tr><tr><td>Recover</td><td>Restore from the offline or immutable backup, not from shadow copies. Verify a restored file opens before declaring a host clean. Treat the theft claim as unverified until evidence shows otherwise, and involve legal for notification decisions.</td><td>IT / Legal</td><td>Restore validation, notification decision log</td></tr><tr><td>Lessons</td><td>Add backup-credential isolation, command-line auditing and the section 12 controls to the remediation plan.</td><td>Security lead</td><td>Post-incident review</td></tr></tbody></table>
+</div></div>
+<div class="section" id="s15"><div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div><div class="section-body">
+<table><thead><tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th>Coverage</th></tr></thead><tbody><tr><td>T1490 Inhibit System Recovery</td><td>vssadmin / wmic shadow deletion, Sigma variants</td><td>Q1, Q2</td><td>Promote Q1, Q2</td><td><span class="badge b-low">Good</span></td></tr><tr><td>T1490 Inhibit System Recovery</td><td>bcdedit boot recovery (inferred)</td><td>Q3</td><td>Promote Q3</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1486 Data Encrypted for Impact</td><td><code>.neutrino</code> rename and note write</td><td>Q4, Q5, Q6</td><td>none</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1486 / sample</td><td>Sandbox sample hash and filename</td><td>Q11, Q12</td><td>none</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1047 WMI</td><td>wmic shadowcopy delete only</td><td>Q1</td><td>Promote Q1</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1003, T1552.001</td><td>Credential access command lines</td><td>Q9</td><td>none</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1569.002, T1543.003</td><td>Service execution and creation</td><td>Q10</td><td>none</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1489 (not in source table)</td><td>Service stops</td><td>Q8</td><td>none</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1491.001 (derived)</td><td>Wallpaper change</td><td>Q7</td><td>none</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1564.003 Hidden Window</td><td>Hidden powershell in shadow commands</td><td>Q2</td><td>Promote Q2</td><td><span class="badge b-med">Partial</span></td></tr><tr><td>T1055 Process Injection</td><td>No injection target or API reported</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1071 Application Layer Protocol</td><td>No C2 reported; no domain, IP or URL</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1553.002 Code Signing</td><td>No signer or certificate reported</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1027.002 Software Packing</td><td>No packer reported</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr><tr><td>T1129, T1574, T1548, T1202, T1036, T1070.004</td><td>Listed, no behavior detail</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr><tr><td>Exfiltration (claimed)</td><td>No destination or tooling reported; outside endpoint telemetry</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr><tr><td>Anti-analysis (VM, debugger, sandbox checks)</td><td>No endpoint signal</td><td>none</td><td>none</td><td><span class="badge b-high">GAP</span></td></tr></tbody></table><h3>What this pack does not have</h3><ul>
+<li><strong>No confirmed sample hash set.</strong> One SHA-256 from one secondary source that could not be re-verified. No MD5 or SHA-1.</li>
+<li><strong>No confirmed C2.</strong> No domain, IP or URL appears in any snapshot. The Telegram bot is the victim negotiation contact.</li>
+<li><strong>No initial access vector.</strong> The note's breach claim is the attacker's wording.</li>
+<li><strong>The primary source's IOCs section is empty for Neutrino.</strong> It only points to an IOCs section that holds values for other threats on the page.</li>
+<li><strong>File-name detection depends on telemetry Falcon may not expose</strong> (Q5, Q6) and on native logs (section 7).</li>
+</ul>
+<p>Validation gates (section 11): telemetry ready, benign baseline, positive tests in an isolated lab, promotion of Q1 and Q2 only after baseline.</p>
+</div></div>
+<div class="section" id="s16"><div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div><div class="section-body">
+<div class="ticket"><pre class="code">TITLE:      Neutrino ransomware (.neutrino) behavioral hunt
+SEVERITY:   HIGH (Windows double-extortion ransomware; theft claim unverified)
+SCOPE:      Windows endpoints, file servers, backup infrastructure
+HYPOTHESIS: A host is deleting shadow copies and boot recovery, then renaming files to random names with .neutrino and dropping README-RECOVERY.txt
+QUERIES:    Q1-Q12 (CrowdStrike CQL). Promote Q1, Q2, Q3 after baseline.
+DO FIRST:   Run Q1, Q2 across all hosts. Confirm backups are offline or immutable. Enable command-line auditing (P4).
+FINDINGS:   (fill in) hosts, accounts, earliest shadow-deletion time
+GAPS:       No confirmed C2, no initial access vector, one single-source sample hash. File-name events and exfiltration are outside endpoint telemetry unless ransomware-protection telemetry or native file auditing is present.
+ACTIONS:    Contain, preserve note and one encrypted file, scope with Q1/Q2/Q3/Q4/Q12, restore from offline backup
+OWNER:      HuntPack
+VERSION:    v0.1 2026-11-17</pre></div>
+</div></div>
+<div class="section" id="s17"><div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div><div class="section-body">
+<div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-11-17</span><span>Initial draft. Behavior-led pack for the 2026 .neutrino ransomware from three snapshotted sources: 12 CQL queries, one single-source SHA-256 (detect), no C2. Exploit kit and botnet builder content deliberately excluded.</span></div>
+</div></div>
+<div class="section" id="s18"><div class="section-hdr"><span class="snum">18</span><h2>References</h2></div><div class="section-body">
+<table><thead><tr><th>Tier</th><th>Source</th><th>Used for</th><th>Access date</th></tr></thead><tbody><tr><td>Primary</td><td><a href="https://www.cyfirma.com/news/weekly-intelligence-report-13-nov-2026/">CYFIRMA Weekly Intelligence Report, 13 Nov 2026</a></td><td>Behavior, note, command lines, ATT&amp;CK table, Sigma rule and its false positives</td><td>2026-11-17</td></tr><tr><td>Secondary</td><td><a href="https://www.pcrisk.com/removal-guides/36097-neutrino-ransomware">PCrisk: Neutrino ransomware</a></td><td>Corroboration of extension, note, wallpaper; Telegram bot handle; detection names</td><td>2026-11-17</td></tr><tr><td>Secondary</td><td><a href="https://blog.gridinsoft.com/neutrino-ransomware/">Gridinsoft: Neutrino ransomware</a></td><td>Sandbox report observations, mutex, sample hash link, disambiguation warning, decryptor status</td><td>2026-11-17</td></tr><tr><td>Cited by Gridinsoft (not fetched)</td><td><a href="https://www.virustotal.com/gui/file/dc039dee58a3f5795ffc0f60edb3e346accdeeacb35f253befe27b7d1022dea7/behavior">VirusTotal behavior report, win-x64.exe</a></td><td>Origin of the sample hash; page could not be read here</td><td>not accessed</td></tr></tbody></table>
+</div></div>
+
+<div class="footer">Generated: 2026-11-17 &middot; HuntPack v0.1 &middot; Defensive content only. Sources snapshotted in Neutrino-Ransomware-Hunt-sources/.</div>
+</div>
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  // Send the query WITH its // comments. LogScale supports '//' line comments
+  // and its own docs show a query beginning with one, so the HUNT / MITRE /
+  // CONF / FP / TUNING header travels into the search editor with the query.
+  // That header is the tuning guidance -- stripping it meant the analyst pasted
+  // a bare query into Falcon and lost the FP discriminator at the exact moment
+  // they needed it. A '|' inside a comment is safe: '//' runs to end of line,
+  // which is what makes the vendor's own '| // comment' example work.
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script></body></html>
