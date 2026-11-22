@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retadup worm / CoffeeLoader / Armoury packer — CrowdStrike CQL and SentinelOne PowerQuery Threat-Hunt Queries | HuntPack</title>
+<meta name="description" content="Ready-to-run hunt queries for Retadup worm / CoffeeLoader / Armoury packer in CrowdStrike LogScale (CQL) and SentinelOne (PowerQuery): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://slapopotamus.github.io/HuntPack/hunts/Retadup-CoffeeLoader-Hunt.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Retadup worm / CoffeeLoader / Armoury packer — CrowdStrike CQL and SentinelOne PowerQuery Threat-Hunt Queries | HuntPack">
+<meta property="og:description" content="Ready-to-run hunt queries for Retadup worm / CoffeeLoader / Armoury packer in CrowdStrike LogScale (CQL) and SentinelOne (PowerQuery): MITRE ATT&amp;CK mapping, IOCs, detection and hardening.">
+<meta property="og:url" content="https://slapopotamus.github.io/HuntPack/hunts/Retadup-CoffeeLoader-Hunt.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="Hunt and hardening pack for the revived Retadup USB worm delivering CoffeeLoader through a patched 7z.dll and the Armoury packer.">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #ff9e64;
+  --accent-dim: rgba(255,158,100,0.13);
+  --red: #f85149; --yellow: #d29922; --green: #7ee787; --purple: #d2a8ff; --blue: #58a6ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+#sidebar { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; transition: transform 0.2s ease; }
+.sidebar-logo { padding: 14px 14px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .brand { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; }
+.sidebar-logo .pack-name { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; line-height: 1.3; }
+.sidebar-logo .version { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+#sidebar nav { padding: 8px 0; }
+#sidebar nav a { display: block; padding: 4px 14px 4px 16px; color: var(--text-muted); text-decoration: none; font-size: 11.5px; border-left: 2px solid transparent; transition: all 0.12s; }
+#sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+#sidebar nav .nav-section { padding: 10px 14px 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444d56; font-weight: 700; }
+
+#toc-toggle { position: fixed; top: 10px; left: 172px; z-index: 200; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 9px; font-size: 13px; line-height: 1; cursor: pointer; transition: left 0.2s ease; font-family: inherit; }
+#toc-toggle:hover { background: var(--accent-dim); }
+#main { margin-left: 210px; padding: 24px 28px 80px; max-width: 1060px; transition: margin-left 0.2s ease; }
+body.toc-collapsed #sidebar { transform: translateX(-100%); }
+body.toc-collapsed #main { margin-left: 0; }
+body.toc-collapsed #toc-toggle { left: 10px; }
+@media (max-width: 768px) { #sidebar { transform: translateX(-100%); } #main { margin-left: 0; } #toc-toggle { left: 10px; } body.toc-shown #sidebar { transform: translateX(0); } }
+
+.hp-header { background: linear-gradient(140deg, #2a1808 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 24px; }
+.hp-header h1 { font-size: 20px; color: var(--accent); font-weight: 700; letter-spacing: -0.01em; }
+.hp-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 14px; }
+.meta-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.meta-item .mk { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.meta-item .mv { font-size: 12px; color: var(--text); font-weight: 600; }
+
+.section { margin-bottom: 28px; scroll-margin-top: 16px; }
+.section-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; }
+.section-hdr h2 { font-size: 13px; font-weight: 600; color: var(--text); }
+.snum { font-size: 10px; color: var(--accent); font-weight: 700; background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+.section-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; padding: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; max-width: 100%; }
+th { background: var(--surface2); color: var(--text-muted); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.b-high { background: rgba(248,81,73,0.18); color: #f85149; }
+.b-med { background: rgba(210,153,34,0.18); color: #d29922; }
+.b-low { background: rgba(126,231,135,0.18); color: #7ee787; }
+.b-crit { background: rgba(248,81,73,0.28); color: #ff7b72; border: 1px solid #f85149; }
+.b-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.b-purple { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+
+.cloud-sel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+.cloud-sel label { color: var(--text-muted); }
+.cloud-hint { color: var(--text-muted); flex: 1 1 240px; min-width: 0; }
+.cloud-sel select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.query-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+.qc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.qc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.qc-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.qc-actions { display: flex; gap: 6px; }
+.qc-actions button { padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.12s; font-family: inherit; }
+.btn-copy { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-copy.copied { background: rgba(126,231,135,0.18); color: #7ee787; border-color: #7ee787; }
+.btn-falcon { background: rgba(88,166,255,0.1); color: #58a6ff; border-color: rgba(88,166,255,0.5); }
+.btn-falcon:hover { background: rgba(88,166,255,0.22); }
+.qc-body { padding: 12px; }
+pre.cql { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 11px; line-height: 1.55; overflow-x: auto; color: #e6edf3; }
+.cm { color: #8b949e; font-style: italic; }
+pre.code { background: #010409; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #e6edf3; margin: 6px 0; white-space: pre; }
+
+.ioc-grab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+.ioc-grab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ioc-grab .igh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tier-blk { border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; background: var(--surface2); }
+.tier-imm { border-left: 3px solid #f85149; } .tier-near { border-left: 3px solid #d29922; } .tier-strat { border-left: 3px solid #58a6ff; }
+.tier-lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.tier-imm .tier-lbl { color: #f85149; } .tier-near .tier-lbl { color: #d29922; } .tier-strat .tier-lbl { color: #58a6ff; }
+.callout { display: block; padding: 9px 12px; border-radius: 5px; margin: 8px 0; font-size: 12px; line-height: 1.5; }
+.callout-warn { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); color: #d29922; }
+.callout-info { background: rgba(88,166,255,0.09); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; }
+.callout-danger { background: rgba(248,81,73,0.09); border: 1px solid rgba(248,81,73,0.3); color: #f85149; }
+.chg-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.chg-ver { color: var(--accent); min-width: 40px; font-weight: 700; } .chg-date { color: var(--text-muted); min-width: 88px; }
+.ticket { border: 1px dashed var(--accent); border-radius: 6px; padding: 10px 12px; background: var(--surface2); }
+.pb-title { font-weight: 700; font-size: 12.5px; margin-top: 12px; }
+.footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+p { margin-bottom: 7px; font-size: 13px; } ul, ol { padding-left: 18px; margin: 6px 0; } li { font-size: 12.5px; margin-bottom: 3px; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+h3 { font-size: 12.5px; font-weight: 700; margin: 13px 0 7px; color: var(--text); } h4 { font-size: 12px; font-weight: 600; margin: 9px 0 5px; color: var(--text-muted); }
+code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; color: var(--accent); }
+#sidebar{scrollbar-width:none}#sidebar::-webkit-scrollbar{display:none}
+</style>
+<style id="rosetta-styles">
+.rosetta-query-shell{margin-top:.75rem}
+.rosetta-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:.5rem;margin:10px 0 8px;border-bottom:1px solid var(--border,#30363d);padding-bottom:6px}
+.rosetta-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rosetta-tab{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:4px;padding:4px 9px;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;cursor:pointer}
+.rosetta-tab:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-tab[aria-selected="true"]{color:var(--accent,#f97316);background:var(--accent-dim,rgba(249,115,22,.1));border-color:var(--accent,#f97316)}
+.rosetta-tab:focus-visible,.rosetta-fallback-copy:focus-visible,.rosetta-readiness-copy:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-pane[hidden]{display:none}
+.cloud-sel[hidden]{display:none}
+.rosetta-global{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 14px;padding:9px 12px;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.rosetta-global-label{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#8b949e)}
+.rosetta-global-btns{display:flex;flex-wrap:wrap;gap:6px}
+.rosetta-global-btn{appearance:none;background:transparent;color:var(--text-muted,#8b949e);border:1px solid var(--border,#30363d);border-radius:5px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:700;line-height:1.2;cursor:pointer}
+.rosetta-global-btn:hover{color:var(--text,#e6edf3);border-color:var(--accent,#f97316)}
+.rosetta-global-btn[aria-pressed="true"]{color:var(--bg,#0d1117);background:var(--accent,#f97316);border-color:var(--accent,#f97316)}
+.rosetta-global-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-global-mixed{font-size:10.5px;color:var(--text-muted,#8b949e)}
+.rosetta-global-mixed[hidden]{display:none}
+.rosetta-console{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(56,139,253,.45);border-radius:6px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:12px}
+.rosetta-console[hidden]{display:none}
+.rosetta-console-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.rosetta-console label{color:var(--text,#e6edf3);font-weight:600}
+.rosetta-console input{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console input[aria-invalid="true"]{border-color:#f85149}
+.rosetta-console input:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-console-btn{border:1px solid var(--border,#30363d);border-radius:4px;background:var(--surface2,#21262d);color:var(--text,#e6edf3);padding:5px 10px;cursor:pointer;font:inherit;font-size:11px;font-weight:600;white-space:nowrap}
+.rosetta-console-btn:hover{border-color:var(--accent,#f97316);color:var(--accent,#f97316)}
+.rosetta-console-btn[hidden]{display:none}
+.rosetta-console-btn:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+#rosetta-console-pick{flex:0 1 260px}
+#rosetta-console-pick:disabled,.rosetta-console-btn:disabled{opacity:.5;cursor:not-allowed}
+.rosetta-console-status{font-size:11px;color:var(--text-muted,#8b949e)}
+.rosetta-console-status.bad{color:#f85149}
+.rosetta-console-hint{margin:6px 0 0;font-size:11px;line-height:1.5}
+.rosetta-console select{flex:1 1 280px;min-width:0;background:var(--bg,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--border,#30363d);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px}
+.rosetta-console select:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-open-s1,.rosetta-open-def{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-open-s1[hidden],.rosetta-open-def[hidden]{display:none}
+.rosetta-open-s1:hover,.rosetta-open-def:hover{background:var(--accent-dim,rgba(249,115,22,.1))}
+.rosetta-open-s1.done,.rosetta-open-def.done{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.rosetta-open-s1:focus-visible,.rosetta-open-def:focus-visible{outline:3px solid var(--accent,#f59e0b);outline-offset:2px}
+.rosetta-controls-end{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rosetta-fallback-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:var(--accent-dim,rgba(249,115,22,.1));color:var(--accent,#f97316);padding:3px 9px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600;white-space:nowrap}
+.rosetta-fallback-copy.copied{color:#7ee787;border-color:#7ee787;background:rgba(126,231,135,.18)}
+.query-card .rosetta-fallback-copy{display:none}
+.query-card .btn-falcon[hidden]{display:none}
+.rosetta-pane pre{max-width:100%;overflow:auto;white-space:pre}
+.rosetta-pane pre.siem-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:10px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.55;color:#e6edf3;margin:0}
+.rosetta-gap{border:1px solid rgba(210,153,34,.45);border-left:3px solid #d29922;border-radius:4px;background:rgba(210,153,34,.08);padding:10px 12px;font-size:12px;line-height:1.55;color:var(--text-muted,#8b949e)}
+.rosetta-gap strong{color:#d29922}
+.rosetta-gap ul{margin:6px 0 0;padding-left:18px}
+.rosetta-gap li{font-size:11.5px;margin-bottom:3px}
+.rosetta-release{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;color:var(--text-muted,#8b949e);font-size:10px}
+.rosetta-badge{border:1px solid var(--border,#30363d);border-radius:999px;padding:2px 7px;background:rgba(110,118,129,.12)}
+.rosetta-badge.level{color:#7ee787;border-color:rgba(126,231,135,.45)}
+.rosetta-details{margin:0 0 8px;color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-details summary{cursor:pointer;color:var(--text,#e6edf3)}
+.rosetta-details ul{margin:6px 0 0 18px}
+.rosetta-requirements{margin:0 0 8px;border:1px solid var(--border,#30363d);border-radius:5px;background:rgba(110,118,129,.06);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-requirements summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-requirements-body{padding:0 10px 10px;display:grid;gap:8px}
+.rosetta-requirements h4{margin:0 0 3px;color:var(--text,#e6edf3);font-size:11px}
+.rosetta-requirements ul{margin:0 0 0 18px;padding:0}
+.rosetta-requirements code{color:var(--accent,#f97316)}
+.rosetta-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.rosetta-readiness-copy{border:1px solid var(--accent,#f97316);border-radius:4px;background:transparent;color:var(--accent,#f97316);padding:3px 8px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:600}
+.rosetta-readiness-code{background:#010409;border:1px solid var(--border,#30363d);border-radius:4px;padding:8px 10px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:10.5px;line-height:1.5;color:#e6edf3;margin:0;max-width:100%;overflow:auto;white-space:pre}
+.rosetta-automated-validation{margin:0 0 8px;border:1px solid rgba(56,139,253,.45);border-radius:5px;background:rgba(56,139,253,.07);color:var(--text-muted,#8b949e);font-size:11px}
+.rosetta-automated-validation summary{cursor:pointer;padding:7px 9px;color:var(--text,#e6edf3);font-weight:600}
+.rosetta-automated-validation-body{padding:0 10px 9px;display:grid;gap:3px}
+.rosetta-automated-validation code{color:#79c0ff}
+.rosetta-automated-validation[data-status="failed"],.rosetta-automated-validation[data-status="fixture-failed"]{border-color:rgba(248,81,73,.55);background:rgba(248,81,73,.08)}
+.rosetta-publication{margin:14px 0;padding:12px 14px;border:1px solid rgba(249,115,22,.55);border-left:4px solid var(--accent,#f97316);border-radius:6px;background:rgba(249,115,22,.07);color:var(--text,#e6edf3);font-size:12px;line-height:1.5}
+.rosetta-publication-title{font-weight:700;margin-bottom:4px}
+.rosetta-publication-meta{color:var(--text-muted,#8b949e);font-size:11px;margin-bottom:5px}
+.rosetta-publication p{margin:0}
+@media(max-width:560px){.rosetta-global-btns{flex:1 1 100%}.rosetta-global-btn{flex:1 1 auto}.rosetta-tab{flex:1 1 auto}.rosetta-tabs{flex:1 1 100%}.rosetta-controls{align-items:stretch;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<button id="toc-toggle" onclick="toggleToc()" title="Show / hide table of contents" aria-label="Show or hide table of contents">☰</button>
+
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><a href="https://slapopotamus.github.io/HuntPack/" style="color:inherit;text-decoration:none" title="HuntPack library home">HUNTPACK</a></div>
+    <div class="pack-name">Retadup USB worm delivering CoffeeLoader</div>
+    <div class="version">v0.1 · 2026-11-22</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a href="#s1">1 · Executive Summary</a>
+    <a href="#s2">2 · Source Review</a>
+    <a href="#s3">3 · Hunt Brief &amp; Chain</a>
+    <a href="#s4">4 · IOC Table</a>
+    <a href="#s5">5 · Affected Surface</a>
+    <a href="#s6">6 · ATT&amp;CK Mapping</a>
+    <div class="nav-section">Detection</div>
+    <a href="#s7">7 · Native Hunts</a>
+    <a href="#s8">8 · SIEM Queries</a>
+    <a href="#s9" data-rosetta-original="9 · Custom IOA Recs">9 · Detection Rules</a>
+    <a href="#s10">10 · IOC Appendix</a>
+    <a href="#s11">11 · Validation Gates</a>
+    <div class="nav-section">Response</div>
+    <a href="#s12">12 · Hardening</a>
+    <a href="#s13">13 · Playbooks</a>
+    <a href="#s14">14 · Containment</a>
+    <div class="nav-section">Meta</div>
+    <a href="#s15">15 · Coverage Map</a>
+    <a href="#s16">16 · Hunt Ticket</a>
+    <a href="#s17">17 · Changelog</a>
+    <a href="#s18">18 · References</a>
+  </nav>
+</nav>
+
+<div id="main">
+  <div class="hp-header">
+    <h1>Retadup USB Worm Delivering CoffeeLoader</h1>
+    <div class="subtitle">A revived USB worm, a patched 7z.dll carrying the Armoury packer, and a CoffeeLoader downloader that persists with rundll32 and the SetCodecs export.</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="mk">Threat</div><div class="mv">Retadup worm / CoffeeLoader / Armoury packer</div></div>
+      <div class="meta-item"><div class="mk">Severity</div><div class="mv"><span class="badge b-high">HIGH</span></div></div>
+      <div class="meta-item"><div class="mk">Type</div><div class="mv">USB worm, loader, packer</div></div>
+      <div class="meta-item"><div class="mk">Access</div><div class="mv">Removable media, LNK click</div></div>
+      <div class="meta-item"><div class="mk">Version</div><div class="mv">v0.1 · 2026-11-22</div></div>
+      <div class="meta-item"><div class="mk">Author</div><div class="mv">HuntPack</div></div>
+      <div class="meta-item"><div class="mk">Confidence</div><div class="mv">Medium (single vendor source)</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-hdr"><span class="snum">01</span><h2>Executive Summary</h2></div>
+    <div class="section-body">
+      <p>Retadup is a USB worm written in AutoIt and AutoHotkey, first seen in 2017. French law enforcement took over its command servers in July 2019 and remotely disinfected more than 850,000 machines. Around 2024 someone began re-registering the old Retadup C2 domains. They first served SmokeLoader packed with the 32-bit Armoury packer, and from early 2025 they served CoffeeLoader. Kaspersky detected a new CoffeeLoader variant in August 2026 and reported roughly 15,000 systems with blocked Retadup infection attempts across the first three quarters of 2026, mostly in Peru, Angola, Russia and Bolivia.</p>
+      <p>The worm copies itself to connected flash and external drives as hidden files plus shortcut (LNK) files. A user who opens an infected drive on another PC and clicks the shortcut spreads it. The CoffeeLoader chain then starts from an NSIS installer that drops a patched copy of the 7-Zip library as <code>7z.dll</code> into a temporary directory and runs it with <code>rundll32.exe</code>. The patched library holds self-decrypting shellcode (the new Armoury packer, which now decrypts on the GPU through OpenGL compute shaders instead of OpenCL). The downloader it unpacks persists through a Run value that calls <code>rundll32.exe</code> with the <code>SetCodecs</code> export, injects into a stock Windows process, and fetches its main body over HTTPS from <code>/payload?md5=</code>.</p>
+      <p>The strongest durable signals are behavioural, not indicator lists: a folder, a DLL and a Run value all named with the same eight hexadecimal digits, the <code>rundll32 ...,SetCodecs</code> autorun, a StartupApproved value written to defeat Task Manager, and stock Windows binaries (dllhost.exe, WerFault.exe, svchost.exe, OpenWith.exe, AtBroker.exe) launched by rundll32. This pack builds ten CQL hunts around those, plus indicator retro-hunts.</p>
+      <p class="callout callout-danger">Defender priority: hunt the SetCodecs autorun and the eight-hex naming scheme first (Q1, Q2, Q3, Q6), then restrict execution from removable media. All indicators are single-sourced, so every IOC row ships at detect and nothing in this pack implements blocking.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-hdr"><span class="snum">02</span><h2>Source Review &amp; Web Hunter Notes</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tier</th><th>Source</th><th>Key Finding</th><th>Carry Forward</th></tr>
+        <tr><td><span class="badge b-info">Primary</span></td><td>Securelist (Kaspersky), "A USB worm's second life: Retadup spreading CoffeeLoader", Oleg Kupreev, 2026-11-16</td><td>Full technical analysis: Armoury OpenGL packer, SetCodecs autorun, eight-hex naming, StartupApproved value, injection targets, /payload?md5= download, C2 and hash indicators.</td><td>Yes</td></tr>
+      </table>
+      <p class="callout callout-warn">Single-source caveat. Press coverage of this report restates the same Securelist findings and is not independent corroboration, so only the Securelist article was fetched and cited. Every indicator below traces to the saved snapshot <code>01-securelist-retadup-coffeeloader.txt</code> and ships at action=detect, never prevent.</p>
+      <h3>Decisions and exclusions</h3>
+      <ul>
+        <li>The report does not name the USB shortcut or hidden-file names and gives no autorun or scheduled-task detail for the USB stage. None are invented here. USB coverage is a stated gap with one low-confidence hunt (Q10).</li>
+        <li>7-Zip is legitimate software and <code>7z.dll</code> is its real library name. No hash of stock 7-Zip is listed and no query alerts on the filename alone. The signal is a copy in a temporary or user-writable path loaded by rundll32.</li>
+        <li>The Run value name in the report's example is <code>b79faace.dll</code> (eight hex digits plus the .dll extension), matching the folder name and the DLL base name. The pattern, not the example value, is what the queries use.</li>
+        <li>SmokeLoader indicators and other "related" family values are intentionally excluded: only this campaign's own values ship.</li>
+        <li>Retadup and CoffeeLoader are the reporting's names. No new threat name is coined.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-hdr"><span class="snum">03</span><h2>Hunt Brief &amp; Attack Chain</h2></div>
+    <div class="section-body">
+      <h3>Hypotheses (highest fidelity first)</h3>
+      <ol>
+        <li>A Run-key value launches rundll32 with the SetCodecs export (Q1, Q3). Confidence high.</li>
+        <li>A folder, DLL and Run value share one eight-hex-digit name (Q2, Q6). Confidence high.</li>
+        <li>rundll32 runs a 7z.dll from a temporary or user-writable path (Q4). Confidence medium-high.</li>
+        <li>rundll32 spawns a stock Windows process from the injection target list (Q5). Confidence medium-high.</li>
+        <li>Those stock processes (or rundll32) make outbound HTTPS connections that they normally do not (Q7). Confidence medium.</li>
+        <li>Endpoints resolve a known Retadup or CoffeeLoader domain, or execute a known DLL or installer (Q8, Q9). Confidence high but perishable.</li>
+        <li>Executables are written to removable media by a non-installer process (Q10). Confidence low, hunt only.</li>
+      </ol>
+      <table>
+        <tr><th>Step</th><th>Behavior</th><th>Telemetry (plain terms, then platforms)</th><th>Hunt angle</th></tr>
+        <tr><td>1</td><td>Worm copies itself to USB drives as hidden files plus LNK shortcuts; user clicks the shortcut</td><td>Executable written to removable media (CrowdStrike: PeFileWritten, NewExecutableWritten. SentinelOne: File Creation. Defender: DeviceFileEvents). LNK and hidden-attribute writes are outside endpoint telemetry in most configurations.</td><td>Q10, gap noted</td></tr>
+        <tr><td>2</td><td>NSIS installer drops 7z.dll to a temp directory and runs it with rundll32</td><td>Process creation with command line, path and parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Q4</td></tr>
+        <tr><td>3</td><td>Armoury shellcode decrypts on the GPU with an OpenGL compute shader (local_size_x = 256, three std430 buffers)</td><td>No endpoint field exposes shader activity</td><td>Gap, behavioural follow-on covered by Q3 to Q5</td></tr>
+        <tr><td>4</td><td>Downloader copies 7z.dll into a subfolder of %PROGRAMDATA% or %LOCALAPPDATA% named with eight hex digits; the DLL carries the same name</td><td>Executable written (CrowdStrike: PeFileWritten, NewExecutableWritten. SentinelOne: File Creation. Defender: DeviceFileEvents)</td><td>Q6</td></tr>
+        <tr><td>5</td><td>Run value with the same eight hex digits plus .dll, data <code>rundll32.exe "...",SetCodecs</code>; StartupApproved\Run value added</td><td>Registry value set, autostart (CrowdStrike: AsepValueUpdate, RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents)</td><td>Q1, Q2</td></tr>
+        <tr><td>6</td><td>rundll32 executes the SetCodecs export at logon</td><td>Process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Q3</td></tr>
+        <tr><td>7</td><td>Launches and injects into dllhost.exe, WerFault.exe, svchost.exe, OpenWith.exe or AtBroker.exe</td><td>Process creation with parent (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td>Q5</td></tr>
+        <tr><td>8</td><td>HTTPS GET /payload?md5= to a hardcoded C2 (zeros first, then the MD5 of the prior payload); XOR-encrypted shellcode returned with X-Signature and X-Content-MD5 headers</td><td>Outbound connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents), DNS lookup with requesting process (CrowdStrike: DnsRequest). The URL path is outside endpoint telemetry; use proxy or TLS inspection logs.</td><td>Q7, Q8, native hunt N3</td></tr>
+        <tr><td>9</td><td>Main module runs one of three commands: inject into a process, save and run an EXE, or save as a DLL and run with rundll32</td><td>Process creation and file write telemetry as above</td><td>Q3, Q5, Q6</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-hdr"><span class="snum">04</span><h2>Consolidated IOC Table</h2></div>
+    <div class="section-body">
+      <p>All values were read out of the saved Securelist snapshot. Every row is action detect. Confidence is medium because there is one vendor source.</p>
+      <table>
+        <tr><th>Type</th><th>Value</th><th>Confidence</th><th>Action</th><th>Context</th></tr>
+        <tr><td>domain</td><td>alphanoob.com</td><td>medium</td><td>detect</td><td>Retadup C2; also hosts update.exe</td></tr>
+        <tr><td>domain</td><td>newblackage.com</td><td>medium</td><td>detect</td><td>Retadup C2</td></tr>
+        <tr><td>domain</td><td>newminersage.com</td><td>medium</td><td>detect</td><td>Retadup C2</td></tr>
+        <tr><td>domain</td><td>radnewage.com</td><td>medium</td><td>detect</td><td>Retadup C2</td></tr>
+        <tr><td>domain</td><td>minernewage.com</td><td>medium</td><td>detect</td><td>Retadup C2</td></tr>
+        <tr><td>domain</td><td>rad2016.publicvm.com</td><td>medium</td><td>detect</td><td>Retadup C2 (dynamic DNS host)</td></tr>
+        <tr><td>domain</td><td>radpal.publicvm.com</td><td>medium</td><td>detect</td><td>Retadup C2 (dynamic DNS host)</td></tr>
+        <tr><td>domain</td><td>roro2016.linkpc.net</td><td>medium</td><td>detect</td><td>Retadup C2 (dynamic DNS host)</td></tr>
+        <tr><td>domain</td><td>internet-speed-check.com</td><td>medium</td><td>detect</td><td>CoffeeLoader C2 (the report's request example uses an api. subdomain)</td></tr>
+        <tr><td>domain</td><td>rurjfvn.rs</td><td>medium</td><td>detect</td><td>Hosts update.exe, delivered by a Retadup download command</td></tr>
+        <tr><td>md5</td><td>2272dde17925d6179bea6fcf4d543d20</td><td>medium</td><td>detect</td><td>CoffeeLoader DLL</td></tr>
+        <tr><td>md5</td><td>dce55eec553f6af16ba6481eaacb8638</td><td>medium</td><td>detect</td><td>CoffeeLoader DLL</td></tr>
+        <tr><td>md5</td><td>449c9e8bc6eb308aa3c46c88959e1a4f</td><td>medium</td><td>detect</td><td>CoffeeLoader DLL</td></tr>
+        <tr><td>md5</td><td>58886d45a0c5e802a5d0a7545c36112d</td><td>medium</td><td>detect</td><td>CoffeeLoader NSIS installer</td></tr>
+        <tr><td>md5</td><td>cca710c5455c1fe2732771afbac16a09</td><td>medium</td><td>detect</td><td>CoffeeLoader NSIS installer</td></tr>
+      </table>
+      <p>The report also lists the URLs alphanoob.com/update.exe and rurjfvn.rs/update.exe. They are covered by the two domain rows and the behavioural hunts. The example eight-hex name (b79faace) is an illustration of a per-host generated value and is not an indicator.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-hdr"><span class="snum">05</span><h2>Affected Surface &amp; Telemetry Matrix</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Surface</th><th>Telemetry</th><th>Priority</th><th>Gap</th></tr>
+        <tr><td>Windows endpoints with USB or external drives</td><td>Process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents)</td><td><span class="badge b-high">High</span></td><td>None for process lineage</td></tr>
+        <tr><td>Autostart persistence</td><td>Registry value set (CrowdStrike: AsepValueUpdate, RegGenericValueUpdate. SentinelOne: Registry Value Modified. Defender: DeviceRegistryEvents)</td><td><span class="badge b-high">High</span></td><td>StartupApproved coverage depends on the sensor's registry policy; validate in tenant</td></tr>
+        <tr><td>Dropped DLLs in ProgramData and AppData\Local</td><td>Executable written (CrowdStrike: PeFileWritten, NewExecutableWritten. SentinelOne: File Creation. Defender: DeviceFileEvents)</td><td><span class="badge b-med">Medium</span></td><td>None</td></tr>
+        <tr><td>C2 over HTTPS</td><td>DNS lookup with process (CrowdStrike: DnsRequest) and outbound connection (CrowdStrike: NetworkConnectIP4. SentinelOne: IP Connect. Defender: DeviceNetworkEvents)</td><td><span class="badge b-med">Medium</span></td><td>URL path and headers are outside endpoint telemetry</td></tr>
+        <tr><td>USB shortcut and hidden-file stage</td><td>File creation and attribute changes on removable media</td><td><span class="badge b-med">Medium</span></td><td>LNK and hidden attribute are outside endpoint telemetry in a default configuration; the report gives no filenames</td></tr>
+        <tr><td>GPU shader decryption</td><td>None</td><td><span class="badge b-low">Low</span></td><td>No endpoint field exposes it</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-hdr"><span class="snum">06</span><h2>ATT&amp;CK Mapping</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tactic</th><th>Technique</th><th>Behavior</th><th>Query / Control</th></tr>
+        <tr><td>Initial Access / Lateral Movement</td><td>T1091 Replication Through Removable Media</td><td>Worm copies itself to USB and external drives</td><td>Q10, Hardening T1</td></tr>
+        <tr><td>Execution</td><td>T1204.002 User Execution: Malicious File</td><td>User clicks the shortcut on the infected drive</td><td>Q10, Hardening T1</td></tr>
+        <tr><td>Defense Evasion</td><td>T1218.011 Rundll32</td><td>7z.dll and the persisted DLL run through rundll32</td><td>Q3, Q4</td></tr>
+        <tr><td>Defense Evasion</td><td>T1027.002 Software Packing</td><td>Armoury packer with GPU decryption</td><td>Gap (no endpoint field)</td></tr>
+        <tr><td>Defense Evasion</td><td>T1055 Process Injection</td><td>Injection into dllhost.exe, WerFault.exe, svchost.exe, OpenWith.exe, AtBroker.exe</td><td>Q5, Q7</td></tr>
+        <tr><td>Defense Evasion</td><td>T1112 Modify Registry</td><td>StartupApproved\Run value hides the entry from Task Manager control</td><td>Q2</td></tr>
+        <tr><td>Defense Evasion</td><td>T1564.001 Hidden Files and Directories</td><td>Worm files hidden on removable drives</td><td>Gap</td></tr>
+        <tr><td>Persistence</td><td>T1547.001 Registry Run Keys</td><td>Run value runs rundll32 with SetCodecs</td><td>Q1, Q3, Q6</td></tr>
+        <tr><td>Command and Control</td><td>T1071.001 Web Protocols; T1105 Ingress Tool Transfer</td><td>HTTPS GET to /payload?md5=, further payloads from update.exe download commands</td><td>Q7, Q8, N3</td></tr>
+        <tr><td>Resource Development</td><td>T1583.001 Acquire Infrastructure: Domains</td><td>Former Retadup C2 domains re-registered</td><td>Q8</td></tr>
+        <tr><td>Defense Evasion</td><td>T1140 Deobfuscate/Decode Files or Information</td><td>XOR decryption of the downloaded shellcode, 16-byte key prefix</td><td>Gap</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-hdr"><span class="snum">07</span><h2>Native Audit-Log Hunts</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>ID</th><th>Source</th><th>Check</th></tr>
+        <tr><td>N1</td><td>Windows registry, offline or via EDR live response</td><td>Under <code>HKCU</code> and <code>HKLM</code> <code>Software\Microsoft\Windows\CurrentVersion\Run</code>, list values whose name matches eight hex digits plus .dll and whose data contains <code>rundll32.exe</code> and <code>SetCodecs</code>. Check the matching <code>Explorer\StartupApproved\Run</code> value for the report's disabled-by-Task-Manager marker.</td></tr>
+        <tr><td>N2</td><td>File system sweep</td><td>List <code>%PROGRAMDATA%</code> and <code>%LOCALAPPDATA%</code> for folders named with eight hex digits that contain a DLL of the same name. Hash the DLL and compare to the section 4 MD5 values. Compare the DLL's version information to the genuine 7-Zip library for the same release.</td></tr>
+        <tr><td>N3</td><td>Secure web gateway, proxy or TLS inspection logs</td><td>Search for HTTPS GET requests with path <code>/payload?md5=</code> followed by 32 hex digits, especially the first request with 32 zeros, and for response headers <code>x-signature</code> and <code>x-content-md5</code> on application/octet-stream bodies. Report host examples: an api. subdomain of the CoffeeLoader C2 domain.</td></tr>
+        <tr><td>N4</td><td>DNS or resolver logs</td><td>Search for the section 4 domains and for sinkholed Retadup C2 lookups from endpoints that should not be running AutoIt or AutoHotkey worms. Retadup's 2017 C2 protocol uses plain HTTP with Base64 and hex encoded commands, so a plaintext HTTP request with a long hex path component in proxy logs is a pivot.</td></tr>
+        <tr><td>N5</td><td>Windows Security and Sysmon (if deployed)</td><td>Sysmon event 1 for rundll32 command lines containing SetCodecs; event 13 for the Run and StartupApproved values; event 7 image loads of 7z.dll by rundll32 from a user-writable path.</td></tr>
+        <tr><td>N6</td><td>Removable media inspection</td><td>On a quarantined, read-only mount of a suspect drive, list hidden files and shortcut files at the drive root and compare their targets. Do not open any shortcut on a production workstation.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-hdr"><span class="snum">08</span><h2 data-rosetta-original="CrowdStrike LogScale CQL Hunt Queries">Hunt Queries: CrowdStrike CQL and SentinelOne PowerQuery</h2></div>
+    <div class="section-body">
+<div class="rosetta-global" data-rosetta-global="true" role="group" aria-label="Show every query in one language"><span class="rosetta-global-label">Show all queries in</span><div class="rosetta-global-btns"><button type="button" class="rosetta-global-btn" data-language="cql" aria-pressed="true" onclick="rosettaSetAll('cql')">CrowdStrike · CQL</button><button type="button" class="rosetta-global-btn" data-language="powerquery" aria-pressed="false" onclick="rosettaSetAll('powerquery')">SentinelOne · PowerQuery</button></div><span class="rosetta-global-mixed" hidden>Mixed: some cards were switched on their own</span></div><div class="rosetta-console" data-rosetta-console="true" hidden><div class="rosetta-console-row"><label for="rosetta-console-url">SentinelOne console:</label><input type="url" id="rosetta-console-url" placeholder="https://usea1-yourtenant.sentinelone.net/events/search?view=xdr&amp;_scopeId=...&amp;_scopeLevel=account" autocomplete="off" spellcheck="false" aria-describedby="rosetta-console-hint"><button type="button" class="rosetta-console-btn" onclick="rosettaConsoleSave()" title="Keep this console in this browser so you can switch back to it">Save</button><select id="rosetta-console-pick" onchange="rosettaConsolePick()" aria-label="Switch saved SentinelOne console"><option value="" disabled selected>No consoles saved yet</option></select><button type="button" class="rosetta-console-btn" id="rosetta-console-forget" onclick="rosettaConsoleForget()" title="Remove the console in the box from this browser">Forget</button><span class="rosetta-console-status" role="status" aria-live="polite"></span></div><p class="rosetta-console-hint" id="rosetta-console-hint">Paste your own address, taken from your browser with Event Search open in the scope you want: the whole thing, including the <code>_scopeId</code> and <code>_scopeLevel</code> parameters that aim the search. Then "Copy &amp; open SentinelOne" opens Event Search with the query and a time window already set, and copies the query as well. A bare console address still works, but it can only open the console for you to paste into. Your address is kept in this browser alone: it is never part of this page, never sent anywhere, and no address of ours is built in.</p></div>
+      <div class="cloud-sel">
+        <label for="cloud-region">Falcon cloud (drives "Open in Falcon"):</label>
+        <select id="cloud-region">
+          <option value="https://falcon.crowdstrike.com">US-1</option>
+          <option value="https://falcon.us-2.crowdstrike.com">US-2</option>
+          <option value="https://falcon.eu-1.crowdstrike.com">EU-1</option>
+          <option value="https://falcon.laggar.gcw.crowdstrike.com">US-GOV-1</option>
+          <option value="https://falcon.us-gov-2.crowdstrike.mil">US-GOV-2</option>
+        </select>
+        <span class="cloud-hint">Pick your tenant's cloud first &mdash; every "Open in Falcon" button below uses this selection.</span>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q1 · Run value launches rundll32 with the SetCodecs export</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql1',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql1')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> an autostart registry write whose data runs rundll32 with the SetCodecs export, the persistence form the report shows. Behavioural, so it survives hash and domain churn.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql1"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Registry writes the agent does not monitor are not captured.</li><li>PowerQuery assumes: registry.value holds the written value data on Registry Value Modified events.</li><li>PowerQuery assumes: The CQL&#x27;s optional exe suffix after rundll32 is subsumed by the bounded wildcard that follows it.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql1-tab" aria-controls="cql1-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery1-tab" aria-controls="powerquery1-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql1-pane" role="tabpanel" aria-labelledby="cql1-tab"><pre class="cql" id="cql1"><span class="cm">// HUNT: Run value launches rundll32 with the SetCodecs export (CoffeeLoader downloader persistence)</span>
+<span class="cm">// MITRE: T1547.001, T1218.011</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: AsepValueUpdate registry telemetry</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: none known; SetCodecs is not a documented rundll32 entry for common software</span>
+#event_simpleName=AsepValueUpdate
+| RegStringValue=/rundll32(\.exe)?.{0,200}SetCodecs/i
+| table([@timestamp, ComputerName, UserName, RegObjectName, RegValueName, RegStringValue, ContextBaseFileName, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery1-pane" role="tabpanel" aria-labelledby="powerquery1-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Registry Value Modified</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>registry.value</code>: Value data</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>registry.keyPath</code>: Key path</li><li><code>registry.valueName</code>: Value name</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Registry Value Modified&#x27; registry.value = *
+| limit 5
+| columns event.time, event.type, registry.value</pre></section></div></details><pre class="siem-code powerquery" id="powerquery1" data-language="powerquery" data-rosetta-query-id="cql1" data-lookback="7d">// HUNT: Run value launches rundll32 with the SetCodecs export (CoffeeLoader downloader persistence)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1547.001, T1218.011
+// CONF: high | FP: low
+// FALSE POSITIVES: none known; SetCodecs is not a documented rundll32 entry for common software
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate on the registry value data: rundll32 followed within 200 characters by SetCodecs. matches is case-insensitive, which reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Registry Value Modified telemetry with registry monitoring covering the Run keys
+// TUNING: None needed; the SetCodecs export name is specific. Add exclusions only after a baseline review.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Registry writes the agent does not monitor are not captured.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Registry Value Modified&#x27; registry.value matches &#x27;rundll32.{0,200}SetCodecs&#x27;
+| columns event.time, endpoint.name, src.process.user, registry.keyPath, registry.valueName, registry.value, src.process.name
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q2 · StartupApproved\Run value named with eight hex digits plus .dll</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql2',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql2')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the value written under Explorer\StartupApproved\Run so the user cannot disable the autorun from Task Manager, plus the matching Run value, where the value name is eight hex digits followed by .dll.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql2"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: The CQL also reads a generic registry value event type that has no separate SentinelOne event; only Registry Value Modified is searched.</li><li>PowerQuery assumes: registry.keyPath holds the full key path, including the Run segment.</li><li>PowerQuery assumes: StartupApproved writes appear only if the agent&#x27;s registry monitoring covers that key.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql2-tab" aria-controls="cql2-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery2-tab" aria-controls="powerquery2-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql2-pane" role="tabpanel" aria-labelledby="cql2-tab"><pre class="cql" id="cql2"><span class="cm">// HUNT: Eight-hex-digit .dll value name under Run or StartupApproved\Run</span>
+<span class="cm">// MITRE: T1547.001, T1112</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: AsepValueUpdate or RegGenericValueUpdate registry telemetry</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: none known for this exact name shape under these keys</span>
+<span class="cm">// ⚠ validate in tenant: StartupApproved writes only appear if the sensor's registry policy covers that key</span>
+#event_simpleName=/^(AsepValueUpdate|RegGenericValueUpdate)$/
+| RegObjectName=/CurrentVersion\\(Explorer\\StartupApproved\\)?Run/i
+| RegValueName=/^[0-9a-f]{8}\.dll$/i
+| table([@timestamp, ComputerName, UserName, #event_simpleName, RegObjectName, RegValueName, RegStringValue, ContextBaseFileName, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery2-pane" role="tabpanel" aria-labelledby="powerquery2-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Registry Value Modified</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>registry.keyPath</code>: Key path</li><li><code>registry.valueName</code>: Value name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>registry.value</code>: Value data</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Registry Value Modified&#x27; registry.valueName = *
+| limit 5
+| columns event.time, event.type, registry.keyPath, registry.valueName</pre></section></div></details><pre class="siem-code powerquery" id="powerquery2" data-language="powerquery" data-rosetta-query-id="cql2" data-lookback="7d">// HUNT: Eight-hex-digit .dll value name under Run or StartupApproved\Run
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1547.001, T1112
+// CONF: high | FP: low
+// FALSE POSITIVES: none known for this exact name shape under these keys
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a Run or Explorer StartupApproved Run key path and a value name of eight hex digits plus the dll extension. matches is case-insensitive, reproducing the CQL /i intent.
+// REQUIRES: SentinelOne Registry Value Modified telemetry covering the Run and StartupApproved keys
+// TUNING: None needed for this exact name shape; baseline before adding exclusions.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: The CQL also reads a generic registry value event type that has no separate SentinelOne event; only Registry Value Modified is searched.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Registry Value Modified&#x27; registry.keyPath matches &#x27;CurrentVersion[\\\\](Explorer[\\\\]StartupApproved[\\\\])?Run&#x27; registry.valueName matches &#x27;^[0-9a-f]{8}[.]dll$&#x27;
+| columns event.time, endpoint.name, src.process.user, registry.keyPath, registry.valueName, registry.value, src.process.name
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q3 · rundll32 runs an eight-hex DLL from ProgramData or AppData\Local with SetCodecs</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql3',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql3')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the logon-time execution of the persisted downloader. The folder name equals the DLL base name, which the second filter enforces; the SetCodecs alternative catches variants that drop the path shape.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql3"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: approximate-analytic</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Folder name and DLL name equality is not enforced, so an eight-hex pair that differs also matches.</li><li>PowerQuery assumes: On Process Creation, tgt.process.* is the new process and src.process.* its creator; the hunt reads only the new process.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql3-tab" aria-controls="cql3-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery3-tab" aria-controls="powerquery3-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql3-pane" role="tabpanel" aria-labelledby="cql3-tab"><pre class="cql" id="cql3"><span class="cm">// HUNT: rundll32 executes SetCodecs from an eight-hex folder and DLL name</span>
+<span class="cm">// MITRE: T1218.011, T1547.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: none known</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^rundll32(\.exe)?$/i
+| CommandLine=/\\(?&lt;hexdir&gt;[0-9a-f]{8})\\(?&lt;hexdll&gt;[0-9a-f]{8})\.dll.{0,3},\s*SetCodecs/i
+| test(hexdir == hexdll)
+| table([@timestamp, ComputerName, UserName, hexdir, CommandLine, ParentBaseFileName, SHA256HashData, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery3-pane" role="tabpanel" aria-labelledby="powerquery3-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha1</code>: Hash. Hash population varies by tenant.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = *
+| limit 5
+| columns event.time, event.type, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery3" data-language="powerquery" data-rosetta-query-id="cql3" data-lookback="7d">// HUNT: rundll32 executes SetCodecs from an eight-hex folder and DLL name
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1218.011, T1547.001
+// CONF: high | FP: low
+// FALSE POSITIVES: none known
+// EQUIVALENCE: approximate-analytic - The CQL requires the folder name and DLL name to be identical. PowerQuery has no portable way to compare two captures, so this matches any eight-hex folder and eight-hex DLL name followed by SetCodecs; the SetCodecs export keeps it narrow.
+// REQUIRES: SentinelOne Process Creation telemetry
+// TUNING: None needed; the SetCodecs export is specific. Compare the two eight-hex names by eye in the results.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Folder name and DLL name equality is not enforced, so an eight-hex pair that differs also matches.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; tgt.process.name matches &#x27;^rundll32([.]exe)?$&#x27; tgt.process.cmdline matches &#x27;[\\\\][0-9a-f]{8}[\\\\][0-9a-f]{8}[.]dll.{0,3},[ ]*SetCodecs&#x27;
+| columns event.time, endpoint.name, src.process.user, tgt.process.cmdline, src.process.name, tgt.process.image.sha1
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q4 · rundll32 loads a 7z.dll from a temporary or user-writable path</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql4',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql4')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the first stage, where an NSIS installer drops a patched 7z.dll into a temporary directory and runs it with rundll32. Genuine 7-Zip is not run through rundll32 from a user-writable path. This hunts that combination and never the filename alone. <strong>FP:</strong> portable-app launchers or developer tooling that load 7z.dll by rundll32 from a profile folder; exclude the vendor installers you know.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql4"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Portable-app launchers that call 7z.dll through rundll32 will match until excluded.</li><li>PowerQuery assumes: On Process Creation, tgt.process.* is the new process and src.process.* its creator; the hunt reads only the new process.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql4-tab" aria-controls="cql4-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery4-tab" aria-controls="powerquery4-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql4-pane" role="tabpanel" aria-labelledby="cql4-tab"><pre class="cql" id="cql4"><span class="cm">// HUNT: rundll32 invoked on 7z.dll in a temp or user-writable path</span>
+<span class="cm">// MITRE: T1218.011, T1027.002</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: portable-app launchers and developer tooling that call 7z.dll through rundll32</span>
+<span class="cm">// TUNING: exclude known software-deployment parents by ParentBaseFileName once baselined; stock 7-Zip never runs under rundll32 from AppData\Local\Temp</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| FileName=/^rundll32(\.exe)?$/i
+| CommandLine=/(\\Temp\\|\\AppData\\|\\ProgramData\\)[^,]{0,200}\\7z\.dll/i
+| table([@timestamp, ComputerName, UserName, CommandLine, ParentBaseFileName, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery4-pane" role="tabpanel" aria-labelledby="powerquery4-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.process.name</code>: Created process name</li><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Creator process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.process.image.sha1</code>: Hash. Hash population varies by tenant.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.cmdline = *
+| limit 5
+| columns event.time, event.type, tgt.process.name, tgt.process.cmdline</pre></section></div></details><pre class="siem-code powerquery" id="powerquery4" data-language="powerquery" data-rosetta-query-id="cql4" data-lookback="7d">// HUNT: rundll32 invoked on 7z.dll in a temp or user-writable path
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1218.011, T1027.002
+// CONF: medium | FP: medium
+// FALSE POSITIVES: portable-app launchers and developer tooling that call 7z.dll through rundll32
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: rundll32 whose command line names a 7z.dll under a Temp, AppData or ProgramData path, with no comma between the path and the DLL. matches is case-insensitive, reproducing the CQL /i intent.
+// REQUIRES: SentinelOne Process Creation telemetry
+// TUNING: Exclude known software-deployment creators by src.process.name once baselined; stock 7-Zip never runs under rundll32 from a Temp path.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Portable-app launchers that call 7z.dll through rundll32 will match until excluded.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; tgt.process.name matches &#x27;^rundll32([.]exe)?$&#x27; tgt.process.cmdline matches &#x27;([\\\\]Temp[\\\\]|[\\\\]AppData[\\\\]|[\\\\]ProgramData[\\\\])[^,]{0,200}[\\\\]7z[.]dll&#x27;
+| columns event.time, endpoint.name, src.process.user, tgt.process.cmdline, src.process.name, tgt.process.image.sha1
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q5 · rundll32 spawns a stock Windows injection-target process</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-med">FP MEDIUM</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql5',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql5')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the downloader launching one of dllhost.exe, WerFault.exe, svchost.exe, OpenWith.exe or AtBroker.exe and injecting into it. The stock binaries are never the signal; the rundll32 parent is. <strong>FP:</strong> some installers and COM surrogate tests start dllhost.exe from rundll32.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql5"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Installers or COM test harnesses that start dllhost from rundll32 will match until excluded.</li><li>PowerQuery assumes: On Process Creation, src.process.* is the creator and tgt.process.* the new process.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql5-tab" aria-controls="cql5-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery5-tab" aria-controls="powerquery5-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql5-pane" role="tabpanel" aria-labelledby="cql5-tab"><pre class="cql" id="cql5"><span class="cm">// HUNT: Stock Windows binary started by rundll32 (injection target list)</span>
+<span class="cm">// MITRE: T1055, T1218.011</span>
+<span class="cm">// CONF: medium  FP: medium  COST: low | REQUIRES: ProcessRollup2</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: installers or COM test harnesses that start dllhost.exe from rundll32</span>
+<span class="cm">// TUNING: OpenWith.exe and AtBroker.exe under rundll32 are rare and high value; baseline dllhost.exe and WerFault.exe first and exclude known parent command lines</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2)$/
+| ParentBaseFileName=/^rundll32(\.exe)?$/i
+| FileName=/^(dllhost|WerFault|svchost|OpenWith|AtBroker)\.exe$/i
+| table([@timestamp, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery5-pane" role="tabpanel" aria-labelledby="powerquery5-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>src.process.name</code>: Creator process name</li><li><code>tgt.process.name</code>: Created process name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.process.cmdline</code>: Created command line</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.name = *
+| limit 5
+| columns event.time, event.type, src.process.name, tgt.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery5" data-language="powerquery" data-rosetta-query-id="cql5" data-lookback="7d">// HUNT: Stock Windows binary started by rundll32 (injection target list)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1055, T1218.011
+// CONF: medium | FP: medium
+// FALSE POSITIVES: installers or COM test harnesses that start dllhost.exe from rundll32
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same predicate: a stock Windows binary from the injection-target list started by rundll32. On Process Creation the creator is src.process.* and the new process is tgt.process.*, so the CQL parent maps to src.process.name and the CQL image name to tgt.process.name.
+// REQUIRES: SentinelOne Process Creation telemetry
+// TUNING: OpenWith and AtBroker under rundll32 are rare and high value; baseline dllhost and WerFault first and exclude known creator command lines.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Installers or COM test harnesses that start dllhost from rundll32 will match until excluded.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;Process Creation&#x27; src.process.name matches &#x27;^rundll32([.]exe)?$&#x27; tgt.process.name matches &#x27;^(dllhost|WerFault|svchost|OpenWith|AtBroker)[.]exe$&#x27;
+| columns event.time, endpoint.name, src.process.user, tgt.process.name, tgt.process.cmdline, src.process.name, src.process.cmdline
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q6 · DLL written to ProgramData or AppData\Local with the same eight-hex folder and file name</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql6',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql6')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> the persistence copy of the patched library, named from system volume information. The folder and the file base name must match.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql6"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: approximate-analytic</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Folder name and DLL name equality is not enforced, so an eight-hex pair that differs also matches.</li><li>PowerQuery assumes: File Creation covers DLLs written by any process; the CQL&#x27;s PE-write event is narrower, but the path and extension predicates select the same files.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql6-tab" aria-controls="cql6-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery6-tab" aria-controls="powerquery6-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql6-pane" role="tabpanel" aria-labelledby="cql6-tab"><pre class="cql" id="cql6"><span class="cm">// HUNT: DLL dropped into an eight-hex folder with an identical eight-hex file name</span>
+<span class="cm">// MITRE: T1547.001, T1027.002</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: PeFileWritten or NewExecutableWritten</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: rare; a few updaters use hex-named cache folders but rarely with a matching DLL name</span>
+#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/
+| TargetFileName=/\\(ProgramData|AppData\\Local)\\(?&lt;hexdir&gt;[0-9a-f]{8})\\(?&lt;hexdll&gt;[0-9a-f]{8})\.dll$/i
+| test(hexdir == hexdll)
+| table([@timestamp, ComputerName, UserName, TargetFileName, ContextBaseFileName, SHA256HashData, MD5HashData, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery6-pane" role="tabpanel" aria-labelledby="powerquery6-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.file.path</code>: File path</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Writing process</li></ul></section><section><h4>Optional fields</h4><ul><li><code>tgt.file.sha256</code>: Hash. Hash population varies by tenant.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; tgt.file.path = *
+| limit 5
+| columns event.time, event.type, tgt.file.path</pre></section></div></details><pre class="siem-code powerquery" id="powerquery6" data-language="powerquery" data-rosetta-query-id="cql6" data-lookback="7d">// HUNT: DLL dropped into an eight-hex folder with an identical eight-hex file name
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1547.001, T1027.002
+// CONF: high | FP: low
+// FALSE POSITIVES: rare; a few updaters use hex-named cache folders but rarely with a matching DLL name
+// EQUIVALENCE: approximate-analytic - The CQL requires the folder name and DLL name to be identical. PowerQuery has no portable way to compare two captures, so this matches any eight-hex folder and eight-hex DLL name under ProgramData or AppData Local on a file creation event.
+// REQUIRES: SentinelOne File Creation telemetry
+// TUNING: Compare the two eight-hex names by eye in the results; a few updaters use hex-named cache folders but rarely with a DLL of the same name.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Folder name and DLL name equality is not enforced, so an eight-hex pair that differs also matches.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;File Creation&#x27; tgt.file.path matches &#x27;[\\\\](ProgramData|AppData[\\\\]Local)[\\\\][0-9a-f]{8}[\\\\][0-9a-f]{8}[.]dll$&#x27;
+| columns event.time, endpoint.name, src.process.user, tgt.file.path, src.process.name, tgt.file.sha256, tgt.file.md5
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q7 · Outbound HTTPS from rundll32 or the injection-target processes</span>
+          <div class="qc-badges"><span class="badge b-med">CONF MEDIUM</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql7',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql7')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> network connections on 443 from processes that rarely make them. OpenWith.exe and AtBroker.exe should almost never talk to the internet; rundll32 does so rarely; dllhost.exe and WerFault.exe have legitimate cases. Output is a rare-pair summary for review, not an alert. <strong>FP:</strong> WerFault.exe crash uploads and dllhost.exe thumbnail or cloud-file providers; svchost.exe is excluded because it is far too common.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql7"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: High false-positive rate by design: crash reporting and shell extensions also connect on 443.</li><li>PowerQuery assumes: On IP Connect the acting process is src.process.*.</li><li>PowerQuery assumes: estimate_distinct is an approximate distinct count.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql7-tab" aria-controls="cql7-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery7-tab" aria-controls="powerquery7-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql7-pane" role="tabpanel" aria-labelledby="cql7-tab"><pre class="cql" id="cql7"><span class="cm">// HUNT: Rare outbound 443 from rundll32 and injection-target processes</span>
+<span class="cm">// MITRE: T1055, T1071.001, T1105</span>
+<span class="cm">// CONF: medium  FP: high  COST: medium | REQUIRES: NetworkConnectIP4</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: WerFault.exe crash reporting, dllhost.exe cloud thumbnail providers, rundll32 used by shell extensions</span>
+<span class="cm">// TUNING: prioritise OpenWith.exe and AtBroker.exe; baseline WerFault.exe destinations and exclude them; review rundll32 only when the command line holds a hex-named DLL</span>
+#event_simpleName=NetworkConnectIP4
+| RemotePort=443
+| ContextBaseFileName=/^(rundll32|dllhost|WerFault|OpenWith|AtBroker)\.exe$/i
+| groupBy([ContextBaseFileName, RemoteAddressIP4], function=[count(aid, distinct=true, as=hosts), count(as=conns)])
+| sort(hosts, order=asc, limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery7-pane" role="tabpanel" aria-labelledby="powerquery7-tab" hidden><details class="rosetta-requirements"><summary>6 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>IP Connect</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>dst.port.number</code>: Remote port</li><li><code>src.process.name</code>: Acting process</li><li><code>dst.ip.address</code>: Remote address</li><li><code>agent.uuid</code>: Host identity</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;IP Connect&#x27; dst.port.number = 443
+| limit 5
+| columns event.time, event.type, src.process.name, dst.ip.address, dst.port.number, agent.uuid</pre></section></div></details><pre class="siem-code powerquery" id="powerquery7" data-language="powerquery" data-rosetta-query-id="cql7" data-lookback="7d">// HUNT: Rare outbound 443 from rundll32 and injection-target processes
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1055, T1071.001, T1105
+// CONF: medium | FP: high
+// FALSE POSITIVES: WerFault.exe crash reporting, dllhost.exe cloud thumbnail providers, rundll32 used by shell extensions
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same population and aggregation: outbound port 443 connections by rundll32 or the injection-target processes, counted per process and destination with distinct hosts, rarest first.
+// REQUIRES: SentinelOne IP Connect telemetry
+// TUNING: Prioritise OpenWith and AtBroker; baseline WerFault destinations and exclude them; review rundll32 only when its command line holds a hex-named DLL.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: High false-positive rate by design: crash reporting and shell extensions also connect on 443.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;IP Connect&#x27; dst.port.number = 443 src.process.name matches &#x27;^(rundll32|dllhost|WerFault|OpenWith|AtBroker)[.]exe$&#x27;
+| group hosts=estimate_distinct(agent.uuid), conns=count() by src.process.name, dst.ip.address
+| sort +hosts
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q8 · DNS lookups for Retadup and CoffeeLoader domains</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql8',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql8')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> endpoint DNS queries for any of the ten domains in section 4, including subdomains such as the api. host in the report's request example. Domain infrastructure is perishable, so treat a miss as uninformative.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql8"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: approximate-analytic</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: A name that embeds a listed domain as a substring also matches.</li><li>PowerQuery assumes: event.dns.request holds the queried name; some schema versions name it dns.request instead.</li><li>PowerQuery assumes: On DNS Resolved events the acting process is src.process.*.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql8-tab" aria-controls="cql8-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery8-tab" aria-controls="powerquery8-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql8-pane" role="tabpanel" aria-labelledby="cql8-tab"><pre class="cql" id="cql8"><span class="cm">// HUNT: DNS lookups for Retadup C2 and CoffeeLoader domains</span>
+<span class="cm">// MITRE: T1071.001, T1583.001</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: DnsRequest</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: researchers and sinkhole monitoring</span>
+#event_simpleName=DnsRequest
+| DomainName=/(^|\.)(alphanoob\.com|newblackage\.com|newminersage\.com|radnewage\.com|minernewage\.com|rad2016\.publicvm\.com|radpal\.publicvm\.com|roro2016\.linkpc\.net|internet-speed-check\.com|rurjfvn\.rs)$/i
+| table([@timestamp, ComputerName, UserName, DomainName, ContextBaseFileName, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery8-pane" role="tabpanel" aria-labelledby="powerquery8-tab" hidden><details class="rosetta-requirements"><summary>3 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>DNS Resolved</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>event.dns.request</code>: Queried name</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>src.process.name</code>: Querying process</li></ul></section><section><h4>Fallbacks</h4><ul><li><code>event.dns.request</code> → <code>dns.request</code>: Both spellings exist across schema versions; check which one your tenant populates.</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;DNS Resolved&#x27; event.dns.request = *
+| limit 5
+| columns event.time, event.type, event.dns.request, src.process.name</pre></section></div></details><pre class="siem-code powerquery" id="powerquery8" data-language="powerquery" data-rosetta-query-id="cql8" data-lookback="7d">// HUNT: DNS lookups for Retadup C2 and CoffeeLoader domains
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1071.001, T1583.001
+// CONF: high | FP: low
+// FALSE POSITIVES: researchers and sinkhole monitoring
+// EQUIVALENCE: approximate-analytic - Same domain list, but matched by substring (a multi-value contains) instead of the CQL&#x27;s anchored suffix regex, so a name that merely embeds a listed domain also matches. contains is case-insensitive.
+// REQUIRES: SentinelOne DNS Resolved telemetry
+// TUNING: Review sinkhole and research hosts before escalating.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: A name that embeds a listed domain as a substring also matches.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;DNS Resolved&#x27; event.dns.request contains (&#x27;alphanoob.com&#x27;, &#x27;newblackage.com&#x27;, &#x27;newminersage.com&#x27;, &#x27;radnewage.com&#x27;, &#x27;minernewage.com&#x27;, &#x27;rad2016.publicvm.com&#x27;, &#x27;radpal.publicvm.com&#x27;, &#x27;roro2016.linkpc.net&#x27;, &#x27;internet-speed-check.com&#x27;, &#x27;rurjfvn.rs&#x27;)
+| columns event.time, endpoint.name, src.process.user, event.dns.request, src.process.name
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q9 · Retro-hunt for the reported CoffeeLoader DLL and installer MD5 values</span>
+          <div class="qc-badges"><span class="badge b-low">CONF HIGH</span><span class="badge b-low">FP LOW</span><span class="badge b-low">COST LOW</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql9',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql9')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> process executions or file writes whose MD5 matches the five reported hashes. Hashes change per build, so absence proves little.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql9"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: equivalent-with-schema-assumptions</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: Executables loaded from an unobserved write are matched only if the agent reports their MD5 on process creation.</li><li>PowerQuery assumes: MD5 is populated on tgt.process.image.md5 and tgt.file.md5 on this tenant; the hash fields are worth a readiness test before trusting an empty result.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql9-tab" aria-controls="cql9-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery9-tab" aria-controls="powerquery9-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql9-pane" role="tabpanel" aria-labelledby="cql9-tab"><pre class="cql" id="cql9"><span class="cm">// HUNT: Known CoffeeLoader DLL and NSIS installer MD5 values</span>
+<span class="cm">// MITRE: T1027.002, T1218.011</span>
+<span class="cm">// CONF: high  FP: low  COST: low | REQUIRES: MD5HashData on process and file-write events</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: none expected</span>
+#event_simpleName=/^(ProcessRollup2|SyntheticProcessRollup2|PeFileWritten|NewExecutableWritten)$/
+| MD5HashData=/^(2272dde17925d6179bea6fcf4d543d20|dce55eec553f6af16ba6481eaacb8638|449c9e8bc6eb308aa3c46c88959e1a4f|58886d45a0c5e802a5d0a7545c36112d|cca710c5455c1fe2732771afbac16a09)$/i
+| table([@timestamp, ComputerName, UserName, #event_simpleName, FileName, TargetFileName, ImageFileName, MD5HashData, aid])</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery9-pane" role="tabpanel" aria-labelledby="powerquery9-tab" hidden><details class="rosetta-requirements"><summary>4 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>Process Creation</li><li>File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.process.image.md5</code>: Process image MD5</li><li><code>tgt.file.md5</code>: File MD5</li></ul></section><section><h4>Recommended fields</h4><ul><li><code>tgt.file.path</code>: File path</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;Process Creation&#x27; tgt.process.image.md5 = *
+| limit 5
+| columns event.time, event.type, tgt.process.image.md5, tgt.file.md5</pre></section></div></details><pre class="siem-code powerquery" id="powerquery9" data-language="powerquery" data-rosetta-query-id="cql9" data-lookback="7d">// HUNT: Known CoffeeLoader DLL and NSIS installer MD5 values
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1027.002, T1218.011
+// CONF: high | FP: low
+// FALSE POSITIVES: none expected
+// EQUIVALENCE: equivalent-with-schema-assumptions - Same five MD5 values, matched on the created process image hash for process creation and on the file hash for file creation. in:anycase reproduces the CQL /i intent.
+// REQUIRES: SentinelOne Process Creation and File Creation telemetry with MD5 populated
+// TUNING: None; exact hash match.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: Executables loaded from an unobserved write are matched only if the agent reports their MD5 on process creation.
+// VALIDATION LEVEL: static-reviewed
+(event.type = &#x27;Process Creation&#x27; and tgt.process.image.md5 in:anycase (&#x27;2272dde17925d6179bea6fcf4d543d20&#x27;, &#x27;dce55eec553f6af16ba6481eaacb8638&#x27;, &#x27;449c9e8bc6eb308aa3c46c88959e1a4f&#x27;, &#x27;58886d45a0c5e802a5d0a7545c36112d&#x27;, &#x27;cca710c5455c1fe2732771afbac16a09&#x27;)) or (event.type = &#x27;File Creation&#x27; and tgt.file.md5 in:anycase (&#x27;2272dde17925d6179bea6fcf4d543d20&#x27;, &#x27;dce55eec553f6af16ba6481eaacb8638&#x27;, &#x27;449c9e8bc6eb308aa3c46c88959e1a4f&#x27;, &#x27;58886d45a0c5e802a5d0a7545c36112d&#x27;, &#x27;cca710c5455c1fe2732771afbac16a09&#x27;))
+| columns event.time, event.type, endpoint.name, src.process.user, tgt.process.name, tgt.process.image.path, tgt.process.image.md5, tgt.file.path, tgt.file.md5
+| sort -event.time
+| limit 200</pre></div></div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="qc-header">
+          <span class="qc-title">Q10 · Executable written to removable media (USB propagation, hunt only)</span>
+          <div class="qc-badges"><span class="badge b-high">CONF LOW</span><span class="badge b-high">FP HIGH</span><span class="badge b-med">COST MEDIUM</span></div>
+          <div class="qc-actions"><button class="btn-copy" onclick="copyQuery('cql10',this)">Copy CQL</button><button class="btn-falcon" onclick="openFalcon('cql10')">Open in Falcon</button></div>
+        </div>
+        <div class="qc-body">
+          <p><strong>Looks for:</strong> new executables landing on removable drives, a coarse proxy for the worm copying itself. The report gives no worm filenames, so this is a baseline-and-review hunt, not a detection. <strong>FP:</strong> admins and users copying installers to USB sticks, backup software.</p>
+<div class="rosetta-query-shell" data-siem-rosetta-version="1.3" data-rosetta-query-id="cql10"><div class="rosetta-release"><span class="rosetta-badge level">Validation: static-reviewed</span><span class="rosetta-badge">Equivalence: telemetry-gap</span><span class="rosetta-badge">Profiles: sentinelone-endpoint-ocsf</span></div><details class="rosetta-details"><summary>Known limitations and deployment notes</summary><ul><li>PowerQuery: No removable-media filter: every executable write is returned, so volume and false positives are far higher than in the CQL.</li><li>PowerQuery: The PE-write event is replaced by File Creation filtered on the file extension.</li><li>PowerQuery assumes: tgt.file.path begins with the drive letter, so a non-system drive letter is the manual removable-media signal.</li></ul></details><div class="rosetta-controls"><div class="rosetta-tabs" role="tablist" aria-label="SIEM query language"><button type="button" class="rosetta-tab" role="tab" id="cql10-tab" aria-controls="cql10-pane" aria-selected="true" data-language="cql" tabindex="0" onclick="rosettaSwitch(this)">CQL</button><button type="button" class="rosetta-tab" role="tab" id="powerquery10-tab" aria-controls="powerquery10-pane" aria-selected="false" data-language="powerquery" tabindex="-1" onclick="rosettaSwitch(this)">PowerQuery</button></div><div class="rosetta-controls-end"><button type="button" class="rosetta-open-s1" hidden onclick="rosettaOpenS1(this)" title="SentinelOne does not document a link that pre-fills a query: this copies the query and opens your console">Copy &amp; open SentinelOne</button><button type="button" class="rosetta-fallback-copy" data-rosetta-copy-label="Copy CQL" onclick="rosettaCopy(this)">Copy CQL</button></div></div><div class="rosetta-pane" data-lang="cql" id="cql10-pane" role="tabpanel" aria-labelledby="cql10-tab"><pre class="cql" id="cql10"><span class="cm">// HUNT: Executables written to removable media, by writing process (USB worm propagation proxy)</span>
+<span class="cm">// MITRE: T1091, T1204.002</span>
+<span class="cm">// CONF: low  FP: high  COST: medium | REQUIRES: PeFileWritten with IsOnRemovableDisk</span>
+<span class="cm">// LOOKBACK: 7d (set with the console time picker)</span>
+<span class="cm">// FALSE POSITIVES: installer copies to USB sticks, backup tools, imaging tools</span>
+<span class="cm">// TUNING: rank by writing process and review rare writers first; exclude known backup, imaging and software-distribution tools by ContextBaseFileName</span>
+<span class="cm">// ⚠ validate in tenant: confirm IsOnRemovableDisk is populated on PeFileWritten in your sensor version before relying on a zero result</span>
+#event_simpleName=/^(PeFileWritten|NewExecutableWritten)$/
+| IsOnRemovableDisk=1
+| groupBy([ContextBaseFileName, FileName], function=[count(aid, distinct=true, as=hosts), count(as=writes)])
+| sort(hosts, order=asc, limit=200)</pre></div><div class="rosetta-pane" data-lang="powerquery" id="powerquery10-pane" role="tabpanel" aria-labelledby="powerquery10-tab" hidden><details class="rosetta-requirements"><summary>5 required fields · View requirements</summary><div class="rosetta-requirements-body"><section><h4>Required telemetry</h4><ul><li>File Creation</li></ul></section><section><h4>Required fields</h4><ul><li><code>event.type</code>: Event type</li><li><code>event.time</code>: Event time</li><li><code>tgt.file.path</code>: File path</li><li><code>src.process.name</code>: Writing process</li><li><code>agent.uuid</code>: Host identity</li></ul></section><section class="rosetta-readiness"><div class="rosetta-readiness-head"><h4>Readiness test</h4><button type="button" class="rosetta-readiness-copy" onclick="rosettaCopyReadiness(this)">Copy readiness test</button></div><pre class="rosetta-readiness-code" data-rosetta-ignore="true">event.type = &#x27;File Creation&#x27; tgt.file.path = *
+| limit 5
+| columns event.time, event.type, tgt.file.path, src.process.name, agent.uuid</pre></section></div></details><pre class="siem-code powerquery" id="powerquery10" data-language="powerquery" data-rosetta-query-id="cql10" data-lookback="7d">// HUNT: Executables written to removable media, by writing process (USB worm propagation proxy)
+// SCHEMA PROFILE: sentinelone-endpoint-ocsf
+// MITRE: T1091, T1204.002
+// CONF: low | FP: high
+// FALSE POSITIVES: installer copies to USB sticks, backup tools, imaging tools
+// EQUIVALENCE: telemetry-gap - The CQL keeps only executable writes flagged as landing on removable media. No attested SentinelOne field carries that flag, so this partial pivot summarises every executable write by writing process and path and leaves the removable-media filter to the analyst.
+// REQUIRES: SentinelOne File Creation telemetry; a removable-media indicator is not available in the attested field model
+// TUNING: Review the destination path for drive letters other than the system drive, then rank by rare writers. Exclude known backup, imaging and software-distribution tools by src.process.name.
+// LOOKBACK: 7d; extend to 30d for the incident window
+// CONFIGURATION: No lookup objects required.
+// KNOWN GAPS: No removable-media filter: every executable write is returned, so volume and false positives are far higher than in the CQL. The PE-write event is replaced by File Creation filtered on the file extension.
+// VALIDATION LEVEL: static-reviewed
+event.type = &#x27;File Creation&#x27; tgt.file.path matches &#x27;[.](exe|dll|scr)$&#x27;
+| group hosts=estimate_distinct(agent.uuid), writes=count() by src.process.name, tgt.file.path
+| sort +hosts
+| limit 200</pre></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-hdr"><span class="snum">09</span><h2 data-rosetta-original="CrowdStrike Custom IOA Recommendations">Detection Rules by Platform</h2></div>
+    <div class="section-body">
+      
+<h3 data-rosetta-gen="ioa-heading" style="margin:4px 0 8px;font-size:13px">CrowdStrike: Custom IOA</h3><table>
+        <tr><th>IOA name</th><th>Pattern</th><th>Exclusions</th><th>Deployment path</th></tr>
+        <tr><td>Retadup CoffeeLoader SetCodecs autorun (Promote Q3)</td><td>Process creation: image rundll32.exe, command line matching an eight-hex DLL path followed by ,SetCodecs</td><td>None expected</td><td>Custom IOA, Detect, then Investigate after two quiet weeks</td></tr>
+        <tr><td>Rundll32 launching stock injection target (Promote Q5)</td><td>Process creation: parent rundll32.exe, image OpenWith.exe or AtBroker.exe (start narrow)</td><td>Baseline-known installers</td><td>Custom IOA, Detect only. Extend to dllhost.exe and WerFault.exe after tuning</td></tr>
+      </table>
+      <p>Neither IOA is set to Prevent. The evidence is a single vendor report, so these stay detection-only until independent corroboration or local validation exists.</p>
+    
+<div data-rosetta-gen="rules"><h3 style="margin:18px 0 8px;font-size:13px">SentinelOne: custom detection rules</h3><table><thead><tr><th>Rule</th><th>Source query</th><th>Run as</th><th>Notes</th></tr></thead><tbody><tr><td>Retadup CoffeeLoader SetCodecs autorun (Promote Q3)</td><td>Q3, PowerQuery tab</td><td>Hunt only until the gap is closed</td><td>Q3 is only an approximation here. The CQL requires the folder name and DLL name to be identical. PowerQuery has no portable way to compare two captures, so this matches any eight-hex folder and eight-hex DLL name followed by SetCodecs; the SetCodecs export keeps it narrow.</td></tr><tr><td>Rundll32 launching stock injection target (Promote Q5)</td><td>Q5, PowerQuery tab</td><td>Scheduled custom detection rule</td><td>Bind entities so the alert names the host instead of &quot;Unknown Device&quot;. This pack&#x27;s own text mentions a baseline or pilot; follow it as written</td></tr></tbody></table><p>Create the rule with <code>POST /web/api/v2.1/cloud-detection/rules</code>, <code>queryType: "scheduled"</code> and <code>queryLang: "2.0"</code>, with the query in <code>data.scheduledParams.query</code>. Use 2.0 operator spellings: a rule written with the 1.0 token <code>ContainsCIS</code> was accepted and never fired on a tenant. The API does not warn, so lint the body before deploying.</p></div></div>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-hdr"><span class="snum">10</span><h2>Machine-Readable IOC Appendix</h2></div>
+    <div class="section-body">
+      <div class="ioc-grab-grid">
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Falcon IOC Management CSV</span><span class="igc">bulk import, all rows detect</span></div>
+          <button class="btn-copy" data-label="Copy CSV" onclick="copyBlock('grab-csv',this)" style="margin:0 0 6px;">Copy CSV</button>
+<pre class="code" id="grab-csv">type,value,action,severity,expiration,description,tags
+domain,alphanoob.com,detect,high,2027-05-22,Retadup C2 and update.exe host,campaign:Retadup-CoffeeLoader
+domain,newblackage.com,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,newminersage.com,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,radnewage.com,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,minernewage.com,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,rad2016.publicvm.com,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,radpal.publicvm.com,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,roro2016.linkpc.net,detect,high,2027-05-22,Retadup C2,campaign:Retadup-CoffeeLoader
+domain,internet-speed-check.com,detect,high,2027-05-22,CoffeeLoader C2,campaign:Retadup-CoffeeLoader
+domain,rurjfvn.rs,detect,high,2027-05-22,Hosts update.exe for Retadup download command,campaign:Retadup-CoffeeLoader
+md5,2272dde17925d6179bea6fcf4d543d20,detect,high,2027-05-22,CoffeeLoader DLL,campaign:Retadup-CoffeeLoader
+md5,dce55eec553f6af16ba6481eaacb8638,detect,high,2027-05-22,CoffeeLoader DLL,campaign:Retadup-CoffeeLoader
+md5,449c9e8bc6eb308aa3c46c88959e1a4f,detect,high,2027-05-22,CoffeeLoader DLL,campaign:Retadup-CoffeeLoader
+md5,58886d45a0c5e802a5d0a7545c36112d,detect,high,2027-05-22,CoffeeLoader NSIS installer,campaign:Retadup-CoffeeLoader
+md5,cca710c5455c1fe2732771afbac16a09,detect,high,2027-05-22,CoffeeLoader NSIS installer,campaign:Retadup-CoffeeLoader</pre>
+        </div>
+<div class="ioc-grab" data-rosetta-gen="sentinelone-indicators"><div class="igh"><span class="igt">SentinelOne IOC import</span><span class="igc">not included</span></div><p style="font-size:12px;line-height:1.5;margin:0">This pack does not ship a SentinelOne import block: the import format could not be verified against SentinelOne's own documentation. Export a sample from your console and the block can be added with confidence.</p></div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Behavioral Signatures</span><span class="igc">durable, no IOC churn</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-beh',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-beh">Run value name == eight hex digits + .dll
+Run value data == rundll32.exe "&lt;dir&gt;\&lt;8hex&gt;\&lt;8hex&gt;.dll",SetCodecs
+Folder name == DLL base name == value base name (eight hex digits from volume information)
+Paths: %PROGRAMDATA%\&lt;8hex&gt;\&lt;8hex&gt;.dll and %LOCALAPPDATA%\&lt;8hex&gt;\&lt;8hex&gt;.dll
+Second value under ...\Explorer\StartupApproved\Run with the same name
+rundll32.exe parent of dllhost.exe / WerFault.exe / svchost.exe / OpenWith.exe / AtBroker.exe
+rundll32.exe running a 7z.dll from a temp or user-writable path
+HTTPS GET /payload?md5= with 32 zeros first, then the MD5 of the previous payload
+Response headers x-signature and x-content-md5; body XOR key = first 16 bytes
+Protocol magic constant 0xD1D57871 (earlier builds 0xC0FFEE42)
+Armoury shader: local_size_x = 256, three std430 buffers (data, key, result)</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Named Malware / Tooling</span><span class="igc">names as the reporting uses them</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-names',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-names">Retadup (USB worm, AutoIt and AutoHotkey, first seen 2017)
+CoffeeLoader (downloader and main module)
+Armoury (packer; OpenCL previously, OpenGL compute shader now)
+NSIS installer, patched 7-Zip library delivered as 7z.dll
+Download commands observed: update.exe from the C2-hosting servers</pre>
+        </div>
+        <div class="ioc-grab">
+          <div class="igh"><span class="igt">Removable-Media and Autorun Audit</span><span class="igc">read-only checks</span></div>
+          <button class="btn-copy" data-label="Copy" onclick="copyBlock('grab-audit',this)" style="margin:0 0 6px;">Copy</button>
+<pre class="code" id="grab-audit">Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run','HKLM:\Software\Microsoft\Windows\CurrentVersion\Run' | Format-List
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer','HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -ErrorAction SilentlyContinue
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionRules_Ids
+Get-ChildItem $env:ProgramData, $env:LOCALAPPDATA -Directory | Where-Object { $_.Name -match '^[0-9a-fA-F]{8}$' }</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s11">
+    <div class="section-hdr"><span class="snum">11</span><h2>Detection Validation Gates</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Gate</th><th>Check</th></tr>
+        <tr><td>Telemetry ready</td><td>Confirm process creation with command line (CrowdStrike: ProcessRollup2. SentinelOne: Process Creation. Defender: DeviceProcessEvents), registry value set (CrowdStrike: AsepValueUpdate, RegGenericValueUpdate), executable written (CrowdStrike: PeFileWritten) and DNS lookup with process (CrowdStrike: DnsRequest) arrive from a pilot host. Confirm StartupApproved key writes and IsOnRemovableDisk are populated.</td></tr>
+        <tr><td>Benign baseline</td><td>Run Q4, Q5, Q7 and Q10 over seven days across the fleet before alerting. Record the rundll32, dllhost.exe and WerFault.exe parent and destination populations, and the removable-media writers.</td></tr>
+        <tr><td>Positive tests</td><td>On an isolated lab host only, create a test Run value named like an eight-hex DLL with data that calls rundll32 on a harmless copy of a DLL and the SetCodecs token, then confirm Q1, Q2 and Q3 fire and clean up. Do not detonate real samples outside a malware lab.</td></tr>
+        <tr><td>Promotion</td><td>Promote Q3 and Q5 to Custom IOAs at Detect only after two clean weeks. Prevent is out of scope for this pack because the intelligence is single-sourced.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s12">
+    <div class="section-hdr"><span class="snum">12</span><h2>Hardening: Tiered &amp; Deployable</h2></div>
+    <div class="section-body">
+      <div class="tier-blk tier-imm">
+        <div class="tier-lbl">Immediate (this week)</div>
+        <ul>
+          <li>Audit ASR rule "Block untrusted and unsigned processes that run from USB" in audit mode first (MITRE M1038 Execution Prevention, M1042 Disable or Remove Feature or Program; Microsoft Defender ASR documentation). Verify with <code>Get-MpPreference</code>. See playbook PB1.</li>
+          <li>Disable AutoPlay and AutoRun for all drive types (M1042; CIS Microsoft Windows benchmark, AutoPlay settings). Note Retadup spreads through LNK shortcuts, so this reduces but does not remove the exposure. See PB2.</li>
+          <li>Train staff not to open drives from other PCs and not to click shortcuts that sit where a folder should be (M1017 User Training).</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-near">
+        <div class="tier-lbl">Near term (1 to 4 weeks, pilot first)</div>
+        <ul>
+          <li>Deny execute from removable disks by policy (M1034 Limit Hardware Installation, M1038; Group Policy "Removable Disks: Deny execute access"). Pilot with admins who run portable tools. See PB3.</li>
+          <li>Restrict removable storage to approved devices or read-only for standard users through device control (M1034). Falcon Device Control or Defender device control, whichever you own.</li>
+          <li>Alert on rundll32 executing from user-writable paths and on Run-key writes with rundll32 command data (M1047 Audit). Queries Q1, Q3 and Q4.</li>
+        </ul>
+      </div>
+      <div class="tier-blk tier-strat">
+        <div class="tier-lbl">Strategic (1 to 3 months)</div>
+        <ul>
+          <li>Application allow-listing (WDAC or AppLocker) so rundll32 and unsigned DLLs cannot load from %PROGRAMDATA% and %LOCALAPPDATA% (M1038; CIS application control guidance).</li>
+          <li>Retire USB mass storage where business process allows, or move to managed encrypted media with scanning on insertion (M1034).</li>
+          <li>Egress filtering and DNS filtering for newly re-registered or dynamic-DNS domains. Apply only after validating the domains locally, since the intelligence is single-sourced (M1031 Network Intrusion Prevention). <span class="badge b-med">best-practice, no formal benchmark for this campaign</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s13">
+    <div class="section-hdr"><span class="snum">13</span><h2>Deployable Playbooks</h2></div>
+    <div class="section-body">
+      <p class="pb-title">PB1 · ASR: block untrusted and unsigned processes from USB (audit first)</p>
+      <p><strong>Prerequisites:</strong> Microsoft Defender Antivirus is the active AV engine with real-time protection on. <strong>Reboot required:</strong> No. <strong>Rollback:</strong> set the rule to Disabled or remove it (command below).</p>
+<pre class="code">Add-MpPreference -AttackSurfaceReductionRules_Ids b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4 -AttackSurfaceReductionRules_Actions AuditMode
+# Verify
+Get-MpPreference | Select-Object AttackSurfaceReductionRules_Ids, AttackSurfaceReductionRules_Actions
+# After two weeks of clean audit events, change AuditMode to Enabled
+# Rollback
+Remove-MpPreference -AttackSurfaceReductionRules_Ids b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4</pre>
+      <p class="pb-title">PB2 · Disable AutoRun for all drive types</p>
+      <p><strong>Prerequisites:</strong> local administrator; confirm no business process depends on AutoRun media. <strong>Reboot required:</strong> Yes for the setting to apply to already-mounted drives; sign-out or reboot. <strong>Rollback:</strong> delete the value (command below).</p>
+<pre class="code">New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -Type DWord -Value 255
+# Verify
+(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer').NoDriveTypeAutoRun
+# Rollback
+Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun</pre>
+      <p class="pb-title">PB3 · Deny execute from removable disks (pilot ring)</p>
+      <p><strong>Prerequisites:</strong> pilot group agreed with users who run portable tools from USB; a documented exception path. <strong>Reboot required:</strong> No (re-insert the drive or refresh policy). <strong>Rollback:</strong> delete the value (command below).</p>
+<pre class="code">$k = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\RemovableStorageDevices\{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}'
+New-Item -Path $k -Force | Out-Null
+Set-ItemProperty -Path $k -Name Deny_Execute -Type DWord -Value 1
+# Verify
+Get-ItemProperty $k
+# Rollback
+Remove-ItemProperty -Path $k -Name Deny_Execute</pre>
+      <p class="pb-title">PB4 · Read-only sweep for the eight-hex persistence pattern</p>
+      <p><strong>Prerequisites:</strong> run in the user's context for HKCU and elevated for HKLM. <strong>Reboot required:</strong> No (read-only). <strong>Rollback:</strong> none required, the script changes nothing.</p>
+<pre class="code">$runKeys = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run','HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
+foreach ($k in $runKeys) {
+  $p = Get-ItemProperty $k -ErrorAction SilentlyContinue
+  if ($p) { $p.PSObject.Properties | Where-Object { $_.Name -match '^[0-9a-fA-F]{8}\.dll$' -or "$($_.Value)" -match 'SetCodecs' } | ForEach-Object { "$k  $($_.Name) = $($_.Value)" } }
+}
+Get-ChildItem $env:ProgramData, $env:LOCALAPPDATA -Directory -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -match '^[0-9a-fA-F]{8}$' } |
+  ForEach-Object { Get-ChildItem $_.FullName -Filter *.dll -ErrorAction SilentlyContinue | Select-Object FullName, Length, LastWriteTime }</pre>
+    </div>
+  </div>
+
+  <div class="section" id="s14">
+    <div class="section-hdr"><span class="snum">14</span><h2>Containment Runbook</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Phase</th><th>Actions</th><th>Owner</th><th>Evidence</th></tr>
+        <tr><td>Isolate</td><td>Network-contain the host in the EDR console. Do not reuse or connect any removable drive that was attached; label and bag it.</td><td>SOC L2</td><td>Containment timestamp, drive serials</td></tr>
+<tr data-rosetta-gen="isolation"><td>Isolate: by platform</td><td>CrowdStrike: network-contain the host. SentinelOne: network quarantine (Disconnect from Network; confirm the label in your console version).</td><td>SOC L2</td><td>Containment timestamp, drive serials</td></tr>
+        <tr><td>Scope</td><td>Run Q1 to Q9 across the fleet for the same eight-hex name, the same domains and the same parent chain. Find every machine that mounted the suspect drive (device history, Q10).</td><td>Threat hunter</td><td>Host list, hex names per host</td></tr>
+        <tr><td>Collect</td><td>Capture the Run and StartupApproved values, the DLL in its eight-hex folder, the dropped 7z.dll and any NSIS installer, memory of the injected process, and a read-only image of the drive.</td><td>DFIR</td><td>Hashes, memory capture, drive image</td></tr>
+        <tr><td>Eradicate</td><td>After evidence is secured, delete the Run value, the matching StartupApproved value and the hex-named folder; terminate the injected stock process; rebuild if any payload from update.exe or /payload ran. Clean the USB drives on a lab machine: restore hidden files, remove the worm copies and shortcuts.</td><td>Endpoint ops</td><td>Before and after registry export</td></tr>
+        <tr><td>Recover</td><td>Reset credentials used on the host, re-image when a second-stage payload is confirmed, then restore network access. Keep Q1 to Q9 running for 30 days.</td><td>IT, SOC</td><td>Re-image record, monitoring plan</td></tr>
+        <tr><td>Notify</td><td>Share the section 4 indicators with the threat-intel team and report any confirmed hit upstream per your process.</td><td>IR lead</td><td>Intel ticket</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="s15">
+    <div class="section-hdr"><span class="snum">15</span><h2>Detection Coverage Map</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Technique</th><th>Behavior</th><th>CQL</th><th>IOA</th><th data-rosetta-original="Coverage">CrowdStrike coverage</th><th class="rosetta-cov" title="How faithfully the SentinelOne query reproduces the CrowdStrike query for this row, never rated better than the CrowdStrike column. Static-reviewed, not tenant-tested.">SentinelOne</th></tr>
+        <tr><td>T1547.001</td><td>Run value with rundll32 SetCodecs</td><td>Q1, Q2, Q3, Q6</td><td>Yes</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q3: The CQL requires the folder name and DLL name to be identical. PowerQuery has no portable way to compare two captures, so this matches any eight-hex folder and eight-hex DLL name followed by SetCodecs; the SetCodecs export keeps it narrow.; Q6: The CQL requires the folder name and DLL name to...">Partial: Q3 approximate, Q6 approximate</span></td></tr>
+        <tr><td>T1218.011</td><td>rundll32 loading 7z.dll or a hex-named DLL</td><td>Q3, Q4</td><td>Yes</td><td><span class="badge b-low">Good</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q3: The CQL requires the folder name and DLL name to be identical. PowerQuery has no portable way to compare two captures, so this matches any eight-hex folder and eight-hex DLL name followed by SetCodecs; the SetCodecs export keeps it narrow.">Partial: Q3 approximate</span></td></tr>
+        <tr><td>T1055</td><td>Injection into stock Windows processes</td><td>Q5, Q7</td><td>Yes</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr>
+        <tr><td>T1112</td><td>StartupApproved value</td><td>Q2</td><td>No</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="This translation reproduces the CrowdStrike query, so the limit rated Partial in the CrowdStrike column applies here too. Static-reviewed, not tenant-tested. Depends on how your tenant populates the fields and event types this query reads: see the query&#x27;s known limitations and run its readiness test.">Partial: same limit as CrowdStrike</span></td></tr>
+        <tr><td>T1071.001, T1105</td><td>C2 download over HTTPS</td><td>Q7, Q8</td><td>No</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q8: Same domain list, but matched by substring (a multi-value contains) instead of the CQL&#x27;s anchored suffix regex, so a name that merely embeds a listed domain also matches. contains is case-insensitive.">Partial: Q8 approximate</span></td></tr>
+        <tr><td>T1583.001</td><td>Re-registered C2 domains</td><td>Q8</td><td>No</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q8: Same domain list, but matched by substring (a multi-value contains) instead of the CQL&#x27;s anchored suffix regex, so a name that merely embeds a listed domain also matches. contains is case-insensitive.">Partial: Q8 approximate</span></td></tr>
+        <tr><td>T1027.002</td><td>Armoury packer, patched 7z.dll</td><td>Q4, Q6, Q9</td><td>No</td><td><span class="badge b-med">Partial</span></td><td class="rosetta-cov"><span class="badge b-med" title="Q6: The CQL requires the folder name and DLL name to be identical. PowerQuery has no portable way to compare two captures, so this matches any eight-hex folder and eight-hex DLL name under ProgramData or AppData Local on a file creation event.">Partial: Q6 approximate</span></td></tr>
+        <tr><td>T1091, T1204.002</td><td>USB worm spread and shortcut click</td><td>Q10</td><td>No</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high" title="This translation reproduces the CrowdStrike query, so the limit rated GAP in the CrowdStrike column applies here too. Q10: The CQL keeps only executable writes flagged as landing on removable media. No attested SentinelOne field carries that flag, so this partial pivot summarises every executable write by writing process and path and leaves the removable-media filter to the analyst.">GAP: same limit as CrowdStrike</span></td></tr>
+        <tr><td>T1564.001</td><td>Hidden files and LNK shortcuts on drives</td><td>None</td><td>No</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr>
+        <tr><td>T1140</td><td>XOR decryption, GPU shader decrypt</td><td>None</td><td>No</td><td><span class="badge b-high">GAP</span></td><td class="rosetta-cov"><span class="badge b-high">GAP</span></td></tr>
+      </table>
+      <p>Gaps: the USB and LNK stage is outside endpoint telemetry for hidden attributes and shortcut creation, and the report names no files to hunt. The Armoury GPU decryption has no endpoint field. The /payload?md5= URL path is outside endpoint telemetry and is covered only by native hunt N3. Validation gates in section 11 apply to every query.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s16">
+    <div class="section-hdr"><span class="snum">16</span><h2>Hunt Summary Ticket</h2></div>
+    <div class="section-body">
+      <div class="ticket">
+<pre class="code">TITLE:      Hunt: Retadup USB worm delivering CoffeeLoader (Armoury packer)
+SEVERITY:   High
+SCOPE:      Windows endpoints, especially those that use USB or external drives
+HYPOTHESIS: A hex-named DLL in ProgramData or AppData\Local runs from a Run value via rundll32 and the SetCodecs export, then injects into a stock Windows process
+QUERIES:    Q1 to Q10 (section 8); native hunts N1 to N6 (section 7)
+DO FIRST:   Run Q1, Q2, Q3 and Q6 fleet-wide for 30 days; then Q8 and Q9 for the indicator retro-hunt
+FINDINGS:   (fill in on hunt completion)
+GAPS:       USB shortcut and hidden-file stage and GPU decryption are outside endpoint telemetry; URL path /payload?md5= needs proxy logs; all indicators are single-sourced (Securelist), detect only
+ACTIONS:    Contain host, secure evidence, remove Run and StartupApproved values and hex folder, scan USB drives in a lab
+OWNER:      SOC / Threat Hunting
+VERSION:    v0.1 2026-11-22</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="s17">
+    <div class="section-hdr"><span class="snum">17</span><h2>Changelog</h2></div>
+    <div class="section-body">
+      <div class="chg-entry"><span class="chg-ver">v0.1</span><span class="chg-date">2026-11-22</span><span>Initial draft. Ten CQL hunts, fifteen detect-only indicators (ten domains, five MD5 values), hardening playbooks and containment runbook, built from the Securelist report published 2026-11-16. SentinelOne PowerQuery tabs added to Q1-Q10: SIEM Query Rosetta release 0.1.0 (public-beta; static-reviewed translations).</span></div>
+    </div>
+  </div>
+
+  <div class="section" id="s18">
+    <div class="section-hdr"><span class="snum">18</span><h2>References</h2></div>
+    <div class="section-body">
+      <table>
+        <tr><th>Tier</th><th>Source</th><th>Used For</th><th>Access Date</th></tr>
+        <tr><td>Primary</td><td><a href="https://securelist.com/retadup-delivers-coffeeloader/121908/">Securelist (Kaspersky): A USB worm's second life: Retadup spreading CoffeeLoader</a></td><td>All technical behaviour, indicators, geography and history</td><td>2026-11-22</td></tr>
+      </table>
+      <div class="footer">Generated 2026-11-22 by HuntPack. Defensive content only. Source snapshots in Retadup-CoffeeLoader-Hunt-sources/.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleToc() {
+  document.body.classList.toggle('toc-collapsed');
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.toggle('toc-shown');
+  }
+}
+function copyQuery(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(function () {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  }).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = 'Copy CQL'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyBlock(id, btn) {
+  var pre = document.getElementById(id);
+  var text = pre ? pre.innerText : '';
+  var label = btn.getAttribute('data-label') || 'Copy';
+  function done() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+  navigator.clipboard.writeText(text).then(done).catch(function () {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+  });
+}
+function openFalcon(id) {
+  var region = document.getElementById('cloud-region').value;
+  var pre = document.getElementById(id);
+  if (!pre || !region) return;
+  var query = pre.innerText.trim();
+  var url = region + '/investigate/search?repo=all&start=7d&end=&searchViewInteractions=NoXSA&timezone=UTC&query=' + encodeURIComponent(query);
+  window.open(url, '_blank');
+}
+var sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', function () {
+  var scrollY = window.scrollY + 60;
+  sections.forEach(function (sec) {
+    if (scrollY >= sec.offsetTop) {
+      document.querySelectorAll('#sidebar nav a').forEach(function (a) { a.classList.remove('active'); });
+      var link = document.querySelector('#sidebar nav a[href="#' + sec.getAttribute('id') + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+});
+</script>
+<script id="rosetta-script">
+function rosettaLanguageLabel(shell){
+  const selected=shell&&shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  return selected?selected.textContent.trim():'CQL';
+}
+function rosettaUpdateCardActions(shell){
+  if(!shell)return;
+  const selected=shell.querySelector('.rosetta-tab[aria-selected="true"]');
+  const label=rosettaLanguageLabel(shell);
+  const language=selected?selected.getAttribute('data-language'):'cql';
+  // A pane with no executable query offers nothing to copy or open, so its action buttons
+  // stay hidden: the old behaviour handed the analyst an empty query to run.
+  const pane=Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const isGap=!!(pane&&pane.getAttribute('data-rosetta-gap')==='1');
+  const fallback=shell.querySelector('.rosetta-fallback-copy');
+  if(fallback){fallback.textContent='Copy '+label;fallback.setAttribute('data-rosetta-copy-label','Copy '+label);fallback.hidden=isGap;}
+  const card=shell.closest('.query-card');
+  if(!card)return;
+  const copy=card.querySelector('.qc-header .btn-copy')||card.querySelector('.btn-copy');
+  if(copy){copy.textContent='Copy '+label;copy.setAttribute('data-rosetta-copy-label','Copy '+label);copy.hidden=isGap;}
+  card.querySelectorAll('.btn-falcon').forEach(function(button){button.hidden=language!=='cql';});
+  shell.querySelectorAll('.rosetta-open-s1').forEach(function(button){button.hidden=isGap||language!=='powerquery';});
+  shell.querySelectorAll('.rosetta-open-def').forEach(function(button){button.hidden=isGap||language!=='kql';});
+}
+function rosettaSwitch(button){
+  const shell=button.closest('.rosetta-query-shell');
+  if(!shell)return;
+  shell.querySelectorAll('.rosetta-tab').forEach(function(tab){tab.setAttribute('aria-selected',tab===button?'true':'false');tab.tabIndex=tab===button?0:-1;});
+  shell.querySelectorAll('.rosetta-pane').forEach(function(pane){pane.hidden=pane.id!==button.getAttribute('aria-controls');});
+  rosettaUpdateCardActions(shell);
+  rosettaSyncGlobal();
+}
+function rosettaSyncGlobal(){
+  const langs=new Set(Array.from(document.querySelectorAll('.rosetta-query-shell')).map(function(shell){const tab=shell.querySelector('.rosetta-tab[aria-selected="true"]');return tab?tab.getAttribute('data-language'):'';}));
+  const only=langs.size===1?Array.from(langs)[0]:'';
+  document.querySelectorAll('.rosetta-global-btn').forEach(function(button){button.setAttribute('aria-pressed',button.getAttribute('data-language')===only?'true':'false');});
+  const mixed=document.querySelector('.rosetta-global-mixed');
+  if(mixed)mixed.hidden=!!only;
+  const cloud=document.querySelector('.cloud-sel');
+  if(cloud)cloud.hidden=!langs.has('cql');
+  const consoleRow=document.querySelector('[data-rosetta-console]');
+  if(consoleRow)consoleRow.hidden=!langs.has('powerquery');
+  const portalRow=document.querySelector('[data-rosetta-portal]');
+  if(portalRow)portalRow.hidden=!langs.has('kql');
+}
+// "7d" -> "7 days", the form the console uses in its own startTime parameter. Weeks
+// collapse to days and everything is capped at 7 days, so a card that states a 120-day
+// dwell window cannot silently open a 120-day console search.
+function rosettaLookbackWindow(value){
+  const match=/^(\d+)\s*([mhdw])$/i.exec((value||'').trim());
+  if(!match)return '';
+  let count=+match[1];
+  let unit=match[2].toLowerCase();
+  if(unit==='w'){count*=7;unit='d';}
+  if((unit==='d'&&count>7)||(unit==='h'&&count>168)||(unit==='m'&&count>10080)){count=7;unit='d';}
+  return count+' '+{m:'minutes',h:'hours',d:'days'}[unit];
+}
+function rosettaLookbackFromPre(pre){
+  if(!pre)return '';
+  // The renderer stamps the card's own lookback, already normalised and capped. Parsing the
+  // visible header is only a fallback for packs rendered before that attribute existed.
+  const stamped=pre.getAttribute('data-lookback');
+  if(stamped)return rosettaLookbackWindow(stamped);
+  const match=/\/\/\s*LOOKBACK:\s*(\d+\s*[mhdw])/i.exec(pre.textContent||'');
+  return match?rosettaLookbackWindow(match[1]):'';
+}
+// Keep every scope parameter the analyst pasted (_scopeId, _scopeLevel, teamToken, view,
+// _categoryId): those are what point the search at the right account or site. Only the
+// parameters we set ourselves are stripped.
+function rosettaConsoleCheck(value){
+  const text=(value||'').trim();
+  if(!text)return {ok:false,empty:true};
+  let url;
+  try{url=new URL(text);}catch(error){try{url=new URL('https://'+text);}catch(error2){return {ok:false};}}
+  if(url.protocol!=='https:'||!/(^|\.)sentinelone\.net$/i.test(url.hostname))return {ok:false};
+  ['filter','startTime','endTime','gettingStarted'].forEach(function(key){url.searchParams.delete(key);});
+  url.hash='';
+  let kind='other';
+  if(/^\/events\/search\/?$/.test(url.pathname))kind='eventsearch';
+  else if(/^xdr\./i.test(url.hostname)||/^\/(events|query)\/?$/.test(url.pathname))kind='legacy';
+  return {ok:true,href:url.href,kind:kind};
+}
+// What belongs in the console's query box: the runnable query, without the guidance
+// header. That header is 11 lines on a big hash sweep, so sending it pushes the actual
+// query out of view and inflates the URL by about a quarter, which is what tips long
+// IOC sweeps over the length limit. The clipboard still gets the fully annotated text,
+// and the time window survives because it comes from data-lookback, not the comment.
+// ROSETTA_JS is a plain (non-raw) Python string, so any escape JS needs must be doubled
+// in this file. An undoubled newline escape becomes a real line break in the emitted
+// script and breaks the string literal it sits in. That applies to comments too.
+function rosettaExecutableQuery(text){
+  const kept=String(text||'').split('\n').filter(function(line){return !/^\s*\/\//.test(line);});
+  const stripped=kept.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  return stripped||String(text||'').trim();
+}
+// Returns {href, prefilled}. Falls back to the bare console address whenever the query
+// cannot ride along, so the button still opens something useful.
+function rosettaConsoleLink(result,query,lookback){
+  if(!result||!result.ok)return null;
+  const url=new URL(result.href);
+  const text=rosettaExecutableQuery(query);
+  if(result.kind==='eventsearch'){
+    url.searchParams.set('filter',text);
+    const window_=rosettaLookbackWindow(lookback);
+    if(window_){url.searchParams.set('startTime',window_);url.searchParams.set('endTime','NOW');}
+  }else if(result.kind==='legacy'){
+    url.pathname='/query';
+    if(!url.searchParams.has('view'))url.searchParams.set('view','edr');
+    url.searchParams.set('filter',text);
+  }else{
+    return {href:result.href,prefilled:false};
+  }
+  if(url.href.length>8000)return {href:result.href,prefilled:false};
+  return {href:url.href,prefilled:true};
+}
+// Synchronous copy that reports whether it actually worked. The async clipboard API is not
+// used here: these handlers open a tab in the same click, and the new tab takes the user
+// activation the clipboard write needs.
+function rosettaCopySync(value){
+  let copied=false;
+  try{
+    const area=document.createElement('textarea');
+    area.value=value;
+    area.setAttribute('readonly','');
+    area.style.position='fixed';area.style.top='0';area.style.opacity='0';
+    document.body.appendChild(area);
+    area.select();
+    if(area.setSelectionRange)area.setSelectionRange(0,String(value).length);
+    copied=document.execCommand('copy');
+    area.remove();
+  }catch(error){copied=false;}
+  return copied;
+}
+function rosettaFlash(button,message){
+  const original=button.getAttribute('data-rosetta-open-label')||button.textContent;
+  button.setAttribute('data-rosetta-open-label',original);
+  button.textContent=message;
+  button.classList.add('done');
+  setTimeout(function(){button.textContent=original;button.classList.remove('done');},2500);
+}
+function rosettaConsoleInput(){
+  const input=document.getElementById('rosetta-console-url');
+  const status=document.querySelector('.rosetta-console-status');
+  if(!input||!status)return null;
+  const result=rosettaConsoleCheck(input.value);
+  const bad=(!result.ok&&!result.empty);
+  input.setAttribute('aria-invalid',bad?'true':'false');
+  status.className='rosetta-console-status'+(bad?' bad':'');
+  if(result.ok){
+    status.textContent='Kept in this browser only. '+(result.kind==='other'
+      ?'Opens your console without the query: paste the Event Search address to pre-fill it.'
+      :'Opens Event Search with the query and a time window already set.');
+    try{localStorage.setItem('huntpack-s1-console',result.href);}catch(error){}
+  }else{
+    status.textContent=result.empty?'':'Enter your SentinelOne console address, such as https://usea1-yourtenant.sentinelone.net/events/search?view=xdr&_scopeId=...';
+  }
+  return result;
+}
+// Saved consoles. SentinelOne has no fixed set of console hostnames to offer the way
+// Falcon's five clouds can be listed: the host is <tenant>.sentinelone.net, the tenant
+// string is specific to the customer, and a region alone carries neither the tenant nor
+// the _scopeId/_scopeLevel that aim the search. So the picker lists what this browser has
+// been given rather than anything built in, which is also what makes it useful across
+// several tenants or scopes.
+function rosettaConsoleList(){
+  try{
+    const raw=localStorage.getItem('huntpack-s1-consoles');
+    const list=raw?JSON.parse(raw):[];
+    return Array.isArray(list)?list.filter(function(x){return typeof x==='string'&&x;}):[];
+  }catch(error){return [];}
+}
+function rosettaConsoleStore(list){
+  try{localStorage.setItem('huntpack-s1-consoles',JSON.stringify(list.slice(0,12)));}catch(error){}
+}
+function rosettaConsoleLabel(href){
+  try{
+    const url=new URL(href);
+    const scope=url.searchParams.get('_scopeLevel');
+    const legacy=/^xdr\./i.test(url.hostname);
+    return url.hostname+(scope?' · '+scope:(legacy?' · legacy':''));
+  }catch(error){return href;}
+}
+function rosettaConsoleRefresh(){
+  const pick=document.getElementById('rosetta-console-pick');
+  const forget=document.getElementById('rosetta-console-forget');
+  const input=document.getElementById('rosetta-console-url');
+  if(!pick||!input)return;
+  const list=rosettaConsoleList();
+  const current=rosettaConsoleCheck(input.value);
+  pick.innerHTML='';
+  if(!list.length){
+    // Stay visible when empty. Hiding the picker until a second console was saved made
+    // the feature look absent: the reader opens the page, sees no selector, and never
+    // learns there is one.
+    const empty=document.createElement('option');
+    empty.value='';
+    empty.textContent='No consoles saved yet';
+    empty.disabled=true;
+    empty.selected=true;
+    pick.appendChild(empty);
+  }
+  list.forEach(function(href){
+    const option=document.createElement('option');
+    option.value=href;
+    option.textContent=rosettaConsoleLabel(href);
+    if(current.ok&&current.href===href)option.selected=true;
+    pick.appendChild(option);
+  });
+  pick.disabled=!list.length;
+  if(forget)forget.disabled=!list.length;
+}
+function rosettaConsoleSave(){
+  const input=document.getElementById('rosetta-console-url');
+  if(!input)return;
+  const result=rosettaConsoleCheck(input.value);
+  if(!result.ok){rosettaConsoleInput();input.focus();return;}
+  const list=rosettaConsoleList().filter(function(x){return x!==result.href;});
+  list.unshift(result.href);
+  rosettaConsoleStore(list);
+  rosettaConsoleRefresh();
+  const status=document.querySelector('.rosetta-console-status');
+  if(status)status.textContent='Saved to this browser. '+rosettaConsoleList().length+' console(s) on the list.';
+}
+function rosettaConsolePick(){
+  const pick=document.getElementById('rosetta-console-pick');
+  const input=document.getElementById('rosetta-console-url');
+  if(!pick||!input||!pick.value)return;
+  input.value=pick.value;
+  rosettaConsoleInput();
+  rosettaConsoleRefresh();
+}
+function rosettaConsoleForget(){
+  const input=document.getElementById('rosetta-console-url');
+  if(!input)return;
+  const result=rosettaConsoleCheck(input.value);
+  const list=rosettaConsoleList().filter(function(x){return !result.ok||x!==result.href;});
+  rosettaConsoleStore(list);
+  rosettaConsoleRefresh();
+  const status=document.querySelector('.rosetta-console-status');
+  if(status)status.textContent=list.length?'Removed from this browser. '+list.length+' console(s) left.':'Removed. No consoles saved in this browser.';
+}
+function rosettaOpenDefender(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  const select=document.getElementById('rosetta-portal-select');
+  if(!pre||!select)return;
+  // Copy before opening: the new tab takes this click's user activation.
+  const copied=rosettaCopySync(pre.textContent);
+  window.open(select.value+'/v2/advanced-hunting','_blank','noopener');
+  rosettaFlash(button,copied?'Copied, paste it in Advanced hunting':'Copy blocked, use Copy KQL');
+}
+function rosettaOpenS1(button){
+  const shell=button.closest('.rosetta-query-shell');
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code');
+  if(!pre)return;
+  const result=rosettaConsoleInput()||{ok:false,empty:true};
+  const input=document.getElementById('rosetta-console-url');
+  if(!result.ok){if(input){input.scrollIntoView({block:'center'});input.focus();}return;}
+  const value=pre.textContent;
+  const link=rosettaConsoleLink(result,value,rosettaLookbackFromPre(pre));
+  // Copy before opening: the new tab takes this click's user activation, which is why the
+  // previous open-then-copy order reported success on a write that had already failed.
+  const copied=rosettaCopySync(value);
+  if(link)window.open(link.href,'_blank','noopener');
+  rosettaFlash(button,link&&link.prefilled
+    ?(copied?'Opened with query (also copied)':'Opened with query')
+    :(copied?'Copied, paste it in PowerQuery':'Copy blocked, use Copy PowerQuery'));
+}
+function rosettaSetAll(language,remember){
+  document.querySelectorAll('.rosetta-query-shell').forEach(function(shell){
+    const tab=shell.querySelector('.rosetta-tab[data-language="'+language+'"]');
+    if(tab)rosettaSwitch(tab);
+  });
+  rosettaSyncGlobal();
+  if(remember!==false){try{localStorage.setItem('huntpack-query-language',language);}catch(error){}}
+}
+function rosettaCopy(button){
+  const card=button.closest('.query-card');
+  const shell=button.closest('.rosetta-query-shell')||(card&&card.querySelector('.rosetta-query-shell'));
+  const pane=shell&&Array.from(shell.querySelectorAll('.rosetta-pane')).find(function(item){return !item.hidden;});
+  const pre=pane&&pane.querySelector('pre.siem-code, pre.cql');
+  if(!pre)return;
+  const value=pre.textContent;
+  const label=button.getAttribute('data-rosetta-copy-label')||('Copy '+rosettaLanguageLabel(shell));
+  button.setAttribute('data-rosetta-copy-label',label);
+  const done=function(){button.textContent='Copied!';button.classList.add('copied');setTimeout(function(){button.textContent=button.getAttribute('data-rosetta-copy-label')||label;button.classList.remove('copied');},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+function rosettaCopyReadiness(button){
+  const block=button.closest('.rosetta-readiness');
+  const pre=block&&block.querySelector('.rosetta-readiness-code');
+  if(!pre)return;
+  const value=pre.textContent;
+  const original=button.textContent;
+  const done=function(){button.textContent='Copied!';setTimeout(function(){button.textContent=original;},1200);};
+  const fallback=function(){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(fallback);return;}
+  fallback();
+}
+document.addEventListener('click',function(event){
+  const button=event.target.closest&&event.target.closest('.query-card .btn-copy');
+  if(!button)return;
+  const shell=button.closest('.query-card').querySelector('.rosetta-query-shell');
+  if(!shell)return;
+  event.preventDefault();event.stopImmediatePropagation();rosettaCopy(button);
+},true);
+document.addEventListener('keydown',function(event){
+  const tab=event.target.closest&&event.target.closest('.rosetta-tab');
+  if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=Array.from(tab.closest('.rosetta-tabs').querySelectorAll('.rosetta-tab'));
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;
+  if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;
+  if(event.key==='Home')index=0;
+  if(event.key==='End')index=tabs.length-1;
+  event.preventDefault();tabs[index].focus();rosettaSwitch(tabs[index]);
+});
+document.querySelectorAll('.rosetta-query-shell').forEach(rosettaUpdateCardActions);
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem('huntpack-query-language');}catch(error){}
+  if(saved&&saved!=='cql'&&document.querySelector('.rosetta-global-btn[data-language="'+saved+'"]'))rosettaSetAll(saved,false);
+  else rosettaSyncGlobal();
+  const portalSelect=document.getElementById('rosetta-portal-select');
+  if(portalSelect){
+    let savedPortal=null;
+    try{savedPortal=localStorage.getItem('huntpack-defender-portal');}catch(error){}
+    if(savedPortal&&Array.from(portalSelect.options).some(function(option){return option.value===savedPortal;}))portalSelect.value=savedPortal;
+    portalSelect.addEventListener('change',function(){try{localStorage.setItem('huntpack-defender-portal',portalSelect.value);}catch(error){}});
+  }
+  const consoleInput=document.getElementById('rosetta-console-url');
+  if(consoleInput){
+    let savedConsole=null;
+    try{savedConsole=localStorage.getItem('huntpack-s1-console');}catch(error){}
+    // Carry forward the single console saved by earlier versions of this page.
+    if(savedConsole&&rosettaConsoleList().indexOf(savedConsole)<0)rosettaConsoleStore([savedConsole].concat(rosettaConsoleList()));
+    if(!savedConsole)savedConsole=rosettaConsoleList()[0]||null;
+    if(savedConsole){consoleInput.value=savedConsole;rosettaConsoleInput();}
+    consoleInput.addEventListener('input',function(){rosettaConsoleInput();rosettaConsoleRefresh();});
+    rosettaConsoleRefresh();
+  }
+})();
+</script>
+</body>
+</html>
